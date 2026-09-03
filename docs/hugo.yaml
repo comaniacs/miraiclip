@@ -1,0 +1,56 @@
+baseURL: https://miraiclip.dev/
+title: Miraiclip
+languageCode: en-us
+
+enableInlineShortcodes: true
+
+module:
+  imports:
+    - path: github.com/imfing/hextra
+
+markup:
+  goldmark:
+    renderer:
+      unsafe: true
+  highlight:
+    noClasses: false
+
+menu:
+  main:
+    - name: Docs
+      pageRef: /docs
+      weight: 1
+    - name: Roadmap
+      pageRef: /docs/roadmap
+      weight: 2
+    - name: Search
+      weight: 3
+      params:
+        type: search
+    - name: GitHub
+      weight: 4
+      url: "https://github.com/comaniacs/miraiclip"
+      params:
+        icon: github
+
+params:
+  description: A framework-agnostic, command-driven library for building video editors in the browser.
+
+  navbar:
+    displayTitle: true
+    displayLogo: false
+
+  page:
+    width: normal
+
+  theme:
+    default: system
+    displayToggle: true
+
+  footer:
+    enable: true
+    displayCopyright: true
+    displayPoweredBy: false
+
+  editURL:
+    enable: false
