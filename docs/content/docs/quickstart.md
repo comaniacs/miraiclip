@@ -4,7 +4,7 @@ weight: 2
 ---
 
 {{< callout type="warning" >}}
-Miraiclip is in early development. The API below is the design target for `@miraiclip/core` v0.1 and is not yet published to npm.
+Miraiclip is in early development. `@miraiclip/core` v0.1 is implemented in the repo but not yet published to npm — build it from source with `pnpm install && pnpm build`.
 {{< /callout >}}
 
 ## Installation
@@ -31,7 +31,7 @@ Everything is a command — deterministic, undoable, serializable.
 // Register a media asset (metadata only; core does no decoding)
 project.dispatch({
   type: "asset/add",
-  payload: { id: "intro", src: "/media/intro.mp4", durationUs: 12_000_000 },
+  payload: { id: "intro", kind: "video", src: "/media/intro.mp4", durationUs: 12_000_000 },
 });
 
 project.dispatch({ type: "track/add", payload: { id: "video-1", kind: "video" } });
@@ -39,6 +39,7 @@ project.dispatch({ type: "track/add", payload: { id: "video-1", kind: "video" } 
 project.dispatch({
   type: "clip/add",
   payload: {
+    kind: "video",
     id: "clip-1",
     trackId: "video-1",
     assetId: "intro",
@@ -54,7 +55,10 @@ Batch commands into one undoable history entry:
 
 ```ts
 project.transaction(() => {
-  project.dispatch({ type: "clip/split", payload: { clipId: "clip-1", atUs: 2_000_000 } });
+  project.dispatch({
+    type: "clip/split",
+    payload: { clipId: "clip-1", atUs: 2_000_000, newClipId: "clip-1b" },
+  });
   project.dispatch({ type: "clip/move", payload: { clipId: "clip-1", startUs: 1_000_000 } });
 });
 
@@ -67,10 +71,24 @@ project.redo();
 State changes are emitted as granular patches — the substrate for sync and collaboration:
 
 ```ts
-project.events.on("patches", ({ patches, inverse }) => {
+project.events.on("patches", ({ patches, inverse, source }) => {
   console.log(patches);
-  // e.g. [{ op: "replace", path: ["clips", "clip-1", "startUs"], value: 1000000 }]
+  // e.g. [{ op: "replace", path: "/clips/clip-1/startUs", value: 1000000 }]
 });
+```
+
+## Read state and move the playhead
+
+```ts
+// The composition document lives under state.doc
+const { tracks, clips, trackOrder } = project.getState().doc;
+
+// Playhead and selection are ephemeral: not undoable, not serialized
+project.setPlayhead(1_500_000);
+project.subscribe(
+  (s) => s.playheadUs,
+  (playheadUs) => console.log("playhead moved", playheadUs),
+);
 ```
 
 ## Save and load

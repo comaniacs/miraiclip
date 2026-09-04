@@ -2,7 +2,7 @@
 
 An open source, framework-agnostic library for building video editors in the browser. Command-driven, AI-native, collaboration-ready.
 
-> ⚠️ Miraiclip is in early development. The API below reflects the design target for `@miraiclip/core` v0.1 — see [PLAN.md](./PLAN.md) for the full roadmap.
+> ⚠️ Miraiclip is in early development. `@miraiclip/core` v0.1 is implemented in this repo but not yet published to npm — see [PLAN.md](./PLAN.md) for the roadmap and [CHANGELOG.md](./CHANGELOG.md) for what's new.
 
 ## Why Miraiclip?
 
@@ -23,7 +23,7 @@ Miraiclip is not a video editor app — it is the engine you build one with. The
 
 | Package | Status | Description |
 | --- | --- | --- |
-| `@miraiclip/core` | 🚧 in progress | Headless command-driven engine: state, commands, history, events |
+| `@miraiclip/core` | ✅ v0.1.0 (in repo, unpublished) | Headless command-driven engine: state, commands, history, events |
 | `@miraiclip/renderer` | planned | WebCodecs + WebGL playback and preview |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
@@ -42,7 +42,7 @@ const project = createProject({ width: 1920, height: 1080, fps: 30 });
 // Register a media asset (metadata only; core does no decoding)
 project.dispatch({
   type: "asset/add",
-  payload: { id: "intro", src: "/media/intro.mp4", durationUs: 12_000_000 },
+  payload: { id: "intro", kind: "video", src: "/media/intro.mp4", durationUs: 12_000_000 },
 });
 
 // Everything is a command — deterministic, undoable, serializable
@@ -50,6 +50,7 @@ project.dispatch({ type: "track/add", payload: { id: "video-1", kind: "video" } 
 project.dispatch({
   type: "clip/add",
   payload: {
+    kind: "video",
     id: "clip-1",
     trackId: "video-1",
     assetId: "intro",
@@ -60,7 +61,10 @@ project.dispatch({
 
 // Batch commands into one undoable transaction
 project.transaction(() => {
-  project.dispatch({ type: "clip/split", payload: { clipId: "clip-1", atUs: 2_000_000 } });
+  project.dispatch({
+    type: "clip/split",
+    payload: { clipId: "clip-1", atUs: 2_000_000, newClipId: "clip-1b" },
+  });
   project.dispatch({ type: "clip/move", payload: { clipId: "clip-1", startUs: 1_000_000 } });
 });
 
@@ -70,7 +74,7 @@ project.redo();
 
 // React to changes as granular patches — the substrate for sync & collaboration
 project.events.on("patches", ({ patches, inverse }) => {
-  console.log(patches); // e.g. [{ op: "replace", path: ["clips", "clip-1", "startUs"], value: 1000000 }]
+  console.log(patches); // e.g. [{ op: "replace", path: "/clips/clip-1/startUs", value: 1000000 }]
 });
 
 // Serialize the whole project to JSON and load it back
@@ -81,8 +85,11 @@ const restored = createProject(saved);
 ### Reading state
 
 ```ts
-// Read (never mutate) state directly, or subscribe to slices
-const { tracks, clips } = project.getState();
+// The composition document lives under state.doc; read it, never mutate it
+const { tracks, clips, trackOrder } = project.getState().doc;
+
+// Ephemeral session state (playhead, selection) sits beside it — not undoable
+project.setPlayhead(1_500_000);
 
 project.subscribe(
   (s) => s.playheadUs,

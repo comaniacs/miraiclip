@@ -8,8 +8,10 @@ Miraiclip provides a reactive event system that notifies you of playback changes
 ## Subscribing
 
 ```ts
-project.events.on("patches", ({ patches, inverse }) => {
-  // e.g. [{ op: "replace", path: ["clips", "clip-1", "startUs"], value: 1000000 }]
+project.events.on("patches", ({ patches, inverse, source }) => {
+  // RFC-6902 JSON Patch ops, paths relative to the document root:
+  // e.g. [{ op: "replace", path: "/clips/clip-1/startUs", value: 1000000 }]
+  // source: "dispatch" | "undo" | "redo" | "transaction-rollback"
 });
 
 project.events.on("history", ({ kind }) => {

@@ -10,7 +10,11 @@ The project state is the single source of truth for your video composition. It's
 Read state directly, or subscribe to slices:
 
 ```ts
-const { tracks, clips, playheadUs } = project.getState();
+// The composition document (serialized, undoable) lives under state.doc
+const { tracks, clips, trackOrder } = project.getState().doc;
+
+// Ephemeral session state sits beside it at the top level
+const { playheadUs, selection } = project.getState();
 
 project.subscribe(
   (s) => s.playheadUs,
@@ -18,7 +22,7 @@ project.subscribe(
 );
 ```
 
-State is never mutated directly — all writes go through the [command dispatcher](../commands).
+State is never mutated directly — the document changes only through the [command dispatcher](../commands), while ephemeral state (playhead, selection) has dedicated setters: `project.setPlayhead(us)` and `project.setSelection(ids)`. Ephemeral changes never create undo steps and are excluded from serialization.
 
 ## Timeline precision
 
