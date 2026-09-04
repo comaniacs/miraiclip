@@ -27,7 +27,7 @@ project.events.on("playhead", ({ positionUs }) => {
 
 Patches are what make the engine collaboration-ready:
 
-- **Sync** — broadcast patches (or the commands that produced them) to other clients and apply them there.
+- **Sync** — broadcast patches (or the commands that produced them) to other clients and apply them there with `applyJsonPatches(doc, patches)`.
 - **Undo/redo** — every patch set comes with its inverse; history is just stacks of patch pairs.
 - **Efficient UIs** — renderers and framework adapters can react to exactly the paths they care about instead of re-deriving everything.
 - **Audit** — the patch stream is a complete, replayable log of every change to the project.

@@ -19,7 +19,9 @@
       "require": "./dist/index.cjs"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "sideEffects": false,
   "scripts": {
     "build": "tsup",
@@ -36,5 +38,22 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "video",
+    "video-editor",
+    "timeline",
+    "webcodecs",
+    "command",
+    "undo",
+    "headless",
+    "zustand"
+  ],
+  "homepage": "https://github.com/comaniacs/miraiclip#readme",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

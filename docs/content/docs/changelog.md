@@ -1,6 +1,6 @@
 ---
 title: Changelog
-weight: 5
+weight: 6
 ---
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
@@ -9,6 +9,10 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Added
 
+- `applyJsonPatches` and `fromJsonPointer` exports: apply the engine's emitted RFC-6902 patches to a plain document copy — the follower side of the sync story.
+- Determinism and collaboration test suite: identical documents from replayed command scripts, leader→follower patch sync, inverse-patch rollback, full undo/redo round-trips, history-limit eviction, frame-boundary splits, JSON Pointer escaping in entity ids (26 tests total).
+- [Command Catalog](../command-catalog) reference page, generated from the actual Zod schemas.
+- Changesets release tooling (`pnpm changeset`, `pnpm release`) and npm publish metadata for `@miraiclip/core`.
 - CI workflow: typecheck, tests, and build for all workspace packages on every push and pull request to `main`.
 
 ## 0.1.0 — 2026-09-04

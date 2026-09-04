@@ -29,7 +29,7 @@ export {
 export { Emitter } from "./events.js";
 export type { Listener } from "./events.js";
 
-export { toJsonPatches, toJsonPointer } from "./patches.js";
+export { applyJsonPatches, fromJsonPointer, toJsonPatches, toJsonPointer } from "./patches.js";
 export type { JsonPatchOp } from "./patches.js";
 
 export * from "./timeline.js";

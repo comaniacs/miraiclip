@@ -6,6 +6,10 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ### Added
 
+- `applyJsonPatches` and `fromJsonPointer` exports in `@miraiclip/core`: apply the engine's emitted RFC-6902 patches to a plain document copy — the follower side of the sync story.
+- Determinism and collaboration test suite (`test/replay.test.ts`): identical documents from replayed command scripts, leader→follower patch sync, inverse-patch rollback, full undo/redo round-trips, history-limit eviction, frame-boundary splits, JSON Pointer escaping in entity ids (26 tests total).
+- Command Catalog reference page in the docs, generated from the actual Zod schemas.
+- Changesets release tooling (`pnpm changeset`, `pnpm release`) and npm publish metadata (keywords, homepage, `publishConfig.access: public`) for `@miraiclip/core`.
 - CI workflow (`.github/workflows/ci.yaml`): typecheck, tests, and build for all workspace packages on every push and pull request to `main`.
 
 ## [0.1.0] — 2026-09-04
