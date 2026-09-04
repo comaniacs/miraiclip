@@ -5,6 +5,12 @@ weight: 5
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
+## Unreleased
+
+### Added
+
+- CI workflow: typecheck, tests, and build for all workspace packages on every push and pull request to `main`.
+
 ## 0.1.0 — 2026-09-04
 
 First implementation of `@miraiclip/core` (in-repo, not yet published to npm).

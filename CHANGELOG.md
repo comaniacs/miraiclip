@@ -4,6 +4,10 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Added
+
+- CI workflow (`.github/workflows/ci.yaml`): typecheck, tests, and build for all workspace packages on every push and pull request to `main`.
+
 ## [0.1.0] — 2026-09-04
 
 First implementation of `@miraiclip/core` (in-repo, not yet published to npm).
