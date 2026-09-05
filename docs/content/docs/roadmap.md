@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-weight: 4
+weight: 6
 ---
 
 ## v1 — Core engine (`@miraiclip/core`) ✅ shipped

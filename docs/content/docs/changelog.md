@@ -1,6 +1,6 @@
 ---
 title: Changelog
-weight: 6
+weight: 7
 ---
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
@@ -20,6 +20,7 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Added
 
+- [Rendering](../rendering) guide documenting the in-development `@miraiclip/renderer`: the three layers, quick start, frame-accurate seek behavior, exact-frame API, and browser support.
 - `@miraiclip/renderer` video playback: `createVideoSupport` wires cached WebCodecs frames into compositor nodes (timeline→media time mapping incl. trim, throttled decode-ahead), `renderFrameAt` for exact single frames, Pixi video textures, and a Vite playground app playing real MP4s end to end.
 - `@miraiclip/renderer` compositor: patch-driven scene graph as a pure function of time behind a `SceneBackend` abstraction, clip-kind node factory registry, and the PixiJS backend for image/text clips.
 - `@miraiclip/renderer` package started with the v2 media layer: frame cache with eviction budgets and strict frame ownership, keyframe-aware abortable video pipeline, a MediaManager capping decoder use with LRU release, Step/Realtime clocks behind the `Clock` interface, and mediabunny + WebCodecs browser adapters with per-asset capability errors.
