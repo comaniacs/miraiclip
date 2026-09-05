@@ -4,6 +4,10 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Changed
+
+- Package homepage now points at the documentation site (https://comaniacs.github.io/miraiclip/); docs linked from the package and repo READMEs; "not yet published" notes removed after the 0.1.0 npm release.
+
 ## [0.1.0] — 2026-09-05
 
 First release of `@miraiclip/core`.

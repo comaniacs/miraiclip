@@ -3,8 +3,8 @@ title: Quickstart
 weight: 2
 ---
 
-{{< callout type="warning" >}}
-Miraiclip is in early development. `@miraiclip/core` v0.1 is implemented in the repo but not yet published to npm — build it from source with `pnpm install && pnpm build`.
+{{< callout type="info" >}}
+Miraiclip is in early development — pre-1.0, expect API changes between minor versions. `@miraiclip/core` is [published on npm](https://www.npmjs.com/package/@miraiclip/core).
 {{< /callout >}}
 
 ## Installation

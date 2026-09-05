@@ -2,7 +2,9 @@
 
 An open source, framework-agnostic library for building video editors in the browser. Command-driven, AI-native, collaboration-ready.
 
-> ⚠️ Miraiclip is in early development. `@miraiclip/core` v0.1 is implemented in this repo but not yet published to npm — see [PLAN.md](./PLAN.md) for the roadmap and [CHANGELOG.md](./CHANGELOG.md) for what's new.
+📖 **[Documentation](https://comaniacs.github.io/miraiclip/)** · 📦 **[`@miraiclip/core` on npm](https://www.npmjs.com/package/@miraiclip/core)**
+
+> ⚠️ Miraiclip is in early development (pre-1.0: expect API changes between minor versions). See [PLAN.md](./PLAN.md) for the roadmap and [CHANGELOG.md](./CHANGELOG.md) for what's new.
 
 ## Why Miraiclip?
 
@@ -23,7 +25,7 @@ Miraiclip is not a video editor app — it is the engine you build one with. The
 
 | Package | Status | Description |
 | --- | --- | --- |
-| `@miraiclip/core` | ✅ v0.1.0 (in repo, unpublished) | Headless command-driven engine: state, commands, history, events |
+| [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.1.0 on npm | Headless command-driven engine: state, commands, history, events |
 | `@miraiclip/renderer` | planned | WebCodecs + WebGL playback and preview |
 | `@miraiclip/react` | planned | React hooks and selectors |
 

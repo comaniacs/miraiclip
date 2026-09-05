@@ -46,7 +46,7 @@ project.events.on("patches", ({ patches }) => {
 const saved = project.toJSON();
 ```
 
-Full documentation, core concepts, and the command catalog: [github.com/comaniacs/miraiclip](https://github.com/comaniacs/miraiclip).
+**Documentation** — quickstart, core concepts, and the command catalog: [comaniacs.github.io/miraiclip](https://comaniacs.github.io/miraiclip/) · [Source](https://github.com/comaniacs/miraiclip)
 
 ## License
 
