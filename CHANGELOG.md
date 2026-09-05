@@ -4,6 +4,10 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+### Fixed
+
+- CI test/typecheck failed on fresh checkouts: workspace packages resolved `@miraiclip/core` through `exports` pointing at `dist/`, which doesn't exist before a build. Both packages now use **source `exports` in development** (`./src/index.ts`) with **`publishConfig` swapping in the dist exports at publish** — typecheck, tests, and the playground need no pre-build, the playground's Vite aliases are removed (one mechanism instead of two), and the published tarball is verified unchanged (dist-only, publint clean).
+
 ### Changed
 
 - `@miraiclip/renderer` **frame-accurate seeking** (the canonical WebCodecs settle pattern): after a hard seek, decode lead-in frames are closed instead of cached, so the display can never rewind to the keyframe or fast-forward through the GOP — it holds the last frame and snaps straight to the target. Verified in-browser against a worst-case 5-second-GOP file: mid-GOP seeks (120+ lead-in frames) resolve frame-accurately within a screenshot's latency, paused and during playback.

@@ -7,6 +7,10 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ## Unreleased
 
+### Fixed
+
+- CI on fresh checkouts: packages now expose source `exports` in development with `publishConfig` restoring dist exports at publish — no pre-build needed for typecheck/tests/playground; published tarballs unchanged.
+
 ### Changed
 
 - `@miraiclip/renderer` frame-accurate seeking via the WebCodecs settle pattern: post-seek lead-in frames are decoded but never presented, so a seek holds the last frame and snaps straight to the target — verified in-browser against a worst-case 5s-GOP file, paused and mid-playback. Playground DOM writes throttled (were ~120 layouts/sec).
