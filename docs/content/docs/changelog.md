@@ -10,32 +10,6 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 ### Added
 
 - `@miraiclip/renderer` proxy preview decode: `createWebCodecsDecoderFactory({ maxOutputDimensionPx: 1920 })` decodes large sources down to preview resolution on the GPU — fixes dropped frames on 4K60 playback (full-res was ~4 GB/s of frame copies + uploads). Scene nodes normalize scale against the source's native size (`setSourceSize`), so clips render at the same size at any decode resolution; `createWebCodecsDecoder` stays full-res for export.
-
-### Fixed
-
-- `@miraiclip/renderer` re-seek decisions now use a contiguity watermark (highest timestamp below which every frame has arrived): an out-of-order/straggling frame conversion can no longer be mistaken for an eviction and trigger a stream re-seek — profiling on 4K60 showed those spurious re-seeks (~1/sec, each redecoding 100–300 lead-in frames) were the remaining playback stutter. The watermark anchors at the seek target (not the first arrival), so a slow first conversion after a seek cannot re-trigger the seek. Frame-cache eviction is past-before-future (drop behind frames first): symmetric distance eviction was discarding fresh decode-ahead output whenever the behind-tail was short, causing a re-seek every cache-capacity of playback (~1.07s at 4K60).
-- `@miraiclip/renderer` 4K playback decode storm fixed: the decode-ahead window is sized by measured frame spacing (not reported durations, which some streams omit), and the frame under the playhead can never be evicted — dropped-frame playback measured at 3–6× decode overwork is gone. Clips also render fit-to-composition (scale 1 = contain) instead of native-pixel cropping.
-- `@miraiclip/renderer` re-seeks are decided from stream state, not decode timing: async frame arrival (long at 4K) no longer reads as a cache miss, ending the re-seek loop behind the black-video + pegged-CPU reports. Decode-ahead adapts to the frame-cache byte budget (4K decodes less ahead instead of decoding into eviction), and the Pixi backend skips rendering when nothing changed (a paused frame no longer burns GPU at 60fps). Regression tests cover the async-arrival storm and the budget churn.
-- `@miraiclip/renderer` black video + pegged CPU on streams reporting zero frame durations (e.g. 4K60 H.264): duration fallback in the WebCodecs adapter, a strictly-before settle check (the frame at the seek target is always presentable), and a duration-defensive covering check in the pipeline (no more infinite reseek loop). Regression-tested.
-- `@miraiclip/renderer` media errors now surface: `createPlayer`/`createVideoSupport` take `onError(error, clipId)` (default: loud `console.error`) instead of silently swallowing decode and pipeline failures.
-
-### Fixed
-
-- CI on fresh checkouts: packages now expose source `exports` in development with `publishConfig` restoring dist exports at publish — no pre-build needed for typecheck/tests/playground; published tarballs unchanged.
-
-### Changed
-
-- `@miraiclip/renderer` frame-accurate seeking via the WebCodecs settle pattern: post-seek lead-in frames are decoded but never presented, so a seek holds the last frame and snaps straight to the target — verified in-browser against a worst-case 5s-GOP file, paused and mid-playback. Playground DOM writes throttled (were ~120 layouts/sec).
-- `@miraiclip/renderer` seek performance audit: removed `verifyKeyPackets` (a hidden per-seek decode pass), cached the decoder config/capability check per asset, and merged the keyframe lookup into one `chunksFrom(target)` seek. Simplified the display back to "nearest decoded frame" and dropped the extra hold/tolerance/buffering machinery.
-- `@miraiclip/renderer` smoother seeks: decoder reuse via `reset()` (no per-seek hardware re-init), WebCodecs `optimizeForLatency`, cache-clear on hard seek, and deduped GPU uploads. A seek now holds the last frame through the decode gap and cuts cleanly to the target — no backward-jump/fast-forward shake — and the playground pauses the clock while seeking, resuming from the exact point.
-- `@miraiclip/renderer` video pipeline reworked to continuous streaming decode — one long-lived decoder fed forward with a backpressure window, re-seeking only on real jumps. Removes the periodic playback stutter from per-second decoder teardown. Playground duration cap removed; preview is video-only (audio is step 4).
-
-### Fixed
-
-- Periodic playback stalls: decoded frames starved the hardware decoder's small output pool. Frames are now copied to ImageBitmaps and released immediately, and upload straight to the GPU (no 2D-canvas hop).
-
-### Added
-
 - `@miraiclip/renderer` audio playback + `createPlayer` facade: streaming-windowed audio decode scheduled on WebAudio (clip volume × track mute/solo, trim-aware, video clips' embedded tracks included), audio-master clock, full transport, playhead pushed to the core as ephemeral state. Playground plays sound.
 - [Rendering](../rendering) guide documenting the in-development `@miraiclip/renderer`: the three layers, quick start, frame-accurate seek behavior, exact-frame API, and browser support.
 - `@miraiclip/renderer` video playback: `createVideoSupport` wires cached WebCodecs frames into compositor nodes (timeline→media time mapping incl. trim, throttled decode-ahead), `renderFrameAt` for exact single frames, Pixi video textures, and a Vite playground app playing real MP4s end to end.
@@ -44,7 +18,22 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Changed
 
+- `@miraiclip/renderer` frame-accurate seeking via the WebCodecs settle pattern: post-seek lead-in frames are decoded but never presented, so a seek holds the last frame and snaps straight to the target — verified in-browser against a worst-case 5s-GOP file, paused and mid-playback. Playground DOM writes throttled (were ~120 layouts/sec).
+- `@miraiclip/renderer` seek performance audit: removed `verifyKeyPackets` (a hidden per-seek decode pass), cached the decoder config/capability check per asset, and merged the keyframe lookup into one `chunksFrom(target)` seek. Simplified the display back to "nearest decoded frame" and dropped the extra hold/tolerance/buffering machinery.
+- `@miraiclip/renderer` smoother seeks: decoder reuse via `reset()` (no per-seek hardware re-init), WebCodecs `optimizeForLatency`, cache-clear on hard seek, and deduped GPU uploads. A seek now holds the last frame through the decode gap and cuts cleanly to the target — no backward-jump/fast-forward shake — and the playground pauses the clock while seeking, resuming from the exact point.
+- `@miraiclip/renderer` video pipeline reworked to continuous streaming decode — one long-lived decoder fed forward with a backpressure window, re-seeking only on real jumps. Removes the periodic playback stutter from per-second decoder teardown. Playground duration cap removed; preview is video-only (audio is step 4).
 - Package homepage now points at this documentation site; docs linked from the package and repo READMEs; "not yet published" notes removed after the 0.1.0 npm release.
+
+### Fixed
+
+- `@miraiclip/renderer` re-seek decisions now use a contiguity watermark (highest timestamp below which every frame has arrived): an out-of-order/straggling frame conversion can no longer be mistaken for an eviction and trigger a stream re-seek — profiling on 4K60 showed those spurious re-seeks (~1/sec, each redecoding 100–300 lead-in frames) were the remaining playback stutter. The watermark anchors at the seek target (not the first arrival), so a slow first conversion after a seek cannot re-trigger the seek. Frame-cache eviction is past-before-future (drop behind frames first): symmetric distance eviction was discarding fresh decode-ahead output whenever the behind-tail was short, causing a re-seek every cache-capacity of playback (~1.07s at 4K60).
+- `@miraiclip/renderer` 4K playback decode storm fixed: the decode-ahead window is sized by measured frame spacing (not reported durations, which some streams omit), and the frame under the playhead can never be evicted — dropped-frame playback measured at 3–6× decode overwork is gone. Clips also render fit-to-composition (scale 1 = contain) instead of native-pixel cropping.
+- `@miraiclip/renderer` re-seeks are decided from stream state, not decode timing: async frame arrival (long at 4K) no longer reads as a cache miss, ending the re-seek loop behind the black-video + pegged-CPU reports. Decode-ahead adapts to the frame-cache byte budget (4K decodes less ahead instead of decoding into eviction), and the Pixi backend skips rendering when nothing changed (a paused frame no longer burns GPU at 60fps). Regression tests cover the async-arrival storm and the budget churn.
+- `@miraiclip/renderer` black video + pegged CPU on streams reporting zero frame durations (e.g. 4K60 H.264): duration fallback in the WebCodecs adapter, a strictly-before settle check (the frame at the seek target is always presentable), and a duration-defensive covering check in the pipeline (no more infinite reseek loop). Regression-tested.
+- `@miraiclip/renderer` media errors now surface: `createPlayer`/`createVideoSupport` take `onError(error, clipId)` (default: loud `console.error`) instead of silently swallowing decode and pipeline failures.
+- CI on fresh checkouts: packages now expose source `exports` in development with `publishConfig` restoring dist exports at publish — no pre-build needed for typecheck/tests/playground; published tarballs unchanged.
+- Periodic playback stalls: decoded frames starved the hardware decoder's small output pool. Frames are now copied to ImageBitmaps and released immediately, and upload straight to the GPU (no 2D-canvas hop).
+
 
 ## 0.1.0 — 2026-09-05
 

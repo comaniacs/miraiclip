@@ -41,6 +41,9 @@ const player = createPlayer(project, {
   createDecoder: createWebCodecsDecoderFactory({ maxOutputDimensionPx: 1920 }),
   audioOutput: createWebAudioOutput(),
   openAudio: openMediabunnyAudio,
+  // Per-clip media failures (unsupported codec, decode error). Defaults to a
+  // loud console.error — never silent.
+  onError: (error, clipId) => showToast(`clip ${clipId}: ${error.message}`),
 });
 
 player.play(); // pause() · seek(us) · setRate(r) · timeUs · durationUs · destroy()
@@ -48,13 +51,17 @@ player.play(); // pause() · seek(us) · setRate(r) · timeUs · durationUs · d
 
 The player renders every animation frame, keeps decode and audio windows rolling, and pushes the playhead into the core via `setPlayhead` — ephemeral state, so scrubbing never pollutes undo history. Any dispatched command (including undo/redo or a collaborator's patches) updates the scene granularly via the core's patch events, with no rebuilds. The pieces below remain individually usable when you need custom wiring.
 
+## Layout
+
+A clip's `transform.scale` of **1 means "fit the composition"** (contain, aspect preserved) — a 4K source on a 720p canvas fills the frame, never a native-pixel center crop. `x`/`y` are normalized composition coordinates. Because fitting is computed from the decoded frame against the composition, rendered size is independent of decode resolution: proxy playback and full-resolution decode produce the same layout.
+
 ## Audio
 
 Audio clips — and the embedded tracks of video clips — are decoded in **streaming windows** (an hour of PCM is gigabytes; nothing is decoded whole) via mediabunny's `AudioBufferSink` and scheduled on a WebAudio graph: one gain lane per clip, mixing clip `volume` with track `muted`/`solo` live, mapped through clip start + source trim. Because the master clock *is* the audio output's clock, scheduled sound and the video frames chasing the clock cannot drift apart. Assets without an audio track simply play silent.
 
 ## The three layers
 
-**Media pipeline** — `MediaManager` owns one `VideoPipeline` per *asset* (clips sharing a source share it), capped at a decoder budget with least-recently-used release. Each pipeline streams continuously: one live decoder is fed forward with a decode-ahead window as backpressure, re-seeking only on a real jump. Seeks are frame-accurate via the WebCodecs settle pattern — decode lead-in from the keyframe is closed, never presented, so the display holds the last frame and snaps straight to the target.
+**Media pipeline** — `MediaManager` owns one `VideoPipeline` per *asset* (clips sharing a source share it), capped at a decoder budget with least-recently-used release. Each pipeline streams continuously: one live decoder is fed forward with a decode-ahead window as backpressure, re-seeking only on a real jump. Seeks are frame-accurate via the WebCodecs settle pattern — decode lead-in from the keyframe is closed, never presented, so the display holds the last frame and snaps straight to the target. Playback robustness is deterministic by design: re-seek decisions come from stream state (a contiguity watermark of verified arrivals — never decode timing, which lies under load), the frame cache evicts the past before the future so decode-ahead output is never sacrificed, and the ahead window sizes itself from measured frame spacing and the cache's byte budget (4K decodes less ahead instead of decoding into eviction).
 
 **Compositor** — a scene graph behind the `SceneBackend` interface (PixiJS in production, a fake in tests). Clip kinds map to nodes through a **factory registry**; registering a custom kind's factory is the extension seam that video itself uses, and that v4 effects will use.
 
