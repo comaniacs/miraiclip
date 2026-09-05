@@ -4,24 +4,25 @@ weight: 4
 ---
 
 {{< callout type="warning" >}}
-`@miraiclip/renderer` is in development (v2) and not yet published to npm — this documents the package as it exists in the repo. Audio playback is the next milestone.
+`@miraiclip/renderer` is in development (v2) and not yet published to npm — this documents the package as it exists in the repo.
 {{< /callout >}}
 
-`@miraiclip/renderer` turns a project document into pixels: a WebCodecs media pipeline decodes video, a PixiJS compositor mirrors `state.doc` onto a canvas, and a clock drives what moment is shown. The core stays headless and environment-agnostic; the renderer is framework-agnostic but **browser-only** (WebCodecs, WebGL, Web Audio).
+`@miraiclip/renderer` turns a project document into pixels and sound: a WebCodecs media pipeline decodes video, a PixiJS compositor mirrors `state.doc` onto a canvas, a Web Audio engine schedules the mix, and the **audio clock is the playback master**. The core stays headless and environment-agnostic; the renderer is framework-agnostic but **browser-only** (WebCodecs, WebGL, Web Audio).
 
 ## Quick start
+
+`createPlayer` wires everything — media pipeline, compositor, audio engine, master clock, transport:
 
 ```ts
 import { createProject } from "@miraiclip/core";
 import {
-  Compositor,
   createPixiBackend,
-  createVideoSupport,
+  createPlayer,
+  createWebAudioOutput,
   createWebCodecsDecoder,
   isWebCodecsSupported,
-  MediaManager,
+  openMediabunnyAudio,
   openMediabunnyDemuxer,
-  RealtimeClock,
 } from "@miraiclip/renderer";
 
 if (!isWebCodecsSupported()) throw new Error("WebCodecs required");
@@ -29,30 +30,23 @@ if (!isWebCodecsSupported()) throw new Error("WebCodecs required");
 const project = createProject({ width: 1280, height: 720, fps: 30 });
 // …dispatch asset/track/clip commands…
 
-// 1 — media pipeline: one decode pipeline per asset, shared across clips.
-const manager = new MediaManager({
+const backend = await createPixiBackend({ canvas, width: 1280, height: 720 });
+const player = createPlayer(project, {
+  backend,
   openDemuxer: openMediabunnyDemuxer, // mediabunny: MP4/MOV/WebM/MKV…
   createDecoder: createWebCodecsDecoder,
-});
-const videos = createVideoSupport(project, manager);
-
-// 2 — compositor: mirrors the document onto a canvas, updated by patches.
-const backend = await createPixiBackend({ canvas, width: 1280, height: 720 });
-const compositor = new Compositor(project, backend, {
-  factories: { video: videos.factory },
+  audioOutput: createWebAudioOutput(),
+  openAudio: openMediabunnyAudio,
 });
 
-// 3 — drive it with a clock.
-const clock = new RealtimeClock();
-clock.play();
-function frame() {
-  compositor.renderAt(clock.timeUs);
-  requestAnimationFrame(frame);
-}
-requestAnimationFrame(frame);
+player.play(); // pause() · seek(us) · setRate(r) · timeUs · durationUs · destroy()
 ```
 
-`compositor.renderAt(timeUs)` is a pure function of the document and time — any dispatched command (including undo/redo or a collaborator's patches) updates the scene granularly via the core's patch events, with no rebuilds.
+The player renders every animation frame, keeps decode and audio windows rolling, and pushes the playhead into the core via `setPlayhead` — ephemeral state, so scrubbing never pollutes undo history. Any dispatched command (including undo/redo or a collaborator's patches) updates the scene granularly via the core's patch events, with no rebuilds. The pieces below remain individually usable when you need custom wiring.
+
+## Audio
+
+Audio clips — and the embedded tracks of video clips — are decoded in **streaming windows** (an hour of PCM is gigabytes; nothing is decoded whole) via mediabunny's `AudioBufferSink` and scheduled on a WebAudio graph: one gain lane per clip, mixing clip `volume` with track `muted`/`solo` live, mapped through clip start + source trim. Because the master clock *is* the audio output's clock, scheduled sound and the video frames chasing the clock cannot drift apart. Assets without an audio track simply play silent.
 
 ## The three layers
 

@@ -115,6 +115,8 @@ export class VideoPipeline {
         epoch === this.epoch
       ) {
         const { value, done } = await this.iterator.next();
+        // dispose()/reseek can land while awaiting the chunk read.
+        if (this.disposed || epoch !== this.epoch || !this.decoder) break;
         if (done) {
           this.iteratorDone = true;
           break;

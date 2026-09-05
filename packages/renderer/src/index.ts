@@ -36,6 +36,20 @@ export type {
 
 export { createVideoSupport, toMediaUs } from "./video/video-support.js";
 export type { VideoSupport, VideoSupportOptions } from "./video/video-support.js";
+
+export { AudioEngine } from "./audio/audio-engine.js";
+export type { AudioEngineOptions } from "./audio/audio-engine.js";
+export type {
+  AudioChannel,
+  AudioChunk,
+  AudioOutput,
+  AudioSourceFactory,
+  AudioTrackSource,
+} from "./audio/types.js";
+export { createWebAudioOutput, openMediabunnyAudio } from "./audio/webaudio.js";
+
+export { createPlayer } from "./player.js";
+export type { CreatePlayerOptions, Player } from "./player.js";
 export { createPixiBackend } from "./compositor/pixi-backend.js";
 export type { PixiBackendOptions } from "./compositor/pixi-backend.js";
 

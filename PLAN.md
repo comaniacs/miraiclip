@@ -78,7 +78,7 @@ v2.0 feature list:
 - Capability detection (`isSupported()`), typed error surface, `destroy()` that provably releases decoders, frames, and GL resources
 - Testing: unit tests for cache/clock/MediaManager logic in Node (mocked WebCodecs); Playwright browser tests rendering deterministic fixture scenes with tolerance-based pixel compare (GPU output varies across machines)
 
-Build order: (1) mediabunny demux + decode worker + frame cache with tests → (2) Pixi compositor for image/text clips (no video, fast visual feedback) → (3) video textures from cached frames + `renderFrameAt` → (4) audio graph + master clock + transport controls → (5) scrub optimization and cache tuning → (6) docs (Rendering guide + renderer API reference) + example playground app → publish `@miraiclip/renderer@0.1.0`.
+Build order: (1) ✅ mediabunny demux + frame cache with tests (streaming decoder, frame-accurate settle-pattern seeks; **carry-over: decode still runs on the main thread — the planned Web Worker is not built**) → (2) ✅ Pixi compositor for image/text clips → (3) ✅ video textures from cached frames + `renderFrameAt`, verified in-browser on real long-GOP files (**carry-overs: Playwright golden-frame tests replaced by manual verification so far; VideoFrame→GPU direct upload still goes through a 2D canvas**) → (4) audio graph + master clock + transport controls → (5) scrub/cache tuning + the three carry-overs above → (6) docs polish (Rendering guide shipped early) + publish `@miraiclip/renderer@0.1.0`.
 
 Open questions to settle during v2: worker↔main frame transfer strategy (transfer `VideoFrame` vs render-to-`ImageBitmap`); whether the Pixi dependency is `peerDependency` or bundled; WebGPU backend (Pixi v8 supports it) as an option flag now or later.
 

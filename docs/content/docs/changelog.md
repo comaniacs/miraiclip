@@ -20,6 +20,7 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Added
 
+- `@miraiclip/renderer` audio playback + `createPlayer` facade: streaming-windowed audio decode scheduled on WebAudio (clip volume × track mute/solo, trim-aware, video clips' embedded tracks included), audio-master clock, full transport, playhead pushed to the core as ephemeral state. Playground plays sound.
 - [Rendering](../rendering) guide documenting the in-development `@miraiclip/renderer`: the three layers, quick start, frame-accurate seek behavior, exact-frame API, and browser support.
 - `@miraiclip/renderer` video playback: `createVideoSupport` wires cached WebCodecs frames into compositor nodes (timeline→media time mapping incl. trim, throttled decode-ahead), `renderFrameAt` for exact single frames, Pixi video textures, and a Vite playground app playing real MP4s end to end.
 - `@miraiclip/renderer` compositor: patch-driven scene graph as a pure function of time behind a `SceneBackend` abstraction, clip-kind node factory registry, and the PixiJS backend for image/text clips.

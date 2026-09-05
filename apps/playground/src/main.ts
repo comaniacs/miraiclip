@@ -1,13 +1,13 @@
 import { createProject, usToTimecode } from "@miraiclip/core";
 import {
-  Compositor,
   createPixiBackend,
-  createVideoSupport,
+  createPlayer,
+  createWebAudioOutput,
   createWebCodecsDecoder,
   isWebCodecsSupported,
-  MediaManager,
+  openMediabunnyAudio,
   openMediabunnyDemuxer,
-  RealtimeClock,
+  type Player,
 } from "@miraiclip/renderer";
 
 const fileInput = document.getElementById("file") as HTMLInputElement;
@@ -43,26 +43,20 @@ async function load(fileOrUrl: File | string): Promise<void> {
   const info = await probe.info();
   probe.dispose();
   const durationUs = info.durationUs;
+  const fps = info.fps ?? 30;
 
   // 1 — the document, via commands only.
-  const project = createProject({ width: 1280, height: 720, fps: info.fps ?? 30 });
+  const project = createProject({ width: 1280, height: 720, fps });
   project.transaction(() => {
     project.dispatch({
       type: "asset/add",
-      payload: { id: "media", kind: "video", src, durationUs: info.durationUs },
+      payload: { id: "media", kind: "video", src, durationUs },
     });
     project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
     project.dispatch({ type: "track/add", payload: { id: "overlay", kind: "video" } });
     project.dispatch({
       type: "clip/add",
-      payload: {
-        kind: "video",
-        id: "main",
-        trackId: "v1",
-        assetId: "media",
-        startUs: 0,
-        durationUs,
-      },
+      payload: { kind: "video", id: "main", trackId: "v1", assetId: "media", startUs: 0, durationUs },
     });
     project.dispatch({
       type: "clip/add",
@@ -80,73 +74,39 @@ async function load(fileOrUrl: File | string): Promise<void> {
     });
   });
 
-  // 2 — media pipeline + compositor + clock.
-  const manager = new MediaManager({
+  // 2 — the player: compositor + video pipeline + audio, one facade.
+  const backend = await createPixiBackend({ canvas, width: 1280, height: 720 });
+  const player: Player = createPlayer(project, {
+    backend,
     openDemuxer: openMediabunnyDemuxer,
     createDecoder: createWebCodecsDecoder,
+    audioOutput: createWebAudioOutput(),
+    openAudio: openMediabunnyAudio,
+    loop: true,
   });
-  const videos = createVideoSupport(project, manager);
-  const backend = await createPixiBackend({ canvas, width: 1280, height: 720 });
-  const compositor = new Compositor(project, backend, {
-    factories: { video: videos.factory },
-  });
-  const clock = new RealtimeClock();
 
-  // 3 — transport loop.
-  let raf = 0;
-  let lastPrepareMs = 0;
-  let lastUiMs = 0;
-  let lastStatus = "";
-  const fps = info.fps ?? 30;
-  function frame(nowMs: number): void {
-    let t = clock.timeUs;
-    if (t >= durationUs) {
-      clock.seek(0); // loop
-      t = 0;
-    }
-    // The streaming pipeline advances its own decode-ahead from tick(); an
-    // occasional prepare() covers the case where the tick hasn't run yet.
-    if (nowMs - lastPrepareMs > 1000) {
-      lastPrepareMs = nowMs;
-      void videos.prepare(t);
-    }
-    compositor.renderAt(t);
-    // DOM writes force style/layout on the same thread as decode callbacks and
-    // GPU uploads — throttle them hard (they were 120 layouts/sec otherwise).
-    if (nowMs - lastUiMs > 200) {
-      lastUiMs = nowMs;
-      if (!seeking) {
-        const position = String(Math.round((t / durationUs) * 1000));
-        if (seek.value !== position) seek.value = position;
-      }
-      const text = `${usToTimecode(t, fps)} / ${usToTimecode(durationUs, fps)}${clock.playing ? "" : " · paused"}`;
-      if (text !== lastStatus) {
-        lastStatus = text;
-        status.textContent = text;
-      }
-    }
-    raf = requestAnimationFrame(frame);
-  }
-
+  // 3 — UI, driven by the core's playhead events (throttled DOM writes).
   playButton.disabled = false;
   seek.disabled = false;
   playButton.textContent = "Play";
-
-  const onPlay = (): void => {
-    if (clock.playing) {
-      clock.pause();
-      playButton.textContent = "Play";
-    } else {
-      clock.play();
-      playButton.textContent = "Pause";
-    }
-  };
   let seeking = false;
+  let lastUiMs = 0;
+  const offPlayhead = project.events.on("playhead", ({ positionUs }) => {
+    const now = performance.now();
+    if (now - lastUiMs < 200) return;
+    lastUiMs = now;
+    if (!seeking) {
+      const position = String(Math.round((positionUs / durationUs) * 1000));
+      if (seek.value !== position) seek.value = position;
+    }
+    status.textContent = `${usToTimecode(positionUs, fps)} / ${usToTimecode(durationUs, fps)}${player.playing ? "" : " · paused"}`;
+    playButton.textContent = player.playing ? "Pause" : "Play";
+  });
+
+  const onPlay = (): void => (player.playing ? player.pause() : player.play());
   const onSeekInput = (): void => {
     seeking = true;
-    const t = Math.round((Number(seek.value) / 1000) * durationUs);
-    clock.seek(t);
-    void videos.prepare(t);
+    player.seek(Math.round((Number(seek.value) / 1000) * durationUs));
   };
   const onSeekDone = (): void => {
     seeking = false;
@@ -155,16 +115,12 @@ async function load(fileOrUrl: File | string): Promise<void> {
   seek.addEventListener("input", onSeekInput);
   seek.addEventListener("change", onSeekDone);
 
-  await videos.renderFrameAt(compositor, 0); // poster frame
-  raf = requestAnimationFrame(frame);
-
   teardown = () => {
-    cancelAnimationFrame(raf);
+    offPlayhead();
     playButton.removeEventListener("click", onPlay);
     seek.removeEventListener("input", onSeekInput);
     seek.removeEventListener("change", onSeekDone);
-    videos.dispose();
-    compositor.destroy();
+    player.destroy();
     if (isBlobUrl) URL.revokeObjectURL(src);
   };
 }
