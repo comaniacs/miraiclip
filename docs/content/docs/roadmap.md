@@ -3,9 +3,9 @@ title: Roadmap
 weight: 4
 ---
 
-## v1 — Core engine (`@miraiclip/core`)
+## v1 — Core engine (`@miraiclip/core`) ✅ shipped
 
-Commands, state, tracks, clips, undo/redo, patches, events, serialization. Headless, browser + Node, fully unit-testable. No rendering — proves the architecture first.
+Commands, state, tracks, clips, undo/redo, patches, events, serialization. Headless, browser + Node, fully unit-testable. No rendering — proves the architecture first. Shipped as [`@miraiclip/core@0.1.0`](https://www.npmjs.com/package/@miraiclip/core) (September 2026).
 
 ## v2 — Rendering & playback (`@miraiclip/renderer`)
 

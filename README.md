@@ -101,7 +101,7 @@ project.subscribe(
 
 ## Roadmap
 
-1. **v1 — Core engine**: commands, state, tracks, clips, undo/redo, patches, events, serialization
+1. **v1 — Core engine** ✅: commands, state, tracks, clips, undo/redo, patches, events, serialization — shipped as `@miraiclip/core@0.1.0`
 2. **v2 — Rendering & playback**: WebCodecs decode + WebGL compositor, frame-accurate playback
 3. **v3 — Export**: WebCodecs encode to MP4/WebM, offline faster-than-realtime rendering
 4. **v4 — Creative features**: keyframe animations, transitions, effects, captions, chroma key

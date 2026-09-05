@@ -44,7 +44,7 @@ Undo/redo stacks built from command + inverse-patch pairs. Supports transaction 
 
 ## Feature list
 
-### v1 — Core engine (`@miraiclip/core`)
+### v1 — Core engine (`@miraiclip/core`) ✅ shipped 0.1.0 (2026-09-05)
 - Project state store (Zustand vanilla) with JSON serialization/deserialization and schema versioning/migration
 - Command dispatcher: validation, execution, typed errors, transactions/batching
 - Command catalog: project, track, clip, playback-position, and asset commands
@@ -58,11 +58,29 @@ Undo/redo stacks built from command + inverse-patch pairs. Supports transaction 
 - Runs in browser and Node (headless, fully unit-testable)
 - TypeScript-first: exported types, command schemas (Zod or JSON Schema)
 
-### v2 — Rendering & playback (`@miraiclip/renderer`)
-- WebCodecs-based demux/decode pipeline with frame caching
-- WebGL compositor (PixiJS or custom) rendering the project state to a canvas
-- Frame-accurate playback: play/pause/seek/scrub, audio sync via Web Audio
-- Real-time preview of transforms, opacity, layering
+### v2 — Rendering & playback (`@miraiclip/renderer`) — current
+
+Decisions (settled 2026-09): **PixiJS** compositor, **mediabunny** for demuxing (multi-container, µs-accurate seeking, WebCodecs-native; also covers v3 muxing), **WebCodecs-required** browser policy (capability check, no `<video>` fallback pipeline), v2.0 scope = **preview player with audio** (effects/transitions stay in v4). The renderer is framework-agnostic but browser-targeted; the core remains environment-agnostic.
+
+Design review hardening (2026-09): the three layers below are **strict internal boundaries**, so later extraction is mechanical. (a) The compositor is a pure function of (document, timeUs) driven through a `Clock` interface — `AudioClock` for realtime playback, `StepClock` reused by v3 export, guaranteeing preview/export visual parity. (b) The media pipeline (demux/decode/cache) is renderer-independent — v3 export and thumbnail/waveform generation consume it directly; a central **MediaManager** owns one pipeline per *asset* (clips sharing an asset share it), a global frame/VRAM budget, a decoder-count cap with LRU release (Safari allows few hardware decoders), and abortable seeks so scrubbing cancels stale decode work. (c) Clip rendering goes through a **registry** (`clip.kind → renderer factory`, built-ins pre-registered) mirroring the core's custom commands — the v4 seam; this requires a clip-kind extension mechanism in core 0.2, since `Clip` is currently a closed union. Also settled: per-asset codec-capability errors are first-class (not just a global `isSupported()`); preview renders at a scaled resolution independent of project resolution (devicePixelRatio-aware); color is explicitly SDR/sRGB in v2 (HDR out of scope); silent projects fall back to the raw AudioContext clock; core is a peerDependency and a document `schemaVersion` bump requires a coordinated renderer release.
+
+Architecture — three layers behind one `createRenderer(project, canvas, options)` API:
+
+1. **Media pipeline** (per video/audio asset): mediabunny `Input` demuxes → `VideoDecoder`/`AudioDecoder` (WebCodecs) → a **frame cache** of decoded `VideoFrame`s around the playhead. Decoding runs in a Web Worker; frames transfer to the main thread. Cache policy: decode-ahead window (~1s forward, a few frames back), keyframe-aware seeking (seek to preceding keyframe, decode forward, drop until target), eviction by distance from playhead with a hard VRAM budget — `VideoFrame.close()` discipline is the critical correctness concern.
+2. **Compositor**: a PixiJS `Application` whose scene graph mirrors `state.doc` — one container per track (z-order from `trackOrder`), one node per visible clip (video texture / image sprite / text). Subscribes to the core's patch events and applies granular updates (a `clip/move` patch touches one node, never a full rebuild). Renders on `requestVideoFrameCallback`-style ticks during playback and on-demand when paused (patch → single re-render).
+3. **Playback controller**: the **AudioContext clock is the master**. Audio clips are decoded to `AudioBuffer`s and scheduled via Web Audio (volume, mute/solo from track state); video frames are selected by the audio clock's current time mapped to timeline µs. Play/pause/seek/scrub and a rate control; playhead position pushed back into the core via `setPlayhead` (ephemeral, no history).
+
+v2.0 feature list:
+- Asset loading from `src` (URL/File/Blob) with metadata probe (duration, dimensions, fps → validates the core's asset registry)
+- Video, image, and text clips rendered with transform (position/scale/rotation/opacity), source trim, and track layering; audio clips mixed with clip volume and track mute/solo
+- Frame-accurate play/pause/seek/scrub, loop, playback rate; `renderFrameAt(us)` for thumbnails/posters
+- Reactive: any dispatched command updates the canvas via patches, including during playback and time travel (undo/redo just emits patches)
+- Capability detection (`isSupported()`), typed error surface, `destroy()` that provably releases decoders, frames, and GL resources
+- Testing: unit tests for cache/clock/MediaManager logic in Node (mocked WebCodecs); Playwright browser tests rendering deterministic fixture scenes with tolerance-based pixel compare (GPU output varies across machines)
+
+Build order: (1) mediabunny demux + decode worker + frame cache with tests → (2) Pixi compositor for image/text clips (no video, fast visual feedback) → (3) video textures from cached frames + `renderFrameAt` → (4) audio graph + master clock + transport controls → (5) scrub optimization and cache tuning → (6) docs (Rendering guide + renderer API reference) + example playground app → publish `@miraiclip/renderer@0.1.0`.
+
+Open questions to settle during v2: worker↔main frame transfer strategy (transfer `VideoFrame` vs render-to-`ImageBitmap`); whether the Pixi dependency is `peerDependency` or bundled; WebGPU backend (Pixi v8 supports it) as an option flag now or later.
 
 ### v3 — Export
 - WebCodecs encode pipeline → MP4/WebM (mp4-muxer / webm-muxer)

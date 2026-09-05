@@ -1,0 +1,60 @@
+{
+  "name": "@miraiclip/renderer",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Rendering and playback for Miraiclip: WebCodecs media pipeline, WebGL compositor, frame-accurate playback.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/renderer"
+  },
+  "homepage": "https://comaniacs.github.io/miraiclip/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "mediabunny": "^1.24.0",
+    "pixi.js": "^8.6.0"
+  },
+  "peerDependencies": {
+    "@miraiclip/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "@miraiclip/core": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}

@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Miraiclip Playground</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 16px;
+        background: #101014; color: #e8e8ec;
+        font-family: system-ui, sans-serif;
+      }
+      h1 { font-size: 18px; font-weight: 600; margin: 0; }
+      #stage { max-width: 90vw; border: 1px solid #2a2a33; border-radius: 8px; background: #000; }
+      #controls { display: flex; gap: 12px; align-items: center; }
+      button { padding: 6px 18px; border-radius: 6px; border: 1px solid #3a3a46;
+               background: #1c1c24; color: inherit; cursor: pointer; font-size: 14px; }
+      button:hover { background: #26262f; }
+      input[type="range"] { width: 360px; }
+      #status { font-size: 13px; color: #9a9aa6; font-variant-numeric: tabular-nums; }
+      #unsupported { color: #ff7a7a; }
+    </style>
+  </head>
+  <body>
+    <h1>Miraiclip Playground — v2 preview pipeline</h1>
+    <p style="margin:0;font-size:12px;color:#8a8a96">Video preview only — audio playback lands in v2 step 4.</p>
+    <input type="file" id="file" accept="video/*" />
+    <canvas id="stage" width="1280" height="720"></canvas>
+    <div id="controls">
+      <button id="play" disabled>Play</button>
+      <input type="range" id="seek" min="0" max="1000" value="0" disabled />
+      <span id="status">pick a video file</span>
+    </div>
+    <p id="unsupported" hidden>This browser has no WebCodecs — use Chrome/Edge 94+, Safari 16.4+, or Firefox 130+.</p>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -9,6 +9,19 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Changed
 
+- `@miraiclip/renderer` frame-accurate seeking via the WebCodecs settle pattern: post-seek lead-in frames are decoded but never presented, so a seek holds the last frame and snaps straight to the target — verified in-browser against a worst-case 5s-GOP file, paused and mid-playback. Playground DOM writes throttled (were ~120 layouts/sec).
+- `@miraiclip/renderer` seek performance audit: removed `verifyKeyPackets` (a hidden per-seek decode pass), cached the decoder config/capability check per asset, and merged the keyframe lookup into one `chunksFrom(target)` seek. Simplified the display back to "nearest decoded frame" and dropped the extra hold/tolerance/buffering machinery.
+- `@miraiclip/renderer` smoother seeks: decoder reuse via `reset()` (no per-seek hardware re-init), WebCodecs `optimizeForLatency`, cache-clear on hard seek, and deduped GPU uploads. A seek now holds the last frame through the decode gap and cuts cleanly to the target — no backward-jump/fast-forward shake — and the playground pauses the clock while seeking, resuming from the exact point.
+- `@miraiclip/renderer` video pipeline reworked to continuous streaming decode — one long-lived decoder fed forward with a backpressure window, re-seeking only on real jumps. Removes the periodic playback stutter from per-second decoder teardown. Playground duration cap removed; preview is video-only (audio is step 4).
+
+### Added
+
+- `@miraiclip/renderer` video playback: `createVideoSupport` wires cached WebCodecs frames into compositor nodes (timeline→media time mapping incl. trim, throttled decode-ahead), `renderFrameAt` for exact single frames, Pixi video textures, and a Vite playground app playing real MP4s end to end.
+- `@miraiclip/renderer` compositor: patch-driven scene graph as a pure function of time behind a `SceneBackend` abstraction, clip-kind node factory registry, and the PixiJS backend for image/text clips.
+- `@miraiclip/renderer` package started with the v2 media layer: frame cache with eviction budgets and strict frame ownership, keyframe-aware abortable video pipeline, a MediaManager capping decoder use with LRU release, Step/Realtime clocks behind the `Clock` interface, and mediabunny + WebCodecs browser adapters with per-asset capability errors.
+
+### Changed
+
 - Package homepage now points at this documentation site; docs linked from the package and repo READMEs; "not yet published" notes removed after the 0.1.0 npm release.
 
 ## 0.1.0 — 2026-09-05
