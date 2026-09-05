@@ -124,24 +124,73 @@ export async function openMediabunnyDemuxer(
   return new MediabunnyDemuxer(assetId, track, new EncodedPacketSink(track));
 }
 
+export interface WebCodecsDecoderOptions {
+  /**
+   * Cap the longest side of decoded output bitmaps, preserving aspect ratio
+   * (proxy playback). A 4K source composited onto a preview canvas doesn't
+   * need full-resolution frames — and full-res 4K60 is ~4 GB/s of ImageBitmap
+   * copies plus texture uploads, which drops frames on most machines. The
+   * downscale happens on the GPU inside `createImageBitmap`. Layout is
+   * unaffected: scene nodes normalize scale against the source's native size.
+   * Leave unset for full-resolution output (export/thumbnails at full size).
+   */
+  maxOutputDimensionPx?: number;
+}
+
 class WebCodecsFrameDecoder implements FrameDecoder {
   onFrame: ((frame: VideoFrameHandle) => void) | null = null;
   onError: ((error: Error) => void) | null = null;
   private readonly decoder: VideoDecoder;
+  private readonly pending = new Set<Promise<void>>();
+  /** Bumped on reset/close so in-flight conversions from before are dropped. */
+  private generation = 0;
 
-  constructor() {
+  constructor(options: WebCodecsDecoderOptions = {}) {
     this.decoder = new VideoDecoder({
       output: (frame) => {
-        const handle: VideoFrameHandle = {
-          timestampUs: frame.timestamp,
-          durationUs: frame.duration ?? 0,
-          // Estimate: 4:2:0 → 1.5 bytes per pixel.
-          byteLength: Math.round(frame.codedWidth * frame.codedHeight * 1.5),
-          native: frame,
-          close: () => frame.close(),
-        };
-        if (this.onFrame) this.onFrame(handle);
-        else handle.close();
+        // CRITICAL: hardware decoders own a small pool of output frames
+        // (often ~8–16). Holding decoded VideoFrames in a cache starves the
+        // pool and the decoder simply stalls until frames are closed. So we
+        // copy each frame out to an ImageBitmap (GPU-side, decoder-pool-free)
+        // and close the VideoFrame IMMEDIATELY — the cache and the GPU upload
+        // path work with ImageBitmaps from here on.
+        const generation = this.generation;
+        const timestampUs = frame.timestamp;
+        // Some streams (notably 60fps/B-frame H.264) report no frame duration.
+        // A zero duration breaks every "does this frame cover time t" check,
+        // so fall back to a conservative frame length.
+        const durationUs =
+          frame.duration && frame.duration > 0 ? frame.duration : 33_333;
+        const cap = options.maxOutputDimensionPx;
+        const sourceW = frame.displayWidth || frame.codedWidth;
+        const sourceH = frame.displayHeight || frame.codedHeight;
+        const longest = Math.max(sourceW, sourceH);
+        const resize: ImageBitmapOptions =
+          cap && longest > cap
+            ? {
+                resizeWidth: Math.round((sourceW * cap) / longest),
+                resizeHeight: Math.round((sourceH * cap) / longest),
+              }
+            : {};
+        const conversion = createImageBitmap(frame, resize)
+          .then((bitmap) => {
+            frame.close();
+            const handle: VideoFrameHandle = {
+              timestampUs,
+              durationUs,
+              byteLength: bitmap.width * bitmap.height * 4,
+              native: bitmap,
+              close: () => bitmap.close(),
+            };
+            if (generation === this.generation && this.onFrame) this.onFrame(handle);
+            else handle.close();
+          })
+          .catch((error: unknown) => {
+            frame.close();
+            this.onError?.(error instanceof Error ? error : new Error(String(error)));
+          })
+          .finally(() => this.pending.delete(conversion));
+        this.pending.add(conversion);
       },
       error: (error) => this.onError?.(error),
     });
@@ -160,18 +209,30 @@ class WebCodecsFrameDecoder implements FrameDecoder {
     this.decoder.decode(chunk.native as EncodedVideoChunk);
   }
 
-  flush(): Promise<void> {
+  async flush(): Promise<void> {
     // A flush during streaming can race a reset(); ignore the resulting abort.
-    return this.decoder.flush().catch(() => undefined);
+    await this.decoder.flush().catch(() => undefined);
+    // "Flushed" must include the async ImageBitmap conversions.
+    await Promise.all([...this.pending]);
   }
 
   reset(): void {
+    this.generation++;
     if (this.decoder.state !== "closed") this.decoder.reset();
   }
 
   close(): void {
+    this.generation++;
     if (this.decoder.state !== "closed") this.decoder.close();
   }
 }
 
+/** Full-resolution decoder factory. For preview playback of large sources, prefer `createWebCodecsDecoderFactory`. */
 export const createWebCodecsDecoder: FrameDecoderFactory = () => new WebCodecsFrameDecoder();
+
+/** A decoder factory with options — e.g. `{ maxOutputDimensionPx: 1920 }` for proxy preview of 4K sources. */
+export function createWebCodecsDecoderFactory(
+  options: WebCodecsDecoderOptions = {},
+): FrameDecoderFactory {
+  return () => new WebCodecsFrameDecoder(options);
+}

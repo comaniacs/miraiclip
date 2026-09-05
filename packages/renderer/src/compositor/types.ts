@@ -29,6 +29,12 @@ export interface SceneNode {
 export interface VideoSceneNode extends SceneNode {
   /** Show a decoded frame (a `VideoFrame` in the browser), or clear with null. */
   setFrame(frame: unknown | null): void;
+  /**
+   * The source's native pixel size. Layout treats scale 1 as native size, so a
+   * backend that receives frames decoded below native resolution (proxy
+   * playback of 4K sources) uses this to keep the rendered size identical.
+   */
+  setSourceSize?(widthPx: number, heightPx: number): void;
 }
 
 /**

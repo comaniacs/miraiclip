@@ -41,6 +41,12 @@ function setup(clip?: { startUs?: number; trimStartUs?: number }) {
 }
 
 describe("video in the compositor", () => {
+  it("tells the scene node the source's native size (proxy-decode layout)", async () => {
+    const { videos, compositor, node } = setup();
+    await videos.renderFrameAt(compositor, 0); // waits for the pipeline
+    expect(node.sourceSize).toEqual({ widthPx: 640, heightPx: 360 }); // FakeDemuxer info
+  });
+
   it("renderFrameAt shows the exact frame for a timeline position", async () => {
     const { videos, compositor, node } = setup();
     const t = 45 * FRAME_US;

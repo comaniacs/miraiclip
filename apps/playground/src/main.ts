@@ -3,7 +3,7 @@ import {
   createPixiBackend,
   createPlayer,
   createWebAudioOutput,
-  createWebCodecsDecoder,
+  createWebCodecsDecoderFactory,
   isWebCodecsSupported,
   openMediabunnyAudio,
   openMediabunnyDemuxer,
@@ -79,7 +79,9 @@ async function load(fileOrUrl: File | string): Promise<void> {
   const player: Player = createPlayer(project, {
     backend,
     openDemuxer: openMediabunnyDemuxer,
-    createDecoder: createWebCodecsDecoder,
+    // Proxy preview: decode 4K sources down to preview resolution — full-res
+    // 4K60 ImageBitmap copies + texture uploads drop frames on most machines.
+    createDecoder: createWebCodecsDecoderFactory({ maxOutputDimensionPx: 1920 }),
     audioOutput: createWebAudioOutput(),
     openAudio: openMediabunnyAudio,
     loop: true,

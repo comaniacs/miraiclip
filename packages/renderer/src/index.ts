@@ -56,7 +56,8 @@ export type { PixiBackendOptions } from "./compositor/pixi-backend.js";
 export {
   assertDecodable,
   createWebCodecsDecoder,
+  createWebCodecsDecoderFactory,
   isWebCodecsSupported,
   openMediabunnyDemuxer,
 } from "./media/webcodecs.js";
-export type { MediaSrc } from "./media/webcodecs.js";
+export type { MediaSrc, WebCodecsDecoderOptions } from "./media/webcodecs.js";

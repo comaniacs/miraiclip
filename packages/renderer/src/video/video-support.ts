@@ -13,6 +13,11 @@ import type { Compositor } from "../compositor/compositor.js";
 export interface VideoSupportOptions {
   /** Prepare clips that start within this window ahead of the playhead (default 1s). */
   lookaheadUs?: Us;
+  /**
+   * Called when a clip's media fails (unsupported codec, decode error, …).
+   * Silent-by-default was a mistake we made once — the default logs loudly.
+   */
+  onError?: (error: Error, clipId: string) => void;
 }
 
 /** Timeline position → position on the clip's source media. */
@@ -27,16 +32,28 @@ class VideoClipAdapter implements SceneNode {
   constructor(
     private readonly inner: VideoSceneNode,
     private readonly acquire: () => Promise<VideoPipeline>,
+    private readonly onError: (error: Error) => void,
     private readonly onDestroy: () => void,
   ) {}
 
   ensurePipeline(): Promise<VideoPipeline> {
     this.pipelinePromise ??= this.acquire().then((pipeline) => {
       this.pipeline = pipeline;
+      // Tell the scene node the source's NATIVE size: frames may arrive decoded
+      // below native resolution (proxy playback), and the node compensates so
+      // the clip renders at the same size regardless of decode resolution.
+      pipeline
+        .info()
+        .then((info) => this.inner.setSourceSize?.(info.width, info.height))
+        .catch(this.report);
       return pipeline;
     });
     return this.pipelinePromise;
   }
+
+  private report = (error: unknown): void => {
+    this.onError(error instanceof Error ? error : new Error(String(error)));
+  };
 
   /** Await decode around a media position (used by prepare/renderFrameAt). */
   async prepareAt(mediaUs: Us): Promise<void> {
@@ -50,7 +67,7 @@ class VideoClipAdapter implements SceneNode {
     if (!this.pipeline) {
       // Kick off acquisition only — a deferred prime here could land after a
       // later explicit prepare and supersede it with a stale target.
-      void this.ensurePipeline();
+      this.ensurePipeline().catch(this.report);
       return;
     }
     // Show the nearest decoded frame; on a seek the cache was cleared, so this
@@ -59,7 +76,7 @@ class VideoClipAdapter implements SceneNode {
     const frame = this.pipeline.frameAt(mediaUs);
     if (frame) this.inner.setFrame(frame.native);
     // Streaming prime: advances the decode target and continues the live decode.
-    void this.pipeline.prime(mediaUs);
+    this.pipeline.prime(mediaUs).catch(this.report);
   }
 
   setPlacement(placement: Placement): void {
@@ -101,6 +118,10 @@ export function createVideoSupport(
   options: VideoSupportOptions = {},
 ): VideoSupport {
   const lookaheadUs = options.lookaheadUs ?? 1_000_000;
+  const onError =
+    options.onError ??
+    ((error: Error, clipId: string) =>
+      console.error(`[miraiclip] video clip "${clipId}" failed:`, error));
   const adapters = new Map<string, VideoClipAdapter>();
 
   const factory: NodeFactory = (clip, { backend, assets }) => {
@@ -111,6 +132,7 @@ export function createVideoSupport(
     const adapter = new VideoClipAdapter(
       inner,
       () => manager.acquire(asset.id, asset.src),
+      (error) => onError(error, clip.id),
       () => adapters.delete(clip.id),
     );
     adapters.set(clip.id, adapter);

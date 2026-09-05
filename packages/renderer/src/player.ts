@@ -16,6 +16,8 @@ export interface CreatePlayerOptions {
   openAudio: AudioSourceFactory;
   /** Loop back to 0 at the end of the composition (default false: pause). */
   loop?: boolean;
+  /** Media failures per clip (unsupported codec, decode error, …). Default: console.error. */
+  onError?: (error: Error, clipId: string) => void;
   /** Frame scheduler — injectable for tests (default requestAnimationFrame). */
   raf?: (callback: () => void) => number;
   cancelRaf?: (handle: number) => void;
@@ -51,7 +53,11 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     openDemuxer: options.openDemuxer,
     createDecoder: options.createDecoder,
   });
-  const videos = createVideoSupport(project, manager);
+  const videos = createVideoSupport(
+    project,
+    manager,
+    options.onError ? { onError: options.onError } : {},
+  );
   const compositor = new Compositor(project, options.backend, {
     factories: { video: videos.factory },
   });
@@ -61,6 +67,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   let destroyed = false;
   let rafHandle = 0;
   let lastPumpUs: Us = Number.NEGATIVE_INFINITY;
+  let lastPlayheadUs: Us = Number.NEGATIVE_INFINITY;
 
   function durationUs(): Us {
     let end = 0;
@@ -85,11 +92,16 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       }
     }
     compositor.renderAt(t);
-    project.setPlayhead(t);
+    // Paused, nothing changes 60×/s: skip the playhead event (and the zustand
+    // set + subscriber fan-out behind it) when the time hasn't moved.
+    if (t !== lastPlayheadUs) {
+      lastPlayheadUs = t;
+      project.setPlayhead(t);
+    }
     // Keep decode/schedule windows rolling without doing it every frame.
     if (Math.abs(t - lastPumpUs) > 300_000) {
       lastPumpUs = t;
-      void videos.prepare(t);
+      videos.prepare(t).catch(() => undefined); // per-clip errors surface via onError
       audio.pump(t);
     }
     rafHandle = raf(frame);
@@ -99,6 +111,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   function seekInternal(timeUs: Us, resumeAudio: boolean): void {
     clock.seek(timeUs);
     lastPumpUs = Number.NEGATIVE_INFINITY;
+    lastPlayheadUs = Number.NEGATIVE_INFINITY;
     void videos.prepare(timeUs);
     if (resumeAudio && clock.playing) audio.start(timeUs, clock.rate);
   }
@@ -106,6 +119,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   function pause(): void {
     clock.pause();
     audio.stop();
+    lastPlayheadUs = Number.NEGATIVE_INFINITY; // one event so UI reflects the pause
   }
 
   return {
@@ -115,6 +129,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       const end = durationUs();
       if (end > 0 && clock.timeUs >= end) clock.seek(0);
       clock.play();
+      lastPlayheadUs = Number.NEGATIVE_INFINITY; // one event so UI reflects the play
       audio.start(clock.timeUs, clock.rate);
     },
     pause,

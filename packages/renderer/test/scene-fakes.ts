@@ -32,11 +32,15 @@ export class FakeNode implements SceneNode {
 
 export class FakeVideoNode extends FakeNode {
   frames: (unknown | null)[] = [];
+  sourceSize: { widthPx: number; heightPx: number } | undefined;
   constructor() {
     super("video");
   }
   setFrame(frame: unknown | null): void {
     this.frames.push(frame);
+  }
+  setSourceSize(widthPx: number, heightPx: number): void {
+    this.sourceSize = { widthPx, heightPx };
   }
   get lastFrame(): unknown | null {
     return this.frames.at(-1) ?? null;

@@ -19,7 +19,7 @@ import {
   createPixiBackend,
   createPlayer,
   createWebAudioOutput,
-  createWebCodecsDecoder,
+  createWebCodecsDecoderFactory,
   isWebCodecsSupported,
   openMediabunnyAudio,
   openMediabunnyDemuxer,
@@ -34,7 +34,11 @@ const backend = await createPixiBackend({ canvas, width: 1280, height: 720 });
 const player = createPlayer(project, {
   backend,
   openDemuxer: openMediabunnyDemuxer, // mediabunny: MP4/MOV/WebM/MKV…
-  createDecoder: createWebCodecsDecoder,
+  // Proxy preview: cap decoded frames at preview resolution. Full-res 4K60 is
+  // ~4 GB/s of frame copies + GPU uploads and drops frames on most machines;
+  // the downscale happens on the GPU and layout is unaffected. Use
+  // `createWebCodecsDecoder` (no cap) for full-resolution output.
+  createDecoder: createWebCodecsDecoderFactory({ maxOutputDimensionPx: 1920 }),
   audioOutput: createWebAudioOutput(),
   openAudio: openMediabunnyAudio,
 });
