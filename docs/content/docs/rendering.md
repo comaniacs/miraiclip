@@ -3,11 +3,16 @@ title: Rendering
 weight: 4
 ---
 
-{{< callout type="warning" >}}
-`@miraiclip/renderer` is in development (v2) and not yet published to npm — this documents the package as it exists in the repo.
-{{< /callout >}}
-
 `@miraiclip/renderer` turns a project document into pixels and sound: a WebCodecs media pipeline decodes video, a PixiJS compositor mirrors `state.doc` onto a canvas, a Web Audio engine schedules the mix, and the **audio clock is the playback master**. The core stays headless and environment-agnostic; the renderer is framework-agnostic but **browser-only** (WebCodecs, WebGL, Web Audio).
+
+## Install
+
+```bash
+npm install @miraiclip/core @miraiclip/renderer
+# pixi.js and mediabunny are pulled in as dependencies
+```
+
+Browser-only (WebCodecs, WebGL, Web Audio) — gate with `isWebCodecsSupported()`.
 
 ## Quick start
 

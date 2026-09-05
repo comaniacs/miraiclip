@@ -4,6 +4,10 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+## [renderer-0.1.0] — 2026-09-06
+
+First release of `@miraiclip/renderer` — WebCodecs media pipeline, PixiJS compositor, audio-master playback (`createPlayer`), frame-accurate seeking, proxy preview decode. Everything below shipped in it.
+
 ### Added
 
 - `@miraiclip/renderer` + playground: **golden-frame e2e suite** (Playwright) — a 5KB deterministic fixture where every frame's color encodes its own index (VP9: Playwright's Chromium has no H.264), so tests read "which frame is on screen" straight off the canvas, robust across GPUs. Covers frame-exact mid-GOP seeks, displayed-frames-track-the-master-clock during playback (the invariant every re-seek storm breaks — asserted against the player's own clock, so headless audio-clock speed doesn't matter), and a zero-console-errors sweep. Runs serially against the built playground (`pnpm --filter miraiclip-playground e2e`); CI gets an `e2e` job. `createPixiBackend` gains `preserveDrawingBuffer` for pixel readback.

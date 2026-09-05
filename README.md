@@ -26,7 +26,7 @@ Miraiclip is not a video editor app — it is the engine you build one with. The
 | Package | Status | Description |
 | --- | --- | --- |
 | [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.1.0 on npm | Headless command-driven engine: state, commands, history, events |
-| `@miraiclip/renderer` | 🚧 in development (v2, in repo) | WebCodecs + WebGL playback and preview |
+| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.1.0 on npm | WebCodecs + WebGL playback and preview |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
 ## Quick start

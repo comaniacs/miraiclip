@@ -4,14 +4,18 @@ weight: 2
 ---
 
 {{< callout type="info" >}}
-Miraiclip is in early development — pre-1.0, expect API changes between minor versions. `@miraiclip/core` is [published on npm](https://www.npmjs.com/package/@miraiclip/core).
+Miraiclip is pre-1.0 — expect API changes between minor versions. [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) and [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) are published on npm.
 {{< /callout >}}
 
 ## Installation
 
 ```bash
 npm install @miraiclip/core
+# for in-browser playback and preview, add the renderer:
+npm install @miraiclip/renderer
 ```
+
+The core is headless (browser + Node); the renderer is browser-only (WebCodecs, WebGL, Web Audio).
 
 ## Create a project
 
@@ -96,4 +100,15 @@ project.subscribe(
 ```ts
 const saved = project.toJSON();
 const restored = createProject(saved);
+```
+
+## Play it back
+
+Everything above is headless. To turn the project into pixels and sound, hand it to the renderer's `createPlayer` — one facade wiring the decode pipeline, compositor, and audio engine to a canvas. See the [Rendering guide](rendering) for the full setup:
+
+```ts
+import { createPlayer } from "@miraiclip/renderer";
+
+const player = createPlayer(project, {/* backend, demuxer, decoder, audio */});
+player.play();
 ```

@@ -7,11 +7,11 @@ weight: 6
 
 Commands, state, tracks, clips, undo/redo, patches, events, serialization. Headless, browser + Node, fully unit-testable. No rendering — proves the architecture first. Shipped as [`@miraiclip/core@0.1.0`](https://www.npmjs.com/package/@miraiclip/core) (September 2026).
 
-## v2 — Rendering & playback (`@miraiclip/renderer`)
+## v2 — Rendering & playback (`@miraiclip/renderer`) ✅ shipped
 
-WebCodecs-based decode pipeline with frame caching, a WebGL compositor rendering project state to a canvas, and frame-accurate playback with audio sync via Web Audio.
+WebCodecs-based decode pipeline with frame caching, a WebGL (PixiJS) compositor rendering project state to a canvas, and frame-accurate playback with the audio clock as the playback master. Proxy preview decode for 4K sources, golden-frame e2e coverage. Shipped as [`@miraiclip/renderer@0.1.0`](https://www.npmjs.com/package/@miraiclip/renderer) (September 2026).
 
-## v3 — Export
+## v3 — Export (next)
 
 WebCodecs encode pipeline to MP4/WebM, offline (faster-than-realtime) rendering from project state, progress events, cancellation, and quality presets.
 

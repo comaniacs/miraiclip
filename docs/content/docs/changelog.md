@@ -7,6 +7,10 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ## Unreleased
 
+## renderer-0.1.0 — 2026-09-06
+
+First release of `@miraiclip/renderer` — WebCodecs media pipeline, PixiJS compositor, audio-master playback (`createPlayer`), frame-accurate seeking, proxy preview decode. Everything below shipped in it.
+
 ### Added
 
 - Golden-frame e2e suite (Playwright): a deterministic fixture whose every frame encodes its own index as a color — frame-exact mid-GOP seek tests and a displayed-frames-track-the-clock playback invariant, GPU-independent (`pnpm --filter miraiclip-playground e2e`; CI job included). `createPixiBackend` gains `preserveDrawingBuffer`.
