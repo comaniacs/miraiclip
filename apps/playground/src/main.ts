@@ -75,7 +75,13 @@ async function load(fileOrUrl: File | string): Promise<void> {
   });
 
   // 2 — the player: compositor + video pipeline + audio, one facade.
-  const backend = await createPixiBackend({ canvas, width: 1280, height: 720 });
+  // preserveDrawingBuffer: the e2e tests read pixels back from the canvas.
+  const backend = await createPixiBackend({
+    canvas,
+    width: 1280,
+    height: 720,
+    preserveDrawingBuffer: true,
+  });
   const player: Player = createPlayer(project, {
     backend,
     openDemuxer: openMediabunnyDemuxer,
@@ -93,16 +99,31 @@ async function load(fileOrUrl: File | string): Promise<void> {
   playButton.textContent = "Play";
   let seeking = false;
   let lastUiMs = 0;
-  const offPlayhead = project.events.on("playhead", ({ positionUs }) => {
-    const now = performance.now();
-    if (now - lastUiMs < 200) return;
-    lastUiMs = now;
+  let latestUs = 0;
+  let trailing: number | undefined;
+  const applyUi = (): void => {
+    lastUiMs = performance.now();
     if (!seeking) {
-      const position = String(Math.round((positionUs / durationUs) * 1000));
+      const position = String(Math.round((latestUs / durationUs) * 1000));
       if (seek.value !== position) seek.value = position;
     }
-    status.textContent = `${usToTimecode(positionUs, fps)} / ${usToTimecode(durationUs, fps)}${player.playing ? "" : " · paused"}`;
+    status.textContent = `${usToTimecode(latestUs, fps)} / ${usToTimecode(durationUs, fps)}${player.playing ? "" : " · paused"}`;
     playButton.textContent = player.playing ? "Pause" : "Play";
+  };
+  const offPlayhead = project.events.on("playhead", ({ positionUs }) => {
+    latestUs = positionUs;
+    const elapsed = performance.now() - lastUiMs;
+    if (elapsed >= 200) {
+      applyUi();
+      return;
+    }
+    // Trailing update: the player emits ONE event per discrete change (a
+    // paused seek, a pause) — a plain throttle would eat it and leave the UI
+    // stale forever.
+    trailing ??= window.setTimeout(() => {
+      trailing = undefined;
+      applyUi();
+    }, 200 - elapsed);
   });
 
   const onPlay = (): void => (player.playing ? player.pause() : player.play());
@@ -117,8 +138,13 @@ async function load(fileOrUrl: File | string): Promise<void> {
   seek.addEventListener("input", onSeekInput);
   seek.addEventListener("change", onSeekDone);
 
+  // Test hook: the e2e suite drives the player programmatically.
+  (window as unknown as Record<string, unknown>).__mirai = { player, project };
+
   teardown = () => {
     offPlayhead();
+    if (trailing !== undefined) clearTimeout(trailing);
+    delete (window as unknown as Record<string, unknown>).__mirai;
     playButton.removeEventListener("click", onPlay);
     seek.removeEventListener("input", onSeekInput);
     seek.removeEventListener("change", onSeekDone);

@@ -83,4 +83,7 @@ The repo's playground exercises everything above against real files:
 pnpm install
 pnpm --filter miraiclip-playground dev
 # open the URL, pick an MP4 — or load one by URL: /?src=/your.mp4 (from apps/playground/public)
+
+# golden-frame e2e suite (frame-exact seeks, clock-tracking playback):
+pnpm --filter miraiclip-playground e2e
 ```

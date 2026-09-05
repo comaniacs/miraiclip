@@ -21,6 +21,12 @@ export interface CreatePlayerOptions {
   /** Frame scheduler — injectable for tests (default requestAnimationFrame). */
   raf?: (callback: () => void) => number;
   cancelRaf?: (handle: number) => void;
+  /**
+   * Interval scheduler for the hidden-tab fallback — injectable for tests
+   * (default setInterval/clearInterval). See the pump interval below.
+   */
+  schedule?: (callback: () => void, intervalMs: number) => number;
+  cancelSchedule?: (handle: number) => void;
 }
 
 export interface Player {
@@ -77,8 +83,8 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     return end;
   }
 
-  function frame(): void {
-    if (destroyed) return;
+  /** Transport bookkeeping: end-of-composition + decode/audio window pumping. */
+  function advance(): Us {
     let t = clock.timeUs;
     const end = durationUs();
     if (clock.playing && end > 0 && t >= end) {
@@ -91,6 +97,18 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
         t = end;
       }
     }
+    // Keep decode/schedule windows rolling without doing it every frame.
+    if (Math.abs(t - lastPumpUs) > 300_000) {
+      lastPumpUs = t;
+      videos.prepare(t).catch(() => undefined); // per-clip errors surface via onError
+      audio.pump(t);
+    }
+    return t;
+  }
+
+  function frame(): void {
+    if (destroyed) return;
+    const t = advance();
     compositor.renderAt(t);
     // Paused, nothing changes 60×/s: skip the playhead event (and the zustand
     // set + subscriber fan-out behind it) when the time hasn't moved.
@@ -98,15 +116,26 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       lastPlayheadUs = t;
       project.setPlayhead(t);
     }
-    // Keep decode/schedule windows rolling without doing it every frame.
-    if (Math.abs(t - lastPumpUs) > 300_000) {
-      lastPumpUs = t;
-      videos.prepare(t).catch(() => undefined); // per-clip errors surface via onError
-      audio.pump(t);
-    }
     rafHandle = raf(frame);
   }
   rafHandle = raf(frame);
+
+  // Hidden-tab fallback: requestAnimationFrame freezes when the tab is hidden,
+  // but WebAudio keeps playing — without this, the audio stalls as soon as its
+  // scheduling window (~3s) runs dry and never recovers. A timer keeps the
+  // decode and audio windows rolling (no rendering — nothing is visible); when
+  // the tab returns, the rAF loop resumes drawing from a warm cache. Audible
+  // pages are exempt from Chrome's intensive timer throttling, so a 500ms
+  // interval is dependable while sound is playing.
+  const schedule =
+    options.schedule ??
+    ((callback: () => void, intervalMs: number) =>
+      setInterval(callback, intervalMs) as unknown as number);
+  const cancelSchedule =
+    options.cancelSchedule ?? ((handle: number) => clearInterval(handle));
+  const pumpHandle = schedule(() => {
+    if (!destroyed && clock.playing) advance();
+  }, 500);
 
   function seekInternal(timeUs: Us, resumeAudio: boolean): void {
     clock.seek(timeUs);
@@ -155,6 +184,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       if (destroyed) return;
       destroyed = true;
       cancelRaf(rafHandle);
+      cancelSchedule(pumpHandle);
       audio.dispose();
       videos.dispose();
       compositor.destroy();

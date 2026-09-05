@@ -5,7 +5,7 @@ import { FakeDemuxer, createFakeDecoder } from "./fakes.js";
 import { FakeBackend } from "./scene-fakes.js";
 import { FakeOutput, openFakeAudio, settle } from "./audio-fakes.js";
 
-function setup() {
+function setup(overrides: { noRaf?: boolean } = {}) {
   const project = createProject({ width: 1280, height: 720, fps: 30 });
   project.dispatch({
     type: "asset/add",
@@ -28,17 +28,26 @@ function setup() {
   const backend = new FakeBackend();
   // Manual frame scheduler: the test drives "animation frames" by hand.
   const pending: (() => void)[] = [];
+  // Manual interval scheduler: the test fires the hidden-tab pump by hand.
+  let pump: (() => void) | undefined;
   const player = createPlayer(project, {
     backend,
     openDemuxer: async () => new FakeDemuxer(300, 30),
     createDecoder: createFakeDecoder,
     audioOutput: output,
     openAudio: openFakeAudio(60_000_000),
-    raf: (callback) => pending.push(callback) - 1,
+    raf: (callback) => (overrides.noRaf ? 0 : pending.push(callback) - 1),
     cancelRaf: () => undefined,
+    schedule: (callback) => {
+      pump = callback;
+      return 1;
+    },
+    cancelSchedule: () => {
+      pump = undefined;
+    },
   });
   const tick = () => pending.splice(0).forEach((callback) => callback());
-  return { project, output, backend, player, tick };
+  return { project, output, backend, player, tick, firePump: () => pump?.() };
 }
 
 describe("createPlayer", () => {
@@ -80,6 +89,27 @@ describe("createPlayer", () => {
     expect(player.timeUs).toBe(3_000_000);
     const next = output.scheduled[before]!;
     expect(next.whenUs).toBe(output.nowUs); // re-anchored at seek
+    player.destroy();
+  });
+
+  it("keeps audio scheduling rolling in a hidden tab (no animation frames)", async () => {
+    // rAF never fires — the tab is hidden — but the audio clock keeps running.
+    const { output, player, firePump } = setup({ noRaf: true });
+    player.play();
+    await settle();
+    const initiallyScheduled = output.scheduled.length;
+    expect(initiallyScheduled).toBeGreaterThan(0);
+    // Playback progresses past the initial scheduling window; only the
+    // interval pump can extend it.
+    output.nowUs += 2_500_000;
+    firePump();
+    await settle();
+    expect(output.scheduled.length).toBeGreaterThan(initiallyScheduled);
+    // End of composition is also detected without animation frames.
+    output.nowUs += 5_000_000;
+    firePump();
+    expect(player.playing).toBe(false);
+    expect(player.timeUs).toBe(4_000_000);
     player.destroy();
   });
 

@@ -241,6 +241,12 @@ export interface PixiBackendOptions {
   width: number;
   height: number;
   background?: number;
+  /**
+   * Keep the drawing buffer readable after render (canvas.toDataURL,
+   * drawImage-based pixel readback). Costs a little GPU memory/bandwidth —
+   * enable for testing, thumbnails, or screenshot features (default false).
+   */
+  preserveDrawingBuffer?: boolean;
 }
 
 /** Create the PixiJS scene backend bound to a canvas. */
@@ -254,6 +260,7 @@ export async function createPixiBackend(options: PixiBackendOptions): Promise<Sc
     autoStart: false,
     sharedTicker: false,
     antialias: true,
+    preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
   });
   return new PixiSceneBackend(app);
 }
