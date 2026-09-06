@@ -4,7 +4,7 @@ layout: hextra-home
 ---
 
 {{< hextra/hero-badge link="docs/roadmap" >}}
-  <span>v0.1 on npm — core engine + renderer</span>
+  <span>on npm — core engine + renderer with export</span>
   {{< icon name="arrow-circle-right" attributes="height=14" >}}
 {{< /hextra/hero-badge >}}
 

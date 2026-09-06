@@ -1,9 +1,9 @@
 ---
-title: Export
-weight: 5
+title: Client side
+weight: 1
 ---
 
-`exportProject` renders a composition offline — the same compositor and decode pipeline preview uses, driven frame-by-frame with decode capped at **2× the output's longest side** (visually lossless for compositing, and what keeps 4K-source exports fast; pass `createDecoder: createWebCodecsDecoder` for uncapped pixel-exact decoding) as fast as decode + encode allow. No realtime clock is involved: a 4-minute composition exports in however long the hardware takes, not 4 minutes.
+`exportProject` renders a composition offline — the same compositor and decode pipeline preview uses, driven frame-by-frame with decode capped at **2× the output's longest side** (visually lossless for compositing, and what keeps 4K-source exports fast; pass `createDecoder: createWebCodecsDecoder` for uncapped pixel-exact decoding) as fast as decode + encode allow. No realtime clock is involved: a 4-minute composition exports in however long the hardware takes, not 4 minutes. To run the same export from Node on a server, see [Server side](../server-side).
 
 ```ts
 import { exportProject } from "@miraiclip/renderer";

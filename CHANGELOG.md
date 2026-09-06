@@ -2,6 +2,12 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
+## [server-export-0.1.0] — 2026-09-06
+
+### Added
+
+- **`@miraiclip/server-export` (v3.x)** — server-side export from Node: `exportProjectFile(doc, options)` and a `miraiclip-export` CLI run the browser's own `exportProject` inside headless Chrome, so server output is pixel-identical to the browser's by construction. The package serves a self-contained harness bundle (core + renderer baked in at build time — version-locked, consumers install nothing browser-side) plus the project's media on a loopback server with Range support (media decode seeks by byte range); asset `src`s resolve via an explicit `assets` map, `assetsDir`, or pass-through for http(s)/data URLs, and a missing file fails fast before any browser launches. Browser resolution: `browser.executablePath` → `MIRAICLIP_BROWSER` → the machine's installed Chrome (`playwright-core`, no forced download) — real Chrome recommended since free Chromium has no H.264 encoder (WebM works everywhere). Progress events and `AbortSignal` forward across the process boundary (`ServerExportAbortedError`); SwiftShader software GL is the default on Linux servers. Verified by an integration suite driving real headless Chromium: container parsed back by an independent reader (duration, dimensions, no stray audio track), exact range durations, mid-export abort, and a CLI smoke test — plus a CI step in the e2e job. A runnable example (project.json + CLI + Node script) lives in `examples/server-export`.
+
 ## [renderer-0.2.0] — 2026-09-06
 
 ### Added

@@ -13,11 +13,11 @@ WebCodecs-based decode pipeline with frame caching, a WebGL (PixiJS) compositor 
 
 ## v3 — Export ✅ shipped
 
-WebCodecs encode pipeline to MP4 (H.264 + AAC) and WebM (VP9 + Opus), offline (faster-than-realtime) rendering from project state via `exportProject` with pipelined encoding, progress events, cancellation, quality presets, and an output-fps option — verified end to end by a closed-loop e2e. Shipping as `@miraiclip/renderer@0.2.0`. See [Export](export).
+WebCodecs encode pipeline to MP4 (H.264 + AAC) and WebM (VP9 + Opus), offline (faster-than-realtime) rendering from project state via `exportProject` with pipelined encoding, progress events, cancellation, quality presets, and an output-fps option — verified end to end by a closed-loop e2e. Shipping as `@miraiclip/renderer@0.2.0`. See [Export](export/client-side).
 
-## v3.x — Server-side export (next)
+## v3.x — Server-side export 🚧 in progress
 
-The same `exportProject` running in headless Chromium on a server: a Node package that accepts the project document as JSON, hydrates it in a browser harness, and runs the identical browser export path — preview/export parity by construction, already validated by the CI e2e suite running headlessly. Also under v3.x: chunked offline audio rendering for long timelines.
+`@miraiclip/server-export`: the same `exportProject` running in headless Chrome on a server — `exportProjectFile(docJson, options)` and a `miraiclip-export` CLI hydrate the project in a browser harness and run the identical browser export path, so server output is pixel-identical to preview by construction. Built, integration-tested (real headless Chromium in CI), and verified end to end; shipping as `@miraiclip/server-export@0.1.0`. See [Server export](export/server-side). Also under v3.x: chunked offline audio rendering for long timelines.
 
 ## v4 — Creative features
 

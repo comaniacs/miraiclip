@@ -63,6 +63,11 @@ jobs:
       - name: Run golden-frame tests
         run: pnpm --filter miraiclip-playground e2e
 
+      - name: Server export integration (headless Chromium)
+        run: |
+          MIRAICLIP_BROWSER="$(pnpm --filter miraiclip-playground exec node -e 'console.log(require("playwright").chromium.executablePath())')" \
+            pnpm --filter @miraiclip/server-export test
+
       - name: Upload test results on failure
         if: failure()
         uses: actions/upload-artifact@v4

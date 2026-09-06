@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "width": 320,
+    "height": 180,
+    "fps": 30
+  },
+  "assets": {
+    "media": {
+      "id": "media",
+      "kind": "video",
+      "src": "../../apps/playground/public/test-media.mp4",
+      "durationUs": 40000000
+    }
+  },
+  "tracks": {
+    "v1": {
+      "id": "v1",
+      "kind": "video",
+      "name": "v1",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    },
+    "overlay": {
+      "id": "overlay",
+      "kind": "video",
+      "name": "overlay",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    }
+  },
+  "trackOrder": [
+    "v1",
+    "overlay"
+  ],
+  "clips": {
+    "main": {
+      "kind": "video",
+      "id": "main",
+      "trackId": "v1",
+      "assetId": "media",
+      "startUs": 0,
+      "durationUs": 40000000,
+      "trimStartUs": 0,
+      "volume": 1,
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    },
+    "title": {
+      "kind": "text",
+      "id": "title",
+      "trackId": "overlay",
+      "startUs": 0,
+      "durationUs": 4000000,
+      "text": "Miraiclip server export",
+      "fontFamily": "sans-serif",
+      "fontSizePx": 40,
+      "color": "#ffffff",
+      "transform": {
+        "x": 0.5,
+        "y": 0.85,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 0.9
+      }
+    }
+  }
+}
