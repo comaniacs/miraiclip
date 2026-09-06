@@ -1,24 +1,11 @@
-import type { AudioClip, Clip, Project, ProjectDocument, VideoClip } from "@miraiclip/core";
+import type { AudioClip, Project, ProjectDocument, VideoClip } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
+import { gainFor, isAudible, mapChunkToTimeline } from "./mapping.js";
 import type { AudioChannel, AudioOutput, AudioSourceFactory, AudioTrackSource } from "./types.js";
 
 export interface AudioEngineOptions {
   /** How far ahead of the playhead audio is kept scheduled (default 3s). */
   aheadUs?: Us;
-}
-
-/** Clips that can make sound: audio clips, and video clips (embedded track). */
-function isAudible(clip: Clip): clip is VideoClip | AudioClip {
-  return clip.kind === "audio" || clip.kind === "video";
-}
-
-/** Effective gain: clip volume × track mute/solo state. */
-function gainFor(clip: VideoClip | AudioClip, doc: ProjectDocument): number {
-  const track = doc.tracks[clip.trackId];
-  if (!track) return 0;
-  const anySolo = Object.values(doc.tracks).some((t) => t.solo);
-  const audible = !track.muted && (!anySolo || track.solo);
-  return audible ? clip.volume : 0;
 }
 
 interface ClipLane {
@@ -160,8 +147,6 @@ export class AudioEngine {
   private async pull(lane: ClipLane, epoch: number): Promise<void> {
     const clip = this.doc().clips[lane.clipId];
     if (!clip || !isAudible(clip) || !lane.generator) return;
-    const clipEndUs = clip.startUs + clip.durationUs;
-    const trimUs = clip.trimStartUs;
 
     while (epoch === this.epoch && !this.disposed) {
       if (lane.scheduledThroughUs >= this.windowEndUs) {
@@ -175,22 +160,30 @@ export class AudioEngine {
         return;
       }
 
-      // Media time → timeline time for this clip.
-      const timelineStartUs = clip.startUs + (chunk.timestampUs - trimUs);
-      const timelineEndUs = timelineStartUs + chunk.durationUs;
-      if (timelineEndUs <= this.anchorTimelineUs) continue; // entirely behind
-      if (timelineStartUs >= clipEndUs) {
-        lane.exhausted = true; // past the clip's end
+      // Media time → timeline time for this clip (shared with offline export).
+      const mapped = mapChunkToTimeline(
+        clip,
+        chunk.timestampUs,
+        chunk.durationUs,
+        this.anchorTimelineUs,
+      );
+      if (mapped === "behind") continue;
+      if (mapped === "past-end") {
+        lane.exhausted = true;
         return;
       }
 
-      const playFromUs = Math.max(timelineStartUs, this.anchorTimelineUs);
-      const offsetUs = playFromUs - timelineStartUs;
-      const durationUs = Math.min(timelineEndUs, clipEndUs) - playFromUs;
       const whenUs =
-        this.anchorOutputUs + (playFromUs - this.anchorTimelineUs) / this.rate;
-      lane.channel.schedule(chunk.native, whenUs, offsetUs, durationUs, this.rate);
-      lane.scheduledThroughUs = Math.min(timelineEndUs, clipEndUs);
+        this.anchorOutputUs +
+        (mapped.playFromTimelineUs - this.anchorTimelineUs) / this.rate;
+      lane.channel.schedule(
+        chunk.native,
+        whenUs,
+        mapped.offsetIntoChunkUs,
+        mapped.durationUs,
+        this.rate,
+      );
+      lane.scheduledThroughUs = mapped.playFromTimelineUs + mapped.durationUs;
     }
   }
 

@@ -3,12 +3,15 @@ import { createProject } from "@miraiclip/core";
 import { Compositor } from "../src/compositor/compositor.js";
 import { MediaManager } from "../src/media/media-manager.js";
 import { createVideoSupport, toMediaUs } from "../src/video/video-support.js";
-import { FakeDemuxer, createFakeDecoder } from "./fakes.js";
+import { FakeDecoder, FakeDemuxer, createFakeDecoder } from "./fakes.js";
 import { FakeBackend, FakeVideoNode } from "./scene-fakes.js";
 
 const FRAME_US = FakeDemuxer.FRAME_US;
 
-function setup(clip?: { startUs?: number; trimStartUs?: number }) {
+function setup(
+  clip?: { startUs?: number; trimStartUs?: number },
+  createDecoderOverride?: () => FakeDecoder,
+) {
   const project = createProject({ width: 1280, height: 720, fps: 30 });
   project.dispatch({
     type: "asset/add",
@@ -29,7 +32,7 @@ function setup(clip?: { startUs?: number; trimStartUs?: number }) {
   });
   const manager = new MediaManager({
     openDemuxer: async () => new FakeDemuxer(300, 30),
-    createDecoder: createFakeDecoder,
+    createDecoder: createDecoderOverride ?? createFakeDecoder,
   });
   const videos = createVideoSupport(project, manager);
   const backend = new FakeBackend();
@@ -54,6 +57,28 @@ describe("video in the compositor", () => {
     const frame = node.lastFrame as { timestampUs: number };
     expect(frame).not.toBeNull();
     expect(frame.timestampUs).toBe(t);
+  });
+
+  it("renderFrameAt is exact even when frames arrive asynchronously (export judder)", async () => {
+    // Real decoders deliver frames async (decoder callback + GPU copy). prime()
+    // resolves at feed time — a render-once consumer that draws immediately
+    // captures the PREVIOUS frame: duplicated frames in an export. prepareAt
+    // must wait for the actual frame.
+    const asyncDecoder = () => {
+      const decoder = new FakeDecoder();
+      const original = decoder.decode.bind(decoder);
+      decoder.decode = (chunk) => {
+        setTimeout(() => original(chunk), 0);
+      };
+      return decoder;
+    };
+    const { videos, compositor, node } = setup(undefined, asyncDecoder);
+    // Walk like the exporter does: sequential targets, draw once per frame.
+    for (const f of [10, 11, 12, 30, 31]) {
+      await videos.renderFrameAt(compositor, f * FRAME_US);
+      const frame = node.lastFrame as { timestampUs: number };
+      expect(frame?.timestampUs, `frame ${f}`).toBe(f * FRAME_US);
+    }
   });
 
   it("maps timeline time through clip start and source trim", async () => {

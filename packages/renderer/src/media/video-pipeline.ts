@@ -9,6 +9,18 @@ import type {
   VideoTrackInfo,
 } from "./types.js";
 
+/** Unclamped macrotask yield (setTimeout nests are clamped to ~4ms). */
+function macrotask(): Promise<void> {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    channel.port1.onmessage = () => {
+      channel.port1.close();
+      resolve();
+    };
+    channel.port2.postMessage(null);
+  });
+}
+
 export interface VideoPipelineOptions {
   /** How far past the target to keep decoding ahead (default 1s). */
   aheadUs?: Us;
@@ -107,6 +119,40 @@ export class VideoPipeline {
   info(): Promise<VideoTrackInfo> {
     this.infoPromise ??= this.demuxer.info();
     return this.infoPromise;
+  }
+
+  private covers(us: Us): boolean {
+    const covering = this.cache.frameAt(us);
+    if (!covering) return false;
+    return us < covering.timestampUs + Math.max(covering.durationUs, 33_333);
+  }
+
+  /**
+   * Resolve once a cached frame COVERS `us` — not merely once decode has been
+   * scheduled. `prime()` resolves when chunks are fed; the decoded frames
+   * arrive asynchronously afterwards (decoder callback plus a GPU copy).
+   * Playback polls every animation frame so it never notices, but a
+   * render-once consumer (export, thumbnails) must wait for the actual frame
+   * or it captures the previous one — duplicated frames in an export.
+   * Best-effort bounded: resolves anyway at end of stream (a time past the
+   * last frame) or after bounded re-priming, showing the nearest frame.
+   */
+  async waitForFrame(us: Us, timeoutMs = 2_000): Promise<void> {
+    const deadline = Date.now() + timeoutMs;
+    while (!this.disposed && Date.now() <= deadline) {
+      if (this.covers(us)) return;
+      if (!this.pumpPromise) {
+        if (this.iteratorDone) return; // past the last frame — nearest is the answer
+        void this.prime(us);
+      }
+      // Yield a full MACROTASK turn: decoded frames arrive via timer/IO
+      // callbacks, and any microtask-based wake here livelocks — the idle
+      // pump's completion wakes the waiter in the same turn, forever
+      // starving the very arrivals being waited on. The yield goes through a
+      // MessageChannel, not setTimeout: nested timers are clamped to ~4ms,
+      // which quietly caps a poll-per-frame export loop at ~60fps.
+      await macrotask();
+    }
   }
 
   get cacheSize(): number {

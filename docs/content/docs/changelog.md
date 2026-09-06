@@ -1,11 +1,16 @@
 ---
 title: Changelog
-weight: 7
+weight: 8
 ---
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
-## Unreleased
+## renderer-0.2.0 — 2026-09-06
+
+### Added
+
+- `@miraiclip/renderer` offline export (v3): `exportProject` → MP4 (H.264+AAC) or WebM (VP9+Opus), full-resolution, faster than realtime (backpressure-paced, zero re-seeks, midpoint frame sampling, per-frame wait-for-arrival (fixes duplicated-frame judder), decode capped at 2× output size (fixes 4K-source export speed)), offline audio mix sharing live playback's clip math, quality presets, up-front codec probing, AbortSignal cancellation (including mid-audio-mix), progress events for both phases (audio reports seconds mixed — long timelines decode their full audio). Playground Export button with In/Out range marks; closed-loop e2e verifies the file with an independent decoder (frame colors, duration, audio RMS). See the [Export](../export) guide.
+- `@miraiclip/renderer` pipelined export encoding: a bounded in-flight window of encoder submissions (`encodeAheadFrames`, default 4) plus an unclamped macrotask yield in the frame-arrival poll (nested `setTimeout` is clamped to ~4ms) — decode, compositing, and encoding now overlap instead of running in lockstep, which had measured ~realtime with an idle CPU. Sinks capture the canvas synchronously inside `addVideoFrame` (explicit contract); memory stays bounded and error/abort paths still cancel the sink exactly once. Playground export gains an output-fps select (Source/30/24) — a lower rate cuts export time proportionally.
 
 ## renderer-0.1.0 — 2026-09-06
 

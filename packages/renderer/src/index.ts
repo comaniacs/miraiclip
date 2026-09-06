@@ -61,3 +61,18 @@ export {
   openMediabunnyDemuxer,
 } from "./media/webcodecs.js";
 export type { MediaSrc, WebCodecsDecoderOptions } from "./media/webcodecs.js";
+
+export { exportComposition } from "./export/exporter.js";
+export type { ExportCompositionOptions } from "./export/exporter.js";
+export { exportProject } from "./export/export-project.js";
+export type { ExportProjectOptions } from "./export/export-project.js";
+export { createMediabunnySink } from "./export/mediabunny-sink.js";
+export type {
+  CreateMediabunnySinkOptions,
+  ExportFormat,
+  ExportQualityPreset,
+} from "./export/mediabunny-sink.js";
+export { mixCompositionAudio, planAudioJobs } from "./export/offline-audio.js";
+export type { AudioMixJob, MixCompositionAudioOptions } from "./export/offline-audio.js";
+export { ExportAbortedError } from "./export/types.js";
+export type { ExportProgress, ExportRange, ExportSink } from "./export/types.js";

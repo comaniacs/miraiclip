@@ -19,7 +19,11 @@
                background: #1c1c24; color: inherit; cursor: pointer; font-size: 14px; }
       button:hover { background: #26262f; }
       input[type="range"] { width: 360px; }
+      select { padding: 6px 8px; border-radius: 6px; border: 1px solid #3a3a46;
+               background: #1c1c24; color: inherit; font-size: 13px; }
       #status { font-size: 13px; color: #9a9aa6; font-variant-numeric: tabular-nums; }
+      #range-label { font-size: 12px; color: #8fd18f; font-variant-numeric: tabular-nums; }
+      #mark-in, #mark-out, #range-clear { padding: 6px 10px; font-size: 13px; }
       #unsupported { color: #ff7a7a; }
     </style>
   </head>
@@ -31,6 +35,25 @@
     <div id="controls">
       <button id="play" disabled>Play</button>
       <input type="range" id="seek" min="0" max="1000" value="0" disabled />
+      <button id="mark-in" disabled title="Set export range start at the playhead">In</button>
+      <button id="mark-out" disabled title="Set export range end at the playhead">Out</button>
+      <span id="range-label" hidden></span>
+      <button id="range-clear" hidden title="Clear the export range">✕</button>
+      <select id="export-format" disabled>
+        <option value="webm">WebM (VP9)</option>
+        <option value="mp4">MP4 (H.264)</option>
+      </select>
+      <select id="export-quality" disabled>
+        <option value="high" selected>High</option>
+        <option value="standard">Standard</option>
+        <option value="draft">Draft</option>
+      </select>
+      <select id="export-fps" disabled title="Output frame rate — 30 fps halves export time for 60 fps sources">
+        <option value="source" selected>Source fps</option>
+        <option value="30">30 fps</option>
+        <option value="24">24 fps</option>
+      </select>
+      <button id="export" disabled>Export</button>
       <span id="status">pick a video file</span>
     </div>
     <p id="unsupported" hidden>This browser has no WebCodecs — use Chrome/Edge 94+, Safari 16.4+, or Firefox 130+.</p>

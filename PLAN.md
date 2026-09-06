@@ -82,10 +82,19 @@ Build order: (1) ✅ mediabunny demux + frame cache with tests (streaming decode
 
 Open questions to settle during v2: worker↔main frame transfer strategy (transfer `VideoFrame` vs render-to-`ImageBitmap`); whether the Pixi dependency is `peerDependency` or bundled; WebGPU backend (Pixi v8 supports it) as an option flag now or later.
 
-### v3 — Export
-- WebCodecs encode pipeline → MP4/WebM (mp4-muxer / webm-muxer)
-- Offline (faster-than-realtime) render from project state
-- Progress events, cancellation, quality presets
+### v3 — Export ✅ (complete 2026-09-06, shipped as renderer 0.2.0)
+
+Decisions (settled 2026-09-06, with user): export ships **inside `@miraiclip/renderer`** (shares the compositor/media pipeline seams; releases as renderer 0.2.0); **MP4 (H.264) + WebM (VP9)** both in the first cut, with per-browser codec probing (`canEncodeVideo`) and clear unsupported errors.
+
+Architecture: the preview pipeline on a deterministic clock. A frame loop walks output frames (`renderFrameAt` awaits full-resolution decode — proxy decode off — and composites via the same Pixi backend onto an OffscreenCanvas at project resolution); each frame is handed to mediabunny's `Output` (`CanvasSource.add(t, dur)` — its promise IS the encoder/writer backpressure, which is what makes export faster-than-realtime without unbounded memory). Sequential monotonic time = zero re-seeks. Audio is mixed offline via `OfflineAudioContext` reusing AudioEngine's scheduling math (gains, trims, mute/solo), then added via `AudioBufferSource`. Progress events (phase + framesDone/totalFrames), cancellation via `AbortSignal`, quality presets mapped to mediabunny `QUALITY_*` with bitrate override.
+
+Known risks (grilled): offline audio memory ~230MB/10min stereo (chunked rendering is the v3.x escape hatch); many-asset timelines can thrash the decoder LRU cap (acceptable at v3 scope); H.264 encode unavailable in some browsers → probe + error, e2e uses VP9/WebM (Playwright Chromium has no H.264).
+
+Build order (1–4 ✅ complete 2026-09-06; 71 headless + 5 e2e tests green): (1) export orchestrator + `ExportSink` interface, headless-tested with fakes (frame walk, rounding to exact composition end, progress, abort mid-run, sink error propagation) → (2) offline audio mix (scheduling plan headless-tested; OfflineAudioContext adapter) → (3) mediabunny sink adapter + presets + codec probing → (4) playground Export button + closed-loop golden e2e (export the frame-index fixture, re-import with our own demuxer, assert frame colors) → (5) docs + changelogs ✅; (5) docs + changelogs ✅ → user-verified in real Chrome (MP4 High, 4K60 source: no judder, ~1.5× realtime after pipelining) → changeset added for 0.2.0 (publish via the changesets flow). Post-ship perf round: pipelined encoding (bounded encoder in-flight window, `encodeAheadFrames` default 4; sinks capture synchronously — an explicit `ExportSink` contract), unclamped MessageChannel macrotask in `waitForFrame` (nested setTimeout's ~4ms clamp capped exports at ~60fps), playground output-fps select (Source/30/24).
+
+### v3.x — Server-side export (next)
+
+Decision (2026-09-06, with user): build after 0.2.0 ships. Approach: **the same `exportProject` in headless Chromium** (Playwright), NOT a native Node pipeline — rebuilding decode/composite/encode on ffmpeg + a software canvas forfeits preview/export parity, which is the product guarantee. A new package (working name `@miraiclip/server-export`) exposes `exportProjectFile(docJson, options)` + a CLI: launch Chromium, load a minimal harness page, hydrate the project from JSON, run `exportProject`, write the bytes to disk. The CI e2e suite already proves this exact shape works headlessly (SwiftShader software GL included). Knowns to solve: (a) a clean hydrate-from-doc-JSON entry point in core; (b) asset `src` resolution on the server (URLs, or the harness serves local files); (c) MP4 needs codecs-enabled Chrome — stock Playwright Chromium is WebM-only; (d) throughput measurement on software GL. Also in v3.x: chunked offline audio rendering (memory).
 
 ### v4 — Creative features
 - Animations (keyframes on clip properties), transitions, effects/filters (shader-based), captions, chroma key

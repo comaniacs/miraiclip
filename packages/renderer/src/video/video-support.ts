@@ -55,10 +55,13 @@ class VideoClipAdapter implements SceneNode {
     this.onError(error instanceof Error ? error : new Error(String(error)));
   };
 
-  /** Await decode around a media position (used by prepare/renderFrameAt). */
+  /** Await the exact frame at a media position (used by prepare/renderFrameAt). */
   async prepareAt(mediaUs: Us): Promise<void> {
     const pipeline = await this.ensurePipeline();
     await pipeline.prime(mediaUs);
+    // prime() means "decode scheduled"; render-once consumers (export,
+    // thumbnails) need the frame to have actually ARRIVED before drawing.
+    await pipeline.waitForFrame(mediaUs);
   }
 
   tick(clip: Clip, timeUs: Us): void {

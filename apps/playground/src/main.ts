@@ -4,9 +4,11 @@ import {
   createPlayer,
   createWebAudioOutput,
   createWebCodecsDecoderFactory,
+  exportProject,
   isWebCodecsSupported,
   openMediabunnyAudio,
   openMediabunnyDemuxer,
+  type ExportFormat,
   type Player,
 } from "@miraiclip/renderer";
 
@@ -15,6 +17,14 @@ const canvas = document.getElementById("stage") as HTMLCanvasElement;
 const playButton = document.getElementById("play") as HTMLButtonElement;
 const seek = document.getElementById("seek") as HTMLInputElement;
 const status = document.getElementById("status") as HTMLSpanElement;
+const exportButton = document.getElementById("export") as HTMLButtonElement;
+const exportFormat = document.getElementById("export-format") as HTMLSelectElement;
+const exportQuality = document.getElementById("export-quality") as HTMLSelectElement;
+const exportFps = document.getElementById("export-fps") as HTMLSelectElement;
+const markInButton = document.getElementById("mark-in") as HTMLButtonElement;
+const markOutButton = document.getElementById("mark-out") as HTMLButtonElement;
+const rangeLabel = document.getElementById("range-label") as HTMLSpanElement;
+const rangeClear = document.getElementById("range-clear") as HTMLButtonElement;
 
 if (!isWebCodecsSupported()) {
   (document.getElementById("unsupported") as HTMLElement).hidden = false;
@@ -138,12 +148,103 @@ async function load(fileOrUrl: File | string): Promise<void> {
   seek.addEventListener("input", onSeekInput);
   seek.addEventListener("change", onSeekDone);
 
+  // 4 — export: the same document rendered offline at full resolution.
+  exportButton.disabled = false;
+  exportFormat.disabled = false;
+  exportQuality.disabled = false;
+  exportFps.disabled = false;
+  markInButton.disabled = false;
+  markOutButton.disabled = false;
+
+  // Export range: editor-style in/out marks set at the playhead.
+  let markInUs: number | undefined;
+  let markOutUs: number | undefined;
+  const updateRangeLabel = (): void => {
+    const active = markInUs !== undefined || markOutUs !== undefined;
+    rangeLabel.hidden = !active;
+    rangeClear.hidden = !active;
+    if (!active) return;
+    const inUs = markInUs ?? 0;
+    const outUs = markOutUs ?? durationUs;
+    rangeLabel.textContent = `${usToTimecode(inUs, fps)} → ${usToTimecode(outUs, fps)} (${Math.max(0, Math.round((outUs - inUs) / 1_000_000))}s)`;
+    rangeLabel.style.color = outUs > inUs ? "#8fd18f" : "#ff7a7a";
+  };
+  const onMarkIn = (): void => {
+    markInUs = player.timeUs;
+    updateRangeLabel();
+  };
+  const onMarkOut = (): void => {
+    markOutUs = player.timeUs;
+    updateRangeLabel();
+  };
+  const onRangeClear = (): void => {
+    markInUs = undefined;
+    markOutUs = undefined;
+    updateRangeLabel();
+  };
+  markInButton.addEventListener("click", onMarkIn);
+  markOutButton.addEventListener("click", onMarkOut);
+  rangeClear.addEventListener("click", onRangeClear);
+  const onExport = async (): Promise<void> => {
+    const format = exportFormat.value as ExportFormat;
+    const rangeStartUs = markInUs ?? 0;
+    const rangeEndUs = markOutUs ?? durationUs;
+    if (!(rangeEndUs > rangeStartUs)) {
+      status.textContent = "export range is empty — Out must be after In";
+      return;
+    }
+    exportButton.disabled = true;
+    player.pause();
+    try {
+      const bytes = await exportProject(project, {
+        format,
+        quality: exportQuality.value as "draft" | "standard" | "high",
+        // "source" = the project's fps (exportProject's default); a lower
+        // output rate cuts the frame count — and export time — proportionally.
+        ...(exportFps.value === "source" ? {} : { fps: Number(exportFps.value) }),
+        range: { startUs: rangeStartUs, endUs: rangeEndUs },
+        onProgress: ({ phase, framesDone, totalFrames, audioMixedUs, audioTotalUs }) => {
+          status.textContent =
+            phase === "video"
+              ? `exporting… ${framesDone}/${totalFrames} frames`
+              : phase === "audio"
+                ? `exporting… audio ${Math.round((audioMixedUs ?? 0) / 1_000_000)}s / ${Math.round((audioTotalUs ?? 0) / 1_000_000)}s`
+                : `exporting… (${phase})`;
+        },
+      });
+      const blob = new Blob([bytes as BlobPart], {
+        type: format === "mp4" ? "video/mp4" : "video/webm",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `miraiclip-export.${format}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      status.textContent = `exported ${(blob.size / 1_048_576).toFixed(1)} MB ${format}`;
+    } catch (error) {
+      status.textContent = `export failed: ${error instanceof Error ? error.message : String(error)}`;
+      console.error("[playground] export failed:", error);
+    } finally {
+      exportButton.disabled = false;
+    }
+  };
+  exportButton.addEventListener("click", onExport);
+
   // Test hook: the e2e suite drives the player programmatically.
-  (window as unknown as Record<string, unknown>).__mirai = { player, project };
+  (window as unknown as Record<string, unknown>).__mirai = { player, project, exportProject };
 
   teardown = () => {
     offPlayhead();
     if (trailing !== undefined) clearTimeout(trailing);
+    exportButton.removeEventListener("click", onExport);
+    markInButton.removeEventListener("click", onMarkIn);
+    markOutButton.removeEventListener("click", onMarkOut);
+    rangeClear.removeEventListener("click", onRangeClear);
+    onRangeClear();
+    exportButton.disabled = true;
+    markInButton.disabled = true;
+    markOutButton.disabled = true;
     delete (window as unknown as Record<string, unknown>).__mirai;
     playButton.removeEventListener("click", onPlay);
     seek.removeEventListener("input", onSeekInput);
