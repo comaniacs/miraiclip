@@ -37,3 +37,36 @@ jobs:
 
       - name: Build
         run: pnpm -r build
+
+  e2e:
+    name: Golden-frame e2e (WebCodecs + Pixi in headless Chromium)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter miraiclip-playground exec playwright install --with-deps chromium
+
+      - name: Run golden-frame tests
+        run: pnpm --filter miraiclip-playground e2e
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-results
+          path: apps/playground/test-results/
+          retention-days: 7
