@@ -3,13 +3,14 @@
  * its tests never touch this file. Rendering is manual (no Pixi ticker) — the
  * playback controller decides when frames are drawn.
  */
-import { Application, Assets, Container, ImageSource, Sprite, Text, Texture } from "pixi.js";
+import { Application, Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
 import { isTextClip, type Asset, type Clip, type EffectInstance, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
-import type { Placement, SceneBackend, SceneNode, VideoSceneNode } from "./types.js";
+import type { Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
   private effects: NodeEffects | undefined;
+  private revealMask: Graphics | undefined;
 
   constructor(
     protected readonly display: T,
@@ -21,6 +22,42 @@ abstract class PixiNode<T extends Container> implements SceneNode {
     if (!this.effectContext) return;
     this.effects ??= new NodeEffects(this.display, this.effectContext, this.invalidate);
     this.effects.set(effects);
+  }
+
+  /**
+   * Wipe reveal: a stage-level Graphics mask (composition space — the mask
+   * must not inherit the node's own transform). fraction 1 drops the mask
+   * entirely, so outside a transition window there is zero masking cost.
+   */
+  setReveal(fraction: number, direction: RevealDirection): void {
+    if (fraction >= 1) {
+      if (!this.revealMask) return;
+      this.display.mask = null;
+      this.revealMask.parent?.removeChild(this.revealMask);
+      this.revealMask.destroy();
+      this.revealMask = undefined;
+      this.invalidate();
+      return;
+    }
+    const comp = this.effectContext?.compositionSize();
+    if (!comp) return;
+    if (!this.revealMask) {
+      this.revealMask = new Graphics();
+      // Sibling of the node: same coordinate space as the composition.
+      this.display.parent?.addChild(this.revealMask);
+      this.display.mask = this.revealMask;
+    }
+    const p = Math.max(0, fraction);
+    const { width: w, height: h } = comp;
+    const mask = this.revealMask;
+    mask.clear();
+    // The revealed region's edge sweeps in `direction`:
+    if (direction === "right") mask.rect(0, 0, w * p, h);
+    else if (direction === "left") mask.rect(w * (1 - p), 0, w * p, h);
+    else if (direction === "down") mask.rect(0, 0, w, h * p);
+    else mask.rect(0, h * (1 - p), w, h * p);
+    mask.fill(0xffffff);
+    this.invalidate();
   }
 
   setPlacement(placement: Placement): void {
@@ -48,9 +85,60 @@ abstract class PixiNode<T extends Container> implements SceneNode {
   abstract update(clip: Clip): void;
 
   destroy(): void {
+    if (this.revealMask) {
+      this.display.mask = null;
+      this.revealMask.parent?.removeChild(this.revealMask);
+      this.revealMask.destroy();
+      this.revealMask = undefined;
+    }
     this.effects?.destroy();
     this.display.parent?.removeChild(this.display);
     this.display.destroy({ children: true });
+    this.invalidate();
+  }
+}
+
+/** Dip overlay: one composition-sized rect, redrawn only when color/size change. */
+class PixiSolidNode implements SolidSceneNode {
+  private readonly graphics = new Graphics();
+  private drawn = { width: -1, height: -1, colorRgb: -1 };
+
+  constructor(
+    stage: Container,
+    private readonly invalidate: () => void,
+    private readonly compositionSize: () => { width: number; height: number },
+  ) {
+    this.graphics.visible = false;
+    stage.addChild(this.graphics);
+  }
+
+  set(colorRgb: number, alpha: number): void {
+    const { width, height } = this.compositionSize();
+    const drawn = this.drawn;
+    if (drawn.width !== width || drawn.height !== height || drawn.colorRgb !== colorRgb) {
+      this.graphics.clear();
+      this.graphics.rect(0, 0, width, height).fill(colorRgb);
+      this.drawn = { width, height, colorRgb };
+    }
+    this.graphics.alpha = alpha;
+    this.invalidate();
+  }
+
+  setVisible(visible: boolean): void {
+    if (this.graphics.visible === visible) return;
+    this.graphics.visible = visible;
+    this.invalidate();
+  }
+
+  setZ(z: number): void {
+    if (this.graphics.zIndex === z) return;
+    this.graphics.zIndex = z;
+    this.invalidate();
+  }
+
+  destroy(): void {
+    this.graphics.parent?.removeChild(this.graphics);
+    this.graphics.destroy();
     this.invalidate();
   }
 }
@@ -246,6 +334,11 @@ class PixiSceneBackend implements SceneBackend {
   createVideo(_clip: VideoClip): VideoSceneNode {
     this.invalidate();
     return new PixiVideoNode(this.app.stage, this.invalidate, () => this.compSize);
+  }
+
+  createSolid(): SolidSceneNode {
+    this.invalidate();
+    return new PixiSolidNode(this.app.stage, this.invalidate, () => this.compSize);
   }
 
   render(): void {

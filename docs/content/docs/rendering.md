@@ -84,6 +84,10 @@ Keyframes set through core commands (`keyframe/set` — see the [command catalog
 
 Each clip carries an effect stack (`effect/add` — see the [command catalog](command-catalog)), rendered as GPU filters in array order, pre-transform. Built-ins: `colorAdjust` (brightness, contrast, saturation, hue — each -1..1, hue in degrees), `blur` (`amount` as a fraction of composition height, so the look is identical between a scaled preview and a full-resolution export), and `chromaKey` (key `color`, `similarity`, `smoothness`, `spill` — chroma-space keying with soft edges and spill suppression). Param updates apply in place — dragging a slider never recompiles a shader — and exports inherit every effect because they render through the same compositor. Custom effect kinds arrive with the public `registerEffect()` API in v4.x.
 
+## Transitions
+
+Transitions bridge a cut between two adjacent clips on the same track (`transition/add` — see the [command catalog](command-catalog)). The window is centered on the cut and draws from **source headroom**: the outgoing clip keeps rendering past its end and the incoming clip starts early, so both need trimmed-off media on the right side of the cut — the command validates this and rejects transitions the sources can't cover. Built-ins: `crossDissolve`, `dipToBlack`, `dipToWhite`, `wipe` (`direction`), and `slide` (`direction`). Every kind also applies an **equal-power audio crossfade** over the window, through the same gain-automation math as volume keyframes, so preview and export sound identical. Two clips of the same asset can transition into each other — the renderer gives each participating clip its own decode pipeline for the overlap. Editing or removing a participating clip removes its transitions (the cut they were built on is gone).
+
 ## Browser support
 
 WebCodecs is required: Chrome/Edge 94+, Safari 16.4+, Firefox 130+. `isWebCodecsSupported()` gates the whole pipeline; per-asset codec problems surface as `UnsupportedMediaError` (e.g. HEVC on a machine without a decoder) so one bad asset never takes down the renderer.

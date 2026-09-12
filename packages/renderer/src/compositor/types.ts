@@ -9,6 +9,9 @@ export interface Placement {
   opacity: number;
 }
 
+/** Which way a wipe's edge sweeps / a slide's clip moves. */
+export type RevealDirection = "left" | "right" | "up" | "down";
+
 /** A node in the scene graph, owned by the Compositor. */
 export interface SceneNode {
   /** Apply placement. The object may be REUSED by the caller — copy it if kept. */
@@ -20,6 +23,13 @@ export interface SceneNode {
   update(clip: Clip): void;
   /** Apply the clip's effect stack (enabled entries, array order). Optional per backend. */
   setEffects?(effects: readonly EffectInstance[]): void;
+  /**
+   * Wipe transitions: show only part of the node, clipped in COMPOSITION
+   * space. The revealed region grows to cover the frame as `fraction` goes
+   * 0 → 1, its edge sweeping in `direction`; 1 clears the clip entirely.
+   * Optional per backend.
+   */
+  setReveal?(fraction: number, direction: RevealDirection): void;
   /**
    * Called every render while the clip is visible, for time-dependent content
    * (video frames). `timeUs` is the timeline position.
@@ -41,6 +51,18 @@ export interface VideoSceneNode extends SceneNode {
 }
 
 /**
+ * A full-composition solid overlay — how dip-to-black/white transitions cover
+ * the hard cut. Owned by the Compositor, created lazily on first use.
+ */
+export interface SolidSceneNode {
+  /** Cover the composition with `colorRgb` (0xRRGGBB) at `alpha`. */
+  set(colorRgb: number, alpha: number): void;
+  setVisible(visible: boolean): void;
+  setZ(z: number): void;
+  destroy(): void;
+}
+
+/**
  * Rendering backend abstraction. The production implementation is PixiJS;
  * tests use a fake. Backends draw — the Compositor decides what and when.
  */
@@ -49,6 +71,8 @@ export interface SceneBackend {
   createImage(clip: ImageClip, asset: Asset | undefined): SceneNode;
   createText(clip: TextClip): SceneNode;
   createVideo(clip: VideoClip): VideoSceneNode;
+  /** Full-composition solid overlay (dip transitions). Optional per backend. */
+  createSolid?(): SolidSceneNode;
   render(): void;
   destroy(): void;
 }

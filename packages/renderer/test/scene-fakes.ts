@@ -1,5 +1,11 @@
 import type { Asset, Clip, ImageClip, TextClip } from "@miraiclip/core";
-import type { Placement, SceneBackend, SceneNode } from "../src/compositor/types.js";
+import type {
+  Placement,
+  RevealDirection,
+  SceneBackend,
+  SceneNode,
+  SolidSceneNode,
+} from "../src/compositor/types.js";
 
 export class FakeNode implements SceneNode {
   placement: Placement | undefined;
@@ -7,6 +13,7 @@ export class FakeNode implements SceneNode {
   z = 0;
   destroyed = false;
   updates: Clip[] = [];
+  reveal: { fraction: number; direction: RevealDirection } | undefined;
 
   constructor(
     readonly kind: string,
@@ -16,6 +23,10 @@ export class FakeNode implements SceneNode {
   effects: unknown[] | undefined;
   setEffects(effects: readonly unknown[]): void {
     this.effects = [...effects];
+  }
+
+  setReveal(fraction: number, direction: RevealDirection): void {
+    this.reveal = { fraction, direction };
   }
 
   setPlacement(placement: Placement): void {
@@ -52,8 +63,31 @@ export class FakeVideoNode extends FakeNode {
   }
 }
 
+export class FakeSolidNode implements SolidSceneNode {
+  colorRgb = -1;
+  alpha = 0;
+  visible = false;
+  z = 0;
+  destroyed = false;
+
+  set(colorRgb: number, alpha: number): void {
+    this.colorRgb = colorRgb;
+    this.alpha = alpha;
+  }
+  setVisible(visible: boolean): void {
+    this.visible = visible;
+  }
+  setZ(z: number): void {
+    this.z = z;
+  }
+  destroy(): void {
+    this.destroyed = true;
+  }
+}
+
 export class FakeBackend implements SceneBackend {
   nodes: FakeNode[] = [];
+  solids: FakeSolidNode[] = [];
   size = { width: 0, height: 0 };
   renders = 0;
   destroyed = false;
@@ -75,6 +109,11 @@ export class FakeBackend implements SceneBackend {
     const node = new FakeVideoNode();
     this.nodes.push(node);
     return node;
+  }
+  createSolid(): FakeSolidNode {
+    const solid = new FakeSolidNode();
+    this.solids.push(solid);
+    return solid;
   }
   render(): void {
     this.renders++;

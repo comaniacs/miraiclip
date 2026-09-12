@@ -13,6 +13,7 @@ import {
   type VideoClip,
 } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
+import { transitionGainAt, transitionRampTimes } from "../transitions/timing.js";
 
 /** Clips that can make sound: audio clips, and video clips (embedded track). */
 export function isAudible(clip: Clip): clip is VideoClip | AudioClip {
@@ -45,7 +46,8 @@ export function gainFor(
 ): number {
   const gate = trackGate(clip, doc);
   if (gate === 0) return 0;
-  return atTimelineUs === undefined ? clip.volume : clipVolumeAt(clip, atTimelineUs);
+  if (atTimelineUs === undefined) return clip.volume;
+  return clipVolumeAt(clip, atTimelineUs) * transitionGainAt(doc, clip.id, atTimelineUs);
 }
 
 export interface GainPoint {
@@ -67,10 +69,11 @@ export function volumeAutomation(
   fromTimelineUs: Us,
   toTimelineUs: Us,
 ): GainPoint[] | null {
-  const keyframes = clip.animations?.volume;
-  if (!keyframes || keyframes.length === 0) return null;
+  const keyframes = clip.animations?.volume ?? [];
+  const rampTimes = transitionRampTimes(doc, clip.id, fromTimelineUs, toTimelineUs);
+  if (keyframes.length === 0 && rampTimes.length === 0) return null;
   const gate = trackGate(clip, doc);
-  const times = new Set<Us>([fromTimelineUs, toTimelineUs]);
+  const times = new Set<Us>([fromTimelineUs, toTimelineUs, ...rampTimes]);
   for (let i = 0; i < keyframes.length; i++) {
     const atUs = clip.startUs + keyframes[i]!.timeUs;
     if (atUs > fromTimelineUs && atUs < toTimelineUs) times.add(atUs);
@@ -82,7 +85,11 @@ export function volumeAutomation(
   }
   return [...times]
     .sort((a, b) => a - b)
-    .map((atTimelineUs) => ({ atTimelineUs, value: gate * clipVolumeAt(clip, atTimelineUs) }));
+    .map((atTimelineUs) => ({
+      atTimelineUs,
+      value:
+        gate * clipVolumeAt(clip, atTimelineUs) * transitionGainAt(doc, clip.id, atTimelineUs),
+    }));
 }
 
 export interface MappedChunk {

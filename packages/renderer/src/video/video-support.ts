@@ -5,10 +5,12 @@ import type { VideoPipeline } from "../media/video-pipeline.js";
 import type {
   NodeFactory,
   Placement,
+  RevealDirection,
   SceneNode,
   VideoSceneNode,
 } from "../compositor/types.js";
 import type { Compositor } from "../compositor/compositor.js";
+import { participatesInTransition, renderExtension } from "../transitions/timing.js";
 
 export interface VideoSupportOptions {
   /** Prepare clips that start within this window ahead of the playhead (default 1s). */
@@ -28,16 +30,32 @@ export function toMediaUs(clip: VideoClip, timelineUs: Us): Us {
 class VideoClipAdapter implements SceneNode {
   pipeline: VideoPipeline | undefined;
   private pipelinePromise: Promise<VideoPipeline> | undefined;
+  private dedicated = false;
 
   constructor(
     private readonly inner: VideoSceneNode,
-    private readonly acquire: () => Promise<VideoPipeline>,
+    private readonly acquire: (dedicated: boolean) => Promise<VideoPipeline>,
     private readonly onError: (error: Error) => void,
     private readonly onDestroy: () => void,
   ) {}
 
+  /**
+   * A clip that participates in a transition needs its OWN pipeline: during
+   * the overlap window two clips of the same asset decode two positions at
+   * once, and a shared pipeline would fight over the seek target. Upgrading
+   * is one-way and idempotent; the shared pipeline stays owned by the
+   * manager for other clips of the asset.
+   */
+  ensureDedicated(): void {
+    if (this.dedicated) return;
+    this.dedicated = true;
+    this.pipeline = undefined;
+    this.pipelinePromise = undefined;
+    void this.ensurePipeline().catch(this.report);
+  }
+
   ensurePipeline(): Promise<VideoPipeline> {
-    this.pipelinePromise ??= this.acquire().then((pipeline) => {
+    this.pipelinePromise ??= this.acquire(this.dedicated).then((pipeline) => {
       this.pipeline = pipeline;
       // Tell the scene node the source's NATIVE size: frames may arrive decoded
       // below native resolution (proxy playback), and the node compensates so
@@ -88,6 +106,9 @@ class VideoClipAdapter implements SceneNode {
   setEffects(effects: readonly EffectInstance[]): void {
     this.inner.setEffects?.(effects);
   }
+  setReveal(fraction: number, direction: RevealDirection): void {
+    this.inner.setReveal?.(fraction, direction);
+  }
   setVisible(visible: boolean): void {
     this.inner.setVisible(visible);
   }
@@ -135,13 +156,15 @@ export function createVideoSupport(
     const asset = assets[clip.assetId];
     if (!asset) return null;
     const inner = backend.createVideo(clip);
+    const clipId = clip.id;
     const adapter = new VideoClipAdapter(
       inner,
-      () => manager.acquire(asset.id, asset.src),
-      (error) => onError(error, clip.id),
-      () => adapters.delete(clip.id),
+      (dedicated) => manager.acquire(asset.id, asset.src, dedicated ? clipId : undefined),
+      (error) => onError(error, clipId),
+      () => adapters.delete(clipId),
     );
-    adapters.set(clip.id, adapter);
+    adapters.set(clipId, adapter);
+    if (participatesInTransition(project.getState().doc, clipId)) adapter.ensureDedicated();
     void adapter.ensurePipeline();
     return adapter;
   };
@@ -152,10 +175,16 @@ export function createVideoSupport(
     for (const [clipId, adapter] of adapters) {
       const clip = doc.clips[clipId];
       if (!clip || !isVideoClip(clip)) continue;
-      const endUs = clip.startUs + clip.durationUs;
-      const relevant = timeUs < endUs && timeUs >= clip.startUs - lookaheadUs;
+      // Transitions render a clip beyond its bounds (from source headroom) —
+      // keep it decoded through the extension, and upgrade to a dedicated
+      // pipeline the moment a transition is attached to a live clip.
+      const extension = renderExtension(doc, clip);
+      if (participatesInTransition(doc, clipId)) adapter.ensureDedicated();
+      const visibleFromUs = clip.startUs - extension.beforeUs;
+      const visibleToUs = clip.startUs + clip.durationUs + extension.afterUs;
+      const relevant = timeUs < visibleToUs && timeUs >= visibleFromUs - lookaheadUs;
       if (!relevant) continue;
-      const mediaUs = toMediaUs(clip, Math.max(timeUs, clip.startUs));
+      const mediaUs = toMediaUs(clip, Math.min(Math.max(timeUs, visibleFromUs), visibleToUs));
       jobs.push(adapter.prepareAt(mediaUs));
     }
     await Promise.all(jobs);

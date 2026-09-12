@@ -51,9 +51,13 @@ export class MediaManager {
    * The pipeline for an asset, creating it (and evicting the least recently
    * used one over the cap) as needed.
    */
-  acquire(assetId: string, src: unknown): Promise<VideoPipeline> {
+  acquire(assetId: string, src: unknown, lane?: string): Promise<VideoPipeline> {
     if (this.disposed) return Promise.reject(new Error("MediaManager is disposed"));
-    const existing = this.entries.get(assetId);
+    // A lane gives its owner a DEDICATED pipeline for the same asset — the
+    // scoped exception to one-pipeline-per-asset that transitions need: two
+    // clips of one asset decode two positions at once through an overlap.
+    const key = lane === undefined ? assetId : `${assetId}\u0000${lane}`;
+    const existing = this.entries.get(key);
     if (existing) {
       existing.lastUsed = ++this.tick;
       return existing.promise;
@@ -84,11 +88,11 @@ export class MediaManager {
       );
       entry.pipeline = pipeline;
       // Evicted or disposed while opening — hand back a disposed pipeline.
-      if (this.disposed || this.entries.get(assetId) !== entry) pipeline.dispose();
+      if (this.disposed || this.entries.get(key) !== entry) pipeline.dispose();
       return pipeline;
     })();
     // Registered before any await: concurrent acquires share this entry.
-    this.entries.set(assetId, entry);
+    this.entries.set(key, entry);
     return entry.promise;
   }
 

@@ -31,6 +31,57 @@ interface Tab {
 
 const fx = (id: string) => `panel-${id}`;
 
+/**
+ * Transition demo: split the video at the playhead, jump the incoming side
+ * 1s ahead in the source (so the cut is VISIBLE — a continuous split would
+ * make a dissolve between identical frames), then add the transition across
+ * the new cut. One transaction — one undo.
+ */
+function addTransitionAtPlayhead(
+  context: PanelContext,
+  kind: string,
+  params?: Record<string, unknown>,
+): void {
+  const { project, playheadUs } = context;
+  const doc = project.getState().doc;
+  const at = Math.round(playheadUs());
+  const clip = Object.values(doc.clips).find(
+    (c) =>
+      c.trackId === "v1" &&
+      c.kind === "video" &&
+      c.startUs + 600_000 <= at &&
+      at <= c.startUs + c.durationUs - 1_600_000,
+  );
+  if (!clip) {
+    console.warn("[panel] park the playhead ≥0.6s into the video and ≥1.6s before its end");
+    return;
+  }
+  const newId = `cut-${Date.now()}`;
+  project.transaction(() => {
+    project.dispatch({ type: "clip/split", payload: { clipId: clip.id, atUs: at, newClipId: newId } });
+    const right = project.getState().doc.clips[newId];
+    if (!right || !("trimStartUs" in right)) return;
+    project.dispatch({
+      type: "clip/trim",
+      payload: {
+        clipId: newId,
+        trimStartUs: right.trimStartUs + 1_000_000,
+        durationUs: right.durationUs - 1_000_000,
+      },
+    });
+    project.dispatch({
+      type: "transition/add",
+      payload: {
+        kind,
+        fromClipId: clip.id,
+        toClipId: newId,
+        durationUs: 800_000,
+        ...(params ? { params } : {}),
+      },
+    });
+  });
+}
+
 const TABS: Tab[] = [
   {
     id: "effects",
@@ -161,11 +212,24 @@ const TABS: Tab[] = [
   {
     id: "transitions",
     label: "Transitions",
-    note: "Lands with v4 step 4 — cross-dissolve, dips, wipe, slide between adjacent clips.",
+    note: "Splits the video at the playhead, skips the incoming side 1s ahead (visible cut), and bridges it. Park the playhead mid-video, then scrub back to watch.",
     cards: [
-      { id: "dissolve", label: "Cross dissolve", hint: "coming in step 4", disabled: true, run: () => undefined },
-      { id: "dip", label: "Dip to black", hint: "coming in step 4", disabled: true, run: () => undefined },
-      { id: "wipe", label: "Wipe / slide", hint: "coming in step 4", disabled: true, run: () => undefined },
+      {
+        id: "dissolve", label: "Cross dissolve", hint: "0.8s blend across the cut",
+        run: (context) => addTransitionAtPlayhead(context, "crossDissolve"),
+      },
+      {
+        id: "dipblack", label: "Dip to black", hint: "fade out, fade back in",
+        run: (context) => addTransitionAtPlayhead(context, "dipToBlack"),
+      },
+      {
+        id: "wipe", label: "Wipe", hint: "edge sweeps right, revealing",
+        run: (context) => addTransitionAtPlayhead(context, "wipe", { direction: "right" }),
+      },
+      {
+        id: "slide", label: "Slide", hint: "incoming pushes in leftward",
+        run: (context) => addTransitionAtPlayhead(context, "slide", { direction: "left" }),
+      },
     ],
   },
 ];

@@ -29,8 +29,10 @@ export type {
   NodeFactory,
   NodeFactoryContext,
   Placement,
+  RevealDirection,
   SceneBackend,
   SceneNode,
+  SolidSceneNode,
   VideoSceneNode,
 } from "./compositor/types.js";
 

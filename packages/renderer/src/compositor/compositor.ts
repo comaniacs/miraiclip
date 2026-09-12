@@ -10,8 +10,21 @@ import {
   type ProjectDocument,
 } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
+import {
+  progressIn,
+  rendersBothClips,
+  windowOf,
+  type ClipTransition,
+} from "../transitions/timing.js";
 import { computePlacement, placementFromEvaluated, zIndexFor } from "./placement.js";
-import type { NodeFactory, Placement, SceneBackend, SceneNode } from "./types.js";
+import type {
+  NodeFactory,
+  Placement,
+  RevealDirection,
+  SceneBackend,
+  SceneNode,
+  SolidSceneNode,
+} from "./types.js";
 
 /** True when any VISUAL property is keyframed (volume is the audio engine's). */
 function hasVisualAnimation(clip: Clip): boolean {
@@ -22,6 +35,14 @@ function hasVisualAnimation(clip: Clip): boolean {
   }
   return false;
 }
+
+function directionOf(params: Record<string, unknown>): RevealDirection {
+  const d = params["direction"];
+  return d === "right" || d === "up" || d === "down" ? d : "left";
+}
+
+/** The dip overlay sits above every track (z is trackIndex-scaled, so this clears all). */
+const OVERLAY_Z = Number.MAX_SAFE_INTEGER;
 
 export interface CompositorOptions {
   /** Extra or overriding node factories per clip kind (the v4/custom-kind seam). */
@@ -49,6 +70,11 @@ export class Compositor {
   private readonly scratchEvaluated: EvaluatedClip = { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, volume: 1 };
   private readonly scratchPlacement: Placement = { xPx: 0, yPx: 0, scale: 1, rotationRad: 0, opacity: 1 };
   private readonly unsubscribe: () => void;
+  // clipId → transitions it participates in (windows are position snapshots,
+  // rebuilt whenever transitions or clips change).
+  private readonly transitionsByClip = new Map<string, ClipTransition[]>();
+  // Dip-to-black/white overlay, created lazily on the first active dip.
+  private overlay: SolidSceneNode | undefined;
   private lastTimeUs: Us = 0;
   private destroyed = false;
 
@@ -80,22 +106,104 @@ export class Compositor {
     if (this.destroyed) return;
     this.lastTimeUs = timeUs;
     const doc = this.doc();
+    let dipAlpha = 0;
+    let dipColor = 0x000000;
     for (const [clipId, node] of this.nodes) {
       const clip = doc.clips[clipId];
-      const visible =
-        !!clip && clip.startUs <= timeUs && timeUs < clip.startUs + clip.durationUs;
-      node.setVisible(visible);
-      if (visible && clip) {
-        // Animated clips: placement is a function of time — evaluate keyframes
-        // (clip-relative, alloc-free) and re-place the node every render.
-        if (hasVisualAnimation(clip)) {
-          evaluateClipInto(clip, timeUs - clip.startUs, this.scratchEvaluated);
-          node.setPlacement(
-            placementFromEvaluated(this.scratchEvaluated, doc.settings, this.scratchPlacement),
-          );
+      if (!clip) {
+        node.setVisible(false);
+        continue;
+      }
+      const transitions = this.transitionsByClip.get(clipId);
+      let visible = clip.startUs <= timeUs && timeUs < clip.startUs + clip.durationUs;
+
+      if (!transitions) {
+        node.setVisible(visible);
+        if (visible) {
+          // Animated clips: placement is a function of time — evaluate keyframes
+          // (clip-relative, alloc-free) and re-place the node every render.
+          if (hasVisualAnimation(clip)) {
+            evaluateClipInto(clip, timeUs - clip.startUs, this.scratchEvaluated);
+            node.setPlacement(
+              placementFromEvaluated(this.scratchEvaluated, doc.settings, this.scratchPlacement),
+            );
+          }
+          node.tick?.(clip, timeUs);
         }
+        continue;
+      }
+
+      // Transition-participating clip: placement is time-dependent through the
+      // window — same evaluate-every-render policy as animated clips. The
+      // adjustments compose ONTO the keyframe-evaluated placement, so an
+      // animated clip dissolves/slides correctly too.
+      let reveal = 1;
+      let revealDirection: RevealDirection = "left";
+      let opacityFactor = 1;
+      let offsetXPx = 0;
+      let offsetYPx = 0;
+      for (const { window, role } of transitions) {
+        if (timeUs < window.startUs || timeUs >= window.endUs) continue;
+        const { kind, params } = window.transition;
+        const p = progressIn(window, timeUs);
+        // Both clips render through the whole window (media comes from source
+        // headroom) — except dips, where the overlay covers the hard cut.
+        if (rendersBothClips(kind)) visible = true;
+        if (role === "to") {
+          if (kind === "crossDissolve") {
+            // Incoming on top at alpha p over the opaque outgoing clip
+            // ≡ out·(1−p) + in·p — the dissolve, no render-texture needed.
+            opacityFactor *= p;
+          } else if (kind === "wipe") {
+            reveal = Math.min(reveal, p);
+            revealDirection = directionOf(params);
+          } else if (kind === "slide") {
+            // The incoming clip moves in `direction`, covering the outgoing.
+            const remaining = 1 - p;
+            const direction = directionOf(params);
+            if (direction === "left") offsetXPx += remaining * doc.settings.width;
+            else if (direction === "right") offsetXPx -= remaining * doc.settings.width;
+            else if (direction === "up") offsetYPx += remaining * doc.settings.height;
+            else offsetYPx -= remaining * doc.settings.height;
+          }
+        }
+        if (role === "from" && (kind === "dipToBlack" || kind === "dipToWhite")) {
+          // Counted once per transition (its from side). Fully opaque at the
+          // cut (p = 0.5), so the hard swap underneath is never seen.
+          const alpha = 1 - Math.abs(2 * p - 1);
+          if (alpha > dipAlpha) {
+            dipAlpha = alpha;
+            dipColor = kind === "dipToWhite" ? 0xffffff : 0x000000;
+          }
+        }
+      }
+
+      node.setVisible(visible);
+      if (visible) {
+        evaluateClipInto(clip, timeUs - clip.startUs, this.scratchEvaluated);
+        const placement = placementFromEvaluated(
+          this.scratchEvaluated,
+          doc.settings,
+          this.scratchPlacement,
+        );
+        placement.opacity *= opacityFactor;
+        placement.xPx += offsetXPx;
+        placement.yPx += offsetYPx;
+        node.setPlacement(placement);
         node.tick?.(clip, timeUs);
       }
+      node.setReveal?.(reveal, revealDirection);
+    }
+
+    if (dipAlpha > 0) {
+      this.overlay ??= this.backend.createSolid?.();
+      if (this.overlay) {
+        this.overlay.set(dipColor, dipAlpha);
+        this.overlay.setZ(OVERLAY_Z);
+        this.overlay.setVisible(true);
+      }
+    } else {
+      this.overlay?.setVisible(false);
     }
     this.backend.render();
   }
@@ -106,6 +214,8 @@ export class Compositor {
     this.unsubscribe();
     for (const node of this.nodes.values()) node.destroy();
     this.nodes.clear();
+    this.overlay?.destroy();
+    this.overlay = undefined;
     this.backend.destroy();
   }
 
@@ -120,7 +230,24 @@ export class Compositor {
       }
     }
     for (const clipId of Object.keys(doc.clips)) this.syncClip(clipId, doc);
+    this.rebuildTransitions(doc);
     this.resyncOrder(doc);
+  }
+
+  private rebuildTransitions(doc: ProjectDocument): void {
+    this.transitionsByClip.clear();
+    for (const transition of Object.values(doc.transitions)) {
+      const window = windowOf(transition, doc);
+      if (!window) continue;
+      for (const [clipId, role] of [
+        [transition.fromClipId, "from"],
+        [transition.toClipId, "to"],
+      ] as const) {
+        let list = this.transitionsByClip.get(clipId);
+        if (!list) this.transitionsByClip.set(clipId, (list = []));
+        list.push({ window, role });
+      }
+    }
   }
 
   private syncClip(clipId: string, doc: ProjectDocument): void {
@@ -171,6 +298,7 @@ export class Compositor {
     const assetIds = new Set<string>();
     let structural = false;
     let settingsChanged = false;
+    let transitionsChanged = false;
 
     for (const op of patches) {
       const [domain, id] = fromJsonPointer(op.path);
@@ -188,6 +316,9 @@ export class Compositor {
         case "assets":
           if (id) assetIds.add(id);
           break;
+        case "transitions":
+          transitionsChanged = true;
+          break;
       }
     }
 
@@ -199,6 +330,21 @@ export class Compositor {
     if (assetIds.size > 0) {
       for (const clip of Object.values(doc.clips)) {
         if ("assetId" in clip && assetIds.has(clip.assetId)) clipIds.add(clip.id);
+      }
+    }
+    if (transitionsChanged || clipIds.size > 0 || structural || settingsChanged) {
+      // Windows are position snapshots — a moved clip or an edited transition
+      // both invalidate them. Cheap: documents hold few transitions.
+      const wasParticipating = new Set(this.transitionsByClip.keys());
+      this.rebuildTransitions(doc);
+      if (transitionsChanged) {
+        // A clip whose transition was removed may hold mid-window state (a
+        // reveal mask, an offset placement) — re-sync it back to baseline.
+        for (const clipId of this.transitionsByClip.keys()) wasParticipating.add(clipId);
+        for (const clipId of wasParticipating) {
+          clipIds.add(clipId);
+          this.nodes.get(clipId)?.setReveal?.(1, "left");
+        }
       }
     }
     for (const clipId of clipIds) this.syncClip(clipId, doc);
