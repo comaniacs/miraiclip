@@ -12,6 +12,45 @@ export const transformSchema = z.object({
   opacity: z.number().min(0).max(1),
 });
 
+/** Preset names or explicit control points — stored expanded (see resolveEasing). */
+export const easingInputSchema = z.union([
+  z.enum(["linear", "hold", "easeIn", "easeOut", "easeInOut"]),
+  z.object({
+    kind: z.literal("bezier"),
+    x1: z.number().min(0).max(1),
+    y1: z.number(),
+    x2: z.number().min(0).max(1),
+    y2: z.number(),
+  }),
+  z.object({ kind: z.literal("hold") }),
+]);
+
+export const animatableProperty = z.enum([
+  "x",
+  "y",
+  "scale",
+  "rotation",
+  "opacity",
+  "volume",
+]);
+
+export const captionWordSchema = z.object({
+  text: z.string().min(1),
+  /** Clip-relative. */
+  startUs: z.number().int().min(0),
+  durationUs: z.number().int().positive(),
+});
+
+export const captionStyleSchema = z.object({
+  preset: z.enum(["plain", "highlight", "karaoke", "pop"]).default("highlight"),
+  fontFamily: z.string().default("sans-serif"),
+  /** Fraction of composition height (resolution-independent). */
+  fontSizeFrac: z.number().gt(0).max(0.5).default(0.06),
+  color: z.string().default("#ffffff"),
+  highlightColor: z.string().default("#ffd400"),
+  backgroundColor: z.string().optional(),
+});
+
 // ---------------------------------------------------------------------------
 // Payload schemas — one per built-in command.
 // ---------------------------------------------------------------------------
@@ -26,12 +65,14 @@ export const builtinPayloadSchemas = {
 
   "asset/add": z.object({
     id,
-    kind: z.enum(["video", "audio", "image"]),
+    kind: z.enum(["video", "audio", "image", "font"]),
     src: z.string().min(1),
     durationUs: positiveUs.optional(),
     width: z.number().int().positive().optional(),
     height: z.number().int().positive().optional(),
     fps: z.number().positive().optional(),
+    /** Font assets: the CSS font-family name clips reference. */
+    family: z.string().min(1).optional(),
   }),
   "asset/remove": z.object({ id }),
 
@@ -52,7 +93,8 @@ export const builtinPayloadSchemas = {
     locked: z.boolean().optional(),
   }),
 
-  "clip/add": z.discriminatedUnion("kind", [
+  "clip/add": z.union([
+    z.discriminatedUnion("kind", [
     z.object({
       kind: z.literal("video"),
       id,
@@ -96,6 +138,33 @@ export const builtinPayloadSchemas = {
       color: z.string().default("#ffffff"),
       transform: transformSchema.partial().optional(),
     }),
+    z.object({
+      kind: z.literal("caption"),
+      id,
+      trackId: id,
+      startUs: us,
+      durationUs: positiveUs,
+      words: z.array(captionWordSchema).min(1),
+      style: captionStyleSchema.prefault({}),
+      transform: transformSchema.partial().optional(),
+    }),
+    ]),
+    // Custom clip kinds (see registerClipKind): payload under `props`,
+    // validated against the kind's registered schema in the handler.
+    z.object({
+      kind: z
+        .string()
+        .min(1)
+        .refine((k) => !["video", "audio", "image", "text", "caption"].includes(k), {
+          message: "built-in kinds use their dedicated payload shape",
+        }),
+      id,
+      trackId: id,
+      startUs: us,
+      durationUs: positiveUs,
+      props: z.record(z.string(), z.unknown()).default({}),
+      transform: transformSchema.partial().optional(),
+    }),
   ]),
   "clip/remove": z.object({ clipId: id }),
   "clip/move": z.object({
@@ -134,7 +203,72 @@ export const builtinPayloadSchemas = {
     fontFamily: z.string().optional(),
     fontSizePx: z.number().positive().optional(),
     color: z.string().optional(),
+    /** Caption clips: partial style update, merged onto the clip's style. */
+    style: captionStyleSchema.partial().optional(),
   }),
+
+  // --- Animation (v4) ------------------------------------------------------
+
+  "keyframe/set": z.object({
+    clipId: id,
+    property: animatableProperty,
+    /** Clip-relative time (0 = the clip's visible start). */
+    timeUs: us,
+    value: z.number(),
+    /** Curve from this keyframe to the next. Preset name or explicit bézier. */
+    easing: easingInputSchema.default("linear"),
+  }),
+  "keyframe/remove": z.object({ clipId: id, property: animatableProperty, timeUs: us }),
+  "keyframe/clear": z.object({
+    clipId: id,
+    /** Omit to clear every property's keyframes. */
+    property: animatableProperty.optional(),
+  }),
+
+  // --- Effects (v4) --------------------------------------------------------
+
+  "effect/add": z.object({
+    clipId: id,
+    /** Registry kind: colorAdjust, blur, chromaKey, or a registered custom kind. */
+    kind: z.string().min(1),
+    /** Validated against the kind's schema; omitted fields take their defaults. */
+    params: z.record(z.string(), z.unknown()).optional(),
+    enabled: z.boolean().default(true),
+    /** Insertion index in the stack; defaults to the end. */
+    index: z.number().int().min(0).optional(),
+    /** Supply one for deterministic replay. */
+    effectId: id.optional(),
+  }),
+  "effect/update": z.object({
+    clipId: id,
+    effectId: id,
+    /** Merged onto current params, then re-validated as a whole. */
+    params: z.record(z.string(), z.unknown()).optional(),
+    enabled: z.boolean().optional(),
+  }),
+  "effect/remove": z.object({ clipId: id, effectId: id }),
+  "effect/reorder": z.object({ clipId: id, effectId: id, index: z.number().int().min(0) }),
+
+  // --- Transitions (v4) ----------------------------------------------------
+
+  "transition/add": z.object({
+    /** Supply one for deterministic replay. */
+    id: id.optional(),
+    /** Registry kind: crossDissolve, dipToBlack, dipToWhite, wipe, slide, or custom. */
+    kind: z.string().min(1),
+    /** The clip ending at the cut; toClipId starts exactly there, on the same track. */
+    fromClipId: id,
+    toClipId: id,
+    durationUs: positiveUs,
+    params: z.record(z.string(), z.unknown()).optional(),
+  }),
+  "transition/update": z.object({
+    transitionId: id,
+    durationUs: positiveUs.optional(),
+    /** Merged onto current params, then re-validated as a whole. */
+    params: z.record(z.string(), z.unknown()).optional(),
+  }),
+  "transition/remove": z.object({ transitionId: id }),
 } as const;
 
 export type BuiltinCommandType = keyof typeof builtinPayloadSchemas;

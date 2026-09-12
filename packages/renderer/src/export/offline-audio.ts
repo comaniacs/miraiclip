@@ -5,7 +5,7 @@
  */
 import type { AudioClip, ProjectDocument, VideoClip } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
-import { gainFor, isAudible, mapChunkToTimeline } from "../audio/mapping.js";
+import { gainFor, isAudible, mapChunkToTimeline, volumeAutomation } from "../audio/mapping.js";
 import type { AudioSourceFactory } from "../audio/types.js";
 import { ExportAbortedError, type ExportRange, type MixAudioContext } from "./types.js";
 
@@ -30,7 +30,10 @@ export function planAudioJobs(doc: ProjectDocument, range: ExportRange): AudioMi
     const clipEndUs = clip.startUs + clip.durationUs;
     if (clipEndUs <= range.startUs || clip.startUs >= range.endUs) continue; // no overlap
     const gain = gainFor(clip, doc);
-    if (gain <= 0) continue; // muted or soloed-out — contributes nothing
+    const animated = (clip.animations?.volume?.length ?? 0) > 0;
+    // Muted/soloed-out contributes nothing; a statically-zero volume still
+    // contributes when volume KEYFRAMES can raise it.
+    if (gain <= 0 && !animated) continue;
     const asset = doc.assets[clip.assetId];
     if (!asset) continue;
     const fromTimelineUs = Math.max(range.startUs, clip.startUs);
@@ -94,7 +97,21 @@ export async function mixCompositionAudio(
       if (!source) return; // asset has no audio track
       try {
         const gainNode = context.createGain();
-        gainNode.gain.value = job.gain;
+        const clipStartInRange = Math.max(range.startUs, job.clip.startUs);
+        const clipEndInRange = Math.min(range.endUs, job.clip.startUs + job.clip.durationUs);
+        const automation = volumeAutomation(job.clip, doc, clipStartInRange, clipEndInRange);
+        if (automation) {
+          // Same points live playback ramps through — preview/export parity.
+          gainNode.gain.value = automation[0]!.value;
+          for (const point of automation) {
+            gainNode.gain.linearRampToValueAtTime(
+              point.value,
+              (point.atTimelineUs - range.startUs) / 1_000_000,
+            );
+          }
+        } else {
+          gainNode.gain.value = job.gain;
+        }
         gainNode.connect(context.destination);
         const rangeEndTimelineUs = range.endUs;
         for await (const chunk of source.chunksFrom(job.fromMediaUs)) {

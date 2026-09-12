@@ -95,6 +95,7 @@ function emptyDocument(settings: ProjectSettings): ProjectDocument {
     tracks: {},
     trackOrder: [],
     clips: {},
+    transitions: {},
   };
 }
 
@@ -117,6 +118,8 @@ export function createProject(
   const initialDoc: ProjectDocument = isDocument(init)
     ? (JSON.parse(JSON.stringify(init)) as ProjectDocument)
     : emptyDocument(init);
+  // Documents serialized before v4 lack the transitions map — normalize.
+  initialDoc.transitions ??= {};
 
   const store = createStore<ProjectState>()(
     subscribeWithSelector(

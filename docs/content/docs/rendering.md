@@ -76,6 +76,14 @@ Audio clips — and the embedded tracks of video clips — are decoded in **stre
 
 `videos.renderFrameAt(compositor, timeUs)` awaits decode and draws one exact frame — the primitive for thumbnails, posters, and export. `videos.prepare(timeUs)` pre-decodes around a position without drawing.
 
+## Animation
+
+Keyframes set through core commands (`keyframe/set` — see the [command catalog](command-catalog)) play back automatically: the compositor evaluates every animated clip's properties per rendered frame via core's pure `evaluateClipAt`, and the audio engine turns volume keyframes into **linear gain ramps** on the WebAudio clock (stepped gain produces zipper noise). Because export drives the same compositor and the offline mixer schedules the same ramp points, an animated composition renders and sounds identical in preview, browser export, and server export — no extra wiring.
+
+## Effects
+
+Each clip carries an effect stack (`effect/add` — see the [command catalog](command-catalog)), rendered as GPU filters in array order, pre-transform. Built-ins: `colorAdjust` (brightness, contrast, saturation, hue — each -1..1, hue in degrees), `blur` (`amount` as a fraction of composition height, so the look is identical between a scaled preview and a full-resolution export), and `chromaKey` (key `color`, `similarity`, `smoothness`, `spill` — chroma-space keying with soft edges and spill suppression). Param updates apply in place — dragging a slider never recompiles a shader — and exports inherit every effect because they render through the same compositor. Custom effect kinds arrive with the public `registerEffect()` API in v4.x.
+
 ## Browser support
 
 WebCodecs is required: Chrome/Edge 94+, Safari 16.4+, Firefox 130+. `isWebCodecsSupported()` gates the whole pipeline; per-asset codec problems surface as `UnsupportedMediaError` (e.g. HEVC on a machine without a decoder) so one bad asset never takes down the renderer.

@@ -1,13 +1,27 @@
 import {
+  evaluateClipInto,
   fromJsonPointer,
+  isImageClip,
+  isTextClip,
   type Clip,
+  type EvaluatedClip,
   type JsonPatchOp,
   type Project,
   type ProjectDocument,
 } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
-import { computePlacement, zIndexFor } from "./placement.js";
-import type { NodeFactory, SceneBackend, SceneNode } from "./types.js";
+import { computePlacement, placementFromEvaluated, zIndexFor } from "./placement.js";
+import type { NodeFactory, Placement, SceneBackend, SceneNode } from "./types.js";
+
+/** True when any VISUAL property is keyframed (volume is the audio engine's). */
+function hasVisualAnimation(clip: Clip): boolean {
+  const animations = clip.animations;
+  if (!animations) return false;
+  for (const property of ["x", "y", "scale", "rotation", "opacity"] as const) {
+    if ((animations[property]?.length ?? 0) > 0) return true;
+  }
+  return false;
+}
 
 export interface CompositorOptions {
   /** Extra or overriding node factories per clip kind (the v4/custom-kind seam). */
@@ -16,8 +30,8 @@ export interface CompositorOptions {
 
 const builtinFactories: Record<string, NodeFactory> = {
   image: (clip, { backend, assets }) =>
-    clip.kind === "image" ? backend.createImage(clip, assets[clip.assetId]) : null,
-  text: (clip, { backend }) => (clip.kind === "text" ? backend.createText(clip) : null),
+    isImageClip(clip) ? backend.createImage(clip, assets[clip.assetId]) : null,
+  text: (clip, { backend }) => (isTextClip(clip) ? backend.createText(clip) : null),
   // "video" registers in step 3; audio has no visual node.
   audio: () => null,
 };
@@ -31,6 +45,9 @@ const builtinFactories: Record<string, NodeFactory> = {
 export class Compositor {
   private readonly factories: Record<string, NodeFactory>;
   private readonly nodes = new Map<string, SceneNode>();
+  // Reused per-tick scratch — keyframe evaluation must not allocate.
+  private readonly scratchEvaluated: EvaluatedClip = { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, volume: 1 };
+  private readonly scratchPlacement: Placement = { xPx: 0, yPx: 0, scale: 1, rotationRad: 0, opacity: 1 };
   private readonly unsubscribe: () => void;
   private lastTimeUs: Us = 0;
   private destroyed = false;
@@ -68,7 +85,17 @@ export class Compositor {
       const visible =
         !!clip && clip.startUs <= timeUs && timeUs < clip.startUs + clip.durationUs;
       node.setVisible(visible);
-      if (visible && clip) node.tick?.(clip, timeUs);
+      if (visible && clip) {
+        // Animated clips: placement is a function of time — evaluate keyframes
+        // (clip-relative, alloc-free) and re-place the node every render.
+        if (hasVisualAnimation(clip)) {
+          evaluateClipInto(clip, timeUs - clip.startUs, this.scratchEvaluated);
+          node.setPlacement(
+            placementFromEvaluated(this.scratchEvaluated, doc.settings, this.scratchPlacement),
+          );
+        }
+        node.tick?.(clip, timeUs);
+      }
     }
     this.backend.render();
   }
@@ -115,6 +142,7 @@ export class Compositor {
       node.update(clip);
     }
     node.setPlacement(computePlacement(clip, doc.settings));
+    node.setEffects?.(clip.effects ?? []);
   }
 
   private createNode(clip: Clip): SceneNode | null {

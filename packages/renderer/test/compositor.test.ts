@@ -154,3 +154,52 @@ describe("Compositor", () => {
     expect(backend.renders).toBe(rendersAfter); // unsubscribed
   });
 });
+
+describe("keyframe animation application", () => {
+  function animatedSetup() {
+    const project = createProject({ width: 1000, height: 500, fps: 30 });
+    project.transaction(() => {
+      project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+      project.dispatch({
+        type: "clip/add",
+        payload: { kind: "text", id: "t", trackId: "v1", startUs: 1_000_000, durationUs: 4_000_000, text: "hi" },
+      });
+    });
+    const backend = new FakeBackend();
+    const compositor = new Compositor(project, backend);
+    return { project, backend, compositor };
+  }
+
+  it("an animated clip is re-placed from evaluated keyframes every render", () => {
+    const { project, backend, compositor } = animatedSetup();
+    // Clip-relative keyframes: opacity 0→1 and x 0→1 over 2s.
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "opacity", timeUs: 0, value: 0 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "opacity", timeUs: 2_000_000, value: 1 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "x", timeUs: 0, value: 0 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "x", timeUs: 2_000_000, value: 1 } });
+
+    compositor.renderAt(2_000_000); // clip time 1s = halfway
+    const node = backend.nodes.find((n) => n.id?.includes("t") || true)!;
+    expect(node.placement!.opacity).toBeCloseTo(0.5, 6);
+    expect(node.placement!.xPx).toBeCloseTo(500, 3); // 0.5 × 1000px
+
+    compositor.renderAt(3_000_000); // clip time 2s = end of ramp
+    expect(node.placement!.opacity).toBeCloseTo(1, 6);
+    expect(node.placement!.xPx).toBeCloseTo(1000, 3);
+
+    // Before the first keyframe the first value holds.
+    compositor.renderAt(1_000_000);
+    expect(node.placement!.opacity).toBeCloseTo(0, 6);
+  });
+
+  it("unanimated properties keep the clip's static transform", () => {
+    const { project, backend, compositor } = animatedSetup();
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "t", transform: { y: 0.8, scale: 2 } } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "opacity", timeUs: 0, value: 0.25 } });
+    compositor.renderAt(1_500_000);
+    const node = backend.nodes[0]!;
+    expect(node.placement!.opacity).toBeCloseTo(0.25, 6);
+    expect(node.placement!.yPx).toBeCloseTo(0.8 * 500, 3); // static y survives
+    expect(node.placement!.scale).toBe(2);
+  });
+});

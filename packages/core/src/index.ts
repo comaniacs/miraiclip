@@ -34,16 +34,26 @@ export type { JsonPatchOp } from "./patches.js";
 
 export * from "./timeline.js";
 
-export { DEFAULT_TRANSFORM, TRACK_ACCEPTS } from "./types.js";
+export { DEFAULT_TRANSFORM, TRACK_ACCEPTS, isAudioClip, isCaptionClip, isImageClip, isTextClip, isVideoClip } from "./types.js";
 export type {
+  AnimatableProperty,
   Asset,
   AssetKind,
   AudioClip,
+  BuiltinClip,
+  CaptionClip,
+  CaptionStyle,
+  CaptionWord,
   Clip,
   ClipBase,
   ClipKind,
+  CustomClip,
+  Easing,
+  EasingPreset,
+  EffectInstance,
   EphemeralState,
   ImageClip,
+  Keyframe,
   ProjectDocument,
   ProjectSettings,
   ProjectState,
@@ -51,6 +61,38 @@ export type {
   Track,
   TrackKind,
   Transform,
+  Transition,
   Us,
   VideoClip,
 } from "./types.js";
+
+export {
+  EASING_PRESETS,
+  cubicBezierProgress,
+  evaluateClipAt,
+  evaluateClipInto,
+  evaluateKeyframes,
+  resolveEasing,
+} from "./animation.js";
+export type { EvaluatedClip } from "./animation.js";
+
+export {
+  builtinEffectParamSchemas,
+  builtinTransitionParamSchemas,
+  effectParamsSchema,
+  isBuiltinClipKind,
+  clipKindRegistration,
+  registerClipKind,
+  registerEffectKind,
+  registerTransitionKind,
+  transitionParamsSchema,
+} from "./registry.js";
+export type { ClipKindRegistration } from "./registry.js";
+
+export {
+  captionClipsFromAsrWords,
+  captionClipsFromSubtitles,
+  parseSubtitles,
+  wordsFromCue,
+} from "./captions.js";
+export type { AsrGroupingOptions, AsrWord, CaptionCue, CaptionImportOptions } from "./captions.js";

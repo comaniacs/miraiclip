@@ -74,6 +74,13 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   let rafHandle = 0;
   let lastPumpUs: Us = Number.NEGATIVE_INFINITY;
   let lastPlayheadUs: Us = Number.NEGATIVE_INFINITY;
+  // Transport hold: play/seek-while-playing wait (bounded) for the target
+  // frame to actually ARRIVE before the clock runs. A clock running over an
+  // empty or stale frame cache shows black or pre-seek pixels for the decode
+  // catch-up window — invisible with static opacity, but keyframed opacity
+  // turns it into visible flicker at playback starts and replays.
+  let holdEpoch = 0;
+  let pendingPlay = false;
 
   function durationUs(): Us {
     let end = 0;
@@ -137,15 +144,42 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     if (!destroyed && clock.playing) advance();
   }, 500);
 
+  /** Resume the transport once the target frame is ready (capped at 400ms). */
+  function resumeWhenReady(timeUs: Us): void {
+    const epoch = ++holdEpoch;
+    pendingPlay = true;
+    const ready = videos.prepare(timeUs).catch(() => undefined);
+    const cap = new Promise<void>((resolve) => setTimeout(resolve, 400));
+    void Promise.race([ready, cap]).then(() => {
+      if (destroyed || epoch !== holdEpoch || !pendingPlay) return;
+      pendingPlay = false;
+      clock.play();
+      lastPlayheadUs = Number.NEGATIVE_INFINITY; // one event so UI reflects the play
+      audio.start(clock.timeUs, clock.rate);
+    });
+  }
+
   function seekInternal(timeUs: Us, resumeAudio: boolean): void {
+    const wasPlaying = clock.playing || pendingPlay;
+    clock.pause();
     clock.seek(timeUs);
-    lastPumpUs = Number.NEGATIVE_INFINITY;
     lastPlayheadUs = Number.NEGATIVE_INFINITY;
-    void videos.prepare(timeUs);
-    if (resumeAudio && clock.playing) audio.start(timeUs, clock.rate);
+    if (resumeAudio && wasPlaying) {
+      // The hold's prepare IS the seek's decode kick — mark the pump current
+      // so the next advance() doesn't race a second prepare into the same
+      // target (measured: it double-reseeked the decoder on every seek).
+      lastPumpUs = timeUs;
+      audio.stop();
+      resumeWhenReady(timeUs); // audio restarts in sync with the ready frame
+    } else {
+      lastPumpUs = Number.NEGATIVE_INFINITY;
+      void videos.prepare(timeUs);
+    }
   }
 
   function pause(): void {
+    holdEpoch++; // cancel any pending resume
+    pendingPlay = false;
     clock.pause();
     audio.stop();
     lastPlayheadUs = Number.NEGATIVE_INFINITY; // one event so UI reflects the pause
@@ -153,13 +187,11 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
 
   return {
     play() {
-      if (destroyed || clock.playing) return;
+      if (destroyed || clock.playing || pendingPlay) return;
       void options.audioOutput.resume();
       const end = durationUs();
       if (end > 0 && clock.timeUs >= end) clock.seek(0);
-      clock.play();
-      lastPlayheadUs = Number.NEGATIVE_INFINITY; // one event so UI reflects the play
-      audio.start(clock.timeUs, clock.rate);
+      resumeWhenReady(clock.timeUs);
     },
     pause,
     seek(timeUs) {
@@ -172,7 +204,9 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       if (clock.playing) audio.start(clock.timeUs, rate);
     },
     get playing() {
-      return clock.playing;
+      // A transport hold is still "playing" to the outside world — the user
+      // pressed play/seeked; the clock just hasn't been released yet.
+      return clock.playing || pendingPlay;
     },
     get timeUs() {
       return clock.timeUs;

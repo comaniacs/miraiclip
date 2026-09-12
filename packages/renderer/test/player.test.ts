@@ -5,6 +5,13 @@ import { FakeDemuxer, createFakeDecoder } from "./fakes.js";
 import { FakeBackend } from "./scene-fakes.js";
 import { FakeOutput, openFakeAudio, settle } from "./audio-fakes.js";
 
+/** Flush macrotasks: the transport hold resumes after frame ARRIVAL polling. */
+async function flushHold(): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  }
+}
+
 function setup(overrides: { noRaf?: boolean } = {}) {
   const project = createProject({ width: 1280, height: 720, fps: 30 });
   project.dispatch({
@@ -58,8 +65,8 @@ describe("createPlayer", () => {
 
     player.play();
     expect(output.resumed).toBe(1);
-    expect(player.playing).toBe(true);
-    await settle();
+    expect(player.playing).toBe(true); // the transport HOLD still reports playing
+    await flushHold(); // audio starts once the target frame has arrived
     expect(output.scheduled.length).toBeGreaterThan(0); // audio flowing
 
     output.nowUs += 1_000_000; // audio clock advances 1s
@@ -75,17 +82,17 @@ describe("createPlayer", () => {
   it("pause stops audio; seek re-anchors it while playing", async () => {
     const { output, player } = setup();
     player.play();
-    await settle();
+    await flushHold();
     player.pause();
     expect(player.playing).toBe(false);
     expect(output.channels.get("c1")!.stops).toBeGreaterThan(0);
 
     player.play();
-    await settle();
+    await flushHold();
     const before = output.scheduled.length;
     output.nowUs += 500_000;
     player.seek(3_000_000);
-    await settle();
+    await flushHold(); // seek holds the transport until the 3s frame arrived
     expect(player.timeUs).toBe(3_000_000);
     const next = output.scheduled[before]!;
     expect(next.whenUs).toBe(output.nowUs); // re-anchored at seek
@@ -96,7 +103,7 @@ describe("createPlayer", () => {
     // rAF never fires — the tab is hidden — but the audio clock keeps running.
     const { output, player, firePump } = setup({ noRaf: true });
     player.play();
-    await settle();
+    await flushHold();
     const initiallyScheduled = output.scheduled.length;
     expect(initiallyScheduled).toBeGreaterThan(0);
     // Playback progresses past the initial scheduling window; only the
@@ -116,6 +123,7 @@ describe("createPlayer", () => {
   it("pauses at the end of the composition", async () => {
     const { output, player, tick } = setup();
     player.play();
+    await flushHold(); // release the transport hold
     output.nowUs += 5_000_000; // past the 4s composition
     tick();
     expect(player.playing).toBe(false);
@@ -123,5 +131,33 @@ describe("createPlayer", () => {
     expect(player.durationUs).toBe(4_000_000);
     player.destroy();
     expect(output.closed).toBe(true);
+  });
+  it("holds the transport on seek-while-playing until the target frame arrived", async () => {
+    const { output, player } = setup();
+    player.play();
+    await flushHold();
+    const scheduledBefore = output.scheduled.length;
+    const stopsBefore = output.channels.get("c1")!.stops;
+
+    output.nowUs += 500_000;
+    player.seek(2_000_000);
+    // Immediately after the seek: still "playing" outwardly, but the clock is
+    // held at the target and audio is stopped — nothing new scheduled yet, so
+    // no black/stale frame can be shown by a running clock.
+    expect(player.playing).toBe(true);
+    expect(player.timeUs).toBe(2_000_000);
+    expect(output.channels.get("c1")!.stops).toBeGreaterThan(stopsBefore);
+    expect(output.scheduled.length).toBe(scheduledBefore);
+
+    await flushHold(); // frame arrives → transport releases
+    expect(output.scheduled.length).toBeGreaterThan(scheduledBefore);
+    expect(output.scheduled[scheduledBefore]!.whenUs).toBe(output.nowUs); // re-anchored at release
+
+    // A rapid second seek supersedes the first hold: only one resume happens.
+    player.seek(1_000_000);
+    player.seek(3_000_000);
+    await flushHold();
+    expect(player.timeUs).toBe(3_000_000);
+    player.destroy();
   });
 });

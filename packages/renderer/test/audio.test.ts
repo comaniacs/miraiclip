@@ -167,3 +167,59 @@ describe("AudioEngine", () => {
     engine.dispose();
   });
 });
+
+describe("animated volume", () => {
+  it("schedules linear gain automation in output time, hold segments pinned", async () => {
+    const project = createProject({ width: 640, height: 360, fps: 30 });
+    project.transaction(() => {
+      project.dispatch({ type: "asset/add", payload: { id: "a", kind: "audio", src: "s.mp3", durationUs: 10_000_000 } });
+      project.dispatch({ type: "track/add", payload: { id: "t1", kind: "audio" } });
+      project.dispatch({ type: "clip/add", payload: { kind: "audio", id: "c1", trackId: "t1", assetId: "a", startUs: 0, durationUs: 4_000_000 } });
+    });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "c1", property: "volume", timeUs: 0, value: 1 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "c1", property: "volume", timeUs: 2_000_000, value: 0, easing: "hold" } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "c1", property: "volume", timeUs: 3_000_000, value: 0.5 } });
+
+    const output = new FakeOutput(); // context clock at 10s
+    const engine = new AudioEngine(project, output, openFakeAudio(10_000_000));
+    engine.start(0);
+    await settle();
+
+    const automation = output.channels.get("c1")!.automation!;
+    expect(automation.length).toBeGreaterThanOrEqual(4);
+    // Timeline 0 plays at output 10s (the anchor).
+    expect(automation[0]).toMatchObject({ atOutputUs: 10_000_000, value: 1 });
+    const at2s = automation.find((p) => p.atOutputUs === 12_000_000)!;
+    expect(at2s.value).toBeCloseTo(0, 6);
+    // The hold segment pins its value just before the 3s jump.
+    const pin = automation.find((p) => p.atOutputUs === 12_999_999)!;
+    expect(pin.value).toBeCloseTo(0, 6);
+    const at3s = automation.find((p) => p.atOutputUs === 13_000_000)!;
+    expect(at3s.value).toBeCloseTo(0.5, 6);
+    engine.dispose();
+  });
+
+  it("muted tracks zero the automation; static clips still use plain setGain", async () => {
+    const project = createProject({ width: 640, height: 360, fps: 30 });
+    project.transaction(() => {
+      project.dispatch({ type: "asset/add", payload: { id: "a", kind: "audio", src: "s.mp3", durationUs: 10_000_000 } });
+      project.dispatch({ type: "track/add", payload: { id: "t1", kind: "audio" } });
+      project.dispatch({ type: "clip/add", payload: { kind: "audio", id: "c1", trackId: "t1", assetId: "a", startUs: 0, durationUs: 4_000_000, volume: 0.7 } });
+    });
+    const output = new FakeOutput();
+    const engine = new AudioEngine(project, output, openFakeAudio(10_000_000));
+    engine.start(0);
+    await settle();
+    const channel = output.channels.get("c1")!;
+    expect(channel.automation).toBeUndefined(); // no keyframes → setGain path
+    expect(channel.gainValue).toBeCloseTo(0.7);
+
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "c1", property: "volume", timeUs: 0, value: 1 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "c1", property: "volume", timeUs: 1_000_000, value: 0 } });
+    project.dispatch({ type: "track/set-property", payload: { trackId: "t1", muted: true } });
+    await settle();
+    // Muted: every automation value is gated to 0.
+    expect(channel.automation!.every((p) => p.value === 0)).toBe(true);
+    engine.dispose();
+  });
+});

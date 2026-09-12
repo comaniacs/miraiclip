@@ -31,6 +31,11 @@ export class FakeChannel implements AudioChannel {
   setGain(value: number): void {
     this.gainValue = value;
   }
+  automation: { atOutputUs: Us; value: number }[] | undefined;
+  setGainAutomation(points: readonly { atOutputUs: Us; value: number }[]): void {
+    this.automation = points.map((p) => ({ ...p }));
+    this.gainValue = points[0]?.value ?? this.gainValue;
+  }
   stopAll(): void {
     this.stops++;
   }

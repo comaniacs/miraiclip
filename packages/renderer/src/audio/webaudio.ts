@@ -73,7 +73,21 @@ class WebAudioChannel implements AudioChannel {
   }
 
   setGain(value: number): void {
+    this.gain.gain.cancelScheduledValues(0);
     this.gain.gain.value = value;
+  }
+
+  setGainAutomation(points: readonly { atOutputUs: Us; value: number }[]): void {
+    if (points.length === 0) return;
+    const param = this.gain.gain;
+    const now = this.context.currentTime;
+    param.cancelScheduledValues(0);
+    // Anchor at the current value so the first ramp starts from where we are.
+    param.setValueAtTime(param.value, now);
+    for (const point of points) {
+      const at = Math.max(point.atOutputUs / US_PER_SECOND, now);
+      param.linearRampToValueAtTime(point.value, at);
+    }
   }
 
   stopAll(): void {

@@ -19,9 +19,13 @@ WebCodecs encode pipeline to MP4 (H.264 + AAC) and WebM (VP9 + Opus), offline (f
 
 `@miraiclip/server-export`: the same `exportProject` running in headless Chrome on a server — `exportProjectFile(docJson, options)` and a `miraiclip-export` CLI hydrate the project in a browser harness and run the identical browser export path, so server output is pixel-identical to preview by construction. Built, integration-tested (real headless Chromium in CI), and verified end to end; Shipped as [`@miraiclip/server-export@0.1.0`](https://www.npmjs.com/package/@miraiclip/server-export) (September 2026). See [Server export](export/server-side). Also under v3.x: chunked offline audio rendering for long timelines.
 
-## v4 — Creative features
+## v4 — Creative features (next)
 
-Keyframe animations on clip properties, transitions, shader-based effects and filters, captions, and chroma key.
+Keyframe animations on clip properties (pure evaluator in core — preview, export, and server export all inherit it), shader-based effects with built-ins (color adjust, blur, **chroma key**), transitions (cross-dissolve, dips, wipe, slide — one blend mechanism), and **reels-style karaoke captions** (word-level timing and highlight styles, with SRT/VTT import). Ships as core 0.2 + renderer 0.3.
+
+## Beyond v4 — explored
+
+Production-readiness stress suite (many-clip timelines, hour-scale exports, memory bounds, throughput regression benchmarks), a template library (`@miraiclip/templates` — parameterized document generators over v4 primitives), a programmatic clip kind for code-driven graphics (charts, generative visuals) with export parity, and locked brand templates. See PLAN.md for the full exploration.
 
 ## Parallel track — Adapters & ecosystem
 

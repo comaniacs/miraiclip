@@ -4,14 +4,24 @@
  * playback controller decides when frames are drawn.
  */
 import { Application, Assets, Container, ImageSource, Sprite, Text, Texture } from "pixi.js";
-import type { Asset, Clip, ImageClip, TextClip, VideoClip } from "@miraiclip/core";
+import { isTextClip, type Asset, type Clip, type EffectInstance, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
+import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { Placement, SceneBackend, SceneNode, VideoSceneNode } from "./types.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
+  private effects: NodeEffects | undefined;
+
   constructor(
     protected readonly display: T,
     protected readonly invalidate: () => void,
+    private readonly effectContext?: EffectContext,
   ) {}
+
+  setEffects(effects: readonly EffectInstance[]): void {
+    if (!this.effectContext) return;
+    this.effects ??= new NodeEffects(this.display, this.effectContext, this.invalidate);
+    this.effects.set(effects);
+  }
 
   setPlacement(placement: Placement): void {
     this.display.position.set(placement.xPx, placement.yPx);
@@ -38,6 +48,7 @@ abstract class PixiNode<T extends Container> implements SceneNode {
   abstract update(clip: Clip): void;
 
   destroy(): void {
+    this.effects?.destroy();
     this.display.parent?.removeChild(this.display);
     this.display.destroy({ children: true });
     this.invalidate();
@@ -51,11 +62,12 @@ class PixiImageNode extends PixiNode<Sprite> {
     stage: Container,
     private asset: Asset | undefined,
     invalidate: () => void,
+    effectContext: EffectContext,
   ) {
     const sprite = new Sprite(Texture.EMPTY);
     sprite.anchor.set(0.5);
     stage.addChild(sprite);
-    super(sprite, invalidate);
+    super(sprite, invalidate, effectContext);
     this.loadTexture();
   }
 
@@ -82,16 +94,21 @@ class PixiImageNode extends PixiNode<Sprite> {
 }
 
 class PixiTextNode extends PixiNode<Text> {
-  constructor(stage: Container, clip: TextClip, invalidate: () => void) {
+  constructor(
+    stage: Container,
+    clip: TextClip,
+    invalidate: () => void,
+    effectContext: EffectContext,
+  ) {
     const text = new Text({ text: clip.text });
     text.anchor.set(0.5);
     stage.addChild(text);
-    super(text, invalidate);
+    super(text, invalidate, effectContext);
     this.update(clip);
   }
 
   update(clip: Clip): void {
-    if (clip.kind !== "text") return;
+    if (!isTextClip(clip)) return;
     this.display.text = clip.text;
     this.display.style = {
       fontFamily: clip.fontFamily,
@@ -118,7 +135,7 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
     const sprite = new Sprite(Texture.EMPTY);
     sprite.anchor.set(0.5);
     stage.addChild(sprite);
-    super(sprite, invalidate);
+    super(sprite, invalidate, { compositionSize });
   }
 
   /**
@@ -136,7 +153,9 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
   }
 
   override setPlacement(placement: Placement): void {
-    this.placement = placement;
+    // Copy: the compositor passes a REUSED scratch object for animated clips,
+    // and this reference outlives the call (re-applied on source-size changes).
+    this.placement = { ...placement };
     super.setPlacement(this.effectivePlacement(placement));
   }
 
@@ -199,6 +218,10 @@ class PixiSceneBackend implements SceneBackend {
     this.dirty = true;
   };
 
+  private readonly effectContext: EffectContext = {
+    compositionSize: () => this.compSize,
+  };
+
   constructor(private readonly app: Application) {
     this.app.stage.sortableChildren = true;
     this.compSize = { width: app.renderer.width, height: app.renderer.height };
@@ -212,12 +235,12 @@ class PixiSceneBackend implements SceneBackend {
 
   createImage(_clip: ImageClip, asset: Asset | undefined): SceneNode {
     this.invalidate();
-    return new PixiImageNode(this.app.stage, asset, this.invalidate);
+    return new PixiImageNode(this.app.stage, asset, this.invalidate, this.effectContext);
   }
 
   createText(clip: TextClip): SceneNode {
     this.invalidate();
-    return new PixiTextNode(this.app.stage, clip, this.invalidate);
+    return new PixiTextNode(this.app.stage, clip, this.invalidate, this.effectContext);
   }
 
   createVideo(_clip: VideoClip): VideoSceneNode {

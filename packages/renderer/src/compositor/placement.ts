@@ -1,4 +1,4 @@
-import type { Clip, ProjectSettings } from "@miraiclip/core";
+import type { Clip, EvaluatedClip, ProjectSettings } from "@miraiclip/core";
 import type { Placement } from "./types.js";
 
 /** Convert a clip's normalized transform to pixel-space placement. */
@@ -11,6 +11,20 @@ export function computePlacement(clip: Clip, settings: ProjectSettings): Placeme
     rotationRad: (transform.rotation * Math.PI) / 180,
     opacity: transform.opacity,
   };
+}
+
+/** Same conversion from keyframe-evaluated values, written into `out` (alloc-free per tick). */
+export function placementFromEvaluated(
+  evaluated: EvaluatedClip,
+  settings: ProjectSettings,
+  out: Placement,
+): Placement {
+  out.xPx = evaluated.x * settings.width;
+  out.yPx = evaluated.y * settings.height;
+  out.scale = evaluated.scale;
+  out.rotationRad = (evaluated.rotation * Math.PI) / 180;
+  out.opacity = evaluated.opacity;
+  return out;
 }
 
 /** Clips per track are stacked by start time (later starts on top). */

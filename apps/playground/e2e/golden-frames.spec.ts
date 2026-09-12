@@ -115,3 +115,38 @@ test("no console errors during load, seek, and playback", async ({ page }) => {
   await page.waitForTimeout(1_500);
   expect(errors).toEqual([]);
 });
+
+test("keyframed opacity is applied on screen — a ramp lands on exact pixel values", async ({ page }) => {
+  // Opacity ramp 0→1 over 2s on the video clip. Background is black, so the
+  // displayed pixel is expectedColor × opacity — pixel-exact, GPU-independent.
+  await page.evaluate(() => {
+    const { project, player } = (window as never as {
+      __mirai: { project: { dispatch(c: unknown): void }; player: { seek(us: number): void } };
+    }).__mirai;
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "opacity", timeUs: 0, value: 0 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "opacity", timeUs: 2_000_000, value: 1 } });
+    player.seek(1_000_000 + 16_666); // midpoint of frame 30 → opacity ≈ 0.508
+  });
+
+  const frame = 30;
+  const want = expectedColor(frame);
+  const opacity = (1_000_000 + 16_666) / 2_000_000;
+  await expect
+    .poll(async () => {
+      const pixel = await centerPixel(page);
+      return (
+        Math.abs(pixel.r - want.r * opacity) <= TOLERANCE &&
+        Math.abs(pixel.g - want.g * opacity) <= TOLERANCE &&
+        Math.abs(pixel.b - want.b * opacity) <= TOLERANCE
+      );
+    }, { timeout: 5_000, message: `want ~${JSON.stringify(want)} × ${opacity.toFixed(3)}` })
+    .toBe(true);
+
+  // At the end of the ramp the frame shows at full opacity again.
+  await page.evaluate(() => {
+    (window as never as { __mirai: { player: { seek(us: number): void } } }).__mirai.player.seek(
+      2_000_000 + 16_666,
+    );
+  });
+  await expectFrame(page, 60);
+});

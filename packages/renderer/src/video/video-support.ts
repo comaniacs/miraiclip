@@ -1,4 +1,4 @@
-import type { Clip, Project, VideoClip } from "@miraiclip/core";
+import { isVideoClip, type Clip, type EffectInstance, type Project, type VideoClip } from "@miraiclip/core";
 import type { MediaManager } from "../media/media-manager.js";
 import type { Us } from "../media/types.js";
 import type { VideoPipeline } from "../media/video-pipeline.js";
@@ -65,7 +65,7 @@ class VideoClipAdapter implements SceneNode {
   }
 
   tick(clip: Clip, timeUs: Us): void {
-    if (clip.kind !== "video") return;
+    if (!isVideoClip(clip)) return;
     const mediaUs = toMediaUs(clip, timeUs);
     if (!this.pipeline) {
       // Kick off acquisition only — a deferred prime here could land after a
@@ -84,6 +84,9 @@ class VideoClipAdapter implements SceneNode {
 
   setPlacement(placement: Placement): void {
     this.inner.setPlacement(placement);
+  }
+  setEffects(effects: readonly EffectInstance[]): void {
+    this.inner.setEffects?.(effects);
   }
   setVisible(visible: boolean): void {
     this.inner.setVisible(visible);
@@ -128,7 +131,7 @@ export function createVideoSupport(
   const adapters = new Map<string, VideoClipAdapter>();
 
   const factory: NodeFactory = (clip, { backend, assets }) => {
-    if (clip.kind !== "video") return null;
+    if (!isVideoClip(clip)) return null;
     const asset = assets[clip.assetId];
     if (!asset) return null;
     const inner = backend.createVideo(clip);
@@ -148,7 +151,7 @@ export function createVideoSupport(
     const jobs: Promise<void>[] = [];
     for (const [clipId, adapter] of adapters) {
       const clip = doc.clips[clipId];
-      if (!clip || clip.kind !== "video") continue;
+      if (!clip || !isVideoClip(clip)) continue;
       const endUs = clip.startUs + clip.durationUs;
       const relevant = timeUs < endUs && timeUs >= clip.startUs - lookaheadUs;
       if (!relevant) continue;

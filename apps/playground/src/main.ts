@@ -1,4 +1,12 @@
-import { createProject, usToTimecode } from "@miraiclip/core";
+import { resetPanel, type PanelContext } from "./panel.js";
+import {
+  captionClipsFromAsrWords,
+  captionClipsFromSubtitles,
+  commandCatalog,
+  createProject,
+  evaluateClipAt,
+  usToTimecode,
+} from "@miraiclip/core";
 import {
   createPixiBackend,
   createPlayer,
@@ -32,6 +40,10 @@ if (!isWebCodecsSupported()) {
 }
 
 let teardown: (() => void) | undefined;
+
+// Quick-test panel: rebuilt per loaded file (fresh project, fresh toggles).
+const panelRoot = document.getElementById("panel") as HTMLElement;
+let panelContext: PanelContext | undefined;
 
 fileInput.addEventListener("change", () => {
   const file = fileInput.files?.[0];
@@ -231,10 +243,22 @@ async function load(fileOrUrl: File | string): Promise<void> {
   };
   exportButton.addEventListener("click", onExport);
 
-  // Test hook: the e2e suite drives the player programmatically.
-  (window as unknown as Record<string, unknown>).__mirai = { player, project, exportProject };
+  // Quick-test panel — every card is an ordinary command dispatch.
+  panelContext = { project, playheadUs: () => player.timeUs, durationUs };
+  panelRoot.hidden = false;
+  resetPanel(panelRoot, () => panelContext);
+
+  // Test hook: the e2e suite drives the player programmatically, and the
+  // core helpers make the new command surface explorable from the console.
+  (window as unknown as Record<string, unknown>).__mirai = {
+    player,
+    project,
+    exportProject,
+    core: { evaluateClipAt, captionClipsFromSubtitles, captionClipsFromAsrWords, commandCatalog },
+  };
 
   teardown = () => {
+    panelContext = undefined;
     offPlayhead();
     if (trailing !== undefined) clearTimeout(trailing);
     exportButton.removeEventListener("click", onExport);

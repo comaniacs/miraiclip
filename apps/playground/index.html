@@ -25,14 +25,35 @@
       #range-label { font-size: 12px; color: #8fd18f; font-variant-numeric: tabular-nums; }
       #mark-in, #mark-out, #range-clear { padding: 6px 10px; font-size: 13px; }
       #unsupported { color: #ff7a7a; }
+      /* Quick-test side panel */
+      #layout { display: flex; gap: 20px; align-items: flex-start; justify-content: center; width: 100%; padding: 0 16px; box-sizing: border-box; }
+      #panel { width: 210px; flex: none; background: #16161c; border: 1px solid #2a2a33;
+               border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+      .panel-tabs { display: flex; flex-wrap: wrap; gap: 4px; }
+      .panel-tabs button { flex: 1 1 45%; padding: 5px 4px; font-size: 12px; border-radius: 5px;
+                           border: 1px solid transparent; background: transparent; color: #9a9aa6; }
+      .panel-tabs button.active { background: #26262f; color: #e8e8ec; border-color: #3a3a46; }
+      .panel-body { display: flex; flex-direction: column; gap: 8px; }
+      .card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+              text-align: left; padding: 9px 10px; border-radius: 8px; font-size: 13px; }
+      .card span { font-size: 11px; color: #8a8a96; }
+      .card.active { border-color: #8fd18f; background: #1d2a1d; }
+      .card:disabled { opacity: 0.45; cursor: default; }
+      .panel-note { margin: 0; font-size: 11px; color: #8a8a96; line-height: 1.4; }
+      .panel-footer { display: flex; gap: 6px; margin-top: 4px; }
+      .panel-footer button { flex: 1; padding: 5px; font-size: 12px; }
+      #stage-column { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; }
     </style>
   </head>
   <body>
     <h1>Miraiclip Playground — v2 preview pipeline</h1>
     <p style="margin:0;font-size:12px;color:#8a8a96">Video + audio preview — the audio clock is the playback master.</p>
     <input type="file" id="file" accept="video/*" />
-    <canvas id="stage" width="1280" height="720"></canvas>
-    <div id="controls">
+    <div id="layout">
+      <aside id="panel" hidden></aside>
+      <div id="stage-column">
+        <canvas id="stage" width="1280" height="720"></canvas>
+        <div id="controls">
       <button id="play" disabled>Play</button>
       <input type="range" id="seek" min="0" max="1000" value="0" disabled />
       <button id="mark-in" disabled title="Set export range start at the playhead">In</button>
@@ -55,6 +76,8 @@
       </select>
       <button id="export" disabled>Export</button>
       <span id="status">pick a video file</span>
+        </div>
+      </div>
     </div>
     <p id="unsupported" hidden>This browser has no WebCodecs — use Chrome/Edge 94+, Safari 16.4+, or Firefox 130+.</p>
     <script type="module" src="/src/main.ts"></script>

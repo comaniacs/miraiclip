@@ -5,6 +5,19 @@ weight: 8
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
+## Unreleased
+
+### Fixed
+
+- `@miraiclip/renderer` replay flicker under animated opacity: play and seek-while-playing now hold the transport (≤400ms) until the target frame has decoded and arrived, so the clock never runs over an empty or stale frame cache — the black/stale pops an opacity ramp made visible at playback starts and replays are gone, and audio restarts in sync with the ready frame.
+
+### Added
+
+- Playground quick-test side panel: Effects / Text / Animate tabs of one-click preset cards + undo/redo, all driving the ordinary command surface (Transitions tab arrives with v4 step 4).
+- `@miraiclip/renderer` effects rendered (v4 step 3): colorAdjust, blur (composition-relative strength — identical look in preview and export), and a GLSL chroma key (chroma-distance keying, soft edges, spill suppression) applied per clip through the compositor; filters update in place on param changes. Pixel-asserted e2e incl. re-decoding a keyed export. See [Rendering](../rendering).
+- `@miraiclip/renderer` animations applied (v4 step 2): the compositor evaluates keyframes every render (animated transform/opacity live on canvas; exports inherit it — same compositor), and animated volume rides linear gain ramps through shared automation math (`volumeAutomation`) used identically by live playback and the offline export mixer. Closed-loop e2e: an opacity ramp lands on exact pixel values; an exported volume fade shows the right RMS decay.
+- `@miraiclip/core` v4 creative-features model (step 1): per-property keyframes with bézier-backed easings + a pure alloc-free evaluator (`evaluateClipAt`); per-clip effect stacks with built-in schemas (colorAdjust, blur, chromaKey — params in composition units); transitions on the adjacent-clips + trim-handles model with adjacency/headroom validation; karaoke `caption` clip kind with font assets, SRT/VTT parsing, and ASR word-timestamp import; `registerClipKind`/`registerEffectKind`/`registerTransitionKind` extension seams. All new commands are in the [command catalog](../command-catalog). Renderer application lands in step 2.
+
 ## server-export-0.1.0 — 2026-09-06
 
 ### Added

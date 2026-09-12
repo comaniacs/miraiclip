@@ -34,6 +34,12 @@ export interface AudioChannel {
    */
   schedule(native: unknown, whenUs: Us, offsetUs: Us, durationUs: Us, rate: number): void;
   setGain(value: number): void;
+  /**
+   * Replace the channel's gain automation with linear ramps through these
+   * output-clock points (animated clip volume). Optional — engines fall back
+   * to setGain at the window start when a backend doesn't implement it.
+   */
+  setGainAutomation?(points: readonly { atOutputUs: Us; value: number }[]): void;
   /** Stop everything scheduled on this channel. */
   stopAll(): void;
   close(): void;

@@ -1,6 +1,6 @@
 import type { AudioClip, Project, ProjectDocument, VideoClip } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
-import { gainFor, isAudible, mapChunkToTimeline } from "./mapping.js";
+import { gainFor, isAudible, mapChunkToTimeline, volumeAutomation } from "./mapping.js";
 import type { AudioChannel, AudioOutput, AudioSourceFactory, AudioTrackSource } from "./types.js";
 
 export interface AudioEngineOptions {
@@ -74,12 +74,36 @@ export class AudioEngine {
   pump(timelineUs: Us): void {
     if (!this.playing || this.disposed) return;
     this.windowEndUs = timelineUs + this.aheadUs;
+    const doc = this.doc();
     for (const lane of this.lanes.values()) {
+      const clip = doc.clips[lane.clipId];
+      if (clip && isAudible(clip)) this.applyGain(lane, clip, timelineUs);
       if (lane.parked && !lane.exhausted) {
         lane.parked = false;
         void this.pull(lane, this.epoch);
       }
     }
+  }
+
+  /**
+   * Static volume: one setGain. Animated volume: linear-ramp automation over
+   * the scheduling window, in output-clock time (per-window stepping would
+   * zipper) — re-issued every pump as the window advances.
+   */
+  private applyGain(lane: ClipLane, clip: VideoClip | AudioClip, fromTimelineUs: Us): void {
+    const doc = this.doc();
+    const points = volumeAutomation(clip, doc, fromTimelineUs, this.windowEndUs);
+    if (!points || !lane.channel.setGainAutomation) {
+      lane.channel.setGain(gainFor(clip, doc, points ? fromTimelineUs : undefined));
+      return;
+    }
+    lane.channel.setGainAutomation(
+      points.map((point) => ({
+        atOutputUs:
+          this.anchorOutputUs + (point.atTimelineUs - this.anchorTimelineUs) / this.rate,
+        value: point.value,
+      })),
+    );
   }
 
   /** Stop all scheduled audio (pause or pre-seek). */
@@ -123,7 +147,7 @@ export class AudioEngine {
       };
       this.lanes.set(clip.id, lane);
     }
-    lane.channel.setGain(gainFor(clip, this.doc()));
+    this.applyGain(lane, clip, Math.max(this.anchorTimelineUs, clip.startUs));
 
     const asset = this.doc().assets[clip.assetId];
     if (!asset) return;
@@ -199,10 +223,10 @@ export class AudioEngine {
         this.lanes.delete(clipId);
       }
     }
-    // Refresh gains (clip volume, track mute/solo).
+    // Refresh gains (clip volume, track mute/solo, volume keyframes).
     for (const [clipId, lane] of this.lanes) {
       const clip = doc.clips[clipId];
-      if (clip && isAudible(clip)) lane.channel.setGain(gainFor(clip, doc));
+      if (clip && isAudible(clip)) this.applyGain(lane, clip, this.anchorTimelineUs);
     }
     // New audible clips join a running playback.
     if (this.playing) {

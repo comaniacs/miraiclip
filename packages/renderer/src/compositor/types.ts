@@ -1,4 +1,4 @@
-import type { Asset, Clip, ImageClip, TextClip, VideoClip } from "@miraiclip/core";
+import type { Asset, Clip, EffectInstance, ImageClip, TextClip, VideoClip } from "@miraiclip/core";
 
 /** Pixel-space placement computed from a clip's normalized transform. */
 export interface Placement {
@@ -11,12 +11,15 @@ export interface Placement {
 
 /** A node in the scene graph, owned by the Compositor. */
 export interface SceneNode {
+  /** Apply placement. The object may be REUSED by the caller — copy it if kept. */
   setPlacement(placement: Placement): void;
   setVisible(visible: boolean): void;
   /** Stacking order: higher renders on top. */
   setZ(z: number): void;
   /** Re-apply content-affecting clip properties (text, color, asset swap…). */
   update(clip: Clip): void;
+  /** Apply the clip's effect stack (enabled entries, array order). Optional per backend. */
+  setEffects?(effects: readonly EffectInstance[]): void;
   /**
    * Called every render while the clip is visible, for time-dependent content
    * (video frames). `timeUs` is the timeline position.

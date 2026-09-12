@@ -141,3 +141,36 @@ test("exported audio survives the round trip (mix → encode → native decode)"
   // gain — a dropped chunk, double-schedule, or wrong gain all move this.
   expect(Math.abs(audio.rms - 0.0885)).toBeLessThan(0.02);
 });
+
+test("a volume-keyframe fade is baked into the exported audio", async ({ page }) => {
+  test.setTimeout(120_000);
+  await page.goto("/?src=/e2e-tone.webm");
+  await page.waitForFunction(() => window.__mirai);
+  await page.evaluate(async () => {
+    const { project, exportProject } = window.__mirai;
+    // Fade the tone out: volume 1 → 0 across the 4s clip.
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "volume", timeUs: 0, value: 1 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "volume", timeUs: 4_000_000, value: 0 } });
+    window.__exported = await exportProject(project, { format: "webm", quality: "draft" });
+  });
+  const rms = await page.evaluate(async () => {
+    const ctx = new AudioContext();
+    const buffer = await ctx.decodeAudioData((window.__exported!.buffer as ArrayBuffer).slice(0));
+    const data = buffer.getChannelData(0);
+    const rmsOf = (fromS: number, toS: number) => {
+      const start = Math.floor(buffer.sampleRate * fromS);
+      const end = Math.floor(buffer.sampleRate * toS);
+      let sum = 0;
+      for (let i = start; i < end; i++) sum += data[i]! * data[i]!;
+      return Math.sqrt(sum / (end - start));
+    };
+    await ctx.close();
+    return { early: rmsOf(0.25, 0.75), late: rmsOf(3.25, 3.75) };
+  });
+  // The source tone is constant (RMS ≈ 0.0885). Under a linear 1→0 fade the
+  // early window plays at ~0.875 gain and the late one at ~0.125 — a 7×
+  // ratio. Stepped (zipper) gain or an ignored ramp both break this.
+  expect(rms.early).toBeGreaterThan(0.05);
+  expect(rms.late).toBeLessThan(rms.early / 4);
+  expect(rms.late).toBeGreaterThan(0.002); // faded, not silenced
+});

@@ -13,8 +13,13 @@ export class FakeNode implements SceneNode {
     readonly asset?: Asset,
   ) {}
 
+  effects: unknown[] | undefined;
+  setEffects(effects: readonly unknown[]): void {
+    this.effects = [...effects];
+  }
+
   setPlacement(placement: Placement): void {
-    this.placement = placement;
+    this.placement = { ...placement }; // contract: the caller may reuse the object
   }
   setVisible(visible: boolean): void {
     this.visible = visible;
