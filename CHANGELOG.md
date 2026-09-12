@@ -4,6 +4,10 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+## [core-0.2.0] + [renderer-0.3.0] + [server-export-0.1.1] — 2026-09-12
+
+The coordinated **v4 creative features** release. `@miraiclip/server-export@0.1.1` is a dependency bump: its self-contained harness now bundles renderer 0.3.0, so server exports inherit animation, effects, transitions, and captions with no API change.
+
 ### Fixed
 
 - `@miraiclip/renderer` **replay flicker under animated opacity** (user-reported; reproduced with a 4K fixture + CPU throttling): after play or seek-while-playing, the clock ran during the decode catch-up window, so the canvas showed black (cold start) or the pre-seek frame (replays) while an opacity ramp was already rising — visible pops that static opacity had always masked. The player now takes a **transport hold**: play and seek-while-playing keep the clock and audio stopped until the target frame has actually ARRIVED (`videos.prepare`, the same arrival wait export uses), capped at 400ms so a broken pipeline can't wedge the transport; rapid seeks supersede earlier holds; `playing` reports true during the hold; audio restarts in sync with the ready frame (better post-seek lip-sync); the loop-wrap restart takes the same path. Verified by a pixel-sampling probe (2 dropouts before, 0 after across 3 runs) and a headless regression test.

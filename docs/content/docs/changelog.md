@@ -5,7 +5,9 @@ weight: 10
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
-## Unreleased
+## core-0.2.0 · renderer-0.3.0 · server-export-0.1.1 — 2026-09-12
+
+The coordinated v4 creative-features release (server-export 0.1.1 = rebuilt harness bundling renderer 0.3.0).
 
 ### Fixed
 
