@@ -4,7 +4,8 @@
  * playback controller decides when frames are drawn.
  */
 import { Application, Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
-import { isTextClip, type Asset, type Clip, type EffectInstance, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
+import { isCaptionClip, isTextClip, type Asset, type CaptionClip, type Clip, type EffectInstance, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
+import { captionProgress, layoutCaption, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
 
@@ -207,6 +208,120 @@ class PixiTextNode extends PixiNode<Text> {
   }
 }
 
+/**
+ * Karaoke caption block: one Text per word (wrapped and centered by the pure
+ * layout module), an optional background box, and per-word emphasis that
+ * changes only at word boundaries (style writes are dirty-gated on progress).
+ */
+class PixiCaptionNode extends PixiNode<Container> {
+  private readonly wordTexts: Text[] = [];
+  private background: Graphics | undefined;
+  private clip: CaptionClip;
+  private lastProgress: CaptionProgress = { activeIndex: -2, startedCount: -1 };
+
+  constructor(
+    stage: Container,
+    clip: CaptionClip,
+    invalidate: () => void,
+    private readonly context: EffectContext,
+  ) {
+    const container = new Container();
+    stage.addChild(container);
+    super(container, invalidate, context);
+    this.clip = clip;
+    this.rebuild(clip);
+  }
+
+  private rebuild(clip: CaptionClip): void {
+    this.clip = clip;
+    const comp = this.context.compositionSize();
+    const { style, words } = clip;
+    const fontSizePx = style.fontSizeFrac * comp.height;
+
+    // One Text per word — created first so layout can measure real glyphs.
+    while (this.wordTexts.length > words.length) this.wordTexts.pop()!.destroy();
+    for (let i = 0; i < words.length; i++) {
+      let text = this.wordTexts[i];
+      if (!text) {
+        text = new Text({ text: "" });
+        text.anchor.set(0.5);
+        this.display.addChild(text);
+        this.wordTexts.push(text);
+      }
+      text.text = words[i]!.text;
+      text.style = { fontFamily: style.fontFamily, fontSize: fontSizePx, fill: style.color };
+      text.scale.set(1);
+    }
+
+    const layout = layoutCaption(words, {
+      maxWidthPx: comp.width * 0.8,
+      lineHeightPx: fontSizePx * 1.3,
+      spaceWidthPx: fontSizePx * 0.33,
+      measure: (i) => this.wordTexts[i]!.width,
+    });
+    layout.positions.forEach((position, i) => {
+      this.wordTexts[i]!.position.set(position.xPx, position.yPx);
+    });
+
+    // Background box behind the block (padding scales with the font).
+    if (style.backgroundColor) {
+      const pad = fontSizePx * 0.35;
+      this.background ??= (() => {
+        const g = new Graphics();
+        this.display.addChildAt(g, 0);
+        return g;
+      })();
+      this.background.clear();
+      this.background
+        .roundRect(
+          -layout.widthPx / 2 - pad,
+          -layout.heightPx / 2 - pad * 0.6,
+          layout.widthPx + pad * 2,
+          layout.heightPx + pad * 1.2,
+          fontSizePx * 0.2,
+        )
+        .fill(style.backgroundColor);
+    } else if (this.background) {
+      this.background.destroy();
+      this.background = undefined;
+    }
+
+    // Re-apply emphasis for the current progress against the new texts.
+    const progress = this.lastProgress;
+    this.lastProgress = { activeIndex: -2, startedCount: -1 };
+    this.applyProgress(progress);
+    this.invalidate();
+  }
+
+  private applyProgress(progress: CaptionProgress): void {
+    if (
+      progress.activeIndex === this.lastProgress.activeIndex &&
+      progress.startedCount === this.lastProgress.startedCount
+    ) {
+      return;
+    }
+    this.lastProgress = progress;
+    const { style } = this.clip;
+    for (let i = 0; i < this.wordTexts.length; i++) {
+      const appearance = wordAppearance(style.preset, i, progress);
+      const text = this.wordTexts[i]!;
+      text.style.fill = appearance.highlighted ? style.highlightColor : style.color;
+      text.scale.set(appearance.scale);
+    }
+    this.invalidate();
+  }
+
+  tick(clip: Clip, timeUs: number): void {
+    if (!isCaptionClip(clip)) return;
+    this.applyProgress(captionProgress(clip.words, timeUs - clip.startUs));
+  }
+
+  update(clip: Clip): void {
+    if (!isCaptionClip(clip)) return;
+    this.rebuild(clip);
+  }
+}
+
 class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
   private source: ImageSource | undefined;
   private texture: Texture | undefined;
@@ -334,6 +449,11 @@ class PixiSceneBackend implements SceneBackend {
   createVideo(_clip: VideoClip): VideoSceneNode {
     this.invalidate();
     return new PixiVideoNode(this.app.stage, this.invalidate, () => this.compSize);
+  }
+
+  createCaption(clip: CaptionClip): SceneNode {
+    this.invalidate();
+    return new PixiCaptionNode(this.app.stage, clip, this.invalidate, this.effectContext);
   }
 
   createSolid(): SolidSceneNode {

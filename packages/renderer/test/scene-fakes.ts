@@ -110,6 +110,11 @@ export class FakeBackend implements SceneBackend {
     this.nodes.push(node);
     return node;
   }
+  createCaption(): FakeNode {
+    const node = new FakeNode("caption");
+    this.nodes.push(node);
+    return node;
+  }
   createSolid(): FakeSolidNode {
     const solid = new FakeSolidNode();
     this.solids.push(solid);

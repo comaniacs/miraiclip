@@ -36,6 +36,7 @@ export type {
   VideoSceneNode,
 } from "./compositor/types.js";
 
+export { loadFontAssets } from "./captions/fonts.js";
 export { createVideoSupport, toMediaUs } from "./video/video-support.js";
 export type { VideoSupport, VideoSupportOptions } from "./video/video-support.js";
 

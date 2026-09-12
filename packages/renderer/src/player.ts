@@ -5,6 +5,7 @@ import type { SceneBackend } from "./compositor/types.js";
 import { MediaManager } from "./media/media-manager.js";
 import type { DemuxerFactory, FrameDecoderFactory, Us } from "./media/types.js";
 import { createVideoSupport } from "./video/video-support.js";
+import { loadFontAssets } from "./captions/fonts.js";
 import { AudioEngine } from "./audio/audio-engine.js";
 import type { AudioOutput, AudioSourceFactory } from "./audio/types.js";
 
@@ -69,6 +70,18 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   });
   const audio = new AudioEngine(project, options.audioOutput, options.openAudio);
   const clock = new RealtimeClock(() => options.audioOutput.currentTimeUs / 1000);
+
+  // Font assets → document FontFaces. When one finishes loading, text metrics
+  // changed under every text/caption node — re-sync so glyphs re-lay out.
+  const reloadFonts = (): void => {
+    void loadFontAssets(project.getState().doc).then((changed) => {
+      if (changed && !destroyed) compositor.resync();
+    });
+  };
+  reloadFonts();
+  const offFontPatches = project.events.on("patches", ({ patches }) => {
+    if (patches.some((op) => op.path.startsWith("/assets"))) reloadFonts();
+  });
 
   let destroyed = false;
   let rafHandle = 0;
@@ -217,6 +230,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      offFontPatches();
       cancelRaf(rafHandle);
       cancelSchedule(pumpHandle);
       audio.dispose();

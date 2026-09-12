@@ -31,6 +31,38 @@ interface Tab {
 
 const fx = (id: string) => `panel-${id}`;
 
+/** Word-timed demo line for the caption cards (300ms per word). */
+function demoWords(): { text: string; startUs: number; durationUs: number }[] {
+  return "made with miraiclip on the web".split(" ").map((text, i) => ({
+    text,
+    startUs: i * 300_000,
+    durationUs: 300_000,
+  }));
+}
+
+function addCaptionAtPlayhead(
+  context: PanelContext,
+  preset: "highlight" | "karaoke" | "pop",
+  style?: Record<string, unknown>,
+): void {
+  const { project, playheadUs, durationUs } = context;
+  const words = demoWords();
+  const clipDurationUs = words.length * 300_000;
+  project.dispatch({
+    type: "clip/add",
+    payload: {
+      kind: "caption",
+      id: `caption-${Date.now()}`,
+      trackId: "overlay",
+      startUs: Math.min(playheadUs(), Math.max(0, durationUs - clipDurationUs)),
+      durationUs: clipDurationUs,
+      words,
+      style: { preset, ...style },
+      transform: { y: 0.78 },
+    },
+  });
+}
+
 /**
  * Transition demo: split the video at the playhead, jump the incoming side
  * 1s ahead in the source (so the cut is VISIBLE — a continuous split would
@@ -206,6 +238,30 @@ const TABS: Tab[] = [
       {
         id: "clearkf", label: "Clear animation", hint: "keyframe/clear on the video",
         run: ({ project }) => project.dispatch({ type: "keyframe/clear", payload: { clipId: "main" } }),
+      },
+    ],
+  },
+  {
+    id: "captions",
+    label: "Captions",
+    note: "Drops a word-timed demo caption at the playhead — press play to watch the emphasis follow the words.",
+    cards: [
+      {
+        id: "karaoke", label: "Karaoke", hint: "words stay lit as they pass",
+        run: (context) => addCaptionAtPlayhead(context, "karaoke"),
+      },
+      {
+        id: "highlight", label: "Highlight", hint: "only the current word lights",
+        run: (context) => addCaptionAtPlayhead(context, "highlight"),
+      },
+      {
+        id: "pop", label: "Pop", hint: "current word enlarges + lights",
+        run: (context) => addCaptionAtPlayhead(context, "pop"),
+      },
+      {
+        id: "boxed", label: "Boxed karaoke", hint: "with a background box",
+        run: (context) =>
+          addCaptionAtPlayhead(context, "karaoke", { backgroundColor: "#000000c0", fontSizeFrac: 0.05 }),
       },
     ],
   },

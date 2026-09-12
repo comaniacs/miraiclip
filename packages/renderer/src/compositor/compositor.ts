@@ -1,6 +1,7 @@
 import {
   evaluateClipInto,
   fromJsonPointer,
+  isCaptionClip,
   isImageClip,
   isTextClip,
   type Clip,
@@ -53,6 +54,8 @@ const builtinFactories: Record<string, NodeFactory> = {
   image: (clip, { backend, assets }) =>
     isImageClip(clip) ? backend.createImage(clip, assets[clip.assetId]) : null,
   text: (clip, { backend }) => (isTextClip(clip) ? backend.createText(clip) : null),
+  caption: (clip, { backend }) =>
+    isCaptionClip(clip) ? (backend.createCaption?.(clip) ?? null) : null,
   // "video" registers in step 3; audio has no visual node.
   audio: () => null,
 };
@@ -206,6 +209,17 @@ export class Compositor {
       this.overlay?.setVisible(false);
     }
     this.backend.render();
+  }
+
+  /**
+   * Re-sync every node from the document and re-render at the current time.
+   * For out-of-band render-input changes the patch stream can't see — e.g. a
+   * font asset finishing its load (text metrics changed under every node).
+   */
+  resync(): void {
+    if (this.destroyed) return;
+    this.fullSync();
+    this.renderAt(this.lastTimeUs);
   }
 
   destroy(): void {

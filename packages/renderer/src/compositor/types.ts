@@ -1,4 +1,4 @@
-import type { Asset, Clip, EffectInstance, ImageClip, TextClip, VideoClip } from "@miraiclip/core";
+import type { Asset, CaptionClip, Clip, EffectInstance, ImageClip, TextClip, VideoClip } from "@miraiclip/core";
 
 /** Pixel-space placement computed from a clip's normalized transform. */
 export interface Placement {
@@ -71,6 +71,8 @@ export interface SceneBackend {
   createImage(clip: ImageClip, asset: Asset | undefined): SceneNode;
   createText(clip: TextClip): SceneNode;
   createVideo(clip: VideoClip): VideoSceneNode;
+  /** Karaoke caption block (word wrap + active-word emphasis). Optional per backend. */
+  createCaption?(clip: CaptionClip): SceneNode;
   /** Full-composition solid overlay (dip transitions). Optional per backend. */
   createSolid?(): SolidSceneNode;
   render(): void;

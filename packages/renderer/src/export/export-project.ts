@@ -10,6 +10,7 @@ import {
 import { openMediabunnyAudio } from "../audio/webaudio.js";
 import type { AudioSourceFactory } from "../audio/types.js";
 import { createVideoSupport } from "../video/video-support.js";
+import { loadFontAssets } from "../captions/fonts.js";
 import { exportComposition } from "./exporter.js";
 import {
   createMediabunnySink,
@@ -89,6 +90,10 @@ export async function exportProject(
     factories: { video: videos.factory },
   });
   const openAudio = options.openAudio ?? openMediabunnyAudio;
+
+  // Font assets must be REAL before the first frame renders — a server export
+  // that rasterizes fallback glyphs is silently wrong (no one is watching).
+  await loadFontAssets(doc);
 
   try {
     return await exportComposition({
