@@ -3,7 +3,7 @@ title: Clips
 weight: 3
 ---
 
-Clips are the fundamental building blocks of video compositions — **video**, **audio**, **image**, and **text** elements positioned on the timeline.
+Clips are the fundamental building blocks of video compositions — **video**, **audio**, **image**, **text**, and **caption** (word-timed karaoke text — see [Rendering · Captions](../../rendering/captions)) elements positioned on the timeline. Custom kinds can be registered with `registerClipKind` (payload under `props`, validated by your schema).
 
 All clip operations are performed through [commands](../commands): deterministic, undoable operations that can be batched, synced, and logged.
 
@@ -12,9 +12,11 @@ All clip operations are performed through [commands](../commands): deterministic
 Every clip has:
 
 - **Timeline placement** — `startUs`, `durationUs`: where and how long the clip appears on the timeline.
-- **Source trimming** — `trimStartUs`, `trimEndUs`: which portion of the source asset plays.
-- **Transform** — position, scale, rotation, opacity.
-- **Type-specific properties** — e.g. text content and font for text clips, volume for audio.
+- **Source trimming** — `trimStartUs` (video/audio): where in the source asset the clip starts playing; the out point follows from `durationUs`. Media beyond the visible range is *headroom* — what [transitions](../../rendering/transitions) draw from.
+- **Transform** — position, scale, rotation, opacity (normalized composition coordinates).
+- **Animations** — optional per-property keyframes (`keyframe/set`) on `x`/`y`/`scale`/`rotation`/`opacity`/`volume` — see [Rendering · Animation](../../rendering/animation).
+- **Effects** — an ordered stack of GPU effects (`effect/add`): colorAdjust, blur, chromaKey — see [Rendering · Effects](../../rendering/effects).
+- **Type-specific properties** — e.g. text content and font for text clips, volume for audio, word timing and style for captions.
 
 ## Operations
 
