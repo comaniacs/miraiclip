@@ -74,6 +74,10 @@ project.dispatch({
 | `highlightColor` | Emphasized word color | `#ffd400` |
 | `backgroundColor` | Optional rounded box behind the block | — |
 
+## Customizing the look
+
+The preset set is fixed (`plain`/`highlight`/`karaoke`/`pop`), but everything around it is yours: colors, `backgroundColor`, `fontSizeFrac`, any loaded `fontFamily`, the block position via `transform`, and the word timing itself (hand-written, SRT/VTT, or real ASR timestamps). For a look the presets can't produce, caption words are ordinary data — an app can also build its own treatment as a [custom clip kind](../#bring-your-own-clip-kind).
+
 ## Good to know
 
 - `fontSizeFrac` keeps captions identical between a scaled preview and a full-resolution export.

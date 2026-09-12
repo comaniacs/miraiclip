@@ -1,6 +1,6 @@
 ---
 title: Command Catalog
-weight: 6
+weight: 7
 ---
 
 Every built-in command in `@miraiclip/core`, with its payload schema. This page mirrors what `project.commandCatalog()` returns at runtime — one JSON Schema per command type, ready to hand to an LLM as tool definitions. Custom commands registered with `registerCommand` are included in the runtime catalog automatically.

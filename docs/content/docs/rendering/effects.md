@@ -58,8 +58,21 @@ project.dispatch({ type: "effect/remove", payload: { clipId: "clip-1", effectId:
 project.dispatch({ type: "effect/reorder", payload: { clipId: "clip-1", effectId: "grade", index: 0 } });
 ```
 
+## Custom effect kinds
+
+`registerEffectKind` (core) registers a new kind's param schema — commands for it validate, serialize, and enter the AI command catalog like the built-ins:
+
+```ts
+import { registerEffectKind } from "@miraiclip/core";
+import { z } from "zod";
+
+registerEffectKind("vignette", z.object({ strength: z.number().min(0).max(1).default(0.5) }));
+project.dispatch({ type: "effect/add", payload: { clipId: "clip-1", kind: "vignette" } });
+```
+
+The rendering half — registering your own shader for the kind — is not public yet: today an unknown kind validates and round-trips but draws nothing. The public `registerEffect()` renderer API lands in v4.x.
+
 ## Good to know
 
 - Effects apply pre-transform, in sRGB; stack order = array order.
-- Custom effect kinds arrive with the public `registerEffect()` API in v4.x.
 - Full payload schemas: [command catalog](../../command-catalog).

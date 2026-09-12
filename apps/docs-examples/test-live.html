@@ -1,0 +1,55 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>widget smoke</title>
+<style>.mirai-variant{display:none}.mirai-variant.active{display:block}</style>
+</head>
+<body>
+
+<div class="mirai-example-group" id="grp-transitions" data-media="demo" data-assets="./">
+<div class="mirai-variant" data-name="Cross dissolve">
+<div class="highlight"><pre><code>project.transaction(() => {
+  project.dispatch({ type: "clip/split", payload: { clipId: "main", atUs: 3_000_000, newClipId: "second" } });
+  project.dispatch({ type: "clip/trim", payload: { clipId: "second", trimStartUs: 4_500_000, durationUs: 1_500_000 } });
+  project.dispatch({ type: "transition/add", payload: { kind: "crossDissolve", fromClipId: "main", toClipId: "second", durationUs: 800_000 } });
+});</code></pre></div>
+</div>
+<div class="mirai-variant" data-name="Dip to black">
+<div class="highlight"><pre><code>project.transaction(() => {
+  project.dispatch({ type: "clip/split", payload: { clipId: "main", atUs: 3_000_000, newClipId: "second" } });
+  project.dispatch({ type: "transition/add", payload: { kind: "dipToBlack", fromClipId: "main", toClipId: "second", durationUs: 800_000 } });
+});</code></pre></div>
+</div>
+<div class="mirai-example-stage"></div>
+</div>
+
+<div class="mirai-example" id="ex-chroma" data-media="green" data-assets="./">
+<div class="highlight"><pre><code>project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "chromaKey" } });</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
+<div class="mirai-example" id="ex-caption" data-media="demo" data-assets="./">
+<div class="highlight"><pre><code>project.dispatch({
+  type: "clip/add",
+  payload: {
+    kind: "caption", id: "cap-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+    words: [
+      { text: "HELLO", startUs: 0, durationUs: 3_000_000 },
+      { text: "WORLD", startUs: 3_000_000, durationUs: 3_000_000 },
+    ],
+    style: { preset: "highlight", fontSizeFrac: 0.15, color: "#ffffff", highlightColor: "#0000ff" },
+  },
+});</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
+<div class="mirai-example" id="ex-export" data-media="demo" data-assets="./">
+<div class="highlight"><pre><code>const bytes = await miraiclip.exportProject(project, {
+  format: "webm", quality: "draft",
+  range: { startUs: 0, endUs: 2_000_000 },
+  onProgress: ({ framesDone, totalFrames }) => miraiclip.status(`exporting ${framesDone}/${totalFrames}`),
+});
+miraiclip.status(`exported ${bytes.byteLength} bytes`);</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
+<script src="./miraiclip-examples.js"></script>
+</body></html>

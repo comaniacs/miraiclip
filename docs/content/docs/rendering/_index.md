@@ -75,6 +75,47 @@ Audio clips — and the embedded tracks of video clips — are decoded in **stre
 
 **Clocks** — `RealtimeClock` (wall time, rate control) powers preview; a step clock drives export frame by frame through the same compositor.
 
+## Bring your own clip kind
+
+Custom clip kinds are a first-class seam — the same one built-in video uses. Register the kind's schema in core, then hand the player (and export — same factories, so preview and export can't diverge) a factory that builds its scene node:
+
+```ts
+import { registerClipKind } from "@miraiclip/core";
+import { z } from "zod";
+
+registerClipKind("countdown", {
+  propsSchema: z.object({ from: z.number().int().positive() }),
+  trackKinds: ["video"],
+});
+
+const factories = {
+  countdown: (clip, { backend }) => {
+    const asText = (c, seconds) =>
+      ({ ...c, kind: "text", text: String(seconds), fontFamily: "monospace", fontSizePx: 96, color: "#ffffff" });
+    const inner = backend.createText(asText(clip, clip.props.from));
+    return {
+      setPlacement: (placement) => inner.setPlacement(placement),
+      setVisible: (visible) => inner.setVisible(visible),
+      setZ: (z) => inner.setZ(z),
+      update: () => undefined,
+      // tick runs every rendered frame — time-dependent content lives here.
+      tick: (c, timeUs) => inner.update(asText(c, Math.max(0, Math.ceil(c.props.from - (timeUs - c.startUs) / 1_000_000)))),
+      destroy: () => inner.destroy(),
+    };
+  },
+};
+
+const player = createPlayer(project, { ...playerOptions, factories });
+await exportProject(project, { format: "mp4", factories }); // identical pixels
+
+project.dispatch({
+  type: "clip/add",
+  payload: { kind: "countdown", trackId: "overlay", startUs: 0, durationUs: 5_000_000, props: { from: 5 } },
+});
+```
+
+A factory returns any `SceneNode` (`setPlacement`/`setVisible`/`setZ`/`update`/optional `tick`/`destroy`) — build on the backend's primitives or drive your own drawing. One caveat: factories are functions, so `@miraiclip/server-export` (a process boundary) supports built-in kinds only for now.
+
 ## Exact frames
 
 `videos.renderFrameAt(compositor, timeUs)` awaits decode and draws one exact frame — the primitive for thumbnails, posters, and export. `videos.prepare(timeUs)` pre-decodes around a position without drawing.

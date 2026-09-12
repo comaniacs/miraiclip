@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createProject } from "@miraiclip/core";
+import { createProject, registerClipKind } from "@miraiclip/core";
+import { z } from "zod";
 import { createPlayer } from "../src/player.js";
 import { FakeDemuxer, createFakeDecoder } from "./fakes.js";
-import { FakeBackend } from "./scene-fakes.js";
+import { FakeBackend, FakeNode } from "./scene-fakes.js";
 import { FakeOutput, openFakeAudio, settle } from "./audio-fakes.js";
 
 /** Flush macrotasks: the transport hold resumes after frame ARRIVAL polling. */
@@ -158,6 +159,49 @@ describe("createPlayer", () => {
     player.seek(3_000_000);
     await flushHold();
     expect(player.timeUs).toBe(3_000_000);
+    player.destroy();
+  });
+});
+
+describe("custom clip kinds through createPlayer", () => {
+  it("forwards custom factories to the compositor (the extension seam)", () => {
+    registerClipKind("sticker", {
+      propsSchema: z.object({ emoji: z.string() }),
+      trackKinds: ["video"],
+    });
+    const project = createProject({ width: 1280, height: 720, fps: 30 });
+    project.transaction(() => {
+      project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+      project.dispatch({
+        type: "clip/add",
+        payload: { kind: "sticker", id: "s1", trackId: "v1", startUs: 0, durationUs: 2_000_000, props: { emoji: "🎬" } },
+      });
+    });
+    const backend = new FakeBackend();
+    const stickers: FakeNode[] = [];
+    const player = createPlayer(project, {
+      backend,
+      openDemuxer: async () => new FakeDemuxer(300, 30),
+      createDecoder: createFakeDecoder,
+      audioOutput: new FakeOutput(),
+      openAudio: openFakeAudio(60_000_000),
+      factories: {
+        sticker: () => {
+          const node = new FakeNode("sticker");
+          stickers.push(node);
+          return node;
+        },
+        // "video" is reserved — the player's own pipeline factory must win.
+        video: () => new FakeNode("clobbered"),
+      },
+      raf: () => 0,
+      cancelRaf: () => undefined,
+      schedule: () => 1,
+      cancelSchedule: () => undefined,
+    });
+    expect(stickers.length).toBe(1);
+    expect(stickers[0]!.updates.at(-1)?.id).toBe("s1");
+    expect(backend.nodes.some((n) => n.kind === "clobbered")).toBe(false);
     player.destroy();
   });
 });

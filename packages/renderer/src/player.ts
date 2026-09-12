@@ -1,7 +1,7 @@
 import type { Project } from "@miraiclip/core";
 import { RealtimeClock } from "./clock.js";
 import { Compositor } from "./compositor/compositor.js";
-import type { SceneBackend } from "./compositor/types.js";
+import type { NodeFactory, SceneBackend } from "./compositor/types.js";
 import { MediaManager } from "./media/media-manager.js";
 import type { DemuxerFactory, FrameDecoderFactory, Us } from "./media/types.js";
 import { createVideoSupport } from "./video/video-support.js";
@@ -15,6 +15,12 @@ export interface CreatePlayerOptions {
   createDecoder: FrameDecoderFactory;
   audioOutput: AudioOutput;
   openAudio: AudioSourceFactory;
+  /**
+   * Scene-node factories for custom clip kinds (registered in core with
+   * `registerClipKind`) — the same seam built-in video uses. Keyed by clip
+   * kind; "video" is reserved (the player owns the video pipeline).
+   */
+  factories?: Record<string, NodeFactory>;
   /** Loop back to 0 at the end of the composition (default false: pause). */
   loop?: boolean;
   /** Media failures per clip (unsupported codec, decode error, …). Default: console.error. */
@@ -66,7 +72,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     options.onError ? { onError: options.onError } : {},
   );
   const compositor = new Compositor(project, options.backend, {
-    factories: { video: videos.factory },
+    factories: { ...options.factories, video: videos.factory },
   });
   const audio = new AudioEngine(project, options.audioOutput, options.openAudio);
   const clock = new RealtimeClock(() => options.audioOutput.currentTimeUs / 1000);

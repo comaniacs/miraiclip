@@ -1,0 +1,6 @@
+{{- /* One slide of an example-group. RAW shortcode + direct highlight —
+       nesting markdown-form shortcodes double-renders the code (smart
+       quotes, <p> wrappers) and breaks execution. */ -}}
+<div class="mirai-variant" data-name="{{ .Get "name" }}"{{ with .Get "media" }} data-media="{{ . }}"{{ end }}>
+{{ highlight (trim .Inner "\n") "ts" "" }}
+</div>

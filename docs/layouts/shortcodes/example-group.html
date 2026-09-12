@@ -1,0 +1,6 @@
+{{- /* Carousel of live examples sharing one preview canvas. RAW shortcode:
+       .Inner is the rendered example-variant divs. */ -}}
+<div class="mirai-example-group" data-media="{{ .Get "media" | default "demo" }}" data-assets="{{ "examples/" | relURL }}">
+{{ .Inner | safeHTML }}
+<div class="mirai-example-stage"></div>
+</div>

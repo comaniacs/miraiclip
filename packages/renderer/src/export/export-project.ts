@@ -1,5 +1,6 @@
 import type { Project } from "@miraiclip/core";
 import { Compositor } from "../compositor/compositor.js";
+import type { NodeFactory } from "../compositor/types.js";
 import { createPixiBackend } from "../compositor/pixi-backend.js";
 import { MediaManager } from "../media/media-manager.js";
 import type { DemuxerFactory, FrameDecoderFactory, Us } from "../media/types.js";
@@ -37,6 +38,13 @@ export interface ExportProjectOptions {
   openDemuxer?: DemuxerFactory;
   createDecoder?: FrameDecoderFactory;
   openAudio?: AudioSourceFactory;
+  /**
+   * Scene-node factories for custom clip kinds — pass the SAME factories the
+   * player uses so custom kinds render identically in preview and export.
+   * (Functions can't cross a process boundary: server-side export via
+   * `@miraiclip/server-export` supports built-in kinds only for now.)
+   */
+  factories?: Record<string, NodeFactory>;
 }
 
 /**
@@ -87,7 +95,7 @@ export async function exportProject(
   const videos = createVideoSupport(project, manager);
   const backend = await createPixiBackend({ canvas: canvas as unknown as HTMLCanvasElement, width, height });
   const compositor = new Compositor(project, backend, {
-    factories: { video: videos.factory },
+    factories: { ...options.factories, video: videos.factory },
   });
   const openAudio = options.openAudio ?? openMediabunnyAudio;
 

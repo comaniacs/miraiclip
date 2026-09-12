@@ -1,0 +1,13 @@
+{{- /* Live example: the fenced code below is ALSO what the widget executes
+       (it reads the block's textContent), so the docs can never show one
+       thing and run another. Invoke as the markdown form so the fence gets
+       the theme's native code-block styling and copy button. */ -}}
+<div class="mirai-example" data-media="{{ .Get "media" | default "demo" }}" data-assets="{{ "examples/" | relURL }}">
+
+```ts
+{{ trim .Inner "\n" | safeHTML }}
+```
+
+<div class="mirai-example-stage"></div>
+
+</div>

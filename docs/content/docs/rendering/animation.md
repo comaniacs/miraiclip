@@ -39,6 +39,16 @@ The easing on a keyframe shapes the segment **to the next keyframe**. Default: `
 | `hold` | Keep the value, jump at the next keyframe |
 | `{ kind: "bezier", x1, y1, x2, y2 }` | Custom cubic bézier (presets are sugar for these) |
 
+Every preset is stored as its bézier control points, so a custom curve is a first-class citizen — no registration needed:
+
+```ts
+project.dispatch({
+  type: "keyframe/set",
+  payload: { clipId: "clip-1", property: "y", timeUs: 0, value: 0.6,
+             easing: { kind: "bezier", x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 } }, // overshoot/bounce
+});
+```
+
 ## Edit and remove
 
 ```ts

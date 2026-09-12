@@ -60,6 +60,19 @@ The window draws from **source headroom** — the outgoing clip keeps rendering 
 | `duplicate-boundary` | That cut already has a transition |
 | `insufficient-handles` | A clip has no source media past its visible range — trim it, or shorten the transition |
 
+## Custom transition kinds
+
+`registerTransitionKind` (core) registers a new kind's param schema — its commands validate and enter the AI command catalog:
+
+```ts
+import { registerTransitionKind } from "@miraiclip/core";
+import { z } from "zod";
+
+registerTransitionKind("glitch", z.object({ intensity: z.number().min(0).max(1).default(0.5) }));
+```
+
+Today a custom kind gets validation, document storage, and the **automatic equal-power audio crossfade** — visually it renders as a plain cut under that crossfade. Custom blend visuals arrive with the public renderer registry in v4.x.
+
 ## Good to know
 
 - Two clips of the **same asset** transition fine — each gets its own decode pipeline for the overlap.

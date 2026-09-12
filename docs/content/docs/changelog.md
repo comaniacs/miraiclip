@@ -1,6 +1,6 @@
 ---
 title: Changelog
-weight: 8
+weight: 10
 ---
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
@@ -13,6 +13,8 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Added
 
+- `@miraiclip/renderer` custom clip-kind factories: `createPlayer` and `exportProject` accept `factories` (clip kind → scene-node factory) — register a kind with core's `registerClipKind`, pass the same factories to both, and it renders identically in preview and export. See [Rendering](../rendering).
+- Docs: a live [Examples](../../examples) showcase — full-width sections with variant carousels (every transition kind, effect preset, and caption style) running in your browser against the real engine; the code shown is the code executed.
 - `@miraiclip/renderer` karaoke captions rendered (v4 step 5): caption clips draw with word wrap, per-line centering, and all four presets (plain, highlight, karaoke, pop); font assets load as real FontFaces in both the live player and exports — a server export never falls back to default glyphs; SRT/VTT and ASR imports render end to end; playground Captions tab added. Color-census e2e: passed words stay lit across a word boundary, the highlight flips sides exactly at it. See [Rendering](../rendering).
 - `@miraiclip/renderer` transitions rendered (v4 step 4): crossDissolve, dipToBlack, dipToWhite, wipe, and slide now draw — blend kinds render both clips through the window from source headroom (each participating clip gets a dedicated decode pipeline), dips cover the cut with an overlay that is fully opaque exactly at the cut, and every kind applies an equal-power audio crossfade through the same automation math as keyframed volume (identical in preview and export). Pixel-asserted e2e incl. re-decoding a dissolve out of an exported file. See [Rendering](../rendering).
 - Playground quick-test side panel: Effects / Text / Animate / Transitions tabs of one-click preset cards + undo/redo, all driving the ordinary command surface. Transition cards split the video at the playhead, jump the incoming side 1s ahead (so the cut is visible), and bridge it.

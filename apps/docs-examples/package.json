@@ -1,0 +1,21 @@
+{
+  "name": "miraiclip-docs-examples",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Self-contained live-example widget for the docs site \u2014 bundles core + renderer into docs/static/examples/miraiclip-examples.js",
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "@miraiclip/core": "workspace:*",
+    "@miraiclip/renderer": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "playwright-core": "^1.55.0"
+  }
+}

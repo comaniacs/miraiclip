@@ -1,0 +1,44 @@
+{{- /* Loads the live-example engine + styles once per page. Raw shortcode:
+       the markdown pipeline strips script tags, so this must bypass it. */ -}}
+<style>
+.mirai-band { width: 100vw; margin-left: calc(50% - 50vw); padding: 3.5rem 0; }
+.mirai-band:nth-of-type(even) { background: rgba(128,128,128,.07); }
+.mirai-band-inner { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem; }
+.mirai-band-inner > h2 { font-size: 1.75rem; font-weight: 700; margin: 0 0 .5rem; }
+.mirai-band-inner > p { opacity: .8; max-width: 46rem; }
+.mirai-group-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 1.75rem; align-items: start; margin-top: 1.25rem; }
+@media (max-width: 920px) { .mirai-group-layout { grid-template-columns: minmax(0,1fr); } }
+.mirai-variant { display: none; }
+.mirai-variant.active { display: block; }
+.mirai-group-code pre { max-height: 380px; overflow: auto; }
+.mirai-variant-nav { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; }
+.mirai-variant-tabs { display: flex; flex-wrap: wrap; gap: .4rem; flex: 1; }
+.mirai-variant-tabs button, .mirai-variant-arrow {
+  padding: .3rem .8rem; border-radius: 999px; border: 1px solid rgba(128,128,128,.35);
+  background: transparent; color: inherit; cursor: pointer; font-size: .82rem; opacity: .75; }
+.mirai-variant-tabs button:hover, .mirai-variant-arrow:hover { opacity: 1; background: rgba(128,128,128,.15); }
+.mirai-variant-tabs button.active { opacity: 1; background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.6); font-weight: 600; }
+.mirai-variant-arrow { flex: none; padding: .3rem .65rem; }
+.mirai-example { margin: 1.25rem 0 0; }
+.mirai-variant .highlight { margin: 0; }
+.mirai-variant .highlight pre { margin: 0; padding: 1rem 1.1rem; border-radius: 8px; overflow: auto;
+  background: rgba(128,128,128,.1); border: 1px solid rgba(128,128,128,.2);
+  font-size: .8rem; line-height: 1.5; white-space: pre; }
+.mirai-variant .highlight span.line { display: inline; }
+.mirai-example-stage { margin-top: 0; }
+.mirai-example .mirai-example-stage { margin-top: .75rem; }
+.mirai-example-frame { position: relative; max-width: 640px; border: 1px solid rgba(128,128,128,.35);
+  border-radius: 10px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; }
+.mirai-example-frame canvas { display: block; width: 100%; height: 100%; }
+.mirai-example-cover { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+.mirai-example-controls { display: flex; gap: .5rem; align-items: center; margin-top: .6rem; flex-wrap: wrap; }
+.mirai-example-controls button, .mirai-example-cover button {
+  padding: .4rem 1.1rem; border-radius: 7px; border: 1px solid rgba(128,128,128,.4);
+  background: rgba(128,128,128,.12); color: inherit; cursor: pointer; font-size: .85rem; }
+.mirai-example-cover button { background: rgba(30,30,36,.85); color: #fff; font-weight: 600; }
+.mirai-example-controls button:hover, .mirai-example-cover button:hover { background: rgba(128,128,128,.28); }
+.mirai-example-controls .mirai-example-run { font-weight: 600; }
+.mirai-example-status { font-size: .8rem; opacity: .75; }
+.mirai-example-status.error { color: #e5534b; opacity: 1; }
+</style>
+<script defer src="{{ "examples/miraiclip-examples.js" | relURL }}"></script>

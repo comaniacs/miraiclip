@@ -20,15 +20,18 @@ menu:
     - name: Docs
       pageRef: /docs
       weight: 1
+    - name: Examples
+      pageRef: /examples
+      weight: 2
     - name: Roadmap
       pageRef: /docs/roadmap
-      weight: 2
-    - name: Search
       weight: 3
+    - name: Search
+      weight: 4
       params:
         type: search
     - name: GitHub
-      weight: 4
+      weight: 5
       url: "https://github.com/comaniacs/miraiclip"
       params:
         icon: github
