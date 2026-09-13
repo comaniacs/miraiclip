@@ -30,8 +30,8 @@ Miraiclip is not a video editor app — it is the engine you build one with. The
 | Package | Status | Description |
 | --- | --- | --- |
 | [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.2.0 on npm | Headless command-driven engine: state, commands, history, events |
-| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.3.0 on npm | WebCodecs + WebGL playback, preview, and export — animations, effects, transitions, captions |
-| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.1.1 on npm | Server-side export: the browser pipeline in headless Chrome, from Node |
+| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.4.0 on npm | WebCodecs + WebGL playback, preview, and export — animations, effects, transitions, captions |
+| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.2.0 on npm | Server-side export: the browser pipeline in headless Chrome, from Node |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
 ## Quick start
@@ -140,7 +140,7 @@ miraiclip-export project.json --out final.mp4 --quality high
 2. **v2 — Rendering & playback** ✅: WebCodecs decode + WebGL compositor, frame-accurate playback (`@miraiclip/renderer`)
 3. **v3 — Export** ✅: WebCodecs encode to MP4/WebM, offline faster-than-realtime rendering, plus server-side export from Node (`@miraiclip/server-export`)
 4. **v4 — Creative features** ✅: keyframe animations, transitions, effects, chroma key, karaoke captions
-5. **v4.x — Production readiness** (in progress): stress suite + [measured numbers](https://comaniacs.github.io/miraiclip/docs/production-readiness/), streaming exports, chunked audio, hour-scale timelines
+5. **v4.x — Production readiness** (in progress): stress suite + [measured numbers](https://comaniacs.github.io/miraiclip/docs/production-readiness/); streaming exports + chunked audio shipped in renderer 0.4.0 / server-export 0.2.0 (a one-hour export demonstrated at 165 MB heap); export validation corpus; device benchmarks next
 6. **v5 — Ecosystem** (exploring): `@miraiclip/react` + example editor app, templates, programmatic clip kinds
 
 See the [roadmap](https://comaniacs.github.io/miraiclip/docs/roadmap/) and [PLAN.md](./PLAN.md) for the detailed plan and architecture.

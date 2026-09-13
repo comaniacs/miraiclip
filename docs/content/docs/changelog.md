@@ -5,7 +5,7 @@ weight: 10
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
-## Unreleased
+## renderer-0.4.0 · server-export-0.2.0 — 2026-09-13
 
 ### Added
 

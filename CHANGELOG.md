@@ -2,7 +2,9 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [renderer-0.4.0] + [server-export-0.2.0] — 2026-09-13
+
+The **production-hardening** release: export memory independent of timeline length (streaming output + chunked audio, demonstrated with a one-hour export), server exports streamed to disk, the export validation corpus and device benchmark tiers, and the pipeline fixes they caught.
 
 ### Added
 
@@ -114,5 +116,6 @@ First release of `@miraiclip/core`.
 - **Tooling**: pnpm monorepo, tsup build (ESM + CJS + type declarations, split per-condition `exports` verified with publint and arethetypeswrong), Vitest, strict TypeScript, CI workflow (typecheck/test/build on push and PR), Changesets release tooling (`pnpm changeset`, `pnpm release`).
 - **Docs site** under `docs/`: Hugo + Hextra with landing page, quickstart, core-concepts pages, Command Catalog reference (generated from the actual Zod schemas), roadmap, and this changelog.
 
-[Unreleased]: https://github.com/comaniacs/miraiclip/compare/v0.1.0...HEAD
+[renderer-0.4.0]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.4.0
+[server-export-0.2.0]: https://www.npmjs.com/package/@miraiclip/server-export/v/0.2.0
 [0.1.0]: https://github.com/comaniacs/miraiclip/releases/tag/v0.1.0
