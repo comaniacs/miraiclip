@@ -13,7 +13,9 @@
   },
   "include": [
     "stress",
+    "bench",
     "playwright.stress.config.ts",
+    "playwright.bench.config.ts",
     "playwright.config.ts"
   ]
 }

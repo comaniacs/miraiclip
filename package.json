@@ -8,7 +8,8 @@
     "changeset": "changeset",
     "release": "pnpm -r build && changeset publish",
     "stress": "pnpm --filter miraiclip-playground stress && pnpm --filter @miraiclip/server-export stress",
-    "corpus": "pnpm --filter @miraiclip/server-export corpus"
+    "corpus": "pnpm --filter @miraiclip/server-export corpus",
+    "bench": "pnpm --filter miraiclip-playground bench"
   },
   "packageManager": "pnpm@10.28.0",
   "devDependencies": {

@@ -371,6 +371,7 @@ describe("MediaManager", () => {
     openDemuxer: async () => new FakeDemuxer(300, 30),
     createDecoder: createFakeDecoder,
     maxActivePipelines: 2,
+    evictionIdleMs: 0, // deterministic LRU in tests — no in-use grace window
   });
 
   it("shares one pipeline per asset", async () => {
@@ -391,6 +392,33 @@ describe("MediaManager", () => {
     expect(manager.activeCount).toBe(2);
     expect(manager.isActive("a")).toBe(true);
     expect(manager.isActive("b")).toBe(false);
+    expect(manager.isActive("c")).toBe(true);
+    manager.dispose();
+  });
+
+  it("never evicts a pipeline in active use — the cap is exceeded instead", async () => {
+    // Evicting a pipeline that is ticked every frame just makes its holder
+    // re-acquire it, evicting another live one: an acquire/evict livelock.
+    // With the default in-use grace, three live pipelines on a cap of 2
+    // coexist; the idle one is evicted once the grace window passes.
+    const manager = new MediaManager({ ...options(), evictionIdleMs: 60_000 });
+    await manager.acquire("a", "/a.mp4");
+    await manager.acquire("b", "/b.mp4");
+    await manager.acquire("c", "/c.mp4"); // both a and b freshly used → no victim
+    expect(manager.activeCount).toBe(3);
+    expect(manager.isActive("a")).toBe(true);
+    expect(manager.isActive("b")).toBe(true);
+    manager.dispose();
+  });
+
+  it("touch() marks a pipeline as in use without re-acquiring it", async () => {
+    const manager = new MediaManager(options()); // evictionIdleMs: 0 — pure LRU
+    await manager.acquire("a", "/a.mp4");
+    await manager.acquire("b", "/b.mp4");
+    manager.touch("a"); // holders tick every frame; without this, LRU order
+    await manager.acquire("c", "/c.mp4"); // freezes at acquisition time
+    expect(manager.isActive("a")).toBe(true); // touched → survived
+    expect(manager.isActive("b")).toBe(false); // LRU victim
     expect(manager.isActive("c")).toBe(true);
     manager.dispose();
   });

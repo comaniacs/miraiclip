@@ -4,3 +4,5 @@ playwright-report/
 blob-report/
 stress-results.json
 public/e2e-4k.webm
+bench-results.json
+public/bench-1080.webm

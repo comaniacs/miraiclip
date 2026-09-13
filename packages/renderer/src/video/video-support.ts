@@ -35,6 +35,7 @@ class VideoClipAdapter implements SceneNode {
   constructor(
     private readonly inner: VideoSceneNode,
     private readonly acquire: (dedicated: boolean) => Promise<VideoPipeline>,
+    private readonly touch: (dedicated: boolean) => void,
     private readonly onError: (error: Error) => void,
     private readonly onDestroy: () => void,
   ) {}
@@ -93,6 +94,7 @@ class VideoClipAdapter implements SceneNode {
 
   /** Await the exact frame at a media position (used by prepare/renderFrameAt). */
   async prepareAt(mediaUs: Us): Promise<void> {
+    this.touch(this.dedicated); // keep the manager's LRU order honest
     let pipeline = await this.ensurePipeline();
     // Evicted between (or during) acquisitions — one re-acquire attempt; if
     // the active set truly exceeds the cap this call yields no frame, and the
@@ -107,6 +109,7 @@ class VideoClipAdapter implements SceneNode {
   tick(clip: Clip, timeUs: Us): void {
     if (!isVideoClip(clip)) return;
     const mediaUs = toMediaUs(clip, timeUs);
+    this.touch(this.dedicated); // in use every frame → never the LRU victim
     if (this.pipeline?.isDisposed) this.resetPipeline(); // evicted → re-acquire
     if (!this.pipeline) {
       // Kick off acquisition only — a deferred prime here could land after a
@@ -183,6 +186,7 @@ export function createVideoSupport(
     const adapter = new VideoClipAdapter(
       inner,
       (dedicated) => manager.acquire(asset.id, asset.src, dedicated ? clipId : undefined),
+      (dedicated) => manager.touch(asset.id, dedicated ? clipId : undefined),
       (error) => onError(error, clipId),
       () => adapters.delete(clipId),
     );
@@ -194,9 +198,17 @@ export function createVideoSupport(
     return adapter;
   };
 
+  interface RelevantClip {
+    adapter: VideoClipAdapter;
+    assetId: string;
+    mediaUs: Us;
+    fromUs: Us;
+    toUs: Us;
+  }
+
   async function prepare(timeUs: Us): Promise<void> {
     const doc = project.getState().doc;
-    const jobs: Promise<void>[] = [];
+    const relevant: RelevantClip[] = [];
     for (const [clipId, adapter] of adapters) {
       const clip = doc.clips[clipId];
       if (!clip || !isVideoClip(clip)) continue;
@@ -207,12 +219,31 @@ export function createVideoSupport(
       if (participatesInTransition(doc, clipId)) adapter.ensureDedicated();
       const visibleFromUs = clip.startUs - extension.beforeUs;
       const visibleToUs = clip.startUs + clip.durationUs + extension.afterUs;
-      const relevant = timeUs < visibleToUs && timeUs >= visibleFromUs - lookaheadUs;
-      if (!relevant) continue;
+      if (!(timeUs < visibleToUs && timeUs >= visibleFromUs - lookaheadUs)) continue;
       const mediaUs = toMediaUs(clip, Math.min(Math.max(timeUs, visibleFromUs), visibleToUs));
-      jobs.push(adapter.prepareAt(mediaUs));
+      relevant.push({ adapter, assetId: clip.assetId, mediaUs, fromUs: visibleFromUs, toUs: visibleToUs });
     }
-    await Promise.all(jobs);
+    // CONCURRENT clips of one asset (picture-in-picture of the same footage,
+    // echo overlays) each need their own pipeline, exactly as transition
+    // overlaps do: two clips demanding two media positions from one shared
+    // pipeline fight over its seek target every frame — the cache is cleared
+    // on every reversal and playback wedges. Sequential clips of one asset
+    // (splits, cuts) keep sharing: pipeline continuity is what makes those
+    // cheap. Dedication happens BEFORE the prepare jobs run, and prepare fires
+    // at least once per 300ms of playback with a 1s lookahead, so the upgrade
+    // lands before the overlap is visible.
+    for (let i = 0; i < relevant.length; i++) {
+      for (let j = i + 1; j < relevant.length; j++) {
+        const a = relevant[i]!;
+        const b = relevant[j]!;
+        if (a.assetId !== b.assetId) continue;
+        if (a.fromUs < b.toUs && b.fromUs < a.toUs) {
+          a.adapter.ensureDedicated();
+          b.adapter.ensureDedicated();
+        }
+      }
+    }
+    await Promise.all(relevant.map((entry) => entry.adapter.prepareAt(entry.mediaUs)));
   }
 
   return {

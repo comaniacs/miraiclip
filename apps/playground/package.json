@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "e2e": "playwright test",
-    "stress": "playwright test -c playwright.stress.config.ts"
+    "stress": "playwright test -c playwright.stress.config.ts",
+    "bench": "playwright test -c playwright.bench.config.ts"
   },
   "dependencies": {
     "@miraiclip/core": "workspace:*",

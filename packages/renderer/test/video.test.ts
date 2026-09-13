@@ -121,6 +121,44 @@ describe("video in the compositor", () => {
     expect(manager.activeCount).toBe(1);
   });
 
+  it("CONCURRENT clips of the same asset get dedicated pipelines", async () => {
+    // Picture-in-picture of the same footage: base clip 0..5s, overlay 1..4s,
+    // both from asset "vid" at different trims. On a shared pipeline they
+    // demand two media positions every frame — each prime reverses the seek
+    // target, clears the cache, and playback wedges (measured: a 1080p bench
+    // at 9.6 presented fps with 34s stalls). Overlap must upgrade both to
+    // dedicated lanes, exactly as transition overlaps already do.
+    const { project, videos, compositor, manager, node, backend } = setup();
+    project.dispatch({
+      type: "clip/add",
+      payload: {
+        kind: "video",
+        id: "pip",
+        trackId: "v1",
+        assetId: "vid",
+        startUs: 1_000_000,
+        durationUs: 3_000_000,
+        trimStartUs: 7_000_000,
+        transform: { x: 0.15, y: 0.15, scale: 0.2 },
+      },
+    });
+    const t = 60 * FRAME_US; // 2s: both clips visible
+    await videos.renderFrameAt(compositor, t);
+    // Each clip got its own dedicated lane (the shared per-asset pipeline may
+    // still exist from before the overlap — idle, and LRU-evicted in time).
+    expect(manager.activeCount).toBe(3);
+    // The behavioral proof: both clips show their OWN exact frame — base at t,
+    // pip at trim + (t - start). A shared pipeline cannot hold both at once.
+    const base = node.lastFrame as { timestampUs: number };
+    expect(base?.timestampUs).toBe(t);
+    const pipNode = backend.nodes
+      .filter((n): n is FakeVideoNode => n instanceof FakeVideoNode)
+      .find((n) => n !== node)!;
+    const pip = pipNode.lastFrame as { timestampUs: number };
+    const pipMediaUs = 7_000_000 + (t - 1_000_000);
+    expect(pip?.timestampUs).toBe(Math.floor(pipMediaUs / FRAME_US) * FRAME_US);
+  });
+
   it("prepare primes only clips near the playhead", async () => {
     const { project, videos, manager } = setup(); // c1: 0..5s
     project.dispatch({
@@ -177,6 +215,7 @@ describe("video in the compositor", () => {
       openDemuxer: async () => new FakeDemuxer(300, 30),
       createDecoder: createFakeDecoder,
       maxActivePipelines: 2,
+      evictionIdleMs: 0, // deterministic LRU for the test — no in-use grace
     });
     const videos = createVideoSupport(project, manager);
     const backend = new FakeBackend();
