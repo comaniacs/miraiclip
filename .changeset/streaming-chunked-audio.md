@@ -1,7 +1,0 @@
----
-"@miraiclip/renderer": minor
----
-
-Streaming export output and chunked offline audio — export memory is now independent of timeline length. `exportProject` (and `createMediabunnySink`) accept `target`: a `WritableStream` receiving `{ type: "write", data, position }` chunks as the file is encoded (a `showSaveFilePicker()` writable works directly); with a target set the promise resolves with an empty array. Export audio mixes in bounded sequential chunks (`audioChunkSeconds`, default 60) interleaved with the frame walk instead of one whole-timeline `OfflineAudioContext` render; `exportComposition` gained `mixAudioChunk` (the existing whole-range `mixAudio` is unchanged), and whether a composition has audio is decided up front by probing the contributing assets. Demonstrated: a one-hour export (86,400 frames, an hour of audio, 984 MB streamed) peaked at 165 MB of JS heap at 1.6× realtime.
-
-Fixes: concurrent clips of the same asset (picture-in-picture of one source) each get a dedicated decode pipeline instead of fighting over the shared per-asset pipeline's seek target (which wedged playback); the pipeline LRU tracks per-frame use and never evicts an actively used pipeline (new `evictionIdleMs` option, default 500ms); lazy pipeline acquisition + self-healing re-acquire after eviction (long multi-asset timelines no longer go black); software-GL exports route frame capture through a CPU mirror automatically (`cpuCapture`, `isSoftwareWebGL`), avoiding unbounded GPU shared-image growth in headless environments.
