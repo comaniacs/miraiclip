@@ -151,4 +151,52 @@ describe("video in the compositor", () => {
     expect(() => manager.isActive("vid")).not.toThrow();
     await expect(manager.acquire("x", "/x.mp4")).rejects.toThrow(/disposed/);
   });
+
+  it("recovers after its pipeline is evicted over the manager's cap", async () => {
+    // A timeline with more assets than the pipeline cap: rendering later
+    // clips evicts earlier clips' pipelines (LRU). Coming BACK to an earlier
+    // clip must re-acquire and render the exact frame — the adapter cannot
+    // keep priming the disposed pipeline (that regression showed up as long
+    // multi-asset timelines going permanently black).
+    const project = createProject({ width: 1280, height: 720, fps: 30 });
+    project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+    for (let i = 0; i < 4; i++) {
+      project.dispatch({
+        type: "asset/add",
+        payload: { id: `a${i}`, kind: "video", src: `/m${i}.mp4`, durationUs: 10_000_000 },
+      });
+      project.dispatch({
+        type: "clip/add",
+        payload: {
+          kind: "video", id: `c${i}`, trackId: "v1", assetId: `a${i}`,
+          startUs: i * 2_000_000, durationUs: 2_000_000, trimStartUs: 0,
+        },
+      });
+    }
+    const manager = new MediaManager({
+      openDemuxer: async () => new FakeDemuxer(300, 30),
+      createDecoder: createFakeDecoder,
+      maxActivePipelines: 2,
+    });
+    const videos = createVideoSupport(project, manager);
+    const backend = new FakeBackend();
+    const compositor = new Compositor(project, backend, {
+      factories: { video: videos.factory },
+    });
+
+    // Walk forward across all four assets (evicts a0, then a1)…
+    for (let i = 0; i < 4; i++) await videos.renderFrameAt(compositor, i * 2_000_000 + 100_000);
+    expect(manager.activeCount).toBe(2);
+    expect(manager.isActive("a0")).toBe(false); // evicted
+
+    // …then come back to the first clip: it must re-acquire and be exact.
+    const t = 3 * FRAME_US; // frame-aligned, inside c0
+    await videos.renderFrameAt(compositor, t);
+    expect(manager.isActive("a0")).toBe(true);
+    const node = backend.nodes.find(
+      (n): n is FakeVideoNode => n instanceof FakeVideoNode,
+    )!;
+    const frame = node.lastFrame as { timestampUs: number };
+    expect(frame?.timestampUs).toBe(t);
+  });
 });

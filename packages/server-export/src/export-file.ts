@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, open, unlink } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveAssetSources } from "./assets.js";
@@ -46,13 +46,48 @@ export async function exportProjectFile(
     );
   }
 
-  const server = await startHarnessServer({ harnessScriptPath, files });
+  // With `out`, the encoded chunks stream from the page straight into the
+  // file (positioned writes — containers patch headers at the end), so peak
+  // memory stays flat however long the output is. Without it, the file comes
+  // back in memory as before.
+  const filePath = options.out ? path.resolve(options.out) : undefined;
+  let handle: Awaited<ReturnType<typeof open>> | undefined;
+  let bytesWritten = 0;
+  if (filePath) {
+    await mkdir(path.dirname(filePath), { recursive: true });
+    handle = await open(filePath, "w");
+  }
+  const closeOutput = async (keep: boolean): Promise<void> => {
+    if (!handle) return;
+    const openHandle = handle;
+    handle = undefined;
+    await openHandle.close().catch(() => undefined);
+    if (!keep) await unlink(filePath!).catch(() => undefined); // no half files
+  };
+
+  const server = await startHarnessServer({
+    harnessScriptPath,
+    files,
+    ...(filePath
+      ? {
+          output: async (position: number, data: Buffer) => {
+            await handle!.write(data, 0, data.length, position);
+            bytesWritten = Math.max(bytesWritten, position + data.length);
+          },
+        }
+      : {}),
+  }).catch(async (error: unknown) => {
+    await closeOutput(false);
+    throw error;
+  });
   const browser = await launchBrowser(options.browser).catch(async (error: unknown) => {
     await server.close();
+    await closeOutput(false);
     throw error;
   });
   const errors: string[] = [];
   let onAbort: (() => void) | undefined;
+  let succeeded = false;
 
   try {
     const page = await browser.newPage();
@@ -61,7 +96,9 @@ export async function exportProjectFile(
     });
     page.on("pageerror", (error) => errors.push(error.message));
     await page.exposeFunction("__miraiProgress", (progress: ServerExportProgress) => {
-      options.onProgress?.(progress);
+      // Streamed exports carry the live byte count alongside the frame
+      // progress — the exact "how big is the file so far".
+      options.onProgress?.(filePath ? { ...progress, bytesWritten } : progress);
     });
 
     await page.goto(server.url);
@@ -85,6 +122,8 @@ export async function exportProjectFile(
             ...(options.width !== undefined ? { width: options.width } : {}),
             ...(options.height !== undefined ? { height: options.height } : {}),
             ...(options.range !== undefined ? { range: options.range } : {}),
+            ...(options.audioChunkSeconds !== undefined ? { audioChunkSeconds: options.audioChunkSeconds } : {}),
+            ...(filePath ? { stream: true } : {}),
           },
         ] as const,
       )
@@ -95,18 +134,17 @@ export async function exportProjectFile(
         throw new Error(`server export failed: ${message}${context}`);
       });
 
-    const bytes = Uint8Array.from(Buffer.from(base64, "base64"));
-    if (options.out) {
-      const filePath = path.resolve(options.out);
-      await mkdir(path.dirname(filePath), { recursive: true });
-      await writeFile(filePath, bytes);
-      return { bytes, filePath };
+    if (filePath) {
+      if (bytesWritten === 0) throw new Error("streamed export produced no output");
+      succeeded = true;
+      return { filePath, bytesWritten };
     }
-    return { bytes };
+    return { bytes: Uint8Array.from(Buffer.from(base64, "base64")) };
   } finally {
     if (onAbort) options.signal?.removeEventListener("abort", onAbort);
     await browser.close().catch(() => undefined);
     await server.close();
+    await closeOutput(succeeded);
   }
 }
 

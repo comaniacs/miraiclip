@@ -10,6 +10,14 @@ export interface HarnessExportOptions {
   width?: number;
   height?: number;
   range?: { startUs: number; endUs: number };
+  /**
+   * Stream encoded chunks to the harness server's /__output route instead of
+   * returning one base64 blob: __miraiExport then resolves with "" and the
+   * Node side owns the bytes. Keeps peak memory flat for long outputs.
+   */
+  stream?: boolean;
+  /** Audio mix chunk length in seconds (renderer default: 60). */
+  audioChunkSeconds?: number;
 }
 
 export interface HarnessProgress {

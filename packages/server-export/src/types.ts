@@ -7,6 +7,15 @@ export interface ServerExportProgress {
   totalFrames: number;
   audioMixedUs?: number;
   audioTotalUs?: number;
+  /**
+   * Streamed exports (`out` set) only: bytes written to the file so far.
+   * `framesDone / totalFrames` is the true completion fraction — total output
+   * size is the encoder's decision and unknowable up front — but this gives
+   * live file size, MB/s, and a remaining-bytes estimate:
+   * `bytesWritten × (totalFrames − framesDone) / framesDone`. Output flushes
+   * in ~16MiB chunks, so short exports may read 0 until finalize.
+   */
+  bytesWritten?: number;
 }
 
 export interface BrowserOptions {
@@ -46,17 +55,31 @@ export interface ExportProjectFileOptions {
   assets?: Record<string, string>;
   /** Base directory for resolving relative asset `src` paths (default: cwd). */
   assetsDir?: string;
-  /** Write the encoded file here (created/overwritten). Omit to only get bytes back. */
+  /**
+   * Write the encoded file here (created/overwritten). With `out` set the
+   * encoded chunks STREAM from the browser to the file as they are produced —
+   * peak memory stays flat however long the output is, and `bytes` is not
+   * returned. Omit to get the whole file back in memory instead (fine for
+   * short outputs; the in-page → Node hop transiently costs ~2× the size).
+   */
   out?: string;
+  /**
+   * Audio mix chunk length in seconds (default 60): audio mixes in bounded
+   * sequential chunks, so timeline length does not grow mix memory.
+   */
+  audioChunkSeconds?: number;
   signal?: AbortSignal;
   onProgress?: (progress: ServerExportProgress) => void;
   browser?: BrowserOptions;
 }
 
 export interface ExportProjectFileResult {
-  bytes: Uint8Array;
+  /** The encoded file — absent when `out` was given (it streamed to disk). */
+  bytes?: Uint8Array;
   /** Set when `out` was given: the absolute path written. */
   filePath?: string;
+  /** Set when `out` was given: total bytes streamed into the file. */
+  bytesWritten?: number;
 }
 
 /** Thrown when the export is cancelled via the AbortSignal. */

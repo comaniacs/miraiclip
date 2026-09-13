@@ -23,9 +23,13 @@ WebCodecs encode pipeline to MP4 (H.264 + AAC) and WebM (VP9 + Opus), offline (f
 
 Keyframe animations on clip properties (pure evaluator in core — preview, export, and server export all inherit it), shader-based effects with built-ins (color adjust, blur, **chroma key**), transitions (cross-dissolve, dips, wipe, slide) with equal-power audio crossfades, and **reels-style karaoke captions** (word-level timing, four highlight presets, SRT/VTT + ASR word-timestamp import, real font-asset loading in preview and export). See [Rendering](rendering) and the live [Examples](../examples). Shipped as [`@miraiclip/core@0.2.0`](https://www.npmjs.com/package/@miraiclip/core) + [`@miraiclip/renderer@0.3.0`](https://www.npmjs.com/package/@miraiclip/renderer) (September 2026).
 
-## Beyond v4 — explored
+## v4.x — Production readiness (in progress)
 
-Production-readiness stress suite (many-clip timelines, hour-scale exports, memory bounds, throughput regression benchmarks), a template library (`@miraiclip/templates` — parameterized document generators over v4 primitives), a programmatic clip kind for code-driven graphics (charts, generative visuals) with export parity, and locked brand templates. See PLAN.md for the full exploration.
+The **stress tier is shipped**: `pnpm stress` runs many-clip playback tracking, bounded-heap long exports, decoder churn with a scrub storm, throughput benchmarks (incl. optional 4K→1080p), and parallel server exports — nightly in CI with a metrics artifact. Measured numbers and known ceilings live on [Production Readiness](production-readiness). It caught (and we fixed) a pipeline-eviction blackout on long multi-asset timelines and unbounded GPU memory in software-GL exports. Still in v4.x: public `registerEffect()`, chunked offline audio for hour-scale exports, true overlapped audio crossfades, effect-param keyframes.
+
+## Beyond v4.x — explored
+
+A template library (`@miraiclip/templates` — parameterized document generators over v4 primitives), a programmatic clip kind for code-driven graphics (charts, generative visuals) with export parity, and locked brand templates. See PLAN.md for the full exploration.
 
 ## Parallel track — Adapters & ecosystem
 

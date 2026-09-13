@@ -122,6 +122,91 @@ describe("exportComposition", () => {
     expect(sink.audio).toEqual([]);
   });
 
+  it("mixes audio in sequential chunks interleaved with the frame walk", async () => {
+    // 3s @ 30fps with 1s audio chunks: chunk 0 lands before frame 0, and each
+    // later chunk is added before any frame that reaches into its window.
+    const { sink, run } = setup({ endUs: 3_000_000 });
+    const chunkRanges: { startUs: number; endUs: number }[] = [];
+    const order: string[] = [];
+    const baseAdd = sink.addVideoFrame.bind(sink);
+    sink.addVideoFrame = async (t, d) => {
+      order.push(`frame@${t}:${t + d}`); // start:end
+      await baseAdd(t, d);
+    };
+    const baseAudio = sink.addAudio!.bind(sink);
+    sink.addAudio = async (buffer) => {
+      order.push(`audio@${(buffer as { startUs: number }).startUs}`);
+      await baseAudio(buffer);
+    };
+    await run({
+      audioChunkUs: 1_000_000,
+      mixAudioChunk: async (_context, chunkRange) => {
+        chunkRanges.push({ ...chunkRange });
+        return { ...chunkRange };
+      },
+    });
+    // Sequential, gapless sub-ranges covering the whole range exactly.
+    expect(chunkRanges).toEqual([
+      { startUs: 0, endUs: 1_000_000 },
+      { startUs: 1_000_000, endUs: 2_000_000 },
+      { startUs: 2_000_000, endUs: 3_000_000 },
+    ]);
+    expect(sink.audio.length).toBe(3);
+    // Audio never falls behind video: chunk k is added before any frame whose
+    // end reaches past chunk k's start.
+    for (const [chunkStart] of [[0], [1_000_000], [2_000_000]] as const) {
+      const audioAt = order.indexOf(`audio@${chunkStart}`);
+      // A frame needs chunk k when its END reaches past the chunk's start.
+      const firstFrameNeedingIt = order.findIndex(
+        (entry) => entry.startsWith("frame@") && Number(entry.split(":")[1]) > chunkStart,
+      );
+      expect(audioAt, `chunk@${chunkStart} vs ${order[firstFrameNeedingIt]}`).toBeLessThan(
+        firstFrameNeedingIt === -1 ? order.length : firstFrameNeedingIt,
+      );
+    }
+    expect(order[0]).toBe("audio@0"); // first chunk registers the track pre-start
+  });
+
+  it("the last audio chunk is clipped to the range end", async () => {
+    const { sink, run } = setup({ endUs: 2_500_000 });
+    const chunkRanges: { startUs: number; endUs: number }[] = [];
+    await run({
+      audioChunkUs: 1_000_000,
+      mixAudioChunk: async (_context, chunkRange) => {
+        chunkRanges.push({ ...chunkRange });
+        return { fake: "chunk" };
+      },
+    });
+    expect(chunkRanges.at(-1)).toEqual({ startUs: 2_000_000, endUs: 2_500_000 });
+    expect(sink.audio.length).toBe(3);
+  });
+
+  it("a null mid-timeline chunk fails loudly (it would shift later audio)", async () => {
+    const { sink, run } = setup({ endUs: 3_000_000 });
+    let calls = 0;
+    await expect(
+      run({
+        audioChunkUs: 1_000_000,
+        mixAudioChunk: async () => (++calls === 2 ? null : { fake: "chunk" }),
+      }),
+    ).rejects.toThrow(/silent stretches/);
+    expect(sink.cancelled).toBe(1);
+  });
+
+  it("a null FIRST chunk means no audio track — later chunks are never requested", async () => {
+    const { sink, run } = setup({ endUs: 3_000_000 });
+    let calls = 0;
+    await run({
+      audioChunkUs: 1_000_000,
+      mixAudioChunk: async () => {
+        calls++;
+        return null;
+      },
+    });
+    expect(calls).toBe(1);
+    expect(sink.audio).toEqual([]);
+  });
+
   it("overlaps encoding with rendering in a bounded in-flight window", async () => {
     const sink = new FakeSink();
     let inFlight = 0;

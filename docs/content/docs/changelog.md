@@ -5,6 +5,24 @@ weight: 10
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
+## Unreleased
+
+### Added
+
+- `@miraiclip/renderer` **streaming export output** — `exportProject({ target })` writes encoded chunks to a `WritableStream` (a `showSaveFilePicker()` writable works directly) as the file is produced; nothing accumulates in memory. See [Export · Streaming to disk](/miraiclip/docs/export/client-side/#streaming-to-disk).
+- `@miraiclip/renderer` **chunked offline audio mixing** — export audio mixes in bounded sequential chunks (`audioChunkSeconds`, default 60) interleaved with the frame walk instead of one whole-timeline buffer (~1.4GB/hour before). Together with streaming, **export memory no longer scales with timeline length** (stress run: ~2MB settled heap spread). Not breaking: `exportComposition`'s whole-range `mixAudio` is unchanged; the chunked contract is the new `mixAudioChunk`.
+- `@miraiclip/server-export` **streams exports to disk** — with `out`, chunks stream from the browser into the file (flat memory; result is `{ filePath, bytesWritten }`, no `bytes` — breaking for callers that used both); without `out`, `{ bytes }` is unchanged.
+
+### Fixed
+
+- `@miraiclip/renderer` **pipeline-eviction blackout** (caught by the new stress suite): the pipeline cap (engine default 4, configurable) evicts least-recently-used pipelines, but clips cached theirs forever and every clip acquired one at mount — long multi-asset timelines, or timelines whose transition participants outnumbered the cap, went **permanently black**. Acquisition is now lazy and self-healing (`VideoPipeline.isDisposed` + re-acquire on tick/prepare); eviction costs one frame of catch-up.
+- `@miraiclip/renderer` **unbounded GPU memory in software-GL exports**: under SwiftShader/llvmpipe (headless CI, some VMs — real GPUs unaffected), Chromium retains one GPU shared-image per captured frame while decode and encode run together, growing a 5-minute export to ~4GB. `exportProject` now detects software WebGL and routes capture through a CPU mirror automatically (flat ~300MB); real GPUs keep the zero-copy path.
+
+### Added
+
+- **Production-readiness stress tier** (`pnpm stress`): many-clip playback tracking, bounded-heap long exports, decoder churn with a scrub storm, export throughput benchmarks (incl. optional 4K→1080p), and parallel server exports — nightly in CI with a metrics artifact. See [Production Readiness](/miraiclip/docs/production-readiness/).
+- `@miraiclip/renderer` `createMediabunnySink({ cpuCapture })` and `isSoftwareWebGL(canvas)` exported for custom export sinks in headless environments.
+
 ## core-0.2.0 · renderer-0.3.0 · server-export-0.1.1 — 2026-09-12
 
 The coordinated v4 creative-features release (server-export 0.1.1 = rebuilt harness bundling renderer 0.3.0).

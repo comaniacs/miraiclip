@@ -52,6 +52,8 @@ describe.skipIf(browserPath === undefined)("exportProjectFile (integration)", ()
     const outDir = await mkdtemp(path.join(os.tmpdir(), "mirai-export-"));
     const outPath = path.join(outDir, "out.webm");
     const progress: string[] = [];
+    let bytesSeen = 0;
+    let sawByteCount = false;
 
     const result = await exportProjectFile(fixtureDoc(), {
       format: "webm",
@@ -59,22 +61,36 @@ describe.skipIf(browserPath === undefined)("exportProjectFile (integration)", ()
       assetsDir: FIXTURE_DIR,
       out: outPath,
       browser: { executablePath: browserPath! },
-      onProgress: (p) => progress.push(p.phase),
+      onProgress: (p) => {
+        progress.push(p.phase);
+        if (p.bytesWritten !== undefined) {
+          sawByteCount = true;
+          bytesSeen = Math.max(bytesSeen, p.bytesWritten);
+        }
+      },
     });
 
-    // Bytes came back and hit the disk identically.
+    // With `out`, the file STREAMED to disk — chunks never accumulate in
+    // memory and no bytes come back; the file on disk is the deliverable.
     expect(result.filePath).toBe(outPath);
-    expect(result.bytes.length).toBeGreaterThan(1_000);
-    expect(Uint8Array.from(await readFile(outPath))).toEqual(result.bytes);
+    expect(result.bytes).toBeUndefined();
+    const written = Uint8Array.from(await readFile(outPath));
+    expect(result.bytesWritten).toBe(written.byteLength);
+    expect(written.byteLength).toBeGreaterThan(1_000);
     // EBML magic — it is a WebM container.
-    expect([...result.bytes.slice(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
+    expect([...written.slice(0, 4)]).toEqual([0x1a, 0x45, 0xdf, 0xa3]);
     expect(progress).toContain("video");
     expect(progress.at(-1)).toBe("finalizing");
+    // Streamed progress carries the live byte count. Output flushes in ~16MiB
+    // chunks, so a small export may report 0 until finalize — the field is
+    // present throughout and never exceeds the final size.
+    expect(sawByteCount).toBe(true);
+    expect(result.bytesWritten).toBeGreaterThanOrEqual(bytesSeen);
 
     // Independent verification: mediabunny (in Node) parses the container.
     const input = new Input({
       formats: ALL_FORMATS,
-      source: new BlobSource(new Blob([result.bytes as BlobPart])),
+      source: new BlobSource(new Blob([written as BlobPart])),
     });
     const duration = await input.computeDuration();
     expect(Math.abs(duration - 4)).toBeLessThan(0.1);

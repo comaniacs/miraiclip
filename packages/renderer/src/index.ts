@@ -69,7 +69,7 @@ export { exportComposition } from "./export/exporter.js";
 export type { ExportCompositionOptions } from "./export/exporter.js";
 export { exportProject } from "./export/export-project.js";
 export type { ExportProjectOptions } from "./export/export-project.js";
-export { createMediabunnySink } from "./export/mediabunny-sink.js";
+export { createMediabunnySink, isSoftwareWebGL } from "./export/mediabunny-sink.js";
 export type {
   CreateMediabunnySinkOptions,
   ExportFormat,

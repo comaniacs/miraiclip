@@ -28,6 +28,8 @@ Every `exportProject` option, with its default:
 | `fps` | `number` | project fps | Output frame rate. A lower rate cuts frame count — and export time — proportionally (e.g. 30 for a 60 fps project halves it). |
 | `width`, `height` | `number` | project size | Output resolution. |
 | `range` | `{ startUs, endUs }` | whole composition | Export a section; output timestamps rebase to `startUs`. |
+| `target` | `WritableStream` | — (buffer in memory) | **Stream the encoded file out as it is produced** instead of resolving with the bytes — required for long exports, whose output does not fit in memory. See [Streaming to disk](#streaming-to-disk). |
+| `audioChunkSeconds` | `number` | `60` | Audio mixes in bounded sequential chunks (~23 MB of PCM per minute at 48 kHz stereo), interleaved with the frame walk — timeline length does not grow mix memory. Use integer seconds. |
 | `signal` | `AbortSignal` | — | Cancel cleanly at any point (audio mix included); the export rejects with `ExportAbortedError` and encoders are released. |
 | `onProgress` | `(p: ExportProgress) => void` | — | Per-frame during video (`framesDone`/`totalFrames`), live during the audio mix (`audioMixedUs`/`audioTotalUs`), and a `finalizing` phase. |
 | `openDemuxer`, `createDecoder`, `openAudio` | adapters | mediabunny + WebCodecs | Injectable media adapters. Pass `createDecoder: createWebCodecsDecoder` for uncapped pixel-exact decoding (the default caps decode at 2× the output's longest side). |
@@ -51,14 +53,34 @@ const bytes = await exportProject(project, {
 });
 ```
 
+## Streaming to disk
+
+By default the encoded file accumulates in memory and `exportProject` resolves with the bytes — fine for short outputs. For long ones, pass a `target`: each encoded chunk is `{ type: "write", data, position }`, exactly what `FileSystemWritableFileStream.write` accepts, so the user picks a file once and the export writes straight into it:
+
+```ts
+const handle = await window.showSaveFilePicker({ suggestedName: "export.webm" });
+const writable = await handle.createWritable();
+
+const resolved = await exportProject(project, {
+  format: "webm",
+  quality: "standard",
+  target: writable, // chunks stream to disk; `resolved` is an empty array
+});
+await writable.close();
+```
+
+Positions may seek backwards (containers patch their headers at the end), which file writables handle natively. Backpressure on the stream throttles the encoders, so a slow disk bounds memory instead of growing it. With a `target` set the returned promise resolves with an **empty** `Uint8Array` once the stream has everything.
+
+Combined with chunked audio (on by default), export memory no longer scales with timeline length: the stress suite exports hour-scale timelines with a flat JS heap. Server-side exports stream automatically when given an output path — see [Server side](../server-side).
+
 ## How it works
 
 Every output frame is sampled at its **temporal midpoint** (robust against container timestamp rounding), rendered via `renderFrameAt` — which waits for the exact frame's decoded pixels to arrive, not merely for decode to be scheduled — onto an `OffscreenCanvas` at project resolution, and handed to the muxer. Encoding is **pipelined**: the sink captures the canvas synchronously, so up to `encodeAheadFrames` (default 4) submissions encode in the background while the next frame decodes and composites — the stages overlap instead of running in lockstep. The window bounds memory however fast decode runs. Time moves strictly forward, so the streaming decoders never re-seek.
 
-Audio is mixed offline in one non-realtime pass with `OfflineAudioContext`, using the **same clip math as live playback** (gains, trims, mute/solo — shared code, so preview and export can never disagree), then encoded into the container. Compositions with no audible clips produce a file with no audio track.
+Audio is mixed offline with `OfflineAudioContext` in bounded sequential chunks (`audioChunkSeconds`, default 60), interleaved with the frame walk — the first chunk lands before frame 0, each later chunk is mixed just before frames reach its window, and silent stretches of an audible timeline occupy real (zero-filled) samples so chunk timestamps stay aligned. The mix uses the **same clip math as live playback** (gains, trims, mute/solo — shared code, so preview and export can never disagree). Compositions with no audible clips produce a file with no audio track.
 
 {{< callout type="info" >}}
-The audio phase decodes the **entire audio track** of every contributing asset before frames start — on a long timeline this takes real time. `onProgress` reports `audioMixedUs`/`audioTotalUs` during it, and the abort signal is honored between chunks.
+Mixing a chunk decodes that window's audio from every contributing asset — on a long timeline the audio work is spread through the export rather than paid up front. `onProgress` reports `audioMixedUs`/`audioTotalUs` as chunks complete, and the abort signal is honored throughout.
 {{< /callout >}}
 
 ## Codec support

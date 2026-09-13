@@ -23,9 +23,33 @@ export async function startHarnessServer(options: {
   harnessScriptPath: string;
   /** URL path → absolute local file path (from resolveAssetSources). */
   files: Map<string, string>;
+  /**
+   * When set, the harness may POST encoded output chunks to /__output?pos=N
+   * (a streamed export) — each body is written at that byte position.
+   * Positions can seek backwards: containers patch their headers at the end.
+   */
+  output?: (position: number, data: Buffer) => Promise<void>;
 }): Promise<HarnessServer> {
   const server = http.createServer((req, res) => {
     const url = (req.url ?? "/").split("?")[0]!;
+    if (req.method === "POST" && url === "/__output" && options.output) {
+      const query = new URLSearchParams((req.url ?? "").split("?")[1] ?? "");
+      const position = Number(query.get("pos"));
+      if (!Number.isInteger(position) || position < 0) {
+        res.writeHead(400).end();
+        return;
+      }
+      const parts: Buffer[] = [];
+      req.on("data", (part: Buffer) => parts.push(part));
+      req.on("end", () => {
+        options
+          .output!(position, Buffer.concat(parts))
+          .then(() => res.writeHead(204).end())
+          .catch(() => res.writeHead(500).end());
+      });
+      req.on("error", () => res.writeHead(500).end());
+      return;
+    }
     if (req.method !== "GET" && req.method !== "HEAD") {
       res.writeHead(405).end();
       return;

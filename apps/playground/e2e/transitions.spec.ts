@@ -188,6 +188,14 @@ test("the dissolve is baked into exported files (same compositor)", async ({ pag
     });
     video.currentTime = 0.75 + 0.016; // timeline 1.766s — mid-window, p ≈ 0.27
     await new Promise((resolve) => (video.onseeked = resolve));
+    // `seeked` can fire before the frame is PRESENTED under software
+    // rendering on a loaded machine — drawing then reads black. Wait for an
+    // actual presented frame (with a timeout fallback for already-painted).
+    await new Promise((resolve) => {
+      (video as HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => void })
+        .requestVideoFrameCallback?.(() => resolve(undefined));
+      setTimeout(resolve, 500);
+    });
     const canvas = document.createElement("canvas");
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;

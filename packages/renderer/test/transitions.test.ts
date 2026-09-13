@@ -213,7 +213,10 @@ describe("transition media pipelines", () => {
     const videos = createVideoSupport(project, manager);
     const backend = new FakeBackend();
     const compositor = new Compositor(project, backend, { factories: { video: videos.factory } });
-    await videos.prepare(0);
+    // Prepare inside the overlap window (cut at 2s, 1s window): both clips
+    // are live, so both dedicated lanes exist. Acquisition is lazy — a lane
+    // is only opened when its clip nears visibility, never at mount.
+    await videos.prepare(2 * SEC);
     // Two clips of ONE asset, both in the transition → two dedicated lanes,
     // and no shared per-asset pipeline was ever created.
     expect(manager.activeCount).toBe(2);

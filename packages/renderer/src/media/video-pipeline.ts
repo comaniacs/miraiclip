@@ -46,6 +46,15 @@ export class VideoPipeline {
   private readonly reseekGapUs: Us;
   private disposed = false;
 
+  /**
+   * True once dispose() ran — the MediaManager evicts least-recently-used
+   * pipelines over its cap, so holders must check this and re-acquire rather
+   * than keep priming a dead pipeline.
+   */
+  get isDisposed(): boolean {
+    return this.disposed;
+  }
+
   private epoch = 0;
   private decoder: FrameDecoder | null = null;
   private iterator: AsyncGenerator<EncodedChunkLike, void, undefined> | null = null;

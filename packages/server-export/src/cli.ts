@@ -44,7 +44,7 @@ async function main(): Promise<void> {
   });
   if (!quiet) process.stderr.write("\n");
   const seconds = ((Date.now() - started) / 1000).toFixed(1);
-  const mb = (result.bytes.length / 1_048_576).toFixed(1);
+  const mb = (((result.bytesWritten ?? result.bytes?.length) ?? 0) / 1_048_576).toFixed(1);
   console.log(`${result.filePath} (${mb} MB, ${seconds}s)`);
 }
 

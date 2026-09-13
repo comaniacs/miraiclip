@@ -8,10 +8,10 @@ weight: 2
 ```ts
 import { exportProjectFile } from "@miraiclip/server-export";
 
-const { bytes, filePath } = await exportProjectFile(doc, {
+const { filePath, bytesWritten } = await exportProjectFile(doc, {
   format: "mp4",
   quality: "high",
-  out: "render/final.mp4",
+  out: "render/final.mp4", // streams to disk as it encodes
   assets: { media: "./media/interview.mp4" }, // asset id → local file
   onProgress: (p) => console.log(p.phase, p.framesDone, "/", p.totalFrames),
 });
@@ -40,7 +40,9 @@ The document's asset `src` values must be reachable from the server. Three ways,
 
 ## Progress, cancellation, output
 
-`onProgress` receives the same phases as the browser export (`audio` with `audioMixedUs`/`audioTotalUs`, `video` with `framesDone`/`totalFrames`, `finalizing`), forwarded live across the process boundary. An `AbortSignal` cancels cleanly mid-export — the in-page export aborts, encoders are released, and the call rejects with `ServerExportAbortedError` (the CLI wires this to Ctrl-C). `out` writes the file (directories created) and the bytes are always returned. `format`, `quality`, `fps`, `width`/`height`, and `range` pass straight through to [`exportProject`'s options](../client-side#options).
+`onProgress` receives the same phases as the browser export (`audio` with `audioMixedUs`/`audioTotalUs`, `video` with `framesDone`/`totalFrames`, `finalizing`), forwarded live across the process boundary. An `AbortSignal` cancels cleanly mid-export — the in-page export aborts, encoders are released, and the call rejects with `ServerExportAbortedError` (the CLI wires this to Ctrl-C).
+
+With `out`, the encoded chunks **stream from the browser into the file as they are produced** (directories created; a failed export removes the partial file): peak memory stays flat however long the output is, and the result is `{ filePath, bytesWritten }` — no bytes in memory. Streamed progress events also carry `bytesWritten` (bytes on disk so far — live file size and MB/s; note total output size is the encoder's decision, so `framesDone / totalFrames` is the true completion fraction, and a remaining-bytes *estimate* is `bytesWritten × (totalFrames − framesDone) / framesDone`; output flushes in ~16 MiB chunks, so short exports may read 0 until finalize). Want the bytes in memory too? Read them back: `await readFile(result.filePath)`. Without `out`, the whole file comes back as `{ bytes }`; fine for short outputs, but the in-page → Node hop transiently costs about twice the file size, so give long exports an `out` path. `format`, `quality`, `fps`, `width`/`height`, `range`, and `audioChunkSeconds` pass straight through to [`exportProject`'s options](../client-side#options); audio always mixes in bounded chunks, so timeline length does not grow memory either.
 
 ## How it stays honest
 

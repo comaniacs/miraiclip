@@ -16,9 +16,21 @@ export interface ExportSink {
    * oldest when the window is full, which bounds memory.
    */
   addVideoFrame(timestampUs: Us, durationUs: Us): Promise<void>;
-  /** Append mixed audio (an `AudioBuffer` in the browser). Optional per sink. */
+  /**
+   * Append mixed audio (an `AudioBuffer` in the browser). Optional per sink.
+   * May be called MULTIPLE times with strictly sequential chunks — chunk N+1
+   * plays immediately after chunk N (timestamps accumulate by buffer
+   * duration), which is what lets a long export mix audio in bounded chunks
+   * instead of one whole-timeline buffer. The FIRST call must land before the
+   * first video frame (it registers the audio track; tracks freeze when the
+   * container starts).
+   */
   addAudio?(buffer: unknown): Promise<void>;
-  /** Finish the container and return the encoded file bytes. */
+  /**
+   * Finish the container and return the encoded file bytes. A sink writing to
+   * a streaming target returns an EMPTY array — the bytes already went to the
+   * stream.
+   */
   finalize(): Promise<Uint8Array>;
   /** Abort: discard everything, release encoders. Safe to call once, any time. */
   cancel(): Promise<void>;

@@ -55,6 +55,14 @@ export interface MixCompositionAudioOptions extends MixAudioContext {
   openAudio: AudioSourceFactory;
   sampleRate?: number;
   channels?: number;
+  /**
+   * Return a zero-filled buffer instead of null when nothing contributes in
+   * this range. Chunked exports set this for every chunk after deciding (via
+   * `planAudioJobs` over the FULL range) that the composition has an audio
+   * track: chunk timestamps accumulate by buffer duration, so a silent
+   * stretch must still occupy its samples.
+   */
+  silenceIfEmpty?: boolean;
 }
 
 /**
@@ -70,14 +78,15 @@ export async function mixCompositionAudio(
   const sampleRate = options.sampleRate ?? 48_000;
   const channels = options.channels ?? 2;
   const durationUs = range.endUs - range.startUs;
+  if (durationUs <= 0) return null;
+  const lengthSamples = Math.ceil((durationUs / 1_000_000) * sampleRate);
+  // Zero-filled by construction — the silent stretch of an audible timeline.
+  const silence = (): AudioBuffer =>
+    new AudioBuffer({ length: lengthSamples, sampleRate, numberOfChannels: channels });
   const jobs = planAudioJobs(doc, range);
-  if (jobs.length === 0 || durationUs <= 0) return null;
+  if (jobs.length === 0) return options.silenceIfEmpty ? silence() : null;
 
-  const context = new OfflineAudioContext(
-    channels,
-    Math.ceil((durationUs / 1_000_000) * sampleRate),
-    sampleRate,
-  );
+  const context = new OfflineAudioContext(channels, lengthSamples, sampleRate);
 
   let contributed = false;
   // Decoding a long timeline's audio takes real time (it reads every audio
@@ -145,7 +154,7 @@ export async function mixCompositionAudio(
       }
     }),
   );
-  if (!contributed) return null;
+  if (!contributed) return options.silenceIfEmpty ? silence() : null;
 
   return context.startRendering();
 }

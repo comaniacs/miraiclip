@@ -21,14 +21,31 @@ window.__miraiExport = async (doc, options): Promise<string> => {
   }
   controller = new AbortController();
   const project = createProject(doc as ProjectDocument);
+  const { stream, ...exportOptions } = options;
   const bytes = await exportProject(project, {
-    ...options,
+    ...exportOptions,
     signal: controller.signal,
     onProgress: (progress) => {
       window.__miraiProgress?.(progress);
     },
+    // Streamed export: every encoded chunk POSTs to the loopback server,
+    // which writes it at its byte position — the file never accumulates in
+    // the page, and the awaited fetch is the encoder backpressure.
+    ...(stream
+      ? {
+          target: new WritableStream<{ type: "write"; data: Uint8Array; position: number }>({
+            async write(chunk) {
+              const response = await fetch(`/__output?pos=${chunk.position}`, {
+                method: "POST",
+                body: chunk.data as BodyInit,
+              });
+              if (!response.ok) throw new Error(`output write failed: HTTP ${response.status}`);
+            },
+          }),
+        }
+      : {}),
   });
-  return toBase64(bytes);
+  return stream ? "" : toBase64(bytes);
 };
 
 /** Chunked btoa — String.fromCharCode(...bytes) overflows the arg limit on real files. */

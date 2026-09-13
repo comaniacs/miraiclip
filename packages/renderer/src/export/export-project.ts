@@ -15,12 +15,14 @@ import { loadFontAssets } from "../captions/fonts.js";
 import { exportComposition } from "./exporter.js";
 import {
   createMediabunnySink,
+  isSoftwareWebGL,
   type CreateMediabunnySinkOptions,
   type ExportFormat,
   type ExportQualityPreset,
 } from "./mediabunny-sink.js";
-import { mixCompositionAudio } from "./offline-audio.js";
-import type { ExportProgress, ExportRange } from "./types.js";
+import { mixCompositionAudio, planAudioJobs } from "./offline-audio.js";
+import type { ExportProgress, ExportRange, MixAudioContext } from "./types.js";
+import type { StreamTargetChunk } from "mediabunny";
 
 export interface ExportProjectOptions {
   format: ExportFormat;
@@ -45,6 +47,25 @@ export interface ExportProjectOptions {
    * `@miraiclip/server-export` supports built-in kinds only for now.)
    */
   factories?: Record<string, NodeFactory>;
+  /**
+   * Stream the encoded file out as it is produced, instead of holding it in
+   * memory and resolving with the bytes. Each chunk is
+   * `{ type: "write", data, position }` — exactly what
+   * `FileSystemWritableFileStream.write` accepts, so a
+   * `showSaveFilePicker()` writable works directly (positions may seek
+   * backwards; containers patch their headers). Backpressure on the stream
+   * throttles the encoders. With a target set, the returned promise resolves
+   * with an EMPTY Uint8Array once the stream has everything — required for
+   * long exports, whose output does not fit in memory.
+   */
+  target?: WritableStream<StreamTargetChunk>;
+  /**
+   * Audio mix chunk length in seconds (default 60). Audio is mixed in bounded
+   * sequential chunks (~23MB of PCM per minute at 48kHz stereo) instead of one
+   * whole-timeline buffer, so timeline length does not grow mix memory. Use
+   * integer seconds — boundaries stay sample-exact at 48kHz.
+   */
+  audioChunkSeconds?: number;
 }
 
 /**
@@ -72,13 +93,6 @@ export async function exportProject(
   const fps = options.fps ?? doc.settings.fps;
   const canvas = new OffscreenCanvas(width, height);
 
-  const sinkOptions: CreateMediabunnySinkOptions = {
-    canvas,
-    format: options.format,
-    ...(options.quality !== undefined ? { quality: options.quality } : {}),
-  };
-  const sink = await createMediabunnySink(sinkOptions); // probes codec support up front
-
   // Decode capped at 2× the output's longest side: compositing a 4K source
   // onto a 720p output at full decode resolution costs ~9× the pixels for no
   // visible gain (the one downscale happens on the GPU either way), and it is
@@ -93,15 +107,59 @@ export async function exportProject(
       createWebCodecsDecoderFactory({ maxOutputDimensionPx: decodeCapPx }),
   });
   const videos = createVideoSupport(project, manager);
+  // The backend must exist BEFORE the sink: software-WebGL detection reads the
+  // GL context Pixi creates on the canvas.
   const backend = await createPixiBackend({ canvas: canvas as unknown as HTMLCanvasElement, width, height });
   const compositor = new Compositor(project, backend, {
     factories: { ...options.factories, video: videos.factory },
   });
+
+  let sink;
+  try {
+    const sinkOptions: CreateMediabunnySinkOptions = {
+      canvas,
+      format: options.format,
+      // Under software WebGL (headless CI, VMs) direct canvas capture leaks
+      // GPU shared-images while decode+encode run together — route the
+      // capture through a CPU 2D mirror there. Real GPUs keep the zero-copy
+      // snapshot path.
+      cpuCapture: isSoftwareWebGL(canvas),
+      ...(options.quality !== undefined ? { quality: options.quality } : {}),
+      ...(options.target ? { target: options.target } : {}),
+    };
+    sink = await createMediabunnySink(sinkOptions); // probes codec support up front
+  } catch (error) {
+    compositor.destroy(); // also destroys the backend
+    videos.dispose();
+    throw error;
+  }
   const openAudio = options.openAudio ?? openMediabunnyAudio;
 
   // Font assets must be REAL before the first frame renders — a server export
   // that rasterizes fallback glyphs is silently wrong (no one is watching).
   await loadFontAssets(doc);
+
+  // Whether the composition has an audio track is decided ONCE, over the full
+  // range: the track must register before the first video frame, and with
+  // chunked mixing a silent first minute must not be mistaken for an
+  // audio-less timeline. Planning alone is not enough — every video clip
+  // plans as audible even when its asset carries no audio stream, and forcing
+  // a silent track onto such an export would change its output — so probe
+  // each distinct contributing asset until one actually opens audio.
+  let hasAudio = false;
+  {
+    const seen = new Set<string>();
+    for (const job of planAudioJobs(doc, range)) {
+      if (seen.has(job.assetId)) continue;
+      seen.add(job.assetId);
+      const source = await openAudio(job.assetId, job.src).catch(() => null);
+      if (source) {
+        source.dispose();
+        hasAudio = true;
+        break;
+      }
+    }
+  }
 
   try {
     return await exportComposition({
@@ -110,8 +168,16 @@ export async function exportProject(
       fps,
       renderFrame: (timeUs) => videos.renderFrameAt(compositor, timeUs),
       sink,
-      mixAudio: (mixContext) =>
-        mixCompositionAudio({ doc, range, openAudio, ...mixContext }),
+      // Audio mixes in bounded sequential chunks interleaved with the frame
+      // walk — silent stretches return real silent buffers so chunk
+      // timestamps stay aligned.
+      ...(hasAudio
+        ? {
+            mixAudioChunk: (mixContext: MixAudioContext, chunkRange: ExportRange) =>
+              mixCompositionAudio({ doc, range: chunkRange, openAudio, silenceIfEmpty: true, ...mixContext }),
+          }
+        : {}),
+      audioChunkUs: Math.round((options.audioChunkSeconds ?? 60) * 1_000_000),
       ...(options.signal ? { signal: options.signal } : {}),
       ...(options.onProgress ? { onProgress: options.onProgress } : {}),
     });

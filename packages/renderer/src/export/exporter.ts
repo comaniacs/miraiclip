@@ -19,13 +19,34 @@ export interface ExportCompositionOptions {
   renderFrame: (timeUs: Us) => Promise<void>;
   sink: ExportSink;
   /**
-   * Produce the mixed audio for the range (OfflineAudioContext in production).
-   * Return null for a silent/audio-less composition — no audio track is added.
-   * Receives the abort signal and a progress callback: mixing a long timeline
-   * decodes its full audio and can take minutes — it must be interruptible
-   * and visible.
+   * Produce the mixed audio for the WHOLE range in one buffer
+   * (OfflineAudioContext in production). Return null for a silent/audio-less
+   * composition — no audio track is added. Receives the abort signal and a
+   * progress callback. Simple, but the buffer is the entire timeline's PCM —
+   * for long timelines prefer `mixAudioChunk`, which bounds that memory.
+   * When both are given, `mixAudioChunk` wins.
    */
   mixAudio?: (context: MixAudioContext) => Promise<unknown | null>;
+  /**
+   * Produce the mixed audio for ONE chunk of the range. The orchestrator
+   * calls it with strictly sequential sub-ranges of `audioChunkUs` (the last
+   * one clipped to `endUs`), interleaved with the frame walk, so a long
+   * timeline never holds more than one chunk of uncompressed PCM. Return null
+   * from the FIRST chunk to declare the whole composition audio-less — no
+   * audio track is added and no further chunks are requested. After a first
+   * non-null chunk, every later chunk MUST return a buffer (a silent stretch
+   * returns a silent buffer — chunk timestamps accumulate by buffer duration,
+   * so a skipped chunk would shift all later audio earlier); a null then
+   * fails the export loudly.
+   */
+  mixAudioChunk?: (context: MixAudioContext, chunkRange: { startUs: Us; endUs: Us }) => Promise<unknown | null>;
+  /**
+   * Audio mix chunk length for `mixAudioChunk` (default 60s). Bounds PCM
+   * memory: 48kHz stereo float is ~23MB per minute, so the default holds
+   * ~23MB regardless of timeline length. Integer seconds keep chunk
+   * boundaries sample-exact.
+   */
+  audioChunkUs?: Us;
   signal?: AbortSignal;
   onProgress?: (progress: ExportProgress) => void;
   /**
@@ -47,8 +68,7 @@ export interface ExportCompositionOptions {
 export async function exportComposition(
   options: ExportCompositionOptions,
 ): Promise<Uint8Array> {
-  const { startUs, endUs, fps, renderFrame, sink, mixAudio, signal, onProgress } =
-    options;
+  const { startUs, endUs, fps, renderFrame, sink, signal, onProgress } = options;
   if (!(endUs > startUs)) throw new Error("export range is empty");
   if (!(fps > 0)) throw new Error(`invalid fps: ${fps}`);
 
@@ -71,20 +91,57 @@ export async function exportComposition(
   };
 
   try {
-    // Audio first: it encodes incrementally inside the sink while the (much
-    // slower) video frame walk proceeds.
+    // Audio is mixed in bounded chunks, interleaved with the frame walk: the
+    // first chunk lands before frame 0 (it registers the audio track — tracks
+    // freeze when the container starts), and each later chunk is mixed just
+    // before the walk crosses into its window. PCM memory stays at one chunk
+    // regardless of timeline length, and the muxer's interleaving window
+    // stays tight. The legacy whole-range `mixAudio` runs through the same
+    // pump as a single chunk covering the entire range — identical behavior
+    // to the pre-chunking orchestrator.
+    const mixAudio: ExportCompositionOptions["mixAudioChunk"] =
+      options.mixAudioChunk ??
+      (options.mixAudio ? (context) => options.mixAudio!(context) : undefined);
+    const audioChunkUs = options.mixAudioChunk
+      ? (Math.max(1_000_000, options.audioChunkUs ?? 60_000_000) as Us)
+      : durationUs;
+    let audioThroughUs = 0; // relative to startUs; how far audio has been added
+    let audioActive = Boolean(mixAudio && sink.addAudio);
+    const pumpAudioThrough = async (relativeUs: Us): Promise<void> => {
+      while (audioActive && audioThroughUs < Math.min(relativeUs, durationUs)) {
+        const chunkStartUs = audioThroughUs;
+        const chunkEndUs = Math.min(chunkStartUs + audioChunkUs, durationUs);
+        const first = chunkStartUs === 0;
+        const phase: ExportProgress["phase"] = first ? "audio" : "video";
+        const framesDone = first ? 0 : Math.min(totalFrames, Math.ceil((chunkStartUs * fps) / 1_000_000));
+        onProgress?.({ phase, framesDone, totalFrames, audioMixedUs: chunkStartUs, audioTotalUs: durationUs });
+        const mixContext: MixAudioContext = {
+          ...(signal ? { signal } : {}),
+          onProgress: (mixedUs) =>
+            onProgress?.({ phase, framesDone, totalFrames, audioMixedUs: chunkStartUs + mixedUs, audioTotalUs: durationUs }),
+        };
+        const buffer = await mixAudio!(mixContext, {
+          startUs: startUs + chunkStartUs,
+          endUs: startUs + chunkEndUs,
+        });
+        await throwIfAborted();
+        if (buffer === null) {
+          if (first) {
+            audioActive = false; // audio-less composition — no track at all
+            return;
+          }
+          // Chunk timestamps accumulate by buffer duration — a skipped chunk
+          // would silently shift every later chunk earlier. Fail loudly.
+          throw new Error(
+            "export audio: a mid-timeline chunk mixed to null — silent stretches of an audible composition must return a silent buffer",
+          );
+        }
+        await sink.addAudio!(buffer);
+        audioThroughUs = chunkEndUs;
+      }
+    };
     await throwIfAborted();
-    if (mixAudio && sink.addAudio) {
-      onProgress?.({ phase: "audio", framesDone: 0, totalFrames, audioMixedUs: 0, audioTotalUs: durationUs });
-      const mixContext: MixAudioContext = {
-        ...(signal ? { signal } : {}),
-        onProgress: (mixedUs) =>
-          onProgress?.({ phase: "audio", framesDone: 0, totalFrames, audioMixedUs: mixedUs, audioTotalUs: durationUs }),
-      };
-      const buffer = await mixAudio(mixContext);
-      await throwIfAborted();
-      if (buffer !== null) await sink.addAudio(buffer);
-    }
+    await pumpAudioThrough(Math.min(audioChunkUs, durationUs) as Us); // chunk 0 before frame 0
 
     // Frame timestamps are derived per index — never accumulated — so a long
     // export cannot drift; the last frame is clipped to end exactly at endUs.
@@ -114,6 +171,9 @@ export async function exportComposition(
         startUs + Math.round(((n + 1) * 1_000_000) / fps),
         endUs,
       );
+      // Keep mixed audio ahead of the frame walk, one chunk at a time.
+      await pumpAudioThrough((frameEndUs - startUs) as Us);
+      if (sinkError) throw sinkError;
       // Sample at the frame's temporal MIDPOINT (the NLE convention): source
       // timestamps carry container rounding (WebM stores milliseconds), and
       // sampling at the exact frame start grabs the previous source frame

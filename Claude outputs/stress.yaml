@@ -1,0 +1,100 @@
+name: Nightly stress
+
+# Production-readiness stress suite: long timelines, long exports, asset
+# churn, throughput, parallel server exports. Slow by design (~30-45 min on a
+# hosted runner), so it runs nightly instead of per-push. Gates are
+# conservative floors; the real value is the recorded metrics, tracked run
+# over run via the uploaded stress-results artifact.
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # nightly, off the :00 rush
+  workflow_dispatch:
+    inputs:
+      stress_minutes:
+        description: "Long-export timeline length in minutes"
+        default: "5"
+      with_4k:
+        description: "Also generate the 4K fixture and run the 4K→1080p benchmark"
+        type: boolean
+        default: false
+
+concurrency:
+  group: stress
+  cancel-in-progress: false
+
+jobs:
+  browser-stress:
+    name: Playback + export stress (headless Chromium, SwiftShader)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter miraiclip-playground exec playwright install --with-deps chromium
+
+      - name: Generate 4K fixture (optional)
+        if: ${{ inputs.with_4k }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          bash apps/playground/stress/make-4k-fixture.sh
+
+      - name: Run browser stress suite
+        env:
+          STRESS_MINUTES: ${{ inputs.stress_minutes || '5' }}
+        run: pnpm --filter miraiclip-playground stress
+
+      - name: Upload stress metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-results
+          path: apps/playground/stress-results.json
+          retention-days: 90
+
+      - name: Upload test results on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stress-playwright-results
+          path: apps/playground/test-results/
+          retention-days: 7
+
+  server-stress:
+    name: Parallel server exports (Node + headless Chromium)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # No browser install: launchBrowser falls back to the runner's
+      # preinstalled Google Chrome (channel: "chrome"), same as regular CI.
+      - name: Run parallel export stress
+        run: pnpm --filter @miraiclip/server-export stress

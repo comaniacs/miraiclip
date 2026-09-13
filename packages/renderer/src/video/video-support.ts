@@ -44,18 +44,36 @@ class VideoClipAdapter implements SceneNode {
    * the overlap window two clips of the same asset decode two positions at
    * once, and a shared pipeline would fight over the seek target. Upgrading
    * is one-way and idempotent; the shared pipeline stays owned by the
-   * manager for other clips of the asset.
+   * manager for other clips of the asset. Lazy on purpose: the dedicated
+   * pipeline is acquired when the clip is next ticked/prepared, not here —
+   * eager acquisition for every transition clip in a long document would
+   * blow through the manager's pipeline cap at mount.
    */
   ensureDedicated(): void {
     if (this.dedicated) return;
     this.dedicated = true;
+    this.resetPipeline();
+  }
+
+  /** Drop the cached pipeline so the next ensurePipeline() re-acquires. */
+  private resetPipeline(): void {
     this.pipeline = undefined;
     this.pipelinePromise = undefined;
-    void this.ensurePipeline().catch(this.report);
   }
 
   ensurePipeline(): Promise<VideoPipeline> {
+    // The MediaManager evicts least-recently-used pipelines over its cap. An
+    // evicted pipeline is disposed while we still hold it — detect that and
+    // re-acquire instead of priming a dead pipeline forever (long timelines
+    // with many assets went permanently black without this).
+    if (this.pipeline?.isDisposed) this.resetPipeline();
     this.pipelinePromise ??= this.acquire(this.dedicated).then((pipeline) => {
+      if (pipeline.isDisposed) {
+        // Evicted while opening — don't cache a dead pipeline; the next
+        // ensurePipeline() call re-acquires.
+        this.resetPipeline();
+        return pipeline;
+      }
       this.pipeline = pipeline;
       // Tell the scene node the source's NATIVE size: frames may arrive decoded
       // below native resolution (proxy playback), and the node compensates so
@@ -75,7 +93,11 @@ class VideoClipAdapter implements SceneNode {
 
   /** Await the exact frame at a media position (used by prepare/renderFrameAt). */
   async prepareAt(mediaUs: Us): Promise<void> {
-    const pipeline = await this.ensurePipeline();
+    let pipeline = await this.ensurePipeline();
+    // Evicted between (or during) acquisitions — one re-acquire attempt; if
+    // the active set truly exceeds the cap this call yields no frame, and the
+    // next prepare recovers.
+    if (pipeline.isDisposed) pipeline = await this.ensurePipeline();
     await pipeline.prime(mediaUs);
     // prime() means "decode scheduled"; render-once consumers (export,
     // thumbnails) need the frame to have actually ARRIVED before drawing.
@@ -85,6 +107,7 @@ class VideoClipAdapter implements SceneNode {
   tick(clip: Clip, timeUs: Us): void {
     if (!isVideoClip(clip)) return;
     const mediaUs = toMediaUs(clip, timeUs);
+    if (this.pipeline?.isDisposed) this.resetPipeline(); // evicted → re-acquire
     if (!this.pipeline) {
       // Kick off acquisition only — a deferred prime here could land after a
       // later explicit prepare and supersede it with a stale target.
@@ -165,7 +188,9 @@ export function createVideoSupport(
     );
     adapters.set(clipId, adapter);
     if (participatesInTransition(project.getState().doc, clipId)) adapter.ensureDedicated();
-    void adapter.ensurePipeline();
+    // No eager acquisition here: a long document mounts every clip's node at
+    // once, and acquiring a pipeline per clip up front evicts the ones that
+    // are actually visible. The first tick/prepare acquires just-in-time.
     return adapter;
   };
 

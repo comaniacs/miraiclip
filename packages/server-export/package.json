@@ -50,7 +50,8 @@
   "scripts": {
     "build": "tsup",
     "test": "pnpm build && vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "stress": "pnpm build && vitest run --config vitest.stress.config.ts"
   },
   "dependencies": {
     "playwright-core": "^1.49.0"

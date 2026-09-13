@@ -12,10 +12,14 @@ import {
   QUALITY_HIGH,
   QUALITY_LOW,
   QUALITY_MEDIUM,
+  StreamTarget,
+  VideoSample,
+  VideoSampleSource,
   WebMOutputFormat,
   canEncodeAudio,
   canEncodeVideo,
   type Quality,
+  type StreamTargetChunk,
 } from "mediabunny";
 import { UnsupportedMediaError } from "../media/types.js";
 import type { Us } from "../media/types.js";
@@ -43,6 +47,45 @@ export interface CreateMediabunnySinkOptions {
   quality?: ExportQualityPreset | { videoBitrate: number };
   /** Keyframe interval in seconds (default 2 — mediabunny's default). */
   keyFrameIntervalSeconds?: number;
+  /**
+   * Route the per-frame capture through a 2D canvas (CPU-backed frames)
+   * instead of snapshotting the WebGL canvas directly. Needed under SOFTWARE
+   * WebGL (SwiftShader/llvmpipe — headless CI, some VMs), where Chromium's
+   * GPU process retains one shared-image per captured frame while a decoder
+   * and encoder run simultaneously — an environment quirk that turns long
+   * exports into unbounded memory growth (found by the stress suite; every
+   * frame IS closed correctly on our side). On real GPUs the direct snapshot
+   * is cheaper and clean, so `exportProject` sets this automatically from the
+   * detected renderer.
+   */
+  cpuCapture?: boolean;
+  /**
+   * Stream the encoded file out as it is produced instead of buffering it in
+   * memory: each chunk is `{ type: "write", data, position }` (positions may
+   * seek backwards — containers patch headers), the shape
+   * `FileSystemWritableFileStream.write` accepts directly, so a
+   * `showSaveFilePicker()` writable works as-is. Backpressure on the stream
+   * throttles the encoders. With a target set, `finalize()` resolves with an
+   * EMPTY array — the bytes went to the stream.
+   */
+  target?: WritableStream<StreamTargetChunk>;
+}
+
+/** True when the canvas's WebGL context reports a software rasterizer. */
+export function isSoftwareWebGL(canvas: HTMLCanvasElement | OffscreenCanvas): boolean {
+  try {
+    // The compositor already created the context; getContext returns it.
+    const gl = (canvas.getContext("webgl2") ??
+      canvas.getContext("webgl")) as WebGLRenderingContext | null;
+    if (!gl) return false;
+    const info = gl.getExtension("WEBGL_debug_renderer_info");
+    const renderer = String(
+      info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+    );
+    return /swiftshader|llvmpipe|software/i.test(renderer);
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -68,20 +111,50 @@ export async function createMediabunnySink(
       ? { quality: QUALITIES[quality] }
       : { bitrate: quality.videoBitrate };
 
-  const target = new BufferTarget();
+  const bufferTarget = options.target ? undefined : new BufferTarget();
+  const target = bufferTarget ?? new StreamTarget(options.target!, { chunked: true });
   const output = new Output({
     format: options.format === "mp4" ? new Mp4OutputFormat() : new WebMOutputFormat(),
     target,
   });
-  const video = new CanvasSource(options.canvas, {
+  const encodingConfig = {
     codec: codecs.video,
     ...videoQuality,
     keyFrameInterval: options.keyFrameIntervalSeconds ?? 2,
-  });
-  output.addVideoTrack(video);
+  };
+
+  // Two capture routes into the same encoder/muxer machinery — see
+  // `cpuCapture` above for why the 2D mirror exists.
+  let addFrame: (timestampS: number, durationS: number) => Promise<void>;
+  let closeVideo: () => void;
+  if (options.cpuCapture) {
+    const video = new VideoSampleSource(encodingConfig);
+    output.addVideoTrack(video);
+    const width = (options.canvas as { width: number }).width;
+    const height = (options.canvas as { height: number }).height;
+    const mirror = new OffscreenCanvas(width, height);
+    const mirrorContext = mirror.getContext("2d", { willReadFrequently: true });
+    if (!mirrorContext) throw new Error("export: could not create the 2D capture context");
+    addFrame = async (timestampS, durationS) => {
+      mirrorContext.drawImage(options.canvas as CanvasImageSource, 0, 0);
+      const sample = new VideoSample(mirror, { timestamp: timestampS, duration: durationS });
+      try {
+        await video.add(sample); // encoder/muxer backpressure
+      } finally {
+        sample.close();
+      }
+    };
+    closeVideo = () => video.close();
+  } else {
+    const video = new CanvasSource(options.canvas, encodingConfig);
+    output.addVideoTrack(video);
+    // The returned promise is the encoder/muxer backpressure.
+    addFrame = (timestampS, durationS) => video.add(timestampS, durationS);
+    closeVideo = () => video.close();
+  }
 
   let audio: AudioBufferSource | undefined;
-  let pendingAudio: AudioBuffer | undefined;
+  const pendingAudio: AudioBuffer[] = [];
   let started = false;
   let done = false;
 
@@ -89,41 +162,49 @@ export async function createMediabunnySink(
     if (started) return;
     started = true;
     await output.start();
-    if (audio && pendingAudio) {
-      await audio.add(pendingAudio);
-      audio.close(); // the mix is one buffer — the audio track is complete
-      pendingAudio = undefined;
-    }
+    // Chunks queued before the container started; later chunks stream in
+    // directly. The audio source stays open until finalize — chunked exports
+    // keep adding sequential chunks through the whole frame walk.
+    while (pendingAudio.length > 0) await audio!.add(pendingAudio.shift()!);
   };
 
   return {
     async addAudio(buffer: unknown): Promise<void> {
-      if (started) throw new Error("addAudio must be called before the first video frame");
-      if (!(await canEncodeAudio(codecs.audio))) {
-        throw new UnsupportedMediaError(
-          "export",
-          `this browser cannot encode ${codecs.audio} audio`,
-          codecs.audio,
-        );
+      if (!audio) {
+        // First chunk registers the track — that must precede the first video
+        // frame (tracks freeze when the container starts).
+        if (started) throw new Error("the first addAudio must land before the first video frame");
+        if (!(await canEncodeAudio(codecs.audio))) {
+          throw new UnsupportedMediaError(
+            "export",
+            `this browser cannot encode ${codecs.audio} audio`,
+            codecs.audio,
+          );
+        }
+        audio = new AudioBufferSource({ codec: codecs.audio, quality: QUALITY_MEDIUM });
+        output.addAudioTrack(audio);
       }
-      audio = new AudioBufferSource({ codec: codecs.audio, quality: QUALITY_MEDIUM });
-      output.addAudioTrack(audio);
-      pendingAudio = buffer as AudioBuffer;
+      // Sequential chunks: each plays right after the previous one (mediabunny
+      // accumulates timestamps by buffer duration). The awaited add is the
+      // encoder/muxer backpressure.
+      if (started) await audio.add(buffer as AudioBuffer);
+      else pendingAudio.push(buffer as AudioBuffer);
     },
 
     async addVideoFrame(timestampUs: Us, durationUs: Us): Promise<void> {
       await start(); // tracks are frozen from here on
-      // The returned promise is the encoder/muxer backpressure.
-      await video.add(timestampUs / 1_000_000, durationUs / 1_000_000);
+      await addFrame(timestampUs / 1_000_000, durationUs / 1_000_000);
     },
 
     async finalize(): Promise<Uint8Array> {
       await start(); // zero-frame exports still produce a valid (empty) file
-      video.close();
+      audio?.close();
+      closeVideo();
       done = true;
       await output.finalize();
-      if (!target.buffer) throw new Error("muxer produced no output");
-      return new Uint8Array(target.buffer);
+      if (!bufferTarget) return new Uint8Array(0); // bytes went to the stream
+      if (!bufferTarget.buffer) throw new Error("muxer produced no output");
+      return new Uint8Array(bufferTarget.buffer);
     },
 
     async cancel(): Promise<void> {
