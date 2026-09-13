@@ -7,7 +7,8 @@
     "typecheck": "pnpm -r typecheck",
     "changeset": "changeset",
     "release": "pnpm -r build && changeset publish",
-    "stress": "pnpm --filter miraiclip-playground stress && pnpm --filter @miraiclip/server-export stress"
+    "stress": "pnpm --filter miraiclip-playground stress && pnpm --filter @miraiclip/server-export stress",
+    "corpus": "pnpm --filter @miraiclip/server-export corpus"
   },
   "packageManager": "pnpm@10.28.0",
   "devDependencies": {

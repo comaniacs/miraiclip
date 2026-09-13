@@ -10,8 +10,9 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 ### Added
 
 - `@miraiclip/renderer` **streaming export output** — `exportProject({ target })` writes encoded chunks to a `WritableStream` (a `showSaveFilePicker()` writable works directly) as the file is produced; nothing accumulates in memory. See [Export · Streaming to disk](/miraiclip/docs/export/client-side/#streaming-to-disk).
-- `@miraiclip/renderer` **chunked offline audio mixing** — export audio mixes in bounded sequential chunks (`audioChunkSeconds`, default 60) interleaved with the frame walk instead of one whole-timeline buffer (~1.4GB/hour before). Together with streaming, **export memory no longer scales with timeline length** (stress run: ~2MB settled heap spread). Not breaking: `exportComposition`'s whole-range `mixAudio` is unchanged; the chunked contract is the new `mixAudioChunk`.
+- `@miraiclip/renderer` **chunked offline audio mixing** — export audio mixes in bounded sequential chunks (`audioChunkSeconds`, default 60) interleaved with the frame walk instead of one whole-timeline buffer (~1.4GB/hour before). Together with streaming, **export memory no longer scales with timeline length** (stress run: ~2MB settled heap spread; a demonstrated one-hour export — 86,400 frames, an hour of audio, 984MB streamed — peaked at 165MB heap at 1.6× realtime on a dev laptop). Not breaking: `exportComposition`'s whole-range `mixAudio` is unchanged; the chunked contract is the new `mixAudioChunk`.
 - `@miraiclip/server-export` **streams exports to disk** — with `out`, chunks stream from the browser into the file (flat memory; result is `{ filePath, bytesWritten }`, no `bytes` — breaking for callers that used both); without `out`, `{ bytes }` is unchanged.
+- **Export validation corpus** (`pnpm corpus`, nightly) — real exports verified by ffmpeg/ffprobe (an independent decoder): whole-file PTS + per-frame pixel checks through cuts/dissolves/resampling, audio cases, A/V sync (measured 0ms offset), and streamed-vs-buffered byte-identity.
 
 ### Fixed
 

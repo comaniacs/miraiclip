@@ -98,3 +98,39 @@ jobs:
       # preinstalled Google Chrome (channel: "chrome"), same as regular CI.
       - name: Run parallel export stress
         run: pnpm --filter @miraiclip/server-export stress
+
+  corpus:
+    name: Export validation corpus (real exports, ffmpeg-verified)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      # Exports run on the runner's preinstalled Chrome; verification decodes
+      # with ffmpeg/ffprobe — an independent decoder.
+      - name: Run the corpus
+        run: pnpm corpus
+
+      - name: Upload corpus results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: corpus-results
+          path: packages/server-export/corpus-results.json
+          retention-days: 90
