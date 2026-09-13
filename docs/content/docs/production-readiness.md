@@ -3,14 +3,14 @@ title: Production Readiness
 weight: 6
 ---
 
-What you can rely on today, what to design around, and how to verify Miraiclip against your own workload. Every claim below is backed by a nightly stress suite; numbers were measured under software rendering (the slowest case), so real hardware does better.
+What you can rely on today, what to design around, and how to verify Miraiclip against your own workload. Every claim below is backed by a nightly stress suite; numbers were measured under software rendering (the slowest case) unless marked otherwise.
 
 ## What works today
 
 | You can… | Verified by |
 | --- | --- |
 | Edit timelines with **hundreds of clips** across many tracks — playback keeps tracking the clock, deep seeks recover | 149 clips / 10 tracks with effects, transitions, captions: median lag 2 frames, p95 19 |
-| Export **any timeline length with flat memory** — stream the output, audio mixes in bounded chunks | streamed export with audio on every clip: 29 MB heap peak, 2 MB drift (one-hour run in progress) |
+| Export **any timeline length with flat memory** — stream the output, audio mixes in bounded chunks | a full **one-hour** timeline (2,641 clips, 86,400 frames, an hour of audio, 984 MB streamed): **165 MB** heap peak, exported at 1.6× realtime on a dev laptop |
 | Use **more assets than the decoder allows at once** — pipelines recycle transparently | 20 assets through the 4-decoder cap + a 30-seek scrub storm: every paused seek lands exact |
 | Run **server exports in parallel** — jobs don't corrupt or slow each other | 3 concurrent exports: all valid, no interference |
 
