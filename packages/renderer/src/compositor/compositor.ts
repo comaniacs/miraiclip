@@ -13,10 +13,10 @@ import {
 import type { Us } from "../media/types.js";
 import {
   progressIn,
-  rendersBothClips,
   windowOf,
   type ClipTransition,
 } from "../transitions/timing.js";
+import { getTransitionRenderer } from "../transitions/registry.js";
 import { computePlacement, placementFromEvaluated, zIndexFor } from "./placement.js";
 import type {
   NodeFactory,
@@ -35,11 +35,6 @@ function hasVisualAnimation(clip: Clip): boolean {
     if ((animations[property]?.length ?? 0) > 0) return true;
   }
   return false;
-}
-
-function directionOf(params: Record<string, unknown>): RevealDirection {
-  const d = params["direction"];
-  return d === "right" || d === "up" || d === "down" ? d : "left";
 }
 
 /** The dip overlay sits above every track (z is trackIndex-scaled, so this clears all). */
@@ -156,36 +151,28 @@ export class Compositor {
       for (const { window, role } of transitions) {
         if (timeUs < window.startUs || timeUs >= window.endUs) continue;
         const { kind, params } = window.transition;
-        const p = progressIn(window, timeUs);
+        // Every kind — built-in or registered — draws through the same
+        // renderer contract; a kind without a renderer is a hard cut.
+        const renderer = getTransitionRenderer(kind);
+        if (!renderer) continue;
         // Both clips render through the whole window (media comes from source
-        // headroom) — except dips, where the overlay covers the hard cut.
-        if (rendersBothClips(kind)) visible = true;
-        if (role === "to") {
-          if (kind === "crossDissolve") {
-            // Incoming on top at alpha p over the opaque outgoing clip
-            // ≡ out·(1−p) + in·p — the dissolve, no render-texture needed.
-            opacityFactor *= p;
-          } else if (kind === "wipe") {
-            reveal = Math.min(reveal, p);
-            revealDirection = directionOf(params);
-          } else if (kind === "slide") {
-            // The incoming clip moves in `direction`, covering the outgoing.
-            const remaining = 1 - p;
-            const direction = directionOf(params);
-            if (direction === "left") offsetXPx += remaining * doc.settings.width;
-            else if (direction === "right") offsetXPx -= remaining * doc.settings.width;
-            else if (direction === "up") offsetYPx += remaining * doc.settings.height;
-            else offsetYPx -= remaining * doc.settings.height;
-          }
+        // headroom) — except overlay kinds (dips), which cover the hard cut.
+        if (renderer.rendersBothClips) visible = true;
+        const frame = renderer.frame(role, progressIn(window, timeUs), params, {
+          compositionSize: doc.settings,
+        });
+        if (!frame) continue;
+        if (frame.opacity !== undefined) opacityFactor *= frame.opacity;
+        if (frame.reveal) {
+          reveal = Math.min(reveal, frame.reveal.fraction);
+          revealDirection = frame.reveal.direction;
         }
-        if (role === "from" && (kind === "dipToBlack" || kind === "dipToWhite")) {
-          // Counted once per transition (its from side). Fully opaque at the
-          // cut (p = 0.5), so the hard swap underneath is never seen.
-          const alpha = 1 - Math.abs(2 * p - 1);
-          if (alpha > dipAlpha) {
-            dipAlpha = alpha;
-            dipColor = kind === "dipToWhite" ? 0xffffff : 0x000000;
-          }
+        offsetXPx += frame.offsetXPx ?? 0;
+        offsetYPx += frame.offsetYPx ?? 0;
+        // Highest-alpha overlay wins for the frame.
+        if (frame.overlay && frame.overlay.alpha > dipAlpha) {
+          dipAlpha = frame.overlay.alpha;
+          dipColor = frame.overlay.color;
         }
       }
 

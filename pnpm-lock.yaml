@@ -20,6 +20,12 @@ importers:
       '@miraiclip/renderer':
         specifier: workspace:*
         version: link:../../packages/renderer
+      pixi.js:
+        specifier: ^8.6.0
+        version: 8.20.1
+      zod:
+        specifier: ^4.5.4
+        version: 4.5.4
     devDependencies:
       playwright-core:
         specifier: ^1.55.0

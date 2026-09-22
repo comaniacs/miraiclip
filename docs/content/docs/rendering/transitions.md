@@ -78,3 +78,4 @@ Today a custom kind gets validation, document storage, and the **automatic equal
 - Two clips of the **same asset** transition fine — each gets its own decode pipeline for the overlap.
 - Editing or removing a participating clip drops its transitions (the cut they were built on is gone).
 - Full payload schemas: [command catalog](../../command-catalog).
+- Bring your own kinds: [Custom Effects & Transitions](../extensibility).

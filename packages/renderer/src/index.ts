@@ -71,6 +71,15 @@ export { compositionEnd, exportProject, probeCompositionAudio } from "./export/e
 export type { ExportProjectOptions } from "./export/export-project.js";
 export { renderProjectStill } from "./export/render-still.js";
 export type { RenderProjectStillOptions } from "./export/render-still.js";
+
+export { registerEffectRenderer, getEffectRenderer } from "./effects/pixi-effects.js";
+export type { ActiveEffect, EffectContext, EffectRendererFactory } from "./effects/pixi-effects.js";
+export { registerTransitionRenderer, getTransitionRenderer } from "./transitions/registry.js";
+export type {
+  TransitionFrameEffects,
+  TransitionRenderContext,
+  TransitionRenderer,
+} from "./transitions/registry.js";
 export { exportProjectInWorker, exportViaWorker } from "./export/worker/export-via-worker.js";
 export type { ExportProjectInWorkerOptions, ExportViaWorkerOptions } from "./export/worker/export-via-worker.js";
 export type { MainToWorkerMessage, WorkerExportWireOptions, WorkerToMainMessage } from "./export/worker/protocol.js";

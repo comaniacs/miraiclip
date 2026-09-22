@@ -20,7 +20,7 @@ Requires WebCodecs (Chrome/Edge 94+, Safari 16.4+, Firefox 130+). Demo footage: 
 
 ## Animation
 
-Keyframe any clip property — `x`, `y`, `scale`, `rotation`, `opacity`, `volume` — with easings. Times are clip-relative microseconds, and exports inherit every keyframe.
+Keyframe any clip property — `x`, `y`, `scale`, `rotation`, `opacity`, `volume` — with easings. Times are clip-relative microseconds, and exports inherit every keyframe. And when keyframes aren't enough, a [custom clip kind](../docs/rendering/extensibility) animates itself in code, every frame.
 
 {{< example-group >}}
 {{< example-variant name="Fade in" >}}
@@ -41,6 +41,33 @@ project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "s
   easing: { kind: "bezier", x1: 0.34, y1: 1.56, x2: 0.64, y2: 1 } } });
 project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "scale", timeUs: 1_200_000, value: 1 } });
 {{< /example-variant >}}
+{{< example-variant name="Custom (code-driven)" >}}
+// When keyframes aren't enough: a custom CLIP KIND animates itself in code.
+// Its node gets tick(clip, timeUs) every frame — here, typewriter text:
+miraiclip.registerClipKind("typewriter",
+  { propsSchema: miraiclip.z.object({ text: miraiclip.z.string(), charsPerSec: miraiclip.z.number().default(12) }),
+    trackKinds: ["video"] },
+  (clip, { backend }) => {
+    const textOf = (n) => ({ ...clip, kind: "text", text: clip.props.text.slice(0, n), fontFamily: "sans-serif", fontSizePx: 40, color: "#ffffff" });
+    const inner = backend.createText(textOf(0));
+    let shown = 0;
+    return {
+      setPlacement: (p) => inner.setPlacement(p),
+      setVisible: (v) => inner.setVisible(v),
+      setZ: (z) => inner.setZ(z),
+      update: () => {},
+      tick: (clip, timeUs) => {
+        const n = Math.floor(((timeUs - clip.startUs) / 1_000_000) * clip.props.charsPerSec);
+        if (n !== shown) { shown = n; inner.update(textOf(n)); }
+      },
+      destroy: () => inner.destroy(),
+    };
+  });
+project.dispatch({ type: "clip/add", payload: {
+  kind: "typewriter", id: "type-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  props: { text: "Every frame is code…", charsPerSec: 8 },
+} });
+{{< /example-variant >}}
 {{< /example-group >}}
 
 </div>
@@ -51,7 +78,7 @@ project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "s
 
 ## Effects
 
-Per-clip GPU effect stacks: `colorAdjust`, `blur`, and `chromaKey` built in. Params are validated by schema, update in place (no shader recompiles), and length params are composition-relative — preview and export look identical.
+Per-clip GPU effect stacks: `colorAdjust`, `blur`, and `chromaKey` built in — and [your own kinds](../docs/rendering/extensibility), registered through the same contract. Params are validated by schema, update in place (no shader recompiles), and length params are composition-relative — preview and export look identical.
 
 {{< example-group >}}
 {{< example-variant name="Grayscale" >}}
@@ -71,6 +98,21 @@ project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "blur", 
 // Defaults key #00ff00 — the green screen becomes transparent:
 project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "chromaKey" } });
 {{< /example-variant >}}
+{{< example-variant name="Custom kind" >}}
+// Register your own effect kind — schema in core, filter in the renderer —
+// then it's a first-class citizen: validated, undoable, exported.
+if (!miraiclip.getEffectRenderer("sepia")) {
+  miraiclip.registerEffectKind("sepia",
+    miraiclip.z.object({ amount: miraiclip.z.number().min(0).max(1).default(1) }));
+  miraiclip.registerEffectRenderer("sepia", (params) => {
+    const filter = new miraiclip.pixi.ColorMatrixFilter();
+    const apply = (p) => { filter.reset(); filter.sepia(true); filter.alpha = p.amount ?? 1; };
+    apply(params);
+    return { kind: "sepia", filter, update: apply }; // update mutates in place
+  });
+}
+project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "sepia", params: { amount: 0.9 } } });
+{{< /example-variant >}}
 {{< /example-group >}}
 
 </div>
@@ -81,7 +123,7 @@ project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "chromaK
 
 ## Transitions
 
-Bridge a cut between adjacent clips — the window is centered on the cut, draws from source headroom, and every kind applies an equal-power audio crossfade. A fresh `clip/split` always has the headroom a transition needs.
+Bridge a cut between adjacent clips — the window is centered on the cut, draws from source headroom, and every kind applies an equal-power audio crossfade. A fresh `clip/split` always has the headroom a transition needs. [Custom kinds](../docs/rendering/extensibility) register through the same contract the built-ins use.
 
 {{< example-group >}}
 {{< example-variant name="Cross dissolve" >}}
@@ -118,6 +160,23 @@ project.transaction(() => {
   project.dispatch({ type: "transition/add", payload: { kind: "slide", fromClipId: "main", toClipId: "second", durationUs: 800_000, params: { direction: "left" } } });
 });
 {{< /example-variant >}}
+{{< example-variant name="Custom kind" >}}
+// A custom transition is pure math over progress (0 → 1, the cut at 0.5).
+// This "flash" burns white over the cut — an overlay kind, like the dips:
+if (!miraiclip.getTransitionRenderer("flash")) {
+  miraiclip.registerTransitionKind("flash", miraiclip.z.object({}));
+  miraiclip.registerTransitionRenderer("flash", {
+    rendersBothClips: false, // the overlay covers the hard cut
+    frame: (role, progress) => role === "from"
+      ? { overlay: { color: 0xffffff, alpha: 1 - Math.abs(2 * progress - 1) } }
+      : null,
+  });
+}
+project.transaction(() => {
+  project.dispatch({ type: "clip/split", payload: { clipId: "main", atUs: 3_000_000, newClipId: "second" } });
+  project.dispatch({ type: "transition/add", payload: { kind: "flash", fromClipId: "main", toClipId: "second", durationUs: 700_000 } });
+});
+{{< /example-variant >}}
 {{< /example-group >}}
 
 </div>
@@ -128,7 +187,7 @@ project.transaction(() => {
 
 ## Captions
 
-Reels-style karaoke text with word-level timing. Four presets drive how the current word is emphasized — or import an SRT/VTT file or ASR word timestamps and get these clips generated for you.
+Reels-style karaoke text with word-level timing. Four presets drive how the current word is emphasized — or import an SRT/VTT file or ASR word timestamps and get these clips generated for you. Want a style the presets don't cover? Build it as a [custom clip kind](../docs/rendering/extensibility).
 
 {{< example-group >}}
 {{< example-variant name="Karaoke" >}}
@@ -183,6 +242,45 @@ project.dispatch({
   },
 });
 {{< /example-variant >}}
+{{< example-variant name="Custom (word pop)" >}}
+// A caption style the presets don't have — ONE word at a time, popping in —
+// built as a custom clip kind: word timing in props, animation in tick().
+miraiclip.registerClipKind("wordPop",
+  { propsSchema: miraiclip.z.object({
+      words: miraiclip.z.array(miraiclip.z.object({
+        text: miraiclip.z.string(), startUs: miraiclip.z.number().int(), durationUs: miraiclip.z.number().int(),
+      })),
+      color: miraiclip.z.string().default("#ffd400"),
+    }),
+    trackKinds: ["video"] },
+  (clip, { backend }) => {
+    const textOf = (t) => ({ ...clip, kind: "text", text: t, fontFamily: "sans-serif", fontSizePx: 72, color: clip.props.color });
+    const inner = backend.createText(textOf(""));
+    let placement = { xPx: 0, yPx: 0, scale: 1, rotationRad: 0, opacity: 1 };
+    let current = "";
+    return {
+      setPlacement: (p) => { placement = { ...p }; }, // copy — the caller reuses it
+      setVisible: (v) => inner.setVisible(v),
+      setZ: (z) => inner.setZ(z),
+      update: () => {},
+      tick: (clip, timeUs) => {
+        const t = timeUs - clip.startUs;
+        const word = clip.props.words.find((w) => t >= w.startUs && t < w.startUs + w.durationUs);
+        if ((word?.text ?? "") !== current) { current = word?.text ?? ""; inner.update(textOf(current)); }
+        const age = word ? t - word.startUs : 0;
+        const pop = word ? 1 + 0.35 * Math.max(0, 1 - age / 150_000) : 1; // 150ms overshoot
+        inner.setPlacement({ ...placement, scale: placement.scale * pop });
+      },
+      destroy: () => inner.destroy(),
+    };
+  });
+project.dispatch({ type: "clip/add", payload: {
+  kind: "wordPop", id: "wp-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  props: { words: ["ONE", "WORD", "AT", "A", "TIME"].map((text, i) => ({
+    text, startUs: i * 1_200_000, durationUs: 1_200_000,
+  })) },
+} });
+{{< /example-variant >}}
 {{< /example-group >}}
 
 </div>
@@ -215,7 +313,7 @@ miraiclip.download(bytes, "miraiclip-example.mp4");
 
 ## Where to next
 
-These commands are the whole API. The [Rendering guide](../docs/rendering) covers each feature in depth — including [bringing your own clip kind](../docs/rendering#bring-your-own-clip-kind) — and the [command catalog](../docs/command-catalog) lists every payload schema. The repo's [playground](https://github.com/comaniacs/miraiclip/tree/main/apps/playground) is the same thing at full size.
+These commands are the whole API. The [Rendering guide](../docs/rendering) covers each feature in depth, [Custom Effects & Transitions](../docs/rendering/extensibility) shows the full extensibility contract (custom clip kinds included), and the [command catalog](../docs/command-catalog) lists every payload schema. The repo's [playground](https://github.com/comaniacs/miraiclip/tree/main/apps/playground) is the same thing at full size.
 
 </div>
 </div>

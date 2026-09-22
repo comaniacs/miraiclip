@@ -9,6 +9,12 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Added
 
+- `@miraiclip/renderer` **custom effects and transitions** — public `registerEffectRenderer` (kind → Pixi filter factory, params updated in place) and `registerTransitionRenderer` (kind → pure per-frame math composing opacity, directional reveal, pixel offset, and a full-frame overlay; `rendersBothClips` picks blend-through-window vs cover-the-cut). Built-ins are expressed through the same contracts, so custom kinds render identically in preview, browser export, and stills — server and worker export stay built-in-only (functions can't cross those boundaries). See [Custom Effects & Transitions](/miraiclip/docs/rendering/extensibility/). The live [Examples](https://comaniacs.github.io/miraiclip/examples/) page gained a runnable "Custom kind" variant in the Effects and Transitions carousels — the registration code on the page is the code that runs.
+
+## mcp-0.1.0 · renderer-0.5.0 · server-export-0.3.0 — 2026-09-22
+
+### Added
+
 - **`@miraiclip/mcp`** (new package) — an MCP server so Claude, Codex, or any MCP client can edit a project: validating `dispatch` with self-correctable failures, transactional `apply_commands` (one undo step), undo/redo, `preview_frame` (a PNG the agent sees, rendered through the export pipeline by one warm headless Chrome), and `export` to file. Edits autosave the project JSON atomically. See [MCP Server](/miraiclip/docs/mcp-server/).
 - `@miraiclip/renderer` **`renderProjectStill`** — render one composition frame to an image through the exact export pipeline (thumbnails, poster frames, agent previews).
 - `@miraiclip/server-export` **`createRenderSession`** — a warm headless-Chrome still renderer: launch once, render frames in ~100ms each across edits.

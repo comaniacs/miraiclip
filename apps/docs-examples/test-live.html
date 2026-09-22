@@ -41,6 +41,95 @@
 <div class="mirai-example-stage"></div>
 </div>
 
+<div class="mirai-example" id="ex-custom" data-media="demo" data-assets="./">
+<div class="highlight"><pre><code>if (!miraiclip.getEffectRenderer("sepia")) {
+  miraiclip.registerEffectKind("sepia", miraiclip.z.object({ amount: miraiclip.z.number().min(0).max(1).default(1) }));
+  miraiclip.registerEffectRenderer("sepia", (params) => {
+    const filter = new miraiclip.pixi.ColorMatrixFilter();
+    const apply = (p) => { filter.reset(); filter.sepia(true); filter.alpha = p.amount ?? 1; };
+    apply(params);
+    return { kind: "sepia", filter, update: apply };
+  });
+}
+if (!miraiclip.getTransitionRenderer("flash")) {
+  miraiclip.registerTransitionKind("flash", miraiclip.z.object({}));
+  miraiclip.registerTransitionRenderer("flash", {
+    rendersBothClips: false,
+    frame: (role, progress) =&gt; role === "from"
+      ? { overlay: { color: 0xffffff, alpha: 1 - Math.abs(2 * progress - 1) } }
+      : null,
+  });
+}
+miraiclip.registerClipKind("typewriter",
+  { propsSchema: miraiclip.z.object({ text: miraiclip.z.string(), charsPerSec: miraiclip.z.number().default(12) }),
+    trackKinds: ["video"] },
+  (clip, { backend }) =&gt; {
+    const textOf = (n) =&gt; ({ ...clip, kind: "text", text: clip.props.text.slice(0, n), fontFamily: "sans-serif", fontSizePx: 40, color: "#ffffff" });
+    const inner = backend.createText(textOf(0));
+    let shown = 0;
+    return {
+      setPlacement: (p) =&gt; inner.setPlacement(p),
+      setVisible: (v) =&gt; inner.setVisible(v),
+      setZ: (z) =&gt; inner.setZ(z),
+      update: () =&gt; {},
+      tick: (clip, timeUs) =&gt; {
+        const n = Math.floor(((timeUs - clip.startUs) / 1_000_000) * clip.props.charsPerSec);
+        if (n !== shown) { shown = n; inner.update(textOf(n)); }
+      },
+      destroy: () =&gt; inner.destroy(),
+    };
+  });
+project.dispatch({ type: "clip/add", payload: {
+  kind: "typewriter", id: "type-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  props: { text: "EVERY FRAME IS CODE", charsPerSec: 8 },
+} });
+project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "sepia", params: { amount: 0.9 } } });
+project.transaction(() =&gt; {
+  project.dispatch({ type: "clip/split", payload: { clipId: "main", atUs: 3_000_000, newClipId: "second" } });
+  project.dispatch({ type: "transition/add", payload: { kind: "flash", fromClipId: "main", toClipId: "second", durationUs: 700_000 } });
+});</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
+<div class="mirai-example" id="ex-caption-custom" data-media="demo" data-assets="./">
+<div class="highlight"><pre><code>miraiclip.registerClipKind("wordPop",
+  { propsSchema: miraiclip.z.object({
+      words: miraiclip.z.array(miraiclip.z.object({
+        text: miraiclip.z.string(), startUs: miraiclip.z.number().int(), durationUs: miraiclip.z.number().int(),
+      })),
+      color: miraiclip.z.string().default("#ffd400"),
+    }),
+    trackKinds: ["video"] },
+  (clip, { backend }) =&gt; {
+    const textOf = (t) =&gt; ({ ...clip, kind: "text", text: t, fontFamily: "sans-serif", fontSizePx: 72, color: clip.props.color });
+    const inner = backend.createText(textOf(""));
+    let placement = { xPx: 0, yPx: 0, scale: 1, rotationRad: 0, opacity: 1 };
+    let current = "";
+    return {
+      setPlacement: (p) =&gt; { placement = { ...p }; },
+      setVisible: (v) =&gt; inner.setVisible(v),
+      setZ: (z) =&gt; inner.setZ(z),
+      update: () =&gt; {},
+      tick: (clip, timeUs) =&gt; {
+        const t = timeUs - clip.startUs;
+        const word = clip.props.words.find((w) =&gt; t &gt;= w.startUs &amp;&amp; t &lt; w.startUs + w.durationUs);
+        if ((word?.text ?? "") !== current) { current = word?.text ?? ""; inner.update(textOf(current)); }
+        const age = word ? t - word.startUs : 0;
+        const pop = word ? 1 + 0.35 * Math.max(0, 1 - age / 150_000) : 1;
+        inner.setPlacement({ ...placement, scale: placement.scale * pop });
+      },
+      destroy: () =&gt; inner.destroy(),
+    };
+  });
+project.dispatch({ type: "clip/add", payload: {
+  kind: "wordPop", id: "wp-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  props: { words: ["ONE", "WORD", "AT", "A", "TIME"].map((text, i) =&gt; ({
+    text, startUs: i * 1_200_000, durationUs: 1_200_000,
+  })) },
+} });</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
 <div class="mirai-example" id="ex-export" data-media="demo" data-assets="./">
 <div class="highlight"><pre><code>const bytes = await miraiclip.exportProject(project, {
   format: "webm", quality: "draft",

@@ -1,8 +1,8 @@
 /**
- * The Pixi half of the effect registry: kind → filter factory. Built-ins only
- * in v4 (colorAdjust, blur, chromaKey) — the public registration API freezes
- * in v4.x once this internal shape has survived real use. Filters mutate in
- * place on param updates (no shader recompiles while dragging a slider).
+ * The Pixi half of the effect registry: kind → filter factory. Built-ins
+ * (colorAdjust, blur, chromaKey) register through the same public contract
+ * custom kinds use — `registerEffectRenderer`. Filters mutate in place on
+ * param updates (no shader recompiles while dragging a slider).
  */
 import {
   BlurFilter,
@@ -18,19 +18,31 @@ export interface EffectContext {
   compositionSize: () => { width: number; height: number };
 }
 
-interface ActiveEffect {
+export interface ActiveEffect {
   kind: string;
+  /** The Pixi filter applied to the clip's node (destroyed when removed). */
   filter: Filter;
+  /** Apply new params IN PLACE — called on every `effect/update`, so no shader recompiles. */
   update(params: Record<string, unknown>): void;
 }
 
-type EffectFactory = (params: Record<string, unknown>, context: EffectContext) => ActiveEffect;
+/**
+ * Builds the live filter for one effect instance. `params` arrive validated
+ * against the kind's core schema (register it with `registerEffectKind`);
+ * length-denoting params should be composition-relative fractions, converted
+ * to pixels via `context.compositionSize()` — absolute pixels diverge between
+ * scaled preview and full-res export.
+ */
+export type EffectRendererFactory = (
+  params: Record<string, unknown>,
+  context: EffectContext,
+) => ActiveEffect;
 
 // ---------------------------------------------------------------------------
 // Built-ins
 // ---------------------------------------------------------------------------
 
-const colorAdjust: EffectFactory = (params) => {
+const colorAdjust: EffectRendererFactory = (params) => {
   const filter = new ColorMatrixFilter();
   const apply = (p: Record<string, unknown>): void => {
     const steps = colorAdjustSteps(p);
@@ -44,7 +56,7 @@ const colorAdjust: EffectFactory = (params) => {
   return { kind: "colorAdjust", filter, update: apply };
 };
 
-const blur: EffectFactory = (params, context) => {
+const blur: EffectRendererFactory = (params, context) => {
   const filter = new BlurFilter();
   const apply = (p: Record<string, unknown>): void => {
     filter.strength = blurStrengthPx(p, context.compositionSize().height);
@@ -122,7 +134,7 @@ void main(void)
 }
 `;
 
-const chromaKey: EffectFactory = (params) => {
+const chromaKey: EffectRendererFactory = (params) => {
   const uniforms = chromaKeyUniforms(params);
   const filter = new Filter({
     glProgram: GlProgram.from({ vertex: FILTER_VERTEX, fragment: CHROMA_FRAGMENT }),
@@ -147,7 +159,28 @@ const chromaKey: EffectFactory = (params) => {
   return { kind: "chromaKey", filter, update };
 };
 
-const FACTORIES: Record<string, EffectFactory> = { colorAdjust, blur, chromaKey };
+const factories = new Map<string, EffectRendererFactory>(
+  Object.entries({ colorAdjust, blur, chromaKey }),
+);
+
+/**
+ * Register how a custom effect kind draws: a factory building a Pixi filter
+ * from validated params, updated in place on `effect/update`. Pair it with
+ * core's `registerEffectKind(kind, paramsSchema)` so commands validate. A
+ * kind without a renderer applies no visual (the stack skips it).
+ *
+ * Custom renderers are functions, so they cannot cross a process or thread
+ * boundary: server export and worker export support built-in kinds only —
+ * the same rule as custom clip-kind factories.
+ */
+export function registerEffectRenderer(kind: string, factory: EffectRendererFactory): void {
+  if (factories.has(kind)) throw new Error(`effect renderer "${kind}" is already registered`);
+  factories.set(kind, factory);
+}
+
+export function getEffectRenderer(kind: string): EffectRendererFactory | undefined {
+  return factories.get(kind);
+}
 
 /**
  * Per-node effect state: diffs the clip's effect stack against live filters,
@@ -168,7 +201,7 @@ export class NodeEffects {
     const seen = new Set<string>();
     for (const effect of effects) {
       if (!effect.enabled) continue;
-      const factory = FACTORIES[effect.kind];
+      const factory = factories.get(effect.kind);
       if (!factory) continue; // unknown kind: core validated, renderer has no visual — skip
       let entry = this.active.get(effect.id);
       if (!entry || entry.kind !== effect.kind) {

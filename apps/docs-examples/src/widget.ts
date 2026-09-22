@@ -23,18 +23,50 @@
  * project (asset "media", tracks "v1" + "overlay", clip "main" spanning the
  * demo clip — the playground's ids), evaluates the snippet, and plays it.
  */
-import { createProject, type Project } from "@miraiclip/core";
+import {
+  createProject,
+  registerEffectKind,
+  registerTransitionKind,
+  type Project,
+} from "@miraiclip/core";
 import {
   createPixiBackend,
   createPlayer,
   createWebAudioOutput,
   createWebCodecsDecoderFactory,
   exportProject,
+  getEffectRenderer,
+  getTransitionRenderer,
   isWebCodecsSupported,
   openMediabunnyAudio,
   openMediabunnyDemuxer,
+  registerEffectRenderer,
+  registerTransitionRenderer,
   type Player,
 } from "@miraiclip/renderer";
+import { registerClipKind } from "@miraiclip/core";
+import type { NodeFactory } from "@miraiclip/renderer";
+import { ColorMatrixFilter } from "pixi.js";
+import { z } from "zod";
+
+/**
+ * Custom clip kinds registered by snippets. Core registration happens once
+ * per page load (the registry rejects duplicates); the factory map is passed
+ * to every fresh player, and a re-run's factory replaces the previous one.
+ */
+const customClipFactories: Record<string, NodeFactory> = {};
+const registeredClipKinds = new Set<string>();
+function registerClipKindForExamples(
+  kind: string,
+  registration: Parameters<typeof registerClipKind>[1],
+  factory: NodeFactory,
+): void {
+  if (!registeredClipKinds.has(kind)) {
+    registerClipKind(kind, registration);
+    registeredClipKinds.add(kind);
+  }
+  customClipFactories[kind] = factory;
+}
 
 const WIDTH = 640;
 const HEIGHT = 360;
@@ -155,25 +187,37 @@ function createRunner(host: RunnerHost): Runner {
 
       const url = `${host.assetsBase}${host.media()}.${await pickExtension()}`;
       const project = await buildScaffold(url);
-      const canvas = document.createElement("canvas");
-      canvas.width = WIDTH;
-      canvas.height = HEIGHT;
-      frame.append(canvas);
-      // preserveDrawingBuffer: pixel readback for screenshots and the smoke test.
-      const backend = await createPixiBackend({ canvas, width: WIDTH, height: HEIGHT, preserveDrawingBuffer: true });
-      const created = createPlayer(project, {
-        backend,
-        openDemuxer: openMediabunnyDemuxer,
-        createDecoder: createWebCodecsDecoderFactory({ maxOutputDimensionPx: 1280 }),
-        audioOutput: createWebAudioOutput(),
-        openAudio: openMediabunnyAudio,
-        loop: true,
-      });
-      player = created;
+
+      // The player is created AFTER the snippet, so custom clip kinds a
+      // snippet registers reach the compositor's factories. Snippet-time
+      // player calls queue and replay once it exists.
+      const pendingPlayerCalls: ((live: Player) => void)[] = [];
+      const playerFacade = {
+        get playing() {
+          return player?.playing ?? false;
+        },
+        play: () => (player ? player.play() : pendingPlayerCalls.push((live) => live.play())),
+        pause: () => (player ? player.pause() : pendingPlayerCalls.push((live) => live.pause())),
+        seek: (timeUs: number) =>
+          player ? player.seek(timeUs) : pendingPlayerCalls.push((live) => live.seek(timeUs)),
+      };
 
       // The snippet on the page IS the program: run it against the scaffold.
       const miraiclip = {
         exportProject,
+        // Extensibility — the real registration APIs (registries are
+        // module-global and reject duplicates, so snippets guard with get*).
+        z,
+        pixi: { ColorMatrixFilter },
+        registerEffectKind,
+        registerEffectRenderer,
+        getEffectRenderer,
+        registerTransitionKind,
+        registerTransitionRenderer,
+        getTransitionRenderer,
+        // Custom clip kinds: registers the kind in core (once per page load)
+        // and hands the factory to the player created after this snippet.
+        registerClipKind: registerClipKindForExamples,
         status: (text: string) => setStatus(text),
         download: (bytes: Uint8Array, name: string) => {
           const type = name.endsWith(".mp4") ? "video/mp4" : "video/webm";
@@ -191,11 +235,29 @@ function createRunner(host: RunnerHost): Runner {
         "miraiclip",
         `return (async () => {\n${host.code()}\n})();`,
       );
-      await snippet(project, created, miraiclip);
+      await snippet(project, playerFacade, miraiclip);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = WIDTH;
+      canvas.height = HEIGHT;
+      frame.append(canvas);
+      // preserveDrawingBuffer: pixel readback for screenshots and the smoke test.
+      const backend = await createPixiBackend({ canvas, width: WIDTH, height: HEIGHT, preserveDrawingBuffer: true });
+      const created = createPlayer(project, {
+        backend,
+        openDemuxer: openMediabunnyDemuxer,
+        createDecoder: createWebCodecsDecoderFactory({ maxOutputDimensionPx: 1280 }),
+        audioOutput: createWebAudioOutput(),
+        openAudio: openMediabunnyAudio,
+        loop: true,
+        factories: { ...customClipFactories },
+      });
+      player = created;
 
       created.play();
+      for (const call of pendingPlayerCalls) call(created); // snippet's intent wins
       playButton.hidden = false;
-      playButton.textContent = "Pause";
+      playButton.textContent = created.playing ? "Pause" : "Play";
       if (status.textContent === "loading…") setStatus("");
       ok = true;
     } catch (error) {

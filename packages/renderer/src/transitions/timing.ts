@@ -5,6 +5,7 @@
  */
 import type { Clip, ProjectDocument, Transition } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
+import { getTransitionRenderer } from "./registry.js";
 
 export interface TransitionWindow {
   transition: Transition;
@@ -61,10 +62,11 @@ export function participatesInTransition(doc: ProjectDocument, clipId: string): 
  * Kinds that render BOTH clips through the window (the outgoing clip keeps
  * showing past its end, the incoming starts early — both from source
  * headroom). Dips cover the hard swap with an opaque overlay instead, so
- * they need no out-of-bounds rendering at all.
+ * they need no out-of-bounds rendering at all. Answered by each kind's
+ * registered renderer; a kind with no renderer needs no extra media.
  */
 export function rendersBothClips(kind: string): boolean {
-  return kind === "crossDissolve" || kind === "wipe" || kind === "slide";
+  return getTransitionRenderer(kind)?.rendersBothClips ?? false;
 }
 
 /**

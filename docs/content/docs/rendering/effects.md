@@ -76,3 +76,4 @@ The rendering half — registering your own shader for the kind — is not publi
 
 - Effects apply pre-transform, in sRGB; stack order = array order.
 - Full payload schemas: [command catalog](../../command-catalog).
+- Bring your own kinds: [Custom Effects & Transitions](../extensibility).
