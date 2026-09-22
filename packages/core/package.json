@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Headless, command-driven engine for building video editors — state, commands, history, patches, events.",
   "license": "MIT",
   "repository": {

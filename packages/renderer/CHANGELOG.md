@@ -1,5 +1,12 @@
 # @miraiclip/renderer
 
+## 0.4.2
+
+### Patch Changes
+
+- Updated dependencies [34a0d60]
+  - @miraiclip/core@0.3.0
+
 ## 0.4.1
 
 ### Patch Changes
