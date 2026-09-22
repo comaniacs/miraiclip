@@ -1,5 +1,11 @@
 # @miraiclip/core
 
+## 0.3.0
+
+### Minor Changes
+
+- 34a0d60: AI command interface: `toToolDefinitions` (command catalog as Anthropic/OpenAI tool definitions, per-command or single-dispatch mode), `tryDispatch`/`applyCommands` (machine-readable command failures an agent can self-correct from; batches apply as one all-or-nothing transaction), and `describeProject` (compact deterministic state summary for prompts). Zero new dependencies.
+
 ## 0.2.0
 
 ### Minor Changes
