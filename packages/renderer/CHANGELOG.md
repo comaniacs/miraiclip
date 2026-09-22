@@ -1,5 +1,11 @@
 # @miraiclip/renderer
 
+## 0.4.1
+
+### Patch Changes
+
+- 3efb2bf: Fix for export functionality of clip
+
 ## 0.4.0
 
 ### Minor Changes
