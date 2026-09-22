@@ -14,9 +14,9 @@ Miraiclip is a monorepo of focused packages:
 
 | Package | Status | Description |
 | --- | --- | --- |
-| [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.2.0 on npm | Headless command-driven engine: state, commands, history, events |
-| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.3.0 on npm | WebCodecs + WebGL playback, preview, and export — see [Rendering](rendering) |
-| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.1.1 on npm | Server-side export: the browser pipeline in headless Chrome, from Node — see [Server side](export/server-side) |
+| [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.3.0 on npm | Headless command-driven engine: state, commands, history, events, [AI integration](ai-integration) |
+| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.4.1 on npm | WebCodecs + WebGL playback, preview, and export — see [Rendering](rendering) |
+| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.2.0 on npm | Server-side export: the browser pipeline in headless Chrome, from Node — see [Server side](export/server-side) |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
 ## Core concepts

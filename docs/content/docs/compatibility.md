@@ -1,6 +1,6 @@
 ---
 title: Compatibility
-weight: 8
+weight: 9
 ---
 
 What Miraiclip runs on, and what media it handles.

@@ -1,11 +1,17 @@
 ---
 title: Changelog
-weight: 10
+weight: 11
 ---
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
-## Unreleased
+## core-0.3.0 — 2026-09-22
+
+### Added
+
+- `@miraiclip/core` **AI command interface** — turn the command catalog into a working LLM integration, in core with zero new dependencies: `toToolDefinitions` (Anthropic/OpenAI tool shapes; per-command or single-dispatch mode), `tryDispatch`/`applyCommands` (machine-readable failures an agent can self-correct from; batches apply as one all-or-nothing transaction = one undo step), and `describeProject` (a compact, deterministic state summary for prompts). See [AI Integration](/miraiclip/docs/ai-integration/).
+
+## renderer-0.4.1 — 2026-09-22
 
 ### Fixed
 

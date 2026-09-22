@@ -1,4 +1,19 @@
 export { createProject } from "./engine.js";
+export {
+  applyCommands,
+  commandTypeForTool,
+  describeProject,
+  toolNameForCommand,
+  toToolDefinitions,
+  tryDispatch,
+} from "./ai.js";
+export type {
+  ApplyCommandsResult,
+  CommandFailure,
+  CommandResult,
+  DescribeProjectOptions,
+  ToToolDefinitionsOptions,
+} from "./ai.js";
 export type {
   CommandDefinition,
   CreateProjectOptions,

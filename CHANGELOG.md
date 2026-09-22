@@ -2,7 +2,13 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [core-0.3.0] — 2026-09-22
+
+### Added
+
+- `@miraiclip/core` **AI command interface** — the pieces that turn the command catalog into a working LLM integration, all in core with zero new dependencies. `toToolDefinitions(project.commandCatalog(), options?)` emits the catalog as ready-to-send tool definitions (Anthropic `tool_use` or OpenAI function-calling shapes via `style`; one tool per command, or `mode: "dispatch"` for a single `miraiclip_dispatch` tool with a type enum for tool-count-constrained hosts such as MCP servers; command types sanitize to legal tool names — `clip/add` → `clip_add`, reversed by `commandTypeForTool`). `tryDispatch(project, command)` returns a structured `CommandResult` instead of throwing on command failures, with a machine-readable `CommandFailure` an agent can self-correct from: `unknown-command` carries `validTypes`, `invalid-payload` carries per-field `issues` (path + message from the Zod error), `rejected` carries the engine's rejection `code`; non-command errors (bugs) still throw. `applyCommands(project, commands, { label? })` applies a batch as ONE transaction — all-or-nothing with rollback on the first failure, one undo step on success, and the failing index reported. `describeProject(doc, { maxClipsPerTrack? })` renders a compact, deterministic state summary for prompts (ids, kinds, time ranges in command microseconds; long tracks elide their middle) instead of burning context on raw `toJSON()`. New docs page: [AI Integration](https://comaniacs.github.io/miraiclip/docs/ai-integration/).
+
+## [renderer-0.4.1] — 2026-09-22
 
 ### Fixed
 

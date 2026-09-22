@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-weight: 9
+weight: 10
 ---
 
 ## v1 — Core engine (`@miraiclip/core`) ✅ shipped
@@ -25,12 +25,19 @@ Keyframe animations on clip properties (pure evaluator in core — preview, expo
 
 ## v4.x — Production readiness (in progress)
 
-The **stress tier is shipped**: `pnpm stress` runs many-clip playback tracking, bounded-heap long exports, decoder churn with a scrub storm, throughput benchmarks (incl. optional 4K→1080p), and parallel server exports — nightly in CI with a metrics artifact. Measured numbers and known ceilings live on [Production Readiness](production-readiness). **Streaming export output and chunked offline audio shipped** as [`@miraiclip/renderer@0.4.0`](https://www.npmjs.com/package/@miraiclip/renderer) + [`@miraiclip/server-export@0.2.0`](https://www.npmjs.com/package/@miraiclip/server-export) (September 2026) — export memory no longer scales with timeline length, demonstrated with a one-hour export at 165 MB of heap. An **export validation corpus** (ffmpeg-verified real exports, nightly) and a **device benchmark tier** guard correctness and presentation/seek latency; these tiers have caught and fixed real pipeline bugs before release. Still in v4.x: public `registerEffect()`, true overlapped audio crossfades, effect-param keyframes.
+The **stress tier is shipped**: `pnpm stress` runs many-clip playback tracking, bounded-heap long exports, decoder churn with a scrub storm, throughput benchmarks (incl. optional 4K→1080p), and parallel server exports — nightly in CI with a metrics artifact. Measured numbers and known ceilings live on [Production Readiness](production-readiness). **Streaming export output and chunked offline audio shipped** as [`@miraiclip/renderer@0.4.0`](https://www.npmjs.com/package/@miraiclip/renderer) + [`@miraiclip/server-export@0.2.0`](https://www.npmjs.com/package/@miraiclip/server-export) (September 2026) — export memory no longer scales with timeline length, demonstrated with a one-hour export at 165 MB of heap. An **export validation corpus** (ffmpeg-verified real exports, nightly) and a **device benchmark tier** guard correctness and presentation/seek latency; these tiers have caught and fixed real pipeline bugs before release. **Worker export shipped** as [`@miraiclip/renderer@0.4.1`](https://www.npmjs.com/package/@miraiclip/renderer) (September 2026) — the whole export pipeline runs off the main thread (`exportProjectInWorker` / `exportViaWorker`), keeping the page responsive mid-export, alongside three field-reported memory fixes (demuxer cache disposal, software-encoder capture routing, listener churn). Still in v4.x hardening: reference-device benchmark numbers, long-source coverage, and true overlapped audio crossfades.
 
-## Beyond v4.x — explored
+## v5 — AI-native editing & extensibility (in progress)
 
-A template library (`@miraiclip/templates` — parameterized document generators over v4 primitives), a programmatic clip kind for code-driven graphics (charts, generative visuals) with export parity, and locked brand templates. See PLAN.md for the full exploration.
+The command-driven core was designed for this from v1; v5 turns it into working integrations.
+
+- **AI command interface** ✅ — the catalog as ready-to-send LLM tool definitions (`toToolDefinitions`, Anthropic/OpenAI shapes), dispatch with machine-readable failures agents self-correct from (`tryDispatch`, transactional `applyCommands`), and a token-efficient state summary for prompts (`describeProject`). Shipping as `@miraiclip/core@0.3.0`. See [AI Integration](ai-integration).
+- **MCP server** (`@miraiclip/mcp`) — edit a project from Claude, Codex, or any MCP client: a generic dispatch tool over the catalog, project-state summaries, undo/redo, frame previews so the agent sees its edit, and export via `@miraiclip/server-export`.
+- **Custom animations, effects, and transitions** — finish the extensibility story: public renderer registration for custom effect and transition kinds (core registration already exists), plus animatable params for custom kinds.
+- **HTML clips & parameterized videos** — an `html` clip kind for template-driven overlays (lower thirds, cards, charts) rasterized into the compositor, and parameterized documents (`@miraiclip/templates`): a template project + a data payload → hydrated doc → export, for batch and personalized video generation.
+
+Also explored: a programmatic clip kind for code-driven graphics with export parity, and locked brand templates. See PLAN.md for the full exploration.
 
 ## Parallel track — Adapters & ecosystem
 
-`@miraiclip/react` hooks and selectors (Vue and Svelte adapters later), AI helpers exporting the command catalog as LLM tool definitions, and a collaboration reference implementation syncing commands/patches over WebSocket.
+`@miraiclip/react` hooks and selectors (Vue and Svelte adapters later), and a collaboration reference implementation syncing commands/patches over WebSocket.
