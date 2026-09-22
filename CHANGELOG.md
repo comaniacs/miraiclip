@@ -2,6 +2,18 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **`@miraiclip/mcp` — the MCP server** (new package): let Claude, Codex, or any MCP client edit a video project. `npx @miraiclip/mcp --project ./video.miraiclip.json --assets ./media` serves one project file over stdio: `dispatch` validates every command against the live catalog and returns the same machine-readable failures the [AI command interface](https://comaniacs.github.io/miraiclip/docs/ai-integration/) defines (unknown-command → valid types, invalid-payload → per-field issues, rejected → engine code), `apply_commands` applies a batch as ONE transaction (all-or-nothing, failing index reported, one undo step), `undo`/`redo` step history, `preview_frame` renders any composition time as a PNG **the agent actually sees** (through the export pipeline — the preview is what the export will look like; one warm headless Chrome across calls, ~100ms a frame after the first), `export` streams MP4/WebM to disk, and `list_commands`/`get_command_schema` serve the catalog. Every successful edit autosaves the project file atomically, so the project survives across agent sessions. Docs: [MCP Server](https://comaniacs.github.io/miraiclip/docs/mcp-server/).
+- `@miraiclip/renderer` **`renderProjectStill(project, { timeUs, width?, height? })`** — render ONE composition frame to an image (PNG by default) through the exact export pipeline (same compositor, decode path, and fonts), so a still is what that frame will look like in the exported file. Thumbnails, poster frames, agent previews.
+- `@miraiclip/server-export` **`createRenderSession()`** — a persistent still-frame renderer: one headless Chrome + harness page kept warm across calls (a frame costs a frame, not a browser launch), documents passed per call so a session outlives edits, assets re-resolved live per render. Powers the MCP server's `preview_frame`.
+
+### Fixed
+
+- `@miraiclip/renderer` **`exportProject`'s `width`/`height` output-size option was silently ignored** (shipped bug through 0.4.x, found building still rendering): the Compositor unconditionally resizes its backend to the composition size, so a requested output size was overridden and the file always came out composition-sized. The compositor now takes `outputSize` (and `SceneBackend` an optional `setOutputSize`): the canvas renders at the requested pixel size while the scene scales, keeping composition coordinates — placement, wipe masks, caption layout — meaning what they mean. Verified end to end: a 640×360 composition exported at `{ width: 320, height: 180 }` now produces a 320×180 file (it produced 640×360 before).
+
 ## [core-0.3.0] — 2026-09-22
 
 ### Added

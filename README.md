@@ -30,8 +30,9 @@ Miraiclip is not a video editor app — it is the engine you build one with. The
 | Package | Status | Description |
 | --- | --- | --- |
 | [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.3.0 on npm | Headless command-driven engine: state, commands, history, events, AI integration |
-| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.4.1 on npm | WebCodecs + WebGL playback, preview, and export — animations, effects, transitions, captions |
-| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.2.0 on npm | Server-side export: the browser pipeline in headless Chrome, from Node |
+| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.5.0 on npm | WebCodecs + WebGL playback, preview, export, and stills — animations, effects, transitions, captions |
+| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.3.0 on npm | Server-side export and frame rendering: the browser pipeline in headless Chrome, from Node |
+| [`@miraiclip/mcp`](https://www.npmjs.com/package/@miraiclip/mcp) | ✅ v0.1.0 on npm | MCP server: Claude, Codex, and other agents edit projects — with frame previews they can see |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
 ## Quick start
@@ -149,6 +150,12 @@ const result = tryDispatch(project, { type: "clip/split", payload: toolCall.inpu
 
 Every AI edit flows through the same commands a human UI dispatches — undoable, replayable, emitted as patches. [Full recipe, including atomic multi-command plans.](https://comaniacs.github.io/miraiclip/docs/ai-integration/)
 
+Or skip the wiring entirely — the [MCP server](https://comaniacs.github.io/miraiclip/docs/mcp-server/) puts all of it (plus frame previews the agent can see, and export) behind one command for Claude, Codex, and any MCP client:
+
+```sh
+npx @miraiclip/mcp --project ./video.miraiclip.json --assets ./media
+```
+
 ## Roadmap
 
 1. **v1 — Core engine** ✅: commands, state, tracks, clips, undo/redo, patches, events, serialization (`@miraiclip/core`)
@@ -156,7 +163,7 @@ Every AI edit flows through the same commands a human UI dispatches — undoable
 3. **v3 — Export** ✅: WebCodecs encode to MP4/WebM, offline faster-than-realtime rendering, plus server-side export from Node (`@miraiclip/server-export`)
 4. **v4 — Creative features** ✅: keyframe animations, transitions, effects, chroma key, karaoke captions
 5. **v4.x — Production readiness** (in progress): stress suite + [measured numbers](https://comaniacs.github.io/miraiclip/docs/production-readiness/); streaming exports + chunked audio shipped in renderer 0.4.0 / server-export 0.2.0 (a one-hour export demonstrated at 165 MB heap); [worker export](https://comaniacs.github.io/miraiclip/docs/export/client-side/#exporting-in-a-worker) shipped in renderer 0.4.1; export validation corpus; device benchmarks next
-6. **v5 — AI-native editing & extensibility** (in progress): [AI command interface](https://comaniacs.github.io/miraiclip/docs/ai-integration/) ✅ (core 0.3.0); next: an MCP server (`@miraiclip/mcp`), custom effects/transitions, HTML clips + parameterized videos, `@miraiclip/react` + example editor app
+6. **v5 — AI-native editing & extensibility** (in progress): [AI command interface](https://comaniacs.github.io/miraiclip/docs/ai-integration/) ✅ (core 0.3.0); [MCP server](https://comaniacs.github.io/miraiclip/docs/mcp-server/) ✅ (`@miraiclip/mcp` — agents edit with visual feedback); next: custom effects/transitions, HTML clips + parameterized videos, `@miraiclip/react` + example editor app
 
 See the [roadmap](https://comaniacs.github.io/miraiclip/docs/roadmap/) and [PLAN.md](./PLAN.md) for the detailed plan and architecture.
 

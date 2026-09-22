@@ -155,6 +155,10 @@ export async function exportProject(
   const backend = await createPixiBackend({ canvas: canvas as unknown as HTMLCanvasElement, width, height });
   const compositor = new Compositor(project, backend, {
     factories: { ...options.factories, video: videos.factory },
+    // The output-size option: without this the compositor resizes the canvas
+    // back to the composition size and a width/height override is silently
+    // ignored (shipped bug through 0.4.x).
+    outputSize: { width, height },
   });
 
   let sink;

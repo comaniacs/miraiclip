@@ -417,6 +417,7 @@ class PixiSceneBackend implements SceneBackend {
    */
   private dirty = true;
   private compSize = { width: 0, height: 0 };
+  private outputSize: { width: number; height: number } | undefined;
   private readonly invalidate = (): void => {
     this.dirty = true;
   };
@@ -431,8 +432,24 @@ class PixiSceneBackend implements SceneBackend {
   }
 
   resize(widthPx: number, heightPx: number): void {
-    this.app.renderer.resize(widthPx, heightPx);
     this.compSize = { width: widthPx, height: heightPx };
+    this.applySize();
+  }
+
+  setOutputSize(widthPx: number, heightPx: number): void {
+    this.outputSize = { width: widthPx, height: heightPx };
+    this.applySize();
+  }
+
+  /**
+   * The canvas renders at the OUTPUT size; the stage scales so composition
+   * coordinates keep meaning what they mean. Without an explicit output size
+   * the two coincide (scale 1) — the pre-existing behavior.
+   */
+  private applySize(): void {
+    const out = this.outputSize ?? this.compSize;
+    this.app.renderer.resize(out.width, out.height);
+    this.app.stage.scale.set(out.width / this.compSize.width, out.height / this.compSize.height);
     this.invalidate();
   }
 

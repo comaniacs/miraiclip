@@ -15,8 +15,9 @@ Miraiclip is a monorepo of focused packages:
 | Package | Status | Description |
 | --- | --- | --- |
 | [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.3.0 on npm | Headless command-driven engine: state, commands, history, events, [AI integration](ai-integration) |
-| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.4.1 on npm | WebCodecs + WebGL playback, preview, and export — see [Rendering](rendering) |
-| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.2.0 on npm | Server-side export: the browser pipeline in headless Chrome, from Node — see [Server side](export/server-side) |
+| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.5.0 on npm | WebCodecs + WebGL playback, preview, export, and stills — see [Rendering](rendering) |
+| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.3.0 on npm | Server-side export and frame rendering: the browser pipeline in headless Chrome, from Node — see [Server side](export/server-side) |
+| [`@miraiclip/mcp`](https://www.npmjs.com/package/@miraiclip/mcp) | ✅ v0.1.0 on npm | MCP server: Claude, Codex, and other agents edit projects with visual feedback — see [MCP Server](mcp-server) |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
 ## Core concepts

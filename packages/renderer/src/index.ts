@@ -69,6 +69,8 @@ export { exportComposition } from "./export/exporter.js";
 export type { ExportCompositionOptions } from "./export/exporter.js";
 export { compositionEnd, exportProject, probeCompositionAudio } from "./export/export-project.js";
 export type { ExportProjectOptions } from "./export/export-project.js";
+export { renderProjectStill } from "./export/render-still.js";
+export type { RenderProjectStillOptions } from "./export/render-still.js";
 export { exportProjectInWorker, exportViaWorker } from "./export/worker/export-via-worker.js";
 export type { ExportProjectInWorkerOptions, ExportViaWorkerOptions } from "./export/worker/export-via-worker.js";
 export type { MainToWorkerMessage, WorkerExportWireOptions, WorkerToMainMessage } from "./export/worker/protocol.js";

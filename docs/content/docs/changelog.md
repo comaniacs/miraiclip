@@ -1,9 +1,21 @@
 ---
 title: Changelog
-weight: 11
+weight: 12
 ---
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
+
+## Unreleased
+
+### Added
+
+- **`@miraiclip/mcp`** (new package) — an MCP server so Claude, Codex, or any MCP client can edit a project: validating `dispatch` with self-correctable failures, transactional `apply_commands` (one undo step), undo/redo, `preview_frame` (a PNG the agent sees, rendered through the export pipeline by one warm headless Chrome), and `export` to file. Edits autosave the project JSON atomically. See [MCP Server](/miraiclip/docs/mcp-server/).
+- `@miraiclip/renderer` **`renderProjectStill`** — render one composition frame to an image through the exact export pipeline (thumbnails, poster frames, agent previews).
+- `@miraiclip/server-export` **`createRenderSession`** — a warm headless-Chrome still renderer: launch once, render frames in ~100ms each across edits.
+
+### Fixed
+
+- `@miraiclip/renderer` **`exportProject`'s `width`/`height` output size was silently ignored** (the compositor resized the canvas back to the composition size — the output was always composition-sized). The compositor gained `outputSize`; exports and stills now honor the requested size while composition coordinates stay unchanged.
 
 ## core-0.3.0 — 2026-09-22
 

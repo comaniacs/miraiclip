@@ -67,7 +67,16 @@ export interface SolidSceneNode {
  * tests use a fake. Backends draw — the Compositor decides what and when.
  */
 export interface SceneBackend {
+  /** Set the COMPOSITION size — the coordinate space clips are placed in. */
   resize(widthPx: number, heightPx: number): void;
+  /**
+   * Render the composition at a different pixel size (the export/still
+   * `width`/`height` option): the canvas becomes this size and the scene
+   * scales to fit, while composition coordinates — placement, masks, caption
+   * layout — stay in composition space. Optional per backend; without it,
+   * output size falls back to the composition size.
+   */
+  setOutputSize?(widthPx: number, heightPx: number): void;
   createImage(clip: ImageClip, asset: Asset | undefined): SceneNode;
   createText(clip: TextClip): SceneNode;
   createVideo(clip: VideoClip): VideoSceneNode;

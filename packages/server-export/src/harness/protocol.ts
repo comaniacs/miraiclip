@@ -20,6 +20,14 @@ export interface HarnessExportOptions {
   audioChunkSeconds?: number;
 }
 
+export interface HarnessStillOptions {
+  /** Composition time to render, in microseconds. */
+  timeUs: number;
+  /** Output size (default: the project's composition size). */
+  width?: number;
+  height?: number;
+}
+
 export interface HarnessProgress {
   phase: "audio" | "video" | "finalizing";
   framesDone: number;
@@ -33,6 +41,8 @@ declare global {
     /** Set by the Node side via exposeFunction BEFORE the export starts. */
     __miraiProgress?: (progress: HarnessProgress) => void;
     __miraiExport: (doc: unknown, options: HarnessExportOptions) => Promise<string>;
+    /** Render one composition frame; resolves with the PNG as base64. */
+    __miraiRenderStill: (doc: unknown, options: HarnessStillOptions) => Promise<string>;
     __miraiAbort: () => void;
   }
 }

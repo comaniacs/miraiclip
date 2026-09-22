@@ -1,6 +1,6 @@
 ---
 title: Roadmap
-weight: 10
+weight: 11
 ---
 
 ## v1 — Core engine (`@miraiclip/core`) ✅ shipped
@@ -32,7 +32,7 @@ The **stress tier is shipped**: `pnpm stress` runs many-clip playback tracking, 
 The command-driven core was designed for this from v1; v5 turns it into working integrations.
 
 - **AI command interface** ✅ — the catalog as ready-to-send LLM tool definitions (`toToolDefinitions`, Anthropic/OpenAI shapes), dispatch with machine-readable failures agents self-correct from (`tryDispatch`, transactional `applyCommands`), and a token-efficient state summary for prompts (`describeProject`). Shipping as `@miraiclip/core@0.3.0`. See [AI Integration](ai-integration).
-- **MCP server** (`@miraiclip/mcp`) — edit a project from Claude, Codex, or any MCP client: a generic dispatch tool over the catalog, project-state summaries, undo/redo, frame previews so the agent sees its edit, and export via `@miraiclip/server-export`.
+- **MCP server** ✅ — `@miraiclip/mcp`: edit a project from Claude, Codex, or any MCP client — a validating dispatch over the catalog, transactional batches, undo/redo, frame previews so the agent SEES its edit (one warm headless Chrome), and export to file. Shipping as `@miraiclip/mcp@0.1.0`; still rendering lands in `@miraiclip/renderer@0.5.0` (`renderProjectStill`) and `@miraiclip/server-export@0.3.0` (`createRenderSession`). See [MCP Server](mcp-server).
 - **Custom animations, effects, and transitions** — finish the extensibility story: public renderer registration for custom effect and transition kinds (core registration already exists), plus animatable params for custom kinds.
 - **HTML clips & parameterized videos** — an `html` clip kind for template-driven overlays (lower thirds, cards, charts) rasterized into the compositor, and parameterized documents (`@miraiclip/templates`): a template project + a data payload → hydrated doc → export, for batch and personalized video generation.
 

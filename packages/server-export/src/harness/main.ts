@@ -8,7 +8,7 @@
  * that identity is the whole design: preview/export parity by construction.
  */
 import { createProject, type ProjectDocument } from "@miraiclip/core";
-import { exportProject, isWebCodecsSupported } from "@miraiclip/renderer";
+import { exportProject, isWebCodecsSupported, renderProjectStill } from "@miraiclip/renderer";
 import "./protocol.js";
 
 let controller: AbortController | undefined;
@@ -46,6 +46,16 @@ window.__miraiExport = async (doc, options): Promise<string> => {
       : {}),
   });
   return stream ? "" : toBase64(bytes);
+};
+
+window.__miraiRenderStill = async (doc, options): Promise<string> => {
+  const project = createProject(doc as ProjectDocument);
+  const blob = await renderProjectStill(project, {
+    timeUs: options.timeUs,
+    ...(options.width !== undefined ? { width: options.width } : {}),
+    ...(options.height !== undefined ? { height: options.height } : {}),
+  });
+  return toBase64(new Uint8Array(await blob.arrayBuffer()));
 };
 
 /** Chunked btoa — String.fromCharCode(...bytes) overflows the arg limit on real files. */

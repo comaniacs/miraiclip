@@ -153,3 +153,5 @@ while (true) {
 ```
 
 Because every change flows through the same commands a human UI dispatches, the AI's edits are **undoable, replayable, and emitted as patches** like any other — an agent is just another editor at the table.
+
+Don't want to build the loop yourself? The [MCP Server](mcp-server) packages all of this — plus frame previews and export — behind `npx @miraiclip/mcp`, for Claude, Codex, and any other MCP client.

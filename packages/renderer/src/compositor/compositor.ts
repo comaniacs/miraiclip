@@ -48,6 +48,13 @@ const OVERLAY_Z = Number.MAX_SAFE_INTEGER;
 export interface CompositorOptions {
   /** Extra or overriding node factories per clip kind (the v4/custom-kind seam). */
   factories?: Record<string, NodeFactory>;
+  /**
+   * Render at this pixel size instead of the composition size (the export
+   * `width`/`height` option). Composition coordinates are unaffected — the
+   * backend scales the scene. Requires a backend with `setOutputSize`
+   * (the Pixi backend has it).
+   */
+  outputSize?: { width: number; height: number };
 }
 
 const builtinFactories: Record<string, NodeFactory> = {
@@ -89,6 +96,7 @@ export class Compositor {
     this.factories = { ...builtinFactories, ...options.factories };
     const { settings } = this.doc();
     backend.resize(settings.width, settings.height);
+    if (options.outputSize) backend.setOutputSize?.(options.outputSize.width, options.outputSize.height);
     this.fullSync();
     this.unsubscribe = project.events.on("patches", ({ patches }) => {
       this.applyPatches(patches);
