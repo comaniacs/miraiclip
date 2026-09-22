@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "e2e": "playwright test",
     "stress": "playwright test -c playwright.stress.config.ts",
-    "bench": "playwright test -c playwright.bench.config.ts"
+    "bench": "playwright test -c playwright.bench.config.ts",
+    "repro:4k": "playwright test -c playwright.repro.config.ts"
   },
   "dependencies": {
     "@miraiclip/core": "workspace:*",

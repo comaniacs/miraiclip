@@ -17,7 +17,8 @@
   "module": "./src/index.ts",
   "types": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./export-worker": "./src/export/worker/export.worker.ts"
   },
   "files": [
     "dist"
@@ -40,6 +41,12 @@
         "require": {
           "types": "./dist/index.d.cts",
           "default": "./dist/index.cjs"
+        }
+      },
+      "./export-worker": {
+        "import": {
+          "types": "./dist/export.worker.d.ts",
+          "default": "./dist/export.worker.js"
         }
       }
     }

@@ -10,7 +10,10 @@ import type { AudioChannel, AudioChunk, AudioOutput, AudioTrackSource } from "./
 const US_PER_SECOND = 1_000_000;
 
 class MediabunnyAudioSource implements AudioTrackSource {
-  constructor(private readonly sink: AudioBufferSink) {}
+  constructor(
+    private readonly input: Input,
+    private readonly sink: AudioBufferSink,
+  ) {}
 
   async *chunksFrom(startUs: Us): AsyncGenerator<AudioChunk, void, undefined> {
     for await (const wrapped of this.sink.buffers(startUs / US_PER_SECOND)) {
@@ -23,7 +26,11 @@ class MediabunnyAudioSource implements AudioTrackSource {
   }
 
   dispose(): void {
-    // mediabunny inputs hold no OS resources; GC handles it.
+    // Free the input's fetched-range cache NOW (64MiB budget per input) —
+    // audio sources open per clip job, and leaving release to GC accumulates
+    // one cache per finished job across a long timeline (see the matching
+    // note in media/webcodecs.ts; measured as unbounded ArrayBuffer growth).
+    this.input.dispose();
   }
 }
 
@@ -43,9 +50,11 @@ export async function openMediabunnyAudio(
   }
   const input = new Input({ formats: ALL_FORMATS, source });
   const track = await input.getPrimaryAudioTrack();
-  if (!track) return null;
-  if (!(await track.canDecode())) return null;
-  return new MediabunnyAudioSource(new AudioBufferSink(track));
+  if (!track || !(await track.canDecode())) {
+    input.dispose();
+    return null;
+  }
+  return new MediabunnyAudioSource(input, new AudioBufferSink(track));
 }
 
 class WebAudioChannel implements AudioChannel {

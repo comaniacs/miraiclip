@@ -9,15 +9,26 @@ import type {
   VideoTrackInfo,
 } from "./types.js";
 
-/** Unclamped macrotask yield (setTimeout nests are clamped to ~4ms). */
+/**
+ * Unclamped macrotask yield (setTimeout nests are clamped to ~4ms), through
+ * ONE shared MessageChannel. A channel-per-yield version registered a fresh
+ * 'message' listener every poll iteration — an export's waitForFrame loop
+ * yields hundreds of times a second, and the dead ports pile up until GC
+ * (observed: 35k live listeners in DevTools mid-export, pure GC churn). One
+ * port, one listener, a FIFO of resolvers: postMessage is the wakeup, order
+ * is preserved because message events dispatch in post order.
+ */
+const macrotaskQueue: (() => void)[] = [];
+let macrotaskPort: MessagePort | undefined;
 function macrotask(): Promise<void> {
-  return new Promise((resolve) => {
+  if (!macrotaskPort) {
     const channel = new MessageChannel();
-    channel.port1.onmessage = () => {
-      channel.port1.close();
-      resolve();
-    };
-    channel.port2.postMessage(null);
+    channel.port1.onmessage = () => macrotaskQueue.shift()?.();
+    macrotaskPort = channel.port2;
+  }
+  return new Promise((resolve) => {
+    macrotaskQueue.push(resolve);
+    macrotaskPort!.postMessage(null);
   });
 }
 
@@ -285,7 +296,17 @@ export class VideoPipeline {
         !this.decodeError &&
         epoch === this.epoch
       ) {
-        const { value, done } = await this.iterator.next();
+        let next: IteratorResult<EncodedChunkLike, void>;
+        try {
+          next = await this.iterator.next();
+        } catch (error) {
+          // dispose() cancels the input's in-flight reads (freeing its range
+          // cache immediately); the rejection landing here is the teardown
+          // itself, not a media error.
+          if (this.disposed || epoch !== this.epoch) break;
+          throw error;
+        }
+        const { value, done } = next;
         // dispose()/reseek can land while awaiting the chunk read.
         if (this.disposed || epoch !== this.epoch || !this.decoder) break;
         if (done) {

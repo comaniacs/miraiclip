@@ -56,6 +56,31 @@ export interface ExportRange {
   endUs: Us;
 }
 
+/**
+ * Raw planar PCM audio chunk — the worker-export audio interchange.
+ * `AudioBuffer` and `OfflineAudioContext` are window-only, so a worker export
+ * mixes audio on the main thread and transfers chunks as channel planes
+ * (zero-copy); the sink turns them into encoder samples. Accepted anywhere an
+ * `AudioBuffer` chunk is (the exporter treats chunks as opaque).
+ */
+export interface PcmAudioChunk {
+  sampleRate: number;
+  numberOfFrames: number;
+  numberOfChannels: number;
+  /** One Float32Array per channel, `numberOfFrames` samples each. */
+  planes: Float32Array[];
+}
+
+export function isPcmAudioChunk(value: unknown): value is PcmAudioChunk {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Array.isArray((value as PcmAudioChunk).planes) &&
+    typeof (value as PcmAudioChunk).sampleRate === "number" &&
+    typeof (value as PcmAudioChunk).numberOfFrames === "number"
+  );
+}
+
 export class ExportAbortedError extends Error {
   constructor() {
     super("export aborted");

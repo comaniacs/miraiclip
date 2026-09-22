@@ -67,9 +67,12 @@ export type { MediaSrc, WebCodecsDecoderOptions } from "./media/webcodecs.js";
 
 export { exportComposition } from "./export/exporter.js";
 export type { ExportCompositionOptions } from "./export/exporter.js";
-export { exportProject } from "./export/export-project.js";
+export { compositionEnd, exportProject, probeCompositionAudio } from "./export/export-project.js";
 export type { ExportProjectOptions } from "./export/export-project.js";
-export { createMediabunnySink, isSoftwareWebGL } from "./export/mediabunny-sink.js";
+export { exportProjectInWorker, exportViaWorker } from "./export/worker/export-via-worker.js";
+export type { ExportProjectInWorkerOptions, ExportViaWorkerOptions } from "./export/worker/export-via-worker.js";
+export type { MainToWorkerMessage, WorkerExportWireOptions, WorkerToMainMessage } from "./export/worker/protocol.js";
+export { createMediabunnySink, hasHardwareVideoEncoder, isSoftwareWebGL } from "./export/mediabunny-sink.js";
 export type {
   CreateMediabunnySinkOptions,
   ExportFormat,
@@ -78,4 +81,5 @@ export type {
 export { mixCompositionAudio, planAudioJobs } from "./export/offline-audio.js";
 export type { AudioMixJob, MixCompositionAudioOptions } from "./export/offline-audio.js";
 export { ExportAbortedError } from "./export/types.js";
-export type { ExportProgress, ExportRange, ExportSink } from "./export/types.js";
+export { isPcmAudioChunk } from "./export/types.js";
+export type { ExportProgress, ExportRange, ExportSink, PcmAudioChunk } from "./export/types.js";

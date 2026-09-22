@@ -13,12 +13,17 @@ import {
   createWebAudioOutput,
   createWebCodecsDecoderFactory,
   exportProject,
+  exportViaWorker,
   isWebCodecsSupported,
   openMediabunnyAudio,
   openMediabunnyDemuxer,
   type ExportFormat,
+  type ExportViaWorkerOptions,
   type Player,
 } from "@miraiclip/renderer";
+// Vite bundles the worker entry's whole module graph (`?worker`); the export
+// pipeline then runs OFF the main thread — the page stays responsive.
+import ExportWorker from "@miraiclip/renderer/export-worker?worker";
 
 const fileInput = document.getElementById("file") as HTMLInputElement;
 const canvas = document.getElementById("stage") as HTMLCanvasElement;
@@ -207,8 +212,11 @@ async function load(fileOrUrl: File | string): Promise<void> {
     }
     exportButton.disabled = true;
     player.pause();
+    // The export runs in a WORKER: same total CPU, but the page's own thread
+    // stays free — preview and UI keep responding while it encodes.
+    const worker = new ExportWorker();
     try {
-      const bytes = await exportProject(project, {
+      const baseOptions: ExportViaWorkerOptions = {
         format,
         quality: exportQuality.value as "draft" | "standard" | "high",
         // "source" = the project's fps (exportProject's default); a lower
@@ -223,21 +231,65 @@ async function load(fileOrUrl: File | string): Promise<void> {
                 ? `exporting… audio ${Math.round((audioMixedUs ?? 0) / 1_000_000)}s / ${Math.round((audioTotalUs ?? 0) / 1_000_000)}s`
                 : `exporting… (${phase})`;
         },
-      });
-      const blob = new Blob([bytes as BlobPart], {
-        type: format === "mp4" ? "video/mp4" : "video/webm",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `miraiclip-export.${format}`;
-      a.click();
-      URL.revokeObjectURL(url);
-      status.textContent = `exported ${(blob.size / 1_048_576).toFixed(1)} MB ${format}`;
+      };
+      const mime = format === "mp4" ? "video/mp4" : "video/webm";
+
+      // Streaming save (Chrome desktop): the encoded file goes straight to
+      // disk as it is produced — nothing accumulates in the page, which is
+      // what long exports need. Falls back to a buffered download elsewhere,
+      // or when the user dismisses the picker's gesture requirements fail.
+      const picker = (
+        window as unknown as {
+          showSaveFilePicker?: (options: unknown) => Promise<{
+            name: string;
+            createWritable(): Promise<WritableStream & { abort?: () => Promise<void>; close?: () => Promise<void> }>;
+          }>;
+        }
+      ).showSaveFilePicker;
+      let writable: (WritableStream & { abort?: () => Promise<void>; close?: () => Promise<void> }) | undefined;
+      let fileName = "";
+      if (picker) {
+        try {
+          const handle = await picker({
+            suggestedName: `miraiclip-export.${format}`,
+            types: [{ description: "Video", accept: { [mime]: [`.${format}`] } }],
+          });
+          writable = await handle.createWritable();
+          fileName = handle.name;
+        } catch (error) {
+          if ((error as Error)?.name === "AbortError") {
+            status.textContent = "export canceled";
+            return;
+          }
+          writable = undefined; // picker unavailable in practice — buffered fallback
+        }
+      }
+
+      if (writable) {
+        try {
+          await exportViaWorker(worker, project, { ...baseOptions, target: writable as never });
+          await writable.close?.().catch(() => undefined); // commit if the muxer didn't close it
+        } catch (error) {
+          await writable.abort?.().catch(() => undefined); // discard the partial file
+          throw error;
+        }
+        status.textContent = `exported to ${fileName} (streamed)`;
+      } else {
+        const bytes = await exportViaWorker(worker, project, baseOptions);
+        const blob = new Blob([bytes as BlobPart], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `miraiclip-export.${format}`;
+        a.click();
+        URL.revokeObjectURL(url);
+        status.textContent = `exported ${(blob.size / 1_048_576).toFixed(1)} MB ${format}`;
+      }
     } catch (error) {
       status.textContent = `export failed: ${error instanceof Error ? error.message : String(error)}`;
       console.error("[playground] export failed:", error);
     } finally {
+      worker.terminate();
       exportButton.disabled = false;
     }
   };
@@ -254,6 +306,13 @@ async function load(fileOrUrl: File | string): Promise<void> {
     player,
     project,
     exportProject,
+    // Worker export for the e2e suite: same options, runs in a fresh worker.
+    exportProjectViaWorker: (options: unknown) => {
+      const worker = new ExportWorker();
+      return exportViaWorker(worker, project, options as ExportViaWorkerOptions).finally(() =>
+        worker.terminate(),
+      );
+    },
     core: { evaluateClipAt, captionClipsFromSubtitles, captionClipsFromAsrWords, commandCatalog },
   };
 

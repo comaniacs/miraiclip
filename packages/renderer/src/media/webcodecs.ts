@@ -48,6 +48,7 @@ export async function assertDecodable(assetId: string, config: VideoDecoderConfi
 class MediabunnyDemuxer implements VideoTrackDemuxer {
   constructor(
     private readonly assetId: string,
+    private readonly input: Input,
     private readonly track: InputVideoTrack,
     private readonly sink: EncodedPacketSink,
   ) {}
@@ -98,7 +99,15 @@ class MediabunnyDemuxer implements VideoTrackDemuxer {
   }
 
   dispose(): void {
-    // mediabunny inputs hold no OS resources beyond their source; GC handles it.
+    // Free the input's read cache NOW, not at GC time. Each mediabunny Input
+    // caches fetched source ranges (64MiB budget per input by default), and
+    // clip nodes can retain their disposed pipeline — and through it this
+    // demuxer — until teardown. Left to GC, a long timeline over a large
+    // source retains one range cache per finished clip: measured ~6.5MB per
+    // clip on a 91MB 4K fixture, and unbounded ArrayBuffer growth (not capped
+    // by the V8 heap limit) on multi-GB sources — enough to exhaust a machine
+    // mid-export.
+    this.input.dispose();
   }
 }
 
@@ -120,8 +129,11 @@ export async function openMediabunnyDemuxer(
   }
   const input = new Input({ formats: ALL_FORMATS, source });
   const track = await input.getPrimaryVideoTrack();
-  if (!track) throw new UnsupportedMediaError(assetId, "no video track found");
-  return new MediabunnyDemuxer(assetId, track, new EncodedPacketSink(track));
+  if (!track) {
+    input.dispose();
+    throw new UnsupportedMediaError(assetId, "no video track found");
+  }
+  return new MediabunnyDemuxer(assetId, input, track, new EncodedPacketSink(track));
 }
 
 export interface WebCodecsDecoderOptions {

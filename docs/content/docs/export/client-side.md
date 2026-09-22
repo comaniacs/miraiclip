@@ -73,6 +73,44 @@ Positions may seek backwards (containers patch their headers at the end), which 
 
 Combined with chunked audio (on by default), export memory no longer scales with timeline length: the stress suite exports hour-scale timelines with a flat JS heap. Server-side exports stream automatically when given an output path — see [Server side](../server-side).
 
+## Exporting in a worker
+
+`exportProject` runs on the thread that calls it — a long export on the main thread keeps the page busy. Run the same pipeline in a worker instead and the page stays responsive (total CPU is unchanged; the export just stops competing with your UI):
+
+```ts
+import { exportProjectInWorker } from "@miraiclip/renderer";
+
+const bytes = await exportProjectInWorker(project, {
+  format: "webm",
+  quality: "standard",
+  onProgress: ({ framesDone, totalFrames }) => { /* same events */ },
+});
+```
+
+`exportProjectInWorker` spawns the bundled worker entry via `new Worker(new URL("./export.worker.js", import.meta.url), { type: "module" })` — the pattern Vite, webpack, and Rollup all resolve and bundle. Where that pattern can't apply, bring your own worker:
+
+```ts
+// Vite example — bundle the entry explicitly:
+import ExportWorker from "@miraiclip/renderer/export-worker?worker";
+import { exportViaWorker } from "@miraiclip/renderer";
+
+const worker = new ExportWorker();
+try {
+  const bytes = await exportViaWorker(worker, project, { format: "webm" });
+} finally {
+  worker.terminate(); // exportViaWorker never terminates a worker you own
+}
+```
+
+| Works in the worker | Notes |
+|---|---|
+| `target` streaming | Chunks relay through the main thread into your stream (a `FileSystemWritableFileStream` is not transferable), acked per write so its backpressure reaches the worker's encoders — a `showSaveFilePicker()` writable works directly |
+| Audio | Mixed on the main thread (`OfflineAudioContext` is window-only) and fed across as raw PCM — same mix math, same output |
+| Fonts, captions, effects, transitions | Load and render inside the worker |
+| `range`, `fps`, `width`/`height`, `quality`, `signal`, `onProgress` | Same semantics; progress and abort cross as messages |
+
+Custom clip-kind `factories` cannot cross a thread boundary (they are functions) — worker exports support **built-in kinds only**, the same rule as [server-side export](../server-side). Media `src` values must be reachable from a worker: `http(s)` and `blob:` URLs and `File`/`Blob` objects all are.
+
 ## How it works
 
 Every output frame is sampled at its **temporal midpoint** (robust against container timestamp rounding), rendered via `renderFrameAt` — which waits for the exact frame's decoded pixels to arrive, not merely for decode to be scheduled — onto an `OffscreenCanvas` at project resolution, and handed to the muxer. Encoding is **pipelined**: the sink captures the canvas synchronously, so up to `encodeAheadFrames` (default 4) submissions encode in the background while the next frame decodes and composites — the stages overlap instead of running in lockstep. The window bounds memory however fast decode runs. Time moves strictly forward, so the streaming decoders never re-seek.

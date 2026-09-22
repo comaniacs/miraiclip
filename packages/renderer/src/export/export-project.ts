@@ -1,4 +1,4 @@
-import type { Project } from "@miraiclip/core";
+import type { Project, ProjectDocument } from "@miraiclip/core";
 import { Compositor } from "../compositor/compositor.js";
 import type { NodeFactory } from "../compositor/types.js";
 import { createPixiBackend } from "../compositor/pixi-backend.js";
@@ -15,6 +15,7 @@ import { loadFontAssets } from "../captions/fonts.js";
 import { exportComposition } from "./exporter.js";
 import {
   createMediabunnySink,
+  hasHardwareVideoEncoder,
   isSoftwareWebGL,
   type CreateMediabunnySinkOptions,
   type ExportFormat,
@@ -66,6 +67,52 @@ export interface ExportProjectOptions {
    * integer seconds — boundaries stay sample-exact at 48kHz.
    */
   audioChunkSeconds?: number;
+  /**
+   * Advanced — replace the built-in audio pipeline entirely (worker hosts:
+   * `OfflineAudioContext` and `AudioBuffer` are window-only, so a worker
+   * export gets its audio mixed OUTSIDE the worker and fed in as chunks).
+   * `hasAudio` replaces the asset probe; when true, `mixChunk` must return a
+   * chunk (an `AudioBuffer` or a `PcmAudioChunk`) for EVERY requested range —
+   * silent stretches as real silence, never null.
+   */
+  audioOverride?: {
+    hasAudio: boolean;
+    mixChunk?: (context: MixAudioContext, chunkRange: ExportRange) => Promise<unknown | null>;
+  };
+}
+
+/** End of the last clip — the default export range's end. */
+export function compositionEnd(doc: ProjectDocument): Us {
+  let endUs: Us = 0;
+  for (const clip of Object.values(doc.clips)) {
+    endUs = Math.max(endUs, clip.startUs + clip.durationUs);
+  }
+  return endUs;
+}
+
+/**
+ * Whether the composition contributes ANY audio over `range` — decided by
+ * probing each distinct contributing asset until one actually opens an audio
+ * track (planning alone counts every video clip as audible even when its
+ * asset carries no audio stream). Shared by `exportProject` and the worker
+ * export driver, which must decide this on the MAIN thread.
+ */
+export async function probeCompositionAudio(
+  doc: ProjectDocument,
+  range: ExportRange,
+  openAudio: AudioSourceFactory,
+): Promise<boolean> {
+  const seen = new Set<string>();
+  for (const job of planAudioJobs(doc, range)) {
+    if (seen.has(job.assetId)) continue;
+    seen.add(job.assetId);
+    const source = await openAudio(job.assetId, job.src).catch(() => null);
+    if (source) {
+      source.dispose();
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -81,11 +128,7 @@ export async function exportProject(
   options: ExportProjectOptions,
 ): Promise<Uint8Array> {
   const doc = project.getState().doc;
-  let compositionEndUs: Us = 0;
-  for (const clip of Object.values(doc.clips)) {
-    compositionEndUs = Math.max(compositionEndUs, clip.startUs + clip.durationUs);
-  }
-  const range = options.range ?? { startUs: 0, endUs: compositionEndUs };
+  const range = options.range ?? { startUs: 0, endUs: compositionEnd(doc) };
   if (!(range.endUs > range.startUs)) throw new Error("nothing to export: the composition is empty");
 
   const width = options.width ?? doc.settings.width;
@@ -119,11 +162,15 @@ export async function exportProject(
     const sinkOptions: CreateMediabunnySinkOptions = {
       canvas,
       format: options.format,
-      // Under software WebGL (headless CI, VMs) direct canvas capture leaks
-      // GPU shared-images while decode+encode run together — route the
-      // capture through a CPU 2D mirror there. Real GPUs keep the zero-copy
-      // snapshot path.
-      cpuCapture: isSoftwareWebGL(canvas),
+      // CPU-mirror capture whenever zero-copy capture can outpace encoding:
+      // under software WebGL (headless CI, VMs), direct canvas capture leaks
+      // GPU shared-images while decode+encode run together — and the same
+      // retention shows on REAL GPUs when the video ENCODER is software
+      // (e.g. VP9/WebM on macOS): captured GPU frames pile up behind the slow
+      // encode (field report: a WebM High export exhausted a 36GB machine).
+      // Zero-copy capture stays only where a hardware encoder drains it.
+      cpuCapture:
+        isSoftwareWebGL(canvas) || !(await hasHardwareVideoEncoder(options.format, width, height)),
       ...(options.quality !== undefined ? { quality: options.quality } : {}),
       ...(options.target ? { target: options.target } : {}),
     };
@@ -146,20 +193,13 @@ export async function exportProject(
   // plans as audible even when its asset carries no audio stream, and forcing
   // a silent track onto such an export would change its output — so probe
   // each distinct contributing asset until one actually opens audio.
-  let hasAudio = false;
-  {
-    const seen = new Set<string>();
-    for (const job of planAudioJobs(doc, range)) {
-      if (seen.has(job.assetId)) continue;
-      seen.add(job.assetId);
-      const source = await openAudio(job.assetId, job.src).catch(() => null);
-      if (source) {
-        source.dispose();
-        hasAudio = true;
-        break;
-      }
-    }
-  }
+  const hasAudio = options.audioOverride
+    ? options.audioOverride.hasAudio
+    : await probeCompositionAudio(doc, range, openAudio);
+  const mixChunk =
+    options.audioOverride?.mixChunk ??
+    ((mixContext: MixAudioContext, chunkRange: ExportRange) =>
+      mixCompositionAudio({ doc, range: chunkRange, openAudio, silenceIfEmpty: true, ...mixContext }));
 
   try {
     return await exportComposition({
@@ -171,12 +211,7 @@ export async function exportProject(
       // Audio mixes in bounded sequential chunks interleaved with the frame
       // walk — silent stretches return real silent buffers so chunk
       // timestamps stay aligned.
-      ...(hasAudio
-        ? {
-            mixAudioChunk: (mixContext: MixAudioContext, chunkRange: ExportRange) =>
-              mixCompositionAudio({ doc, range: chunkRange, openAudio, silenceIfEmpty: true, ...mixContext }),
-          }
-        : {}),
+      ...(hasAudio ? { mixAudioChunk: mixChunk } : {}),
       audioChunkUs: Math.round((options.audioChunkSeconds ?? 60) * 1_000_000),
       ...(options.signal ? { signal: options.signal } : {}),
       ...(options.onProgress ? { onProgress: options.onProgress } : {}),

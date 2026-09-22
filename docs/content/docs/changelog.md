@@ -5,6 +5,20 @@ weight: 10
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
+## Unreleased
+
+### Fixed
+
+- `@miraiclip/renderer` **unbounded memory growth across long timelines**: finished clips retained their demuxer's fetched-range cache (mediabunny `Input`s cache up to 64MiB of source ranges each; the adapters never disposed them, and clip nodes keep their disposed pipeline reachable after a clip ends). On large sources this grew without bound — a field-reported 257s 4K export exhausted the machine. Video and audio adapters now dispose the underlying `Input` when released, freeing each cache immediately. Measured on a 91MB 4K fixture: export heap growth cut from 51→262MB to 79→147MB, stair-step gone.
+
+- `@miraiclip/renderer` **unbounded GPU memory with software encoders on real GPUs**: long WebM exports (no hardware VP9 encoder on macOS) retained one GPU capture image per frame behind the slow software encode and could exhaust the machine. Capture now routes through the CPU mirror whenever the chosen codec has no hardware encoder at the output size; MP4/H.264 on hardware keeps the zero-copy path. New probe: `hasHardwareVideoEncoder(format, width, height)`.
+
+- `@miraiclip/renderer` **listener churn during exports**: the frame-wait loop created a MessageChannel per yield, piling up tens of thousands of dead 'message' listeners awaiting GC over a long export. One shared channel now serves every yield (measured: peak listeners 2,776 → 61 on the same export).
+
+### Added
+
+- `@miraiclip/renderer` **worker export** — run the whole export off the main thread: `exportProjectInWorker(project, options)` (auto-spawns the bundled entry) or `exportViaWorker(worker, project, options)` with your own Worker (`@miraiclip/renderer/export-worker` subpath). Streaming `target` (chunks relay via main — file writables aren't transferable), progress, abort, fonts, captions, effects and transitions all work in the worker; audio mixes on main and crosses as PCM; custom clip-kind factories are main-thread-only. See [Export · Exporting in a worker](/miraiclip/docs/export/client-side/#exporting-in-a-worker).
+
 ## renderer-0.4.0 · server-export-0.2.0 — 2026-09-13
 
 ### Added

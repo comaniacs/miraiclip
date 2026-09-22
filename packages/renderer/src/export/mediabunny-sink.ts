@@ -5,6 +5,8 @@
  */
 import {
   AudioBufferSource,
+  AudioSample,
+  AudioSampleSource,
   BufferTarget,
   CanvasSource,
   Mp4OutputFormat,
@@ -23,7 +25,7 @@ import {
 } from "mediabunny";
 import { UnsupportedMediaError } from "../media/types.js";
 import type { Us } from "../media/types.js";
-import type { ExportSink } from "./types.js";
+import { isPcmAudioChunk, type ExportSink, type PcmAudioChunk } from "./types.js";
 
 export type ExportFormat = "mp4" | "webm";
 export type ExportQualityPreset = "draft" | "standard" | "high";
@@ -69,6 +71,35 @@ export interface CreateMediabunnySinkOptions {
    * EMPTY array — the bytes went to the stream.
    */
   target?: WritableStream<StreamTargetChunk>;
+}
+
+/**
+ * Whether this browser has a HARDWARE encoder for the format's video codec at
+ * the given output size. Used to pick the capture route: with a hardware
+ * encoder, zero-copy canvas capture drains fast and stays flat; with a
+ * SOFTWARE encoder (VP9/WebM on macOS, for example) the GPU-backed captured
+ * frames outlive the slow encode and Chrome's shared-image retention balloons
+ * — the same failure class as the SwiftShader capture leak, reported from the
+ * field as a machine-exhausting WebM High export on a real GPU. Probe errs
+ * toward `false` (CPU capture), the safe side.
+ */
+export async function hasHardwareVideoEncoder(
+  format: ExportFormat,
+  width: number,
+  height: number,
+): Promise<boolean> {
+  try {
+    const codecString = CODECS[format].video === "avc" ? "avc1.640028" : "vp09.00.41.08";
+    const support = await VideoEncoder.isConfigSupported({
+      codec: codecString,
+      width,
+      height,
+      hardwareAcceleration: "prefer-hardware",
+    });
+    return Boolean(support.supported);
+  } catch {
+    return false;
+  }
 }
 
 /** True when the canvas's WebGL context reports a software rasterizer. */
@@ -153,10 +184,45 @@ export async function createMediabunnySink(
     closeVideo = () => video.close();
   }
 
-  let audio: AudioBufferSource | undefined;
-  const pendingAudio: AudioBuffer[] = [];
+  // Two audio routes into the same encoder/muxer: AudioBuffer chunks (the
+  // main-thread mixer's native output) via AudioBufferSource, and raw PCM
+  // chunks (the worker-export interchange — AudioBuffer is window-only) via
+  // AudioSampleSource with running timestamps. The route is chosen by the
+  // FIRST chunk's shape.
+  let audio: AudioBufferSource | AudioSampleSource | undefined;
+  let audioIsPcm = false;
+  let pcmTimestampS = 0;
+  const pendingAudio: unknown[] = [];
   let started = false;
   let done = false;
+
+  const addAudioChunk = async (chunk: unknown): Promise<void> => {
+    if (audioIsPcm) {
+      const pcm = chunk as PcmAudioChunk;
+      // f32-planar layout: each channel's plane contiguous, in channel order.
+      const data = new Float32Array(pcm.numberOfFrames * pcm.numberOfChannels);
+      for (let c = 0; c < pcm.numberOfChannels; c++) data.set(pcm.planes[c]!, c * pcm.numberOfFrames);
+      const sample = new AudioSample({
+        data,
+        format: "f32-planar",
+        numberOfChannels: pcm.numberOfChannels,
+        sampleRate: pcm.sampleRate,
+        timestamp: pcmTimestampS,
+      });
+      try {
+        await (audio as AudioSampleSource).add(sample); // encoder/muxer backpressure
+      } finally {
+        sample.close();
+      }
+      // Sequential-chunk contract, same as the AudioBuffer route: each chunk
+      // plays right after the previous one.
+      pcmTimestampS += pcm.numberOfFrames / pcm.sampleRate;
+    } else {
+      // mediabunny accumulates AudioBuffer timestamps by buffer duration. The
+      // awaited add is the encoder/muxer backpressure.
+      await (audio as AudioBufferSource).add(chunk as AudioBuffer);
+    }
+  };
 
   const start = async (): Promise<void> => {
     if (started) return;
@@ -165,7 +231,7 @@ export async function createMediabunnySink(
     // Chunks queued before the container started; later chunks stream in
     // directly. The audio source stays open until finalize — chunked exports
     // keep adding sequential chunks through the whole frame walk.
-    while (pendingAudio.length > 0) await audio!.add(pendingAudio.shift()!);
+    while (pendingAudio.length > 0) await addAudioChunk(pendingAudio.shift()!);
   };
 
   return {
@@ -181,14 +247,14 @@ export async function createMediabunnySink(
             codecs.audio,
           );
         }
-        audio = new AudioBufferSource({ codec: codecs.audio, quality: QUALITY_MEDIUM });
+        audioIsPcm = isPcmAudioChunk(buffer);
+        audio = audioIsPcm
+          ? new AudioSampleSource({ codec: codecs.audio, quality: QUALITY_MEDIUM })
+          : new AudioBufferSource({ codec: codecs.audio, quality: QUALITY_MEDIUM });
         output.addAudioTrack(audio);
       }
-      // Sequential chunks: each plays right after the previous one (mediabunny
-      // accumulates timestamps by buffer duration). The awaited add is the
-      // encoder/muxer backpressure.
-      if (started) await audio.add(buffer as AudioBuffer);
-      else pendingAudio.push(buffer as AudioBuffer);
+      if (started) await addAudioChunk(buffer);
+      else pendingAudio.push(buffer);
     },
 
     async addVideoFrame(timestampUs: Us, durationUs: Us): Promise<void> {
