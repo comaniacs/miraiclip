@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "MCP server for Miraiclip: let Claude, Codex, or any MCP client edit a video project through the command catalog — with frame previews so the agent sees its edits, and export to file.",
   "license": "MIT",
   "repository": {

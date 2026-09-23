@@ -1,5 +1,0 @@
----
-"@miraiclip/renderer": minor
----
-
-html clip rendering: `rasterizeHtml`/`substituteParams` (SVG foreignObject via data: URL — blob: URLs taint the canvas in Chromium — with a 2D-canvas launder for WebGL-safe textures; rasters cached per template/params/size; font assets inline as @font-face data URIs, `asset:<id>` inlines image assets), a Pixi html node, and a new readiness gate: `SceneNode.whenReady`/`Compositor.whenReady` — `exportProject` and `renderProjectStill` now await async node content (image textures, html rasters) before the frame walk, fixing a latent race where exports started immediately after building a document could bake empty image sprites into early frames. Worker export renders html clips: `exportProjectInWorker`/`exportViaWorker` pre-rasterize them on the main thread (deduplicated per template/params/size) and transfer the bitmaps to the worker, which serves them by raster key — no API change. Custom worker pipelines get the same via the exported `collectHtmlRasters(doc)`/`provideHtmlRasters(rasters)`.

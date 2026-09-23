@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/server-export",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Server-side export for Miraiclip: run exportProject in headless Chrome from Node \u2014 same pipeline as the browser, preview/export parity by construction.",
   "license": "MIT",
   "repository": {
@@ -58,7 +58,7 @@
     "playwright-core": "^1.49.0"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.3.0"
+    "@miraiclip/core": "^0.4.0"
   },
   "peerDependenciesMeta": {
     "@miraiclip/core": {

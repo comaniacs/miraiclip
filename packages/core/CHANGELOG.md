@@ -1,5 +1,11 @@
 # @miraiclip/core
 
+## 0.4.0
+
+### Minor Changes
+
+- a27c4ef: New built-in `html` clip kind: `clip/add { kind: "html", template, params?, widthPx?, heightPx? }` — HTML/CSS overlays with `{{param}}` substitution (values HTML-escaped), sized in composition pixels, first-class in the schema/catalog so they serialize and cross process boundaries. `clip/set-property { params }` merges params.
+
 ## 0.3.0
 
 ### Minor Changes
