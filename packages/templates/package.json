@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/templates",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Parameterized videos for Miraiclip: a template project + a data payload → a hydrated document → export. Batch and personalized video generation, with field schemas that double as validation, UI forms, and LLM tools.",
   "license": "MIT",
   "repository": {
