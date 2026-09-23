@@ -3,7 +3,7 @@
  * its tests never touch this file. Rendering is manual (no Pixi ticker) — the
  * playback controller decides when frames are drawn.
  */
-import { Application, Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
+import { Application, Assets, CanvasSource, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
 import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { captionProgress, layoutCaption, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
@@ -220,7 +220,12 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     const size = this.context.compositionSize();
     const widthPx = clip.widthPx ?? size.width;
     const heightPx = clip.heightPx ?? size.height;
-    const key = htmlRasterKey(clip, widthPx, heightPx);
+    // Raster at the backend's render density (output ÷ composition, or the
+    // preview's DPR): the texture carries the extra pixels while its
+    // `resolution` keeps the sprite's LOGICAL size — sharp when the stage
+    // scales up, identical layout everywhere.
+    const density = Math.max(1, this.context.renderScale?.() ?? 1);
+    const key = htmlRasterKey(clip, widthPx, heightPx, density);
     if (key === this.key) return;
     this.key = key;
     const job = rasterizeHtml({
@@ -229,12 +234,17 @@ class PixiHtmlNode extends PixiNode<Sprite> {
       widthPx,
       heightPx,
       assets: this.assets,
+      density,
     }).then((source) => {
       // `source` is a laundered canvas (DOM) or a pre-rendered ImageBitmap
-      // (worker export) — Texture.from takes both.
+      // (worker export) — both are physical-size pixel buffers.
       if (this.key !== key || this.display.destroyed) return;
       const previous = this.display.texture;
-      this.display.texture = Texture.from(source);
+      const textureSource =
+        typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap
+          ? new ImageSource({ resource: source, resolution: density })
+          : new CanvasSource({ resource: source as HTMLCanvasElement, resolution: density });
+      this.display.texture = new Texture({ source: textureSource });
       if (previous !== Texture.EMPTY) previous.destroy(true);
       this.invalidate();
     });
@@ -250,6 +260,8 @@ class PixiHtmlNode extends PixiNode<Sprite> {
 }
 
 class PixiTextNode extends PixiNode<Text> {
+  private readonly textContext: EffectContext;
+
   constructor(
     stage: Container,
     clip: TextClip,
@@ -260,12 +272,17 @@ class PixiTextNode extends PixiNode<Text> {
     text.anchor.set(0.5);
     stage.addChild(text);
     super(text, invalidate, effectContext);
+    this.textContext = effectContext;
     this.update(clip);
   }
 
   update(clip: Clip): void {
     if (!isTextClip(clip)) return;
     this.display.text = clip.text;
+    // Glyphs rasterize at the render density, not composition density — sharp
+    // in upscaled exports and hi-DPI previews (the stage scale would otherwise
+    // stretch a composition-resolution glyph atlas).
+    this.display.resolution = Math.max(1, this.textContext?.renderScale?.() ?? 1);
     this.display.style = {
       fontFamily: clip.fontFamily,
       fontSize: clip.fontSizePx,
@@ -316,6 +333,7 @@ class PixiCaptionNode extends PixiNode<Container> {
         this.wordTexts.push(text);
       }
       text.text = words[i]!.text;
+      text.resolution = Math.max(1, this.context.renderScale?.() ?? 1); // sharp under stage upscale
       text.style = { fontFamily: style.fontFamily, fontSize: fontSizePx, fill: style.color };
       text.scale.set(1);
     }
@@ -491,6 +509,13 @@ class PixiSceneBackend implements SceneBackend {
 
   private readonly effectContext: EffectContext = {
     compositionSize: () => this.compSize,
+    // Physical pixels per composition pixel: > 1 when the canvas renders
+    // larger than the composition (upscaled export, hi-DPI preview) — nodes
+    // that RASTERIZE (html, text) generate at this density to stay sharp.
+    renderScale: () => {
+      const out = this.outputSize ?? this.compSize;
+      return Math.max(out.width / this.compSize.width, out.height / this.compSize.height);
+    },
   };
 
   constructor(private readonly app: Application) {

@@ -72,7 +72,14 @@ export async function exportViaWorker(
   // html clips rasterize via the DOM, which workers don't have — render them
   // HERE (this thread has the DOM) and transfer the bitmaps with the start
   // message; the worker's compositor picks them up by raster key.
-  const { rasters: htmlRasters, transfer: htmlTransfer } = await collectHtmlRasters(doc);
+  const { rasters: htmlRasters, transfer: htmlTransfer } = await collectHtmlRasters(doc, {
+    // Raster at OUTPUT density so upscaled exports stay sharp — the worker's
+    // compositor computes the same density and looks rasters up by key.
+    outputSize: {
+      ...(options.width !== undefined ? { width: options.width } : {}),
+      ...(options.height !== undefined ? { height: options.height } : {}),
+    },
+  });
   const range = options.range ?? { startUs: 0, endUs: compositionEnd(doc) };
   const hasAudio = await probeCompositionAudio(doc, range, openMediabunnyAudio);
 

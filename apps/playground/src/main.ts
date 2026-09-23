@@ -109,6 +109,11 @@ async function load(fileOrUrl: File | string): Promise<void> {
     height: 720,
     preserveDrawingBuffer: true,
   });
+  // Hi-DPI preview: back the canvas with CSS size × devicePixelRatio (capped —
+  // 2x is visually sharp; beyond costs GPU for nothing) while composition
+  // coordinates stay 1280×720. Text and html rasters regenerate at this
+  // density; CSS pins the DISPLAY size, so nothing moves on screen.
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const player: Player = createPlayer(project, {
     backend,
     openDemuxer: openMediabunnyDemuxer,
@@ -118,6 +123,7 @@ async function load(fileOrUrl: File | string): Promise<void> {
     audioOutput: createWebAudioOutput(),
     openAudio: openMediabunnyAudio,
     loop: true,
+    ...(dpr > 1 ? { outputSize: { width: 1280 * dpr, height: 720 * dpr } } : {}),
   });
 
   // 3 — UI, driven by the core's playhead events (throttled DOM writes).

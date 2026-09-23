@@ -81,14 +81,30 @@ export function provideHtmlRasters(rasters: Record<string, ImageBitmap>): void {
  */
 export async function collectHtmlRasters(
   doc: Pick<ProjectDocument, "clips" | "assets" | "settings">,
+  options: {
+    /**
+     * The export's output size — rasters are generated at output density
+     * (output ÷ composition, floor 1), matching what the worker's compositor
+     * asks for. Omit for composition-size output.
+     */
+    outputSize?: { width?: number; height?: number };
+  } = {},
 ): Promise<{ rasters: Record<string, ImageBitmap>; transfer: Transferable[] }> {
+  const settings = doc.settings as { width: number; height: number };
+  // MUST mirror the backend's renderScale computation exactly — the raster
+  // key includes the density, and the worker looks rasters up by key.
+  const density = Math.max(
+    1,
+    (options.outputSize?.width ?? settings.width) / settings.width,
+    (options.outputSize?.height ?? settings.height) / settings.height,
+  );
   const rasters: Record<string, ImageBitmap> = {};
   const transfer: Transferable[] = [];
   for (const clip of Object.values(doc.clips)) {
     if (!isHtmlClip(clip)) continue;
-    const widthPx = clip.widthPx ?? doc.settings.width;
-    const heightPx = clip.heightPx ?? doc.settings.height;
-    const key = htmlRasterKey(clip, widthPx, heightPx);
+    const widthPx = clip.widthPx ?? settings.width;
+    const heightPx = clip.heightPx ?? settings.height;
+    const key = htmlRasterKey(clip, widthPx, heightPx, density);
     if (key in rasters) continue;
     const canvas = await rasterizeHtml({
       template: clip.template,
@@ -96,6 +112,7 @@ export async function collectHtmlRasters(
       widthPx,
       heightPx,
       assets: doc.assets,
+      density,
     });
     const bitmap = await createImageBitmap(canvas);
     rasters[key] = bitmap;
@@ -111,6 +128,13 @@ export interface RasterizeHtmlOptions {
   heightPx: number;
   /** Project assets: font assets inline as @font-face; `asset:<id>` references inline as data: URIs. */
   assets?: Readonly<Record<string, Asset>>;
+  /**
+   * Physical pixels per logical (composition) pixel — raster at this density
+   * so upscaled outputs and hi-DPI previews stay sharp. Layout happens at the
+   * LOGICAL size (a scale transform supersamples it), so a template renders
+   * identically at every density. Default 1.
+   */
+  density?: number;
 }
 
 /**
@@ -125,7 +149,7 @@ export async function rasterizeHtml(
 ): Promise<HTMLCanvasElement | ImageBitmap> {
   const { widthPx, heightPx } = options;
   const provided = providedRasters.get(
-    JSON.stringify([options.template, options.params, widthPx, heightPx]),
+    JSON.stringify([options.template, options.params, widthPx, heightPx, options.density ?? 1]),
   );
   if (provided) return provided;
   if (typeof document === "undefined") {
@@ -156,12 +180,19 @@ export async function rasterizeHtml(
     fontCss += `@font-face{font-family:${JSON.stringify(asset.family)};src:url(${JSON.stringify(uri)})}`;
   }
 
+  // Supersampling: the SVG (and canvas) are PHYSICAL size, while the markup
+  // lays out at the LOGICAL size inside a scale transform — same layout at
+  // every density, just more pixels per glyph.
+  const density = options.density ?? 1;
+  const physicalW = Math.round(widthPx * density);
+  const physicalH = Math.round(heightPx * density);
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${widthPx}" height="${heightPx}">` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${physicalW}" height="${physicalH}">` +
     (fontCss ? `<style>${fontCss}</style>` : "") +
     `<foreignObject width="100%" height="100%">` +
-    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${widthPx}px;height:${heightPx}px;overflow:hidden">${markup}</div>` +
-    `</foreignObject></svg>`;
+    `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${physicalW}px;height:${physicalH}px;overflow:hidden">` +
+    `<div style="width:${widthPx}px;height:${heightPx}px;overflow:hidden;transform:scale(${density});transform-origin:0 0">${markup}</div>` +
+    `</div></foreignObject></svg>`;
 
   const image = new Image();
   await new Promise<void>((resolve, reject) => {
@@ -172,8 +203,8 @@ export async function rasterizeHtml(
 
   // The launder: via a 2D canvas the pixels are WebGL-safe (see header).
   const canvas = document.createElement("canvas");
-  canvas.width = widthPx;
-  canvas.height = heightPx;
+  canvas.width = physicalW;
+  canvas.height = physicalH;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("could not create a 2D context for html rasterization");
   context.drawImage(image, 0, 0);
@@ -185,6 +216,7 @@ export function htmlRasterKey(
   clip: HtmlClip,
   widthPx: number,
   heightPx: number,
+  density = 1,
 ): string {
-  return JSON.stringify([clip.template, clip.params, widthPx, heightPx]);
+  return JSON.stringify([clip.template, clip.params, widthPx, heightPx, density]);
 }

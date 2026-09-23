@@ -30,6 +30,14 @@ import {
   type Project,
 } from "@miraiclip/core";
 import {
+  defineTemplate,
+  describeTemplate,
+  extractFields,
+  hydrate,
+  toFieldToolDefinition,
+  tryHydrate,
+} from "@miraiclip/templates";
+import {
   createPixiBackend,
   createPlayer,
   createWebAudioOutput,
@@ -218,6 +226,9 @@ function createRunner(host: RunnerHost): Runner {
         // Custom clip kinds: registers the kind in core (once per page load)
         // and hands the factory to the player created after this snippet.
         registerClipKind: registerClipKindForExamples,
+        // Parameterized videos — the real @miraiclip/templates API (hydration
+        // is pure and browser-safe; batch rendering is the Node side).
+        templates: { defineTemplate, hydrate, tryHydrate, extractFields, describeTemplate, toFieldToolDefinition },
         status: (text: string) => setStatus(text),
         download: (bytes: Uint8Array, name: string) => {
           const type = name.endsWith(".mp4") ? "video/mp4" : "video/webm";
@@ -243,6 +254,11 @@ function createRunner(host: RunnerHost): Runner {
       frame.append(canvas);
       // preserveDrawingBuffer: pixel readback for screenshots and the smoke test.
       const backend = await createPixiBackend({ canvas, width: WIDTH, height: HEIGHT, preserveDrawingBuffer: true });
+      // Hi-DPI preview: the canvas backing store renders at devicePixelRatio
+      // (capped at 2) while composition coordinates stay 640×360 — text and
+      // html rasters regenerate at that density, and the frame's CSS pins the
+      // display size. On a 1x display this is a no-op.
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const created = createPlayer(project, {
         backend,
         openDemuxer: openMediabunnyDemuxer,
@@ -251,6 +267,7 @@ function createRunner(host: RunnerHost): Runner {
         openAudio: openMediabunnyAudio,
         loop: true,
         factories: { ...customClipFactories },
+        ...(dpr > 1 ? { outputSize: { width: WIDTH * dpr, height: HEIGHT * dpr } } : {}),
       });
       player = created;
 

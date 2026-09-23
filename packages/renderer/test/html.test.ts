@@ -152,3 +152,38 @@ describe("pre-rendered rasters (the worker-export path)", () => {
     expect((first as unknown as { closed: boolean }).closed).toBe(true);
   });
 });
+
+describe("raster density (sharp upscaled outputs and hi-DPI previews)", () => {
+  it("the raster key includes density — a density change re-rasters", () => {
+    const clip = { template: "<b>x</b>", params: {} } as never;
+    expect(htmlRasterKey(clip, 100, 50)).toBe(htmlRasterKey(clip, 100, 50, 1));
+    expect(htmlRasterKey(clip, 100, 50, 2)).not.toBe(htmlRasterKey(clip, 100, 50, 1));
+  });
+
+  it("collectHtmlRasters keys at OUTPUT density (matching the worker compositor)", async () => {
+    const { project } = setup(); // 640×360 composition
+    project.dispatch({
+      type: "clip/add",
+      payload: {
+        kind: "html", id: "h", trackId: "v1", startUs: 0, durationUs: 1_000_000,
+        template: "<b>d</b>", params: {},
+      },
+    });
+    const doc = project.getState().doc;
+    const key2x = htmlRasterKey(doc.clips["h"] as never, 640, 360, 2);
+    provideHtmlRasters({ [key2x]: { width: 1, height: 1, close() {} } as unknown as ImageBitmap });
+    const scope = globalThis as { createImageBitmap?: unknown };
+    scope.createImageBitmap = async (source: unknown) => source;
+    try {
+      // Output 1280×720 over a 640×360 comp → density 2; downscale clamps to 1.
+      const up = await collectHtmlRasters(doc, { outputSize: { width: 1280, height: 720 } });
+      expect(Object.keys(up.rasters)).toEqual([key2x]);
+      provideHtmlRasters({ [htmlRasterKey(doc.clips["h"] as never, 640, 360, 1)]: { close() {} } as never });
+      const down = await collectHtmlRasters(doc, { outputSize: { width: 320, height: 180 } });
+      expect(Object.keys(down.rasters)).toEqual([htmlRasterKey(doc.clips["h"] as never, 640, 360, 1)]);
+    } finally {
+      delete scope.createImageBitmap;
+      provideHtmlRasters({});
+    }
+  });
+});

@@ -1,11 +1,19 @@
 ---
 title: Changelog
-weight: 12
+weight: 13
 ---
 
 All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/). The canonical file lives at [`CHANGELOG.md`](https://github.com/comaniacs/miraiclip/blob/main/CHANGELOG.md) in the repo.
 
 ## Unreleased
+
+### Added
+
+- **`@miraiclip/templates` — parameterized videos** (new package): template project + data payload → hydrated document → export. Declared `fields` (text/number/boolean/color/asset) drive validation, UI forms, and LLM tool schemas; `{{field}}` placeholders bind into text clips, caption words, and html-clip params, `asset` fields swap media; `hydrate`/`tryHydrate` are pure with machine-readable failures. Batch: `renderTemplateBatch` over warm export sessions + a `miraiclip-templates` CLI (JSON/NDJSON/CSV rows, `{field}` naming, concurrency). See [Templates](/miraiclip/docs/templates/).
+- `@miraiclip/renderer` **sharp text and html clips at every output size** — html rasters and text glyphs generate at render density (output ÷ composition, or the preview's devicePixelRatio) instead of composition density, so upscaled exports and Retina previews stop looking soft; layout and composition-size outputs are unchanged. `createPlayer({ outputSize })` sharpens previews (the playground and live examples now pass CSS size × devicePixelRatio).
+- `@miraiclip/server-export` **`createExportSession()`** — one warm headless Chrome across calls, one full export per `exportFile(doc, options)` call (streamed `out` included): an export costs an export, not a browser launch. The batch engine behind templates.
+
+## core 0.4.0 + renderer 0.7.0 + server-export 0.3.1 + mcp 0.1.1 — 2026-09-23
 
 ### Added
 

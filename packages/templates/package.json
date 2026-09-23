@@ -1,0 +1,94 @@
+{
+  "name": "@miraiclip/templates",
+  "version": "0.0.0",
+  "description": "Parameterized videos for Miraiclip: a template project + a data payload → a hydrated document → export. Batch and personalized video generation, with field schemas that double as validation, UI forms, and LLM tools.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/templates"
+  },
+  "homepage": "https://comaniacs.github.io/miraiclip/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./render": "./src/render.ts"
+  },
+  "bin": {
+    "miraiclip-templates": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      },
+      "./render": {
+        "import": {
+          "types": "./dist/render.d.ts",
+          "default": "./dist/render.js"
+        },
+        "require": {
+          "types": "./dist/render.d.cts",
+          "default": "./dist/render.cjs"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@miraiclip/core": "workspace:^",
+    "zod": "^4.1.12"
+  },
+  "peerDependencies": {
+    "@miraiclip/server-export": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@miraiclip/server-export": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@miraiclip/server-export": "workspace:^",
+    "@types/node": "^22.20.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "video",
+    "video-editor",
+    "templates",
+    "personalized-video",
+    "batch",
+    "video-generation",
+    "ai"
+  ]
+}

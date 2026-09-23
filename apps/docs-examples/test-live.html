@@ -211,6 +211,82 @@ project.dispatch({ type: "clip/add", payload: {
 <div class="mirai-example-stage"></div>
 </div>
 
+<div class="mirai-example" id="ex-template" data-media="demo" data-assets="./">
+<div class="highlight"><pre><code>// Author once: a personalized card whose blanks are {{placeholder}} params.
+project.dispatch({ type: "clip/add", payload: {
+  kind: "html", id: "card", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  widthPx: 520, heightPx: 160, transform: { y: 0.78 },
+  template: `
+    &lt;div style="display:flex;flex-direction:column;justify-content:center;align-items:center;
+                height:100%;border-radius:16px;background:{{bg}};color:#fff"&gt;
+      &lt;div style="font:800 36px sans-serif"&gt;Hi {{who}}&lt;/div&gt;
+      &lt;div style="font:400 18px sans-serif;opacity:.85"&gt;Your {{planName}} plan is ready&lt;/div&gt;
+    &lt;/div&gt;`,
+  params: { bg: "{{accent}}", who: "{{name}}", planName: "{{plan}}" },
+} });
+
+const template = miraiclip.templates.defineTemplate({
+  name: "Welcome", doc: project.toJSON(),
+  fields: [
+    { name: "name", type: "text", maxLength: 24 },
+    { name: "plan", type: "text", enum: ["Starter", "Pro", "Studio"] },
+    { name: "accent", type: "color", default: "#7c3aed" },
+  ],
+});
+
+// Each row is one personalized video. Hydrate is pure — apply each hydrated
+// document's params to the live card in turn:
+const rows = [
+  { name: "Ada", plan: "Pro", accent: "#e02020" },
+  { name: "Grace", plan: "Studio", accent: "#2e8f63" },
+  { name: "Vin", plan: "Starter" },
+];
+let i = 0;
+const apply = () =&gt; {
+  const row = rows[i % rows.length];
+  const doc = miraiclip.templates.hydrate(template, row);
+  project.dispatch({ type: "clip/set-property", payload: {
+    clipId: "card", params: doc.clips["card"].params,
+  } });
+  miraiclip.status(`row ${(i % rows.length) + 1}/${rows.length}: ${JSON.stringify(row)}`);
+  i++;
+};
+apply();
+const timer = setInterval(apply, 2_000);
+setTimeout(() =&gt; clearInterval(timer), 30_000);</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
+<div class="mirai-example" id="ex-template-validate" data-media="demo" data-assets="./">
+<div class="highlight"><pre><code>project.dispatch({ type: "clip/add", payload: {
+  kind: "html", id: "card", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  widthPx: 480, heightPx: 140, transform: { y: 0.8 },
+  template: `&lt;div style="display:flex;align-items:center;justify-content:center;height:100%;
+    border-radius:16px;background:{{bg}};color:#fff;font:800 32px sans-serif"&gt;{{who}} · {{planName}}&lt;/div&gt;`,
+  params: { bg: "{{accent}}", who: "{{name}}", planName: "{{plan}}" },
+} });
+const template = miraiclip.templates.defineTemplate({
+  name: "Welcome", doc: project.toJSON(),
+  fields: [
+    { name: "name", type: "text", maxLength: 24 },
+    { name: "plan", type: "text", enum: ["Starter", "Pro", "Studio"] },
+    { name: "accent", type: "color", default: "#7c3aed" },
+  ],
+});
+
+// A payload that breaks the field contract never renders — tryHydrate
+// returns issues an agent (or a form) fixes and retries:
+const bad = miraiclip.templates.tryHydrate(template, { name: "Ada", plan: "Mega" });
+if (!bad.ok) {
+  miraiclip.status(`rejected — ${bad.issues.map((i) =&gt; `${i.path}: ${i.message}`).join("; ")}`);
+}
+const doc = miraiclip.templates.hydrate(template, { name: "Ada", plan: "Pro", accent: "#00d020" });
+project.dispatch({ type: "clip/set-property", payload: {
+  clipId: "card", params: doc.clips["card"].params,
+} });</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
 <div class="mirai-example" id="ex-export" data-media="demo" data-assets="./">
 <div class="highlight"><pre><code>const bytes = await miraiclip.exportProject(project, {
   format: "webm", quality: "draft",

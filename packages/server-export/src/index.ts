@@ -1,4 +1,10 @@
 export { exportProjectFile } from "./export-file.js";
+export { createExportSession } from "./export-session.js";
+export type {
+  CreateExportSessionOptions,
+  ExportFileOptions,
+  ExportSession,
+} from "./export-session.js";
 export { createRenderSession } from "./render-session.js";
 export type {
   CreateRenderSessionOptions,

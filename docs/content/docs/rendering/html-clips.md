@@ -67,6 +67,7 @@ project.dispatch({
 - **Worker export renders html clips too**: workers have no DOM, so `exportProjectInWorker`/`exportViaWorker` rasterize every html clip on the main thread first (deduplicated, one raster per unique template + params + size) and transfer the bitmaps to the worker with the export. No API change — it just works. Posting to the worker yourself instead? Pre-render with `collectHtmlRasters(doc)` and include the result (transferring its `transfer` list) as `htmlRasters` on the start message.
 - Exports and stills **wait for rasters** before the first frame (the same readiness gate now also covers image assets), so an overlay can never be half-missing in an exported file — a template that fails to rasterize fails the export loudly.
 - Scripts and iframes inside templates don't execute; interactivity has no meaning in rendered video.
+- **Rasters are density-aware**: templates rasterize at the render density (output ÷ composition size in exports and stills, devicePixelRatio in previews via `createPlayer({ outputSize })`), so upscaled outputs and hi-DPI screens stay sharp — layout is identical at every density.
 - Text antialiasing varies across platforms, so exact pixels of text can differ between machines — Chromium-family browsers are the rendering target, as everywhere in Miraiclip.
 
 For the machinery (and how to swap in your own rasterizer), `rasterizeHtml` and `substituteParams` are exported from `@miraiclip/renderer`.

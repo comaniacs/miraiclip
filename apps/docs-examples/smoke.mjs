@@ -165,6 +165,26 @@ check("html banner ad renders", !!(await poll(async () => {
   return c && c.warm > 120_000 && c.nonBlack > 180_000 && !cls?.includes("error") ? c : false;
 })), JSON.stringify(await census("ex-html-banner")));
 
+// 4e — templates: hydrate applies row params to the live card (row 1 accent is
+// near-pure red), and the status line narrates the row cycle.
+await run("ex-template");
+check("template hydrate drives the live card", !!(await poll(async () => {
+  const c = await census("ex-template");
+  const s = await status("ex-template");
+  const cls = await page.getAttribute("#ex-template .mirai-example-status", "class");
+  return c && c.red > 1_000 && s?.includes("row ") && !cls?.includes("error") ? c : false;
+})), JSON.stringify(await census("ex-template")));
+
+// 4f — templates validation: tryHydrate rejects with machine-readable issues,
+// then the corrected payload renders (green card).
+await run("ex-template-validate");
+check("template validation rejects then renders", !!(await poll(async () => {
+  const c = await census("ex-template-validate");
+  const s = await status("ex-template-validate");
+  const cls = await page.getAttribute("#ex-template-validate .mirai-example-status", "class");
+  return c && c.green > 800 && s?.includes("rejected") && s?.includes("data.plan") && !cls?.includes("error") ? c : false;
+})), JSON.stringify(await census("ex-template-validate")) + " status=" + (await status("ex-template-validate")));
+
 // 5 — export: status reaches "exported N bytes".
 await run("ex-export");
 const exported = await poll(async () => {

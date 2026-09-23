@@ -21,6 +21,13 @@ export interface CreatePlayerOptions {
    * kind; "video" is reserved (the player owns the video pipeline).
    */
   factories?: Record<string, NodeFactory>;
+  /**
+   * Render the preview canvas at this pixel size while composition
+   * coordinates stay unchanged (the stage scales). Pass the canvas's CSS size
+   * × devicePixelRatio for a sharp hi-DPI preview — html rasters and text
+   * glyphs regenerate at that density automatically.
+   */
+  outputSize?: { width: number; height: number };
   /** Loop back to 0 at the end of the composition (default false: pause). */
   loop?: boolean;
   /** Media failures per clip (unsupported codec, decode error, …). Default: console.error. */
@@ -73,6 +80,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   );
   const compositor = new Compositor(project, options.backend, {
     factories: { ...options.factories, video: videos.factory },
+    ...(options.outputSize ? { outputSize: options.outputSize } : {}),
   });
   const audio = new AudioEngine(project, options.audioOutput, options.openAudio);
   const clock = new RealtimeClock(() => options.audioOutput.currentTimeUs / 1000);

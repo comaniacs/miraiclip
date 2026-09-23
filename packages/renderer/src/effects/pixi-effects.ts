@@ -16,6 +16,13 @@ import { blurStrengthPx, chromaKeyUniforms, colorAdjustSteps } from "./params.js
 
 export interface EffectContext {
   compositionSize: () => { width: number; height: number };
+  /**
+   * Physical pixels per composition pixel (output size ÷ composition size,
+   * or the preview's devicePixelRatio) — the density at which rasterized
+   * content (html rasters, text glyphs) should be generated so it stays sharp
+   * when the stage scales up. Absent or 1 = render at composition density.
+   */
+  renderScale?: () => number;
 }
 
 export interface ActiveEffect {
