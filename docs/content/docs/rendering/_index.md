@@ -43,6 +43,9 @@ const player = createPlayer(project, {
   audioOutput: createWebAudioOutput(),
   openAudio: openMediabunnyAudio,
   onError: (error, clipId) => showToast(`clip ${clipId}: ${error.message}`),
+  // Hi-DPI: back the canvas at CSS size × devicePixelRatio — text and html
+  // rasters sharpen automatically; composition coordinates are unchanged.
+  outputSize: { width: 1280 * devicePixelRatio, height: 720 * devicePixelRatio },
 });
 
 player.play(); // pause() · seek(us) · setRate(r) · timeUs · durationUs · destroy()

@@ -30,6 +30,28 @@ The repo ships a runnable example — a ready-made `project.json` (the e2e
 fixture video plus a text overlay), the CLI invocation, and a Node script:
 [`examples/server-export`](https://github.com/comaniacs/miraiclip/tree/main/examples/server-export).
 
+## Warm sessions
+
+`exportProjectFile` launches a browser per call — right for one render, wasteful for many. The session APIs keep ONE headless Chrome + harness page alive across calls, so a call costs its render, not a ~1-2s browser launch. Documents are passed per call (a session outlives edits), calls queue on the page, and a failed call never wedges the session:
+
+```ts
+import { createExportSession, createRenderSession } from "@miraiclip/server-export";
+
+// Exports: exportFile takes the same options and returns the same result as
+// exportProjectFile — assets/assetsDir/browser move to the session.
+const exporter = await createExportSession({ assetsDir: "./media" });
+await exporter.exportFile(docA, { format: "mp4", quality: "high", out: "out/a.mp4" });
+await exporter.exportFile(docB, { format: "mp4", quality: "high", out: "out/b.mp4" });
+await exporter.close();
+
+// Stills: one frame as a PNG, through the exact export pipeline (~100ms warm).
+const stills = await createRenderSession({ assetsDir: "./media" });
+const png = await stills.renderStill(docA, { timeUs: 2_000_000, width: 640, height: 360 });
+await stills.close();
+```
+
+`createExportSession` is the batch engine behind [templates](../../templates); `createRenderSession` powers the [MCP server](../../mcp-server)'s `preview_frame`.
+
 ## The browser
 
 The package depends on lightweight `playwright-core` and **does not download a browser at install**. It launches, in order: `browser.executablePath` → the `MIRAICLIP_BROWSER` env var → the machine's installed Google Chrome. Real Chrome is the recommended runtime because it ships the proprietary **H.264/AAC encoders MP4 export needs** — free Chromium builds (including Playwright's default download and most Docker images) export **WebM only**; MP4 fails their up-front codec probe with a clear error. On a bare server, `npx playwright install chrome` installs branded Chrome; any Chrome/Chromium path works via `executablePath`. On Linux the page renders WebGL on SwiftShader (software GL) by default — GPU-less servers stall on Chrome's default ANGLE.

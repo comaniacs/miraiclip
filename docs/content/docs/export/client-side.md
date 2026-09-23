@@ -111,6 +111,19 @@ try {
 
 Custom clip-kind `factories` cannot cross a thread boundary (they are functions) — worker exports support **built-in kinds only**, the same rule as [server-side export](../server-side). Media `src` values must be reachable from a worker: `http(s)` and `blob:` URLs and `File`/`Blob` objects all are. [HTML clips](../../rendering/html-clips) work: their templates rasterize on the main thread before the export starts (workers have no DOM) and the bitmaps transfer across — no options needed.
 
+## Stills
+
+`renderProjectStill` renders ONE composition frame through the exact export pipeline — same compositor, decode path, fonts, and readiness gate — so a still is what that frame will look like in the exported file. Thumbnails, poster frames, agent previews:
+
+```ts
+import { renderProjectStill } from "@miraiclip/renderer";
+
+const frame = await renderProjectStill(project, { timeUs: 2_000_000 });                    // Blob (PNG), composition size
+const thumb = await renderProjectStill(project, { timeUs: 2_000_000, width: 320, height: 180 });
+```
+
+From Node, [server export's warm sessions](../server-side#warm-sessions) do the same against one persistent headless Chrome.
+
 ## How it works
 
 Every output frame is sampled at its **temporal midpoint** (robust against container timestamp rounding), rendered via `renderFrameAt` — which waits for the exact frame's decoded pixels to arrive, not merely for decode to be scheduled — onto an `OffscreenCanvas` at project resolution, and handed to the muxer. Encoding is **pipelined**: the sink captures the canvas synchronously, so up to `encodeAheadFrames` (default 4) submissions encode in the background while the next frame decodes and composites — the stages overlap instead of running in lockstep. The window bounds memory however fast decode runs. Time moves strictly forward, so the streaming decoders never re-seek.

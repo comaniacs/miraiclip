@@ -2,7 +2,7 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
-## [Unreleased]
+## [templates-0.1.0] + [server-export-0.4.0] + [renderer-0.7.1] + [mcp-0.1.2] — 2026-09-23
 
 ### Added
 
