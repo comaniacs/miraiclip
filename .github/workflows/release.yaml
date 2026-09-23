@@ -43,3 +43,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # setup-node's registry-url writes an .npmrc that reads
+          # NODE_AUTH_TOKEN — without this line the publish runs
+          # unauthenticated and fails, while local `pnpm release` works.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

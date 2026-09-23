@@ -84,6 +84,24 @@ describe.skipIf(browserPath === undefined)("createRenderSession (integration)", 
     expect(png.length).toBeGreaterThan(1_000);
   }, 60_000);
 
+  it("renders html clips (rasterized in the harness page)", async () => {
+    const project = createProject({ width: 320, height: 180, fps: 30 });
+    project.transaction(() => {
+      project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+      project.dispatch({
+        type: "clip/add",
+        payload: {
+          kind: "html", id: "card", trackId: "v1", startUs: 0, durationUs: 1_000_000,
+          template: `<div style="width:100%;height:100%;background:{{color}}"></div>`,
+          params: { color: "#ff00ff" },
+        },
+      });
+    });
+    const png = await session.renderStill(project.toJSON(), { timeUs: 500_000 });
+    expect(pngSize(png)).toEqual({ width: 320, height: 180 });
+    expect(png.length).toBeGreaterThan(200); // a real card, not an empty frame
+  }, 60_000);
+
   it("a failed render (missing asset file) rejects without wedging the session", async () => {
     const project = createProject({ width: 320, height: 180, fps: 30 });
     project.transaction(() => {

@@ -148,6 +148,23 @@ check("custom caption (wordPop) renders", !!(await poll(async () => {
   return c && c.yellow > 500 && !cls?.includes("error") ? c : false;
 })), JSON.stringify(await census("ex-caption-custom")));
 
+// 4c — html clip: the template rasterizes and composites (solid red card).
+await run("ex-html");
+check("html clip renders", !!(await poll(async () => {
+  const c = await census("ex-html");
+  const cls = await page.getAttribute("#ex-html .mirai-example-status", "class");
+  return c && c.red > 2_000 && !cls?.includes("error") ? c : false;
+})), JSON.stringify(await census("ex-html")));
+
+// 4d — banner ad html clip: a full-page ad (cream/orange palette, inline SVG
+// can) rasterizes and dominates the frame — the canvas skews strongly warm.
+await run("ex-html-banner");
+check("html banner ad renders", !!(await poll(async () => {
+  const c = await census("ex-html-banner");
+  const cls = await page.getAttribute("#ex-html-banner .mirai-example-status", "class");
+  return c && c.warm > 120_000 && c.nonBlack > 180_000 && !cls?.includes("error") ? c : false;
+})), JSON.stringify(await census("ex-html-banner")));
+
 // 5 — export: status reaches "exported N bytes".
 await run("ex-export");
 const exported = await poll(async () => {

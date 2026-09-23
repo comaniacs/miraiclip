@@ -37,6 +37,13 @@ export type MainToWorkerMessage =
        * reaches the worker's encoders.
        */
       streamOutput?: boolean;
+      /**
+       * Pre-rendered html-clip rasters, keyed by their raster key. Html
+       * templates rasterize via the DOM, which workers lack, so the main
+       * thread renders every html clip up front and TRANSFERS the bitmaps;
+       * the worker installs them for `rasterizeHtml` to serve from.
+       */
+      htmlRasters?: Record<string, ImageBitmap>;
     }
   | { type: "abort" }
   | {

@@ -62,6 +62,7 @@ export async function renderProjectStill(
     // Fonts must be real before the frame renders — fallback glyphs are
     // silently wrong for an unattended still exactly as for a server export.
     await loadFontAssets(doc);
+    await compositor.whenReady(); // image textures + html rasters
     await videos.renderFrameAt(compositor, options.timeUs);
     return await canvas.convertToBlob({
       type: options.type ?? "image/png",

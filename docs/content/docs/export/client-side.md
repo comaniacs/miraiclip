@@ -109,7 +109,7 @@ try {
 | Fonts, captions, effects, transitions | Load and render inside the worker |
 | `range`, `fps`, `width`/`height`, `quality`, `signal`, `onProgress` | Same semantics; progress and abort cross as messages |
 
-Custom clip-kind `factories` cannot cross a thread boundary (they are functions) — worker exports support **built-in kinds only**, the same rule as [server-side export](../server-side). Media `src` values must be reachable from a worker: `http(s)` and `blob:` URLs and `File`/`Blob` objects all are.
+Custom clip-kind `factories` cannot cross a thread boundary (they are functions) — worker exports support **built-in kinds only**, the same rule as [server-side export](../server-side). Media `src` values must be reachable from a worker: `http(s)` and `blob:` URLs and `File`/`Blob` objects all are. [HTML clips](../../rendering/html-clips) work: their templates rasterize on the main thread before the export starts (workers have no DOM) and the bitmaps transfer across — no options needed.
 
 ## How it works
 

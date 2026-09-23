@@ -18,6 +18,7 @@ import {
 } from "../transitions/timing.js";
 import { getTransitionRenderer } from "../transitions/registry.js";
 import { computePlacement, placementFromEvaluated, zIndexFor } from "./placement.js";
+import { isHtmlClip } from "@miraiclip/core";
 import type {
   NodeFactory,
   Placement,
@@ -58,6 +59,8 @@ const builtinFactories: Record<string, NodeFactory> = {
   text: (clip, { backend }) => (isTextClip(clip) ? backend.createText(clip) : null),
   caption: (clip, { backend }) =>
     isCaptionClip(clip) ? (backend.createCaption?.(clip) ?? null) : null,
+  html: (clip, { backend, assets }) =>
+    isHtmlClip(clip) ? (backend.createHtml?.(clip, assets) ?? null) : null,
   // "video" registers in step 3; audio has no visual node.
   audio: () => null,
 };
@@ -204,6 +207,15 @@ export class Compositor {
       this.overlay?.setVisible(false);
     }
     this.backend.render();
+  }
+
+  /**
+   * Resolves when every node's async content (image textures, html rasters)
+   * is ready. Exports and stills await this so no frame bakes in a missing
+   * texture; live playback doesn't wait (content pops in when loaded).
+   */
+  async whenReady(): Promise<void> {
+    await Promise.all([...this.nodes.values()].map((node) => node.whenReady?.()));
   }
 
   /**

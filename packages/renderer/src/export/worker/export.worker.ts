@@ -13,11 +13,13 @@
  * custom clip-kind `factories` are not supported here — built-in kinds only.
  * Audio mixes on the MAIN thread (`OfflineAudioContext` is window-only) and
  * crosses as transferred PCM planes; fonts load in the worker's own
- * FontFaceSet (`self.fonts`).
+ * FontFaceSet (`self.fonts`); html clips arrive as pre-rendered bitmaps
+ * (rasterized on main — no DOM here) and are installed before the export.
  */
 import { DOMAdapter, WebWorkerAdapter } from "pixi.js";
 import { createProject } from "@miraiclip/core";
 import type { StreamTargetChunk } from "mediabunny";
+import { provideHtmlRasters } from "../../html/rasterize.js";
 import { exportProject } from "../export-project.js";
 import type { ExportRange, PcmAudioChunk } from "../types.js";
 import type { MainToWorkerMessage, WorkerToMainMessage } from "./protocol.js";
@@ -88,6 +90,9 @@ async function run(message: Extract<MainToWorkerMessage, { type: "start" }>): Pr
     } catch {
       // diagnostic only
     }
+    // Html clips: no DOM here, so their rasters arrived pre-rendered with the
+    // start message — install them for `rasterizeHtml` to serve from.
+    provideHtmlRasters(message.htmlRasters ?? {});
     const project = createProject(message.doc);
     const bytes = await exportProject(project, {
       ...message.options,

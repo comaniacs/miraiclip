@@ -332,6 +332,12 @@ export const builtinHandlers: {
         (clip as Record<typeof key, unknown>)[key] = p[key];
       }
     }
+    if (p.params !== undefined) {
+      if (clip.kind !== "html" || !("params" in clip)) {
+        reject("clip/set-property", "not-html", `"params" only applies to html clips`);
+      }
+      Object.assign(clip.params, p.params);
+    }
     if (p.style !== undefined) {
       if (clip.kind !== "caption" || !("style" in clip)) {
         reject("clip/set-property", "not-caption", `"style" only applies to caption clips`);

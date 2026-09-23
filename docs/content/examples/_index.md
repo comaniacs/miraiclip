@@ -289,6 +289,118 @@ project.dispatch({ type: "clip/add", payload: {
 <div class="mirai-band">
 <div class="mirai-band-inner">
 
+## HTML Clips
+
+Author overlays as HTML/CSS — an `html` clip rasterizes a template into the composition and behaves like any other clip: keyframes, effects, and transitions apply, and exports bake it in. `{{param}}` placeholders make it a template; updating params re-rasters in place.
+
+{{< example-group >}}
+{{< example-variant name="Lower third" >}}
+project.dispatch({ type: "clip/add", payload: {
+  kind: "html", id: "lt-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  template: `
+    <div style="display:flex;align-items:center;gap:14px;height:100%;
+                background:linear-gradient(90deg,#e91e63cc,#9c27b0cc);
+                border-radius:14px;color:#fff;font:700 30px sans-serif;padding:0 22px">
+      {{name}} <span style="font:400 20px sans-serif;opacity:.85">{{role}}</span>
+    </div>`,
+  params: { name: "Big Buck Bunny", role: "Lead Actor" },
+  widthPx: 460, heightPx: 72,
+  transform: { x: 0.4, y: 0.85 },
+} });
+{{< /example-variant >}}
+{{< example-variant name="Live params (countdown)" >}}
+project.dispatch({ type: "clip/add", payload: {
+  kind: "html", id: "count-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  template: `<div style="display:flex;align-items:center;justify-content:center;height:100%;
+    background:#000c;border-radius:16px;color:#ffd400;font:800 64px sans-serif">{{n}}</div>`,
+  params: { n: 5 }, widthPx: 160, heightPx: 120, transform: { x: 0.85, y: 0.2 },
+} });
+// A param change re-rasters the template in place (~2ms):
+let n = 5;
+const timer = setInterval(() => {
+  n = n > 0 ? n - 1 : 5;
+  project.dispatch({ type: "clip/set-property", payload: { clipId: "count-1", params: { n } } });
+}, 1_000);
+setTimeout(() => clearInterval(timer), 30_000);
+{{< /example-variant >}}
+{{< example-variant name="Banner ad" >}}
+// A full banner ad — layout, gradients, inline SVG artwork — is still just
+// one html clip. Copy is parameterized, so the same template ships any campaign.
+project.dispatch({ type: "clip/add", payload: {
+  kind: "html", id: "ad-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  widthPx: 600, heightPx: 330,
+  params: { eyebrow: "NEW · SPARKLING ORANGE", headline: "Less heat. More heck yes.", cta: "Take a sip" },
+  template: `
+<style>
+  .zest{position:relative;width:100%;height:100%;overflow:hidden;border-radius:18px;
+    background:radial-gradient(120% 110% at 82% 8%, #ffe9b8 0%, #fff7d9 52%, #fff2c8 100%);
+    font-family:Arial,Helvetica,sans-serif;color:#143f2d}
+  .brand{position:absolute;top:20px;left:28px;font-weight:900;font-size:30px;letter-spacing:-1.5px}
+  .brand i{color:#ff8c32;font-style:normal}
+  .copy{position:absolute;top:72px;left:28px;width:310px}
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:3px;color:#ff8c32}
+  .zest h1{margin:8px 0 10px;font-size:42px;line-height:.95;font-weight:900;letter-spacing:-2px}
+  .sub{font-size:14px;line-height:1.45;opacity:.82;width:280px}
+  .sip{display:inline-block;margin-top:14px;background:#ff8c32;color:#143f2d;font-weight:800;
+    font-size:14px;padding:10px 20px;border-radius:999px}
+  .micro{margin-top:9px;font-size:10px;letter-spacing:.5px;opacity:.55}
+  .ticker{position:absolute;left:0;right:0;bottom:0;background:#143f2d;color:#fff7d9;
+    font-size:11px;font-weight:700;letter-spacing:3px;padding:7px 0;text-align:center;white-space:nowrap}
+</style>
+<div class="zest">
+  <div class="brand">zest<i>!</i></div>
+  <div class="copy">
+    <div class="eyebrow">{{eyebrow}}</div>
+    <h1>{{headline}}</h1>
+    <div class="sub">Real orange zip, zero sugar crash. Cracked cold, gone in seconds.</div>
+    <span class="sip">{{cta}}</span>
+    <div class="micro">CHILL HARD · SIP OFTEN · RECYCLE ALWAYS</div>
+  </div>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 270"
+       style="position:absolute;right:14px;top:14px;width:210px;height:258px">
+    <defs>
+      <linearGradient id="can" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#0e2f22"/><stop offset=".35" stop-color="#1d5c41"/>
+        <stop offset=".55" stop-color="#2e8f63"/><stop offset=".82" stop-color="#17492f"/>
+      </linearGradient>
+      <linearGradient id="lid" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#9fb0a6"/><stop offset=".5" stop-color="#e6ece8"/>
+        <stop offset="1" stop-color="#8fa096"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="110" cy="252" rx="76" ry="11" fill="#143f2d" opacity=".14"/>
+    <rect x="52" y="34" width="116" height="212" rx="24" fill="url(#can)"/>
+    <ellipse cx="110" cy="38" rx="58" ry="11" fill="url(#lid)"/>
+    <ellipse cx="110" cy="38" rx="46" ry="7.5" fill="#7c8d83"/>
+    <text x="110" y="128" text-anchor="middle" font-family="Arial" font-weight="900"
+          font-size="38" fill="#fff7d9" letter-spacing="-2">zest!</text>
+    <text x="110" y="150" text-anchor="middle" font-family="Arial" font-weight="700"
+          font-size="11" fill="#ffb46e" letter-spacing="2">SPARKLING ORANGE</text>
+    <g transform="translate(110 200)">
+      <circle r="30" fill="#ff8c32"/><circle r="24" fill="#ffcf9e"/>
+      <g stroke="#ff8c32" stroke-width="3">
+        <line x1="0" y1="-24" x2="0" y2="24"/><line x1="-24" y1="0" x2="24" y2="0"/>
+        <line x1="-17" y1="-17" x2="17" y2="17"/><line x1="-17" y1="17" x2="17" y2="-17"/>
+      </g>
+      <circle r="6" fill="#ff8c32"/>
+    </g>
+    <circle cx="70" cy="90" r="4" fill="#fff7d9" opacity=".5"/>
+    <circle cx="80" cy="170" r="3" fill="#fff7d9" opacity=".4"/>
+    <circle cx="150" cy="120" r="3.5" fill="#fff7d9" opacity=".45"/>
+    <circle cx="142" cy="70" r="2.5" fill="#fff7d9" opacity=".5"/>
+  </svg>
+  <div class="ticker">NEW · SPARKLING ORANGE · ZERO SUGAR · NEW · SPARKLING ORANGE · ZERO SUGAR · NEW</div>
+</div>`,
+} });
+{{< /example-variant >}}
+{{< /example-group >}}
+
+</div>
+</div>
+
+<div class="mirai-band">
+<div class="mirai-band-inner">
+
 ## Export to a file
 
 The same composition rendered offline — encoded by your browser, faster than realtime. Grade it, export three seconds, and the download lands with the effect baked in.

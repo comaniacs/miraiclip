@@ -94,7 +94,7 @@ export interface EffectInstance {
   params: Record<string, unknown>;
 }
 
-export type ClipKind = "video" | "audio" | "image" | "text" | "caption";
+export type ClipKind = "video" | "audio" | "image" | "text" | "caption" | "html";
 
 export interface ClipBase {
   id: string;
@@ -137,6 +137,25 @@ export interface TextClip extends ClipBase {
   color: string;
 }
 
+/** A template parameter value — plain data, so html clips serialize and cross process boundaries. */
+export type HtmlParamValue = string | number | boolean;
+
+/**
+ * HTML rendered into the composition: the template (with `{{param}}`
+ * placeholders) is rasterized via SVG foreignObject at `widthPx`×`heightPx`
+ * (default: the composition size) and composited like any other clip —
+ * keyframes, effects, and transitions all apply to the raster.
+ */
+export interface HtmlClip extends ClipBase {
+  kind: "html";
+  /** HTML markup; `{{name}}` placeholders substitute from `params`. */
+  template: string;
+  params: Record<string, HtmlParamValue>;
+  /** Raster size in composition pixels (default: the composition size). */
+  widthPx?: number;
+  heightPx?: number;
+}
+
 /** One word of a caption, timed relative to the clip's start. */
 export interface CaptionWord {
   text: string;
@@ -172,7 +191,7 @@ export interface CustomClip extends ClipBase {
   props: Record<string, unknown>;
 }
 
-export type BuiltinClip = VideoClip | AudioClip | ImageClip | TextClip | CaptionClip;
+export type BuiltinClip = VideoClip | AudioClip | ImageClip | TextClip | CaptionClip | HtmlClip;
 export type Clip = BuiltinClip | CustomClip;
 
 // `CustomClip.kind: string` swallows literal narrowing (`clip.kind ===
@@ -187,10 +206,12 @@ export const isTextClip = (clip: Clip): clip is TextClip =>
   clip.kind === "text" && "text" in clip;
 export const isCaptionClip = (clip: Clip): clip is CaptionClip =>
   clip.kind === "caption" && "words" in clip;
+export const isHtmlClip = (clip: Clip): clip is HtmlClip =>
+  clip.kind === "html";
 
 /** Which clip kinds a track kind accepts (custom kinds declare theirs at registration). */
 export const TRACK_ACCEPTS: Record<TrackKind, readonly ClipKind[]> = {
-  video: ["video", "image", "text", "caption"],
+  video: ["video", "image", "text", "caption", "html"],
   audio: ["audio"],
 };
 

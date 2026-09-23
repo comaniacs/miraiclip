@@ -9,6 +9,16 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Added
 
+- `@miraiclip/core` + `@miraiclip/renderer` **`html` clip kind** — author overlays as HTML/CSS: `clip/add { kind: "html", template, params }` rasterizes the template (SVG foreignObject, cached per template/params/size; `{{param}}` placeholders, HTML-escaped) and composites it like any clip — keyframes, effects, and transitions apply, and it renders in preview, exports, stills, server export, and MCP previews (the payload is plain data). Font assets and `asset:<id>` images inline automatically. `clip/set-property { params }` re-rasters in place (~2ms). Worker export renders them too: the main thread pre-rasterizes (workers have no DOM) and transfers the bitmaps — no API change. See [HTML Clips](/miraiclip/docs/rendering/html-clips/).
+
+### Fixed
+
+- `@miraiclip/renderer` **exports no longer race async textures** — image textures (and html rasters) are awaited before the frame walk (`Compositor.whenReady`), so an export started right after building a document can't bake empty sprites into its first frames.
+
+## renderer-0.6.0 — 2026-09-22
+
+### Added
+
 - `@miraiclip/renderer` **custom effects and transitions** — public `registerEffectRenderer` (kind → Pixi filter factory, params updated in place) and `registerTransitionRenderer` (kind → pure per-frame math composing opacity, directional reveal, pixel offset, and a full-frame overlay; `rendersBothClips` picks blend-through-window vs cover-the-cut). Built-ins are expressed through the same contracts, so custom kinds render identically in preview, browser export, and stills — server and worker export stay built-in-only (functions can't cross those boundaries). See [Custom Effects & Transitions](/miraiclip/docs/rendering/extensibility/). The live [Examples](https://comaniacs.github.io/miraiclip/examples/) page gained a runnable "Custom kind" variant in the Effects and Transitions carousels — the registration code on the page is the code that runs.
 
 ## mcp-0.1.0 · renderer-0.5.0 · server-export-0.3.0 — 2026-09-22

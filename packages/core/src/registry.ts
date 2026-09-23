@@ -102,7 +102,7 @@ export interface ClipKindRegistration {
 
 const clipKinds = new Map<string, ClipKindRegistration>();
 
-const BUILTIN_CLIP_KINDS = new Set(["video", "audio", "image", "text", "caption"]);
+const BUILTIN_CLIP_KINDS = new Set(["video", "audio", "image", "text", "caption", "html"]);
 
 export function registerClipKind(
   kind: string,

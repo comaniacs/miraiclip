@@ -49,7 +49,7 @@ export type { JsonPatchOp } from "./patches.js";
 
 export * from "./timeline.js";
 
-export { DEFAULT_TRANSFORM, TRACK_ACCEPTS, isAudioClip, isCaptionClip, isImageClip, isTextClip, isVideoClip } from "./types.js";
+export { DEFAULT_TRANSFORM, TRACK_ACCEPTS, isAudioClip, isCaptionClip, isHtmlClip, isImageClip, isTextClip, isVideoClip } from "./types.js";
 export type {
   AnimatableProperty,
   Asset,
@@ -67,6 +67,8 @@ export type {
   EasingPreset,
   EffectInstance,
   EphemeralState,
+  HtmlClip,
+  HtmlParamValue,
   ImageClip,
   Keyframe,
   ProjectDocument,

@@ -1,4 +1,4 @@
-import type { Asset, CaptionClip, Clip, EffectInstance, ImageClip, TextClip, VideoClip } from "@miraiclip/core";
+import type { Asset, CaptionClip, Clip, EffectInstance, HtmlClip, ImageClip, TextClip, VideoClip } from "@miraiclip/core";
 
 /** Pixel-space placement computed from a clip's normalized transform. */
 export interface Placement {
@@ -35,6 +35,13 @@ export interface SceneNode {
    * (video frames). `timeUs` is the timeline position.
    */
   tick?(clip: Clip, timeUs: number): void;
+  /**
+   * Resolves when the node's content is ready to draw (async textures: image
+   * assets, html rasters). Exports and stills await every node's readiness
+   * before the frame walk so early frames never bake in missing content.
+   * Optional; absent means always ready.
+   */
+  whenReady?(): Promise<void>;
   destroy(): void;
 }
 
@@ -84,6 +91,8 @@ export interface SceneBackend {
   createCaption?(clip: CaptionClip): SceneNode;
   /** Full-composition solid overlay (dip transitions). Optional per backend. */
   createSolid?(): SolidSceneNode;
+  /** HTML clip: template rasterized to a texture. Optional per backend. */
+  createHtml?(clip: HtmlClip, assets: Readonly<Record<string, Asset>>): SceneNode;
   render(): void;
   destroy(): void;
 }

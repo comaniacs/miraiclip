@@ -148,6 +148,20 @@ export const builtinPayloadSchemas = {
       style: captionStyleSchema.prefault({}),
       transform: transformSchema.partial().optional(),
     }),
+    z.object({
+      kind: z.literal("html"),
+      id,
+      trackId: id,
+      startUs: us,
+      durationUs: positiveUs,
+      /** HTML markup; {{name}} placeholders substitute from params. */
+      template: z.string().min(1),
+      params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
+      /** Raster size in composition pixels (default: the composition size). */
+      widthPx: z.number().int().positive().optional(),
+      heightPx: z.number().int().positive().optional(),
+      transform: transformSchema.partial().optional(),
+    }),
     ]),
     // Custom clip kinds (see registerClipKind): payload under `props`,
     // validated against the kind's registered schema in the handler.
@@ -155,7 +169,7 @@ export const builtinPayloadSchemas = {
       kind: z
         .string()
         .min(1)
-        .refine((k) => !["video", "audio", "image", "text", "caption"].includes(k), {
+        .refine((k) => !["video", "audio", "image", "text", "caption", "html"].includes(k), {
           message: "built-in kinds use their dedicated payload shape",
         }),
       id,
@@ -195,6 +209,8 @@ export const builtinPayloadSchemas = {
     trackId: id.optional(),
   }),
   "clip/set-property": z.object({
+    /** html clips: merged into the clip's params (re-rasters the template). */
+    params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
     clipId: id,
     /** Partial transform update, merged onto the clip's transform. */
     transform: transformSchema.partial().optional(),

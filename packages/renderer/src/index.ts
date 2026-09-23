@@ -69,6 +69,8 @@ export { exportComposition } from "./export/exporter.js";
 export type { ExportCompositionOptions } from "./export/exporter.js";
 export { compositionEnd, exportProject, probeCompositionAudio } from "./export/export-project.js";
 export type { ExportProjectOptions } from "./export/export-project.js";
+export { collectHtmlRasters, provideHtmlRasters, rasterizeHtml, substituteParams } from "./html/rasterize.js";
+export type { RasterizeHtmlOptions } from "./html/rasterize.js";
 export { renderProjectStill } from "./export/render-still.js";
 export type { RenderProjectStillOptions } from "./export/render-still.js";
 

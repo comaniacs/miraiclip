@@ -15,9 +15,12 @@
  * Boundary rules: custom clip-kind `factories` cannot cross (functions) —
  * built-in kinds only, same as server export. Media `src` values must be
  * reachable from a worker: http(s)/blob URLs and Blob/File objects all work.
+ * Html clips DO cross: they rasterize on this thread (workers have no DOM)
+ * and the bitmaps transfer with the start message.
  */
 import type { Project } from "@miraiclip/core";
 import { openMediabunnyAudio } from "../../audio/webaudio.js";
+import { collectHtmlRasters } from "../../html/rasterize.js";
 import { compositionEnd, probeCompositionAudio } from "../export-project.js";
 import { mixCompositionAudio } from "../offline-audio.js";
 import { ExportAbortedError, type ExportProgress, type ExportRange, type PcmAudioChunk } from "../types.js";
@@ -66,6 +69,10 @@ export async function exportViaWorker(
   options: ExportViaWorkerOptions,
 ): Promise<Uint8Array> {
   const doc = project.getState().doc;
+  // html clips rasterize via the DOM, which workers don't have — render them
+  // HERE (this thread has the DOM) and transfer the bitmaps with the start
+  // message; the worker's compositor picks them up by raster key.
+  const { rasters: htmlRasters, transfer: htmlTransfer } = await collectHtmlRasters(doc);
   const range = options.range ?? { startUs: 0, endUs: compositionEnd(doc) };
   const hasAudio = await probeCompositionAudio(doc, range, openMediabunnyAudio);
 
@@ -146,7 +153,17 @@ export async function exportViaWorker(
     worker.addEventListener("error", onWorkerError);
     signal?.addEventListener("abort", onAbort);
 
-    post({ type: "start", doc, options: wire, hasAudio, ...(target ? { streamOutput: true } : {}) });
+    post(
+      {
+        type: "start",
+        doc,
+        options: wire,
+        hasAudio,
+        ...(target ? { streamOutput: true } : {}),
+        ...(htmlTransfer.length ? { htmlRasters } : {}),
+      },
+      htmlTransfer,
+    );
   });
 }
 

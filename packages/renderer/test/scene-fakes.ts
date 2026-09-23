@@ -63,6 +63,21 @@ export class FakeVideoNode extends FakeNode {
   }
 }
 
+export class FakeHtmlNode extends FakeNode {
+  readyResolve: (() => void) | undefined;
+  constructor(
+    readonly clip: Clip,
+    readonly assets: Readonly<Record<string, Asset>>,
+  ) {
+    super("html");
+  }
+  whenReady(): Promise<void> {
+    return new Promise((resolve) => {
+      this.readyResolve = resolve;
+    });
+  }
+}
+
 export class FakeSolidNode implements SolidSceneNode {
   colorRgb = -1;
   alpha = 0;
@@ -112,6 +127,11 @@ export class FakeBackend implements SceneBackend {
   }
   createCaption(): FakeNode {
     const node = new FakeNode("caption");
+    this.nodes.push(node);
+    return node;
+  }
+  createHtml(clip: Clip, assets: Readonly<Record<string, Asset>>): FakeHtmlNode {
+    const node = new FakeHtmlNode(clip, assets);
     this.nodes.push(node);
     return node;
   }

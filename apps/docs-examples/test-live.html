@@ -130,6 +130,87 @@ project.dispatch({ type: "clip/add", payload: {
 <div class="mirai-example-stage"></div>
 </div>
 
+<div class="mirai-example" id="ex-html" data-media="demo" data-assets="./">
+<div class="highlight"><pre><code>project.dispatch({ type: "clip/add", payload: {
+  kind: "html", id: "card", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  template: `&lt;div style="width:100%;height:100%;background:{{color}};border-radius:12px"&gt;&lt;/div&gt;`,
+  params: { color: "#ff2020" }, widthPx: 300, heightPx: 150,
+} });</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
+<div class="mirai-example" id="ex-html-banner" data-media="demo" data-assets="./">
+<div class="highlight"><pre><code>// A full banner ad — layout, gradients, inline SVG artwork — is still just
+// one html clip. Copy is parameterized, so the same template ships any campaign.
+project.dispatch({ type: "clip/add", payload: {
+  kind: "html", id: "ad-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
+  widthPx: 600, heightPx: 330,
+  params: { eyebrow: "NEW · SPARKLING ORANGE", headline: "Less heat. More heck yes.", cta: "Take a sip" },
+  template: `
+&lt;style&gt;
+  .zest{position:relative;width:100%;height:100%;overflow:hidden;border-radius:18px;
+    background:radial-gradient(120% 110% at 82% 8%, #ffe9b8 0%, #fff7d9 52%, #fff2c8 100%);
+    font-family:Arial,Helvetica,sans-serif;color:#143f2d}
+  .brand{position:absolute;top:20px;left:28px;font-weight:900;font-size:30px;letter-spacing:-1.5px}
+  .brand i{color:#ff8c32;font-style:normal}
+  .copy{position:absolute;top:72px;left:28px;width:310px}
+  .eyebrow{font-size:12px;font-weight:800;letter-spacing:3px;color:#ff8c32}
+  .zest h1{margin:8px 0 10px;font-size:42px;line-height:.95;font-weight:900;letter-spacing:-2px}
+  .sub{font-size:14px;line-height:1.45;opacity:.82;width:280px}
+  .sip{display:inline-block;margin-top:14px;background:#ff8c32;color:#143f2d;font-weight:800;
+    font-size:14px;padding:10px 20px;border-radius:999px}
+  .micro{margin-top:9px;font-size:10px;letter-spacing:.5px;opacity:.55}
+  .ticker{position:absolute;left:0;right:0;bottom:0;background:#143f2d;color:#fff7d9;
+    font-size:11px;font-weight:700;letter-spacing:3px;padding:7px 0;text-align:center;white-space:nowrap}
+&lt;/style&gt;
+&lt;div class="zest"&gt;
+  &lt;div class="brand"&gt;zest&lt;i&gt;!&lt;/i&gt;&lt;/div&gt;
+  &lt;div class="copy"&gt;
+    &lt;div class="eyebrow"&gt;{{eyebrow}}&lt;/div&gt;
+    &lt;h1&gt;{{headline}}&lt;/h1&gt;
+    &lt;div class="sub"&gt;Real orange zip, zero sugar crash. Cracked cold, gone in seconds.&lt;/div&gt;
+    &lt;span class="sip"&gt;{{cta}}&lt;/span&gt;
+    &lt;div class="micro"&gt;CHILL HARD · SIP OFTEN · RECYCLE ALWAYS&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 270"
+       style="position:absolute;right:14px;top:14px;width:210px;height:258px"&gt;
+    &lt;defs&gt;
+      &lt;linearGradient id="can" x1="0" y1="0" x2="1" y2="0"&gt;
+        &lt;stop offset="0" stop-color="#0e2f22"/&gt;&lt;stop offset=".35" stop-color="#1d5c41"/&gt;
+        &lt;stop offset=".55" stop-color="#2e8f63"/&gt;&lt;stop offset=".82" stop-color="#17492f"/&gt;
+      &lt;/linearGradient&gt;
+      &lt;linearGradient id="lid" x1="0" y1="0" x2="1" y2="0"&gt;
+        &lt;stop offset="0" stop-color="#9fb0a6"/&gt;&lt;stop offset=".5" stop-color="#e6ece8"/&gt;
+        &lt;stop offset="1" stop-color="#8fa096"/&gt;
+      &lt;/linearGradient&gt;
+    &lt;/defs&gt;
+    &lt;ellipse cx="110" cy="252" rx="76" ry="11" fill="#143f2d" opacity=".14"/&gt;
+    &lt;rect x="52" y="34" width="116" height="212" rx="24" fill="url(#can)"/&gt;
+    &lt;ellipse cx="110" cy="38" rx="58" ry="11" fill="url(#lid)"/&gt;
+    &lt;ellipse cx="110" cy="38" rx="46" ry="7.5" fill="#7c8d83"/&gt;
+    &lt;text x="110" y="128" text-anchor="middle" font-family="Arial" font-weight="900"
+          font-size="38" fill="#fff7d9" letter-spacing="-2"&gt;zest!&lt;/text&gt;
+    &lt;text x="110" y="150" text-anchor="middle" font-family="Arial" font-weight="700"
+          font-size="11" fill="#ffb46e" letter-spacing="2"&gt;SPARKLING ORANGE&lt;/text&gt;
+    &lt;g transform="translate(110 200)"&gt;
+      &lt;circle r="30" fill="#ff8c32"/&gt;&lt;circle r="24" fill="#ffcf9e"/&gt;
+      &lt;g stroke="#ff8c32" stroke-width="3"&gt;
+        &lt;line x1="0" y1="-24" x2="0" y2="24"/&gt;&lt;line x1="-24" y1="0" x2="24" y2="0"/&gt;
+        &lt;line x1="-17" y1="-17" x2="17" y2="17"/&gt;&lt;line x1="-17" y1="17" x2="17" y2="-17"/&gt;
+      &lt;/g&gt;
+      &lt;circle r="6" fill="#ff8c32"/&gt;
+    &lt;/g&gt;
+    &lt;circle cx="70" cy="90" r="4" fill="#fff7d9" opacity=".5"/&gt;
+    &lt;circle cx="80" cy="170" r="3" fill="#fff7d9" opacity=".4"/&gt;
+    &lt;circle cx="150" cy="120" r="3.5" fill="#fff7d9" opacity=".45"/&gt;
+    &lt;circle cx="142" cy="70" r="2.5" fill="#fff7d9" opacity=".5"/&gt;
+  &lt;/svg&gt;
+  &lt;div class="ticker"&gt;NEW · SPARKLING ORANGE · ZERO SUGAR · NEW · SPARKLING ORANGE · ZERO SUGAR · NEW&lt;/div&gt;
+&lt;/div&gt;`,
+} });</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
 <div class="mirai-example" id="ex-export" data-media="demo" data-assets="./">
 <div class="highlight"><pre><code>const bytes = await miraiclip.exportProject(project, {
   format: "webm", quality: "draft",

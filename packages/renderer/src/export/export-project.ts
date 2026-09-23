@@ -190,6 +190,11 @@ export async function exportProject(
   // that rasterizes fallback glyphs is silently wrong (no one is watching).
   await loadFontAssets(doc);
 
+  // Async node content (image textures, html rasters) must land before the
+  // deterministic frame walk — otherwise early frames bake in missing
+  // overlays. A failed html raster rejects here, failing the export loudly.
+  await compositor.whenReady();
+
   // Whether the composition has an audio track is decided ONCE, over the full
   // range: the track must register before the first video frame, and with
   // chunked mixing a silent first minute must not be mistaken for an

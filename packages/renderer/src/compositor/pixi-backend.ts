@@ -4,10 +4,11 @@
  * playback controller decides when frames are drawn.
  */
 import { Application, Assets, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
-import { isCaptionClip, isTextClip, type Asset, type CaptionClip, type Clip, type EffectInstance, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
+import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { captionProgress, layoutCaption, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
+import { htmlRasterKey, rasterizeHtml } from "../html/rasterize.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
   private effects: NodeEffects | undefined;
@@ -160,16 +161,24 @@ class PixiImageNode extends PixiNode<Sprite> {
     this.loadTexture();
   }
 
+  private ready: Promise<unknown> = Promise.resolve();
+
   private loadTexture(): void {
     const src = this.asset?.src;
     if (!src || src === this.loadedSrc) return;
     this.loadedSrc = src;
-    void Assets.load<Texture>(src).then((texture) => {
-      if (this.loadedSrc === src && !this.display.destroyed) {
-        this.display.texture = texture;
-        this.invalidate();
-      }
-    });
+    this.ready = Assets.load<Texture>(src)
+      .then((texture) => {
+        if (this.loadedSrc === src && !this.display.destroyed) {
+          this.display.texture = texture;
+          this.invalidate();
+        }
+      })
+      .catch(() => undefined); // a missing image renders empty, as before — exports just no longer race it
+  }
+
+  whenReady(): Promise<void> {
+    return this.ready.then(() => undefined);
   }
 
   update(_clip: Clip): void {
@@ -179,6 +188,64 @@ class PixiImageNode extends PixiNode<Sprite> {
   setAsset(asset: Asset | undefined): void {
     this.asset = asset;
     this.loadTexture();
+  }
+}
+
+/**
+ * HTML clip node: the template rasterizes (async) to a canvas texture — see
+ * html/rasterize.ts for the data-URL/launder mechanics. A key over
+ * (template, params, size) gates re-rasters, so a params-driven content
+ * update costs one raster and everything else is a plain sprite.
+ */
+class PixiHtmlNode extends PixiNode<Sprite> {
+  private key = "";
+  private ready: Promise<void> = Promise.resolve();
+
+  constructor(
+    stage: Container,
+    clip: HtmlClip,
+    private readonly assets: Readonly<Record<string, Asset>>,
+    invalidate: () => void,
+    private readonly context: EffectContext,
+  ) {
+    const sprite = new Sprite(Texture.EMPTY);
+    sprite.anchor.set(0.5);
+    stage.addChild(sprite);
+    super(sprite, invalidate, context);
+    this.update(clip);
+  }
+
+  update(clip: Clip): void {
+    if (!isHtmlClip(clip)) return;
+    const size = this.context.compositionSize();
+    const widthPx = clip.widthPx ?? size.width;
+    const heightPx = clip.heightPx ?? size.height;
+    const key = htmlRasterKey(clip, widthPx, heightPx);
+    if (key === this.key) return;
+    this.key = key;
+    const job = rasterizeHtml({
+      template: clip.template,
+      params: clip.params,
+      widthPx,
+      heightPx,
+      assets: this.assets,
+    }).then((source) => {
+      // `source` is a laundered canvas (DOM) or a pre-rendered ImageBitmap
+      // (worker export) — Texture.from takes both.
+      if (this.key !== key || this.display.destroyed) return;
+      const previous = this.display.texture;
+      this.display.texture = Texture.from(source);
+      if (previous !== Texture.EMPTY) previous.destroy(true);
+      this.invalidate();
+    });
+    // Live playback logs and renders empty; exports await whenReady and FAIL
+    // loudly (a silently missing overlay in an unattended export is worse).
+    job.catch((error: unknown) => console.error("[miraiclip] html clip:", error));
+    this.ready = job;
+  }
+
+  whenReady(): Promise<void> {
+    return this.ready;
   }
 }
 
@@ -471,6 +538,11 @@ class PixiSceneBackend implements SceneBackend {
   createCaption(clip: CaptionClip): SceneNode {
     this.invalidate();
     return new PixiCaptionNode(this.app.stage, clip, this.invalidate, this.effectContext);
+  }
+
+  createHtml(clip: HtmlClip, assets: Readonly<Record<string, Asset>>): SceneNode {
+    this.invalidate();
+    return new PixiHtmlNode(this.app.stage, clip, assets, this.invalidate, this.effectContext);
   }
 
   createSolid(): SolidSceneNode {
