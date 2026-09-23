@@ -1,5 +1,13 @@
 # @miraiclip/server-export
 
+## 0.3.1
+
+### Patch Changes
+
+- a27c4ef: Harness rebuilt with html clip support: server exports and render sessions rasterize `html` clips (the harness page is a real Chrome document).
+- Updated dependencies [a27c4ef]
+  - @miraiclip/core@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes

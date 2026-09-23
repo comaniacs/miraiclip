@@ -1,5 +1,14 @@
 # @miraiclip/mcp
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [a27c4ef]
+- Updated dependencies [a27c4ef]
+  - @miraiclip/core@0.4.0
+  - @miraiclip/server-export@0.3.1
+
 ## 0.1.0
 
 ### Minor Changes
