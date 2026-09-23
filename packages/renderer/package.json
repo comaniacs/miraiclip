@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/renderer",
-  "version": "0.8.0",
+  "version": "0.7.1",
   "description": "Rendering and playback for Miraiclip: WebCodecs media pipeline, WebGL compositor, frame-accurate playback.",
   "license": "MIT",
   "repository": {
