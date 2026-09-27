@@ -9,6 +9,7 @@ import { captionProgress, layoutCaption, wordAppearance, type CaptionProgress } 
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
 import { htmlRasterKey, rasterizeHtml } from "../html/rasterize.js";
+import { captionMetrics, captionWordStyle, textClipStyle } from "../text/typography.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
   private effects: NodeEffects | undefined;
@@ -283,11 +284,7 @@ class PixiTextNode extends PixiNode<Text> {
     // in upscaled exports and hi-DPI previews (the stage scale would otherwise
     // stretch a composition-resolution glyph atlas).
     this.display.resolution = Math.max(1, this.textContext?.renderScale?.() ?? 1);
-    this.display.style = {
-      fontFamily: clip.fontFamily,
-      fontSize: clip.fontSizePx,
-      fill: clip.color,
-    };
+    this.display.style = textClipStyle(clip);
     this.invalidate();
   }
 }
@@ -334,14 +331,13 @@ class PixiCaptionNode extends PixiNode<Container> {
       }
       text.text = words[i]!.text;
       text.resolution = Math.max(1, this.context.renderScale?.() ?? 1); // sharp under stage upscale
-      text.style = { fontFamily: style.fontFamily, fontSize: fontSizePx, fill: style.color };
+      text.style = captionWordStyle(style, fontSizePx);
       text.scale.set(1);
     }
 
     const layout = layoutCaption(words, {
       maxWidthPx: comp.width * 0.8,
-      lineHeightPx: fontSizePx * 1.3,
-      spaceWidthPx: fontSizePx * 0.33,
+      ...captionMetrics(style, fontSizePx),
       measure: (i) => this.wordTexts[i]!.width,
     });
     layout.positions.forEach((position, i) => {

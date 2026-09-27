@@ -6,6 +6,12 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ### Added
 
+- `@miraiclip/renderer` **renders typography** — text clips honor `fontWeight`, `fontStyle`, `lineHeight`, `letterSpacing`, and `textAlign`; captions honor weight, style, and spacing on every word, with `lineHeight` driving line stacking and letter spacing widening word gaps. Font assets' `weight`/`style` become `FontFace` descriptors (each face of a family loads separately; `FontEnv.createFace` takes optional descriptors) and carry into html-clip `@font-face` inlining. Clips without typography render exactly as before. Preview, browser/worker export, and stills share the mapping; `@miraiclip/server-export`'s harness is rebuilt with it, so server exports, template batches, and MCP previews render typography too. Docs: [Command Catalog → Typography](https://comaniacs.github.io/miraiclip/docs/command-catalog/#typography).
+
+## [core-0.5.0] + [renderer-0.7.2] + [server-export-0.4.1] + [templates-0.1.1] + [mcp-0.1.3] — 2026-09-27
+
+### Added
+
 - `@miraiclip/core` **typography for text and caption clips** — optional `fontWeight` (100–900), `fontStyle`, `lineHeight` (× font size), `letterSpacing` (em, so it scales with font size between preview and export), and `textAlign` (text clips; lines within the block, independent of the anchor) on text clips and caption `style` (captions stay centered, so no `textAlign`). Font assets gain `weight`/`style` descriptors — one asset per face. `clip/add` and `clip/set-property` accept every field (`null` in `set-property` clears back to the default), the JSON Schema catalog carries the constraints to LLM tools and property panels, and `describeProject` lists typography only where set. No schema defaults: existing documents load, render, and serialize unchanged; `TYPOGRAPHY_DEFAULTS` exports what an absent field means. Docs: [Command Catalog → Typography](https://comaniacs.github.io/miraiclip/docs/command-catalog/#typography).
 
 ## [templates-0.1.0] + [server-export-0.4.0] + [renderer-0.7.1] + [mcp-0.1.2] — 2026-09-23

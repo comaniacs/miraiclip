@@ -61,6 +61,7 @@ Everything below is a command away — and because export drives the same compos
 - **[Effects](effects)** — color adjust, blur, chroma key per clip.
 - **[Transitions](transitions)** — dissolve, dips, wipe, slide across a cut.
 - **[Captions](captions)** — reels-style karaoke text with word timing.
+- **[Typography](../command-catalog/#typography)** — weight, italic, line height, letter spacing, alignment on text and captions; one font asset per face.
 
 ## Layout
 

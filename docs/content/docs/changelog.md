@@ -9,6 +9,12 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Added
 
+- `@miraiclip/renderer` **renders typography** — weight, style, line height, letter spacing, and alignment on text clips; weight, style, and spacing on caption words, with line height driving caption line stacking. Font asset `weight`/`style` become `FontFace` descriptors (and carry into html clips). Untyped clips render exactly as before. See [Command Catalog → Typography](/miraiclip/docs/command-catalog/#typography).
+
+## core-0.5.0 + renderer-0.7.2 + server-export-0.4.1 + templates-0.1.1 + mcp-0.1.3 — 2026-09-27
+
+### Added
+
 - `@miraiclip/core` **typography for text and caption clips** — optional `fontWeight`, `fontStyle`, `lineHeight` (× font size), `letterSpacing` (em), and `textAlign` (text clips only) on text clips and caption `style`; font assets gain `weight`/`style`. `clip/add` + `clip/set-property` accept them (`null` clears). Existing documents are unchanged. See [Command Catalog → Typography](/miraiclip/docs/command-catalog/#typography).
 
 ## templates-0.1.0 + server-export-0.4.0 + renderer-0.7.1 + mcp-0.1.2 — 2026-09-23

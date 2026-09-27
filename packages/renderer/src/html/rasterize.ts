@@ -18,6 +18,7 @@
  * HTML-in-Canvas API once it ships; a user-supplied deterministic renderer).
  */
 import { isHtmlClip, type Asset, type HtmlClip, type HtmlParamValue, type ProjectDocument } from "@miraiclip/core";
+import { fontFaceDescriptors } from "../text/typography.js";
 
 const escapeHtml = (value: string): string =>
   value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -177,7 +178,9 @@ export async function rasterizeHtml(
     if (asset.kind !== "font" || !asset.family) continue;
     if (!markup.includes(asset.family)) continue;
     const uri = await toDataUri(asset.src);
-    fontCss += `@font-face{font-family:${JSON.stringify(asset.family)};src:url(${JSON.stringify(uri)})}`;
+    const d = fontFaceDescriptors(asset);
+    const descriptors = (d.weight ? `;font-weight:${d.weight}` : "") + (d.style ? `;font-style:${d.style}` : "");
+    fontCss += `@font-face{font-family:${JSON.stringify(asset.family)};src:url(${JSON.stringify(uri)})${descriptors}}`;
   }
 
   // Supersampling: the SVG (and canvas) are PHYSICAL size, while the markup
