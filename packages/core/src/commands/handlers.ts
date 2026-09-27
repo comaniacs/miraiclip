@@ -23,6 +23,20 @@ import {
 } from "../types.js";
 import { builtinPayloadSchemas, type BuiltinCommandType } from "./schemas.js";
 
+const TEXT_TYPOGRAPHY_KEYS = [
+  "fontWeight",
+  "fontStyle",
+  "lineHeight",
+  "letterSpacing",
+  "textAlign",
+] as const;
+
+/** `null` removes the key (so the document carries only what was set). */
+function setOrClear(target: Record<string, unknown>, key: string, value: unknown): void {
+  if (value === null) delete target[key];
+  else target[key] = value;
+}
+
 /** Applies a validated payload to a draft of the document. */
 export type CommandHandler<P = unknown> = (doc: Draft<ProjectDocument>, payload: P) => void;
 
@@ -143,6 +157,11 @@ export const builtinHandlers: {
     if (p.height !== undefined) asset.height = p.height;
     if (p.fps !== undefined) asset.fps = p.fps;
     if (p.family !== undefined) asset.family = p.family;
+    if ((p.weight !== undefined || p.style !== undefined) && p.kind !== "font") {
+      reject("asset/add", "not-font", `"weight"/"style" only apply to font assets`);
+    }
+    if (p.weight !== undefined) asset.weight = p.weight;
+    if (p.style !== undefined) asset.style = p.style;
     doc.assets[p.id] = asset;
   },
   "asset/remove": (doc, p) => {
@@ -332,6 +351,15 @@ export const builtinHandlers: {
         (clip as Record<typeof key, unknown>)[key] = p[key];
       }
     }
+    // Typography: a value sets, `null` deletes (back to TYPOGRAPHY_DEFAULTS).
+    for (const key of TEXT_TYPOGRAPHY_KEYS) {
+      const value = p[key];
+      if (value === undefined) continue;
+      if (clip.kind !== "text") {
+        reject("clip/set-property", "not-text", `"${key}" only applies to text clips`);
+      }
+      setOrClear(clip as unknown as Record<string, unknown>, key, value);
+    }
     if (p.params !== undefined) {
       if (clip.kind !== "html" || !("params" in clip)) {
         reject("clip/set-property", "not-html", `"params" only applies to html clips`);
@@ -342,7 +370,10 @@ export const builtinHandlers: {
       if (clip.kind !== "caption" || !("style" in clip)) {
         reject("clip/set-property", "not-caption", `"style" only applies to caption clips`);
       }
-      Object.assign(clip.style, p.style);
+      const style = clip.style as unknown as Record<string, unknown>;
+      for (const [key, value] of Object.entries(p.style)) {
+        if (value !== undefined) setOrClear(style, key, value);
+      }
     }
   },
 

@@ -24,7 +24,7 @@ import {
   UnknownCommandError,
 } from "./errors.js";
 import type { Project } from "./engine.js";
-import type { Clip, ProjectDocument } from "./types.js";
+import type { CaptionClip, Clip, ProjectDocument, TextAlign, TextClip, Typography } from "./types.js";
 
 // ---------------------------------------------------------------------------
 // Tool naming: command types use "/" (clip/add), which LLM tool-name rules
@@ -252,6 +252,17 @@ function formatUs(us: number): string {
   return `${us}us`;
 }
 
+/** Only fields that were set — defaults stay invisible, keeping the summary compact. */
+function typographySummary(t: Typography & { textAlign?: TextAlign }): string {
+  const parts: string[] = [];
+  if (t.fontWeight !== undefined) parts.push(`weight ${t.fontWeight}`);
+  if (t.fontStyle !== undefined) parts.push(t.fontStyle);
+  if (t.lineHeight !== undefined) parts.push(`lineHeight ${t.lineHeight}`);
+  if (t.letterSpacing !== undefined) parts.push(`letterSpacing ${t.letterSpacing}em`);
+  if (t.textAlign !== undefined) parts.push(`align ${t.textAlign}`);
+  return parts.join(", ");
+}
+
 function clipLine(clip: Clip): string {
   const endUs = clip.startUs + clip.durationUs;
   let extra = "";
@@ -264,6 +275,11 @@ function clipLine(clip: Clip): string {
     extra += ` ${JSON.stringify(text)}`;
   }
   if ("words" in clip && Array.isArray(clip.words)) extra += ` (${clip.words.length} words)`;
+  const typography =
+    clip.kind === "text" ? typographySummary(clip as TextClip)
+    : clip.kind === "caption" && "style" in clip ? typographySummary((clip as CaptionClip).style)
+    : "";
+  if (typography) extra += ` {${typography}}`;
   const effects = clip.effects?.length ? ` [${clip.effects.length} effect${clip.effects.length > 1 ? "s" : ""}]` : "";
   const animated = clip.animations ? Object.keys(clip.animations) : [];
   const keyframes = animated.length ? ` [keyframes: ${animated.sort().join(", ")}]` : "";

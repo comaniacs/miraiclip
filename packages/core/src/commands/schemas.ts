@@ -41,6 +41,38 @@ export const captionWordSchema = z.object({
   durationUs: z.number().int().positive(),
 });
 
+// --- Typography (optional everywhere; absent = TYPOGRAPHY_DEFAULTS) ---------
+// No `.default()`s: parsing must not write keys nobody set, so existing
+// documents serialize byte-identically and describeProject stays compact.
+
+/** CSS weight, 100–900 in steps of 100 (static faces; variable-font ranges are a later addition). */
+export const fontWeightSchema = z.number().int().min(100).max(900).multipleOf(100);
+export const fontStyleSchema = z.enum(["normal", "italic"]);
+export const textAlignSchema = z.enum(["left", "center", "right"]);
+/** Multiple of font size. */
+export const lineHeightSchema = z.number().gt(0).max(5);
+/** em — scales with font size, so preview and export agree at any density. */
+export const letterSpacingSchema = z.number().min(-0.5).max(2);
+
+export const typographyFields = {
+  /** 100–900 in steps of 100 (default 400). */
+  fontWeight: fontWeightSchema.optional(),
+  /** Default "normal". */
+  fontStyle: fontStyleSchema.optional(),
+  /** Multiple of font size (default: font's natural line height; captions 1.3). */
+  lineHeight: lineHeightSchema.optional(),
+  /** em (default 0). */
+  letterSpacing: letterSpacingSchema.optional(),
+};
+
+/** set-property shape: `null` clears a field back to its default. */
+const typographyPatchFields = {
+  fontWeight: fontWeightSchema.nullable().optional(),
+  fontStyle: fontStyleSchema.nullable().optional(),
+  lineHeight: lineHeightSchema.nullable().optional(),
+  letterSpacing: letterSpacingSchema.nullable().optional(),
+};
+
 export const captionStyleSchema = z.object({
   preset: z.enum(["plain", "highlight", "karaoke", "pop"]).default("highlight"),
   fontFamily: z.string().default("sans-serif"),
@@ -49,7 +81,14 @@ export const captionStyleSchema = z.object({
   color: z.string().default("#ffffff"),
   highlightColor: z.string().default("#ffd400"),
   backgroundColor: z.string().optional(),
+  ...typographyFields,
 });
+
+/** clip/set-property `style`: partial merge; typography fields accept `null` to clear. */
+export const captionStylePatchSchema = captionStyleSchema
+  .omit({ fontWeight: true, fontStyle: true, lineHeight: true, letterSpacing: true })
+  .partial()
+  .extend(typographyPatchFields);
 
 // ---------------------------------------------------------------------------
 // Payload schemas — one per built-in command.
@@ -73,6 +112,10 @@ export const builtinPayloadSchemas = {
     fps: z.number().positive().optional(),
     /** Font assets: the CSS font-family name clips reference. */
     family: z.string().min(1).optional(),
+    /** Font assets: this face's weight (default 400). Load one asset per weight/style. */
+    weight: fontWeightSchema.optional(),
+    /** Font assets: this face's style (default "normal"). */
+    style: fontStyleSchema.optional(),
   }),
   "asset/remove": z.object({ id }),
 
@@ -136,6 +179,9 @@ export const builtinPayloadSchemas = {
       fontFamily: z.string().default("sans-serif"),
       fontSizePx: z.number().positive().default(48),
       color: z.string().default("#ffffff"),
+      ...typographyFields,
+      /** Alignment of lines within the block (default "left"); independent of the anchor. */
+      textAlign: textAlignSchema.optional(),
       transform: transformSchema.partial().optional(),
     }),
     z.object({
@@ -219,8 +265,12 @@ export const builtinPayloadSchemas = {
     fontFamily: z.string().optional(),
     fontSizePx: z.number().positive().optional(),
     color: z.string().optional(),
-    /** Caption clips: partial style update, merged onto the clip's style. */
-    style: captionStyleSchema.partial().optional(),
+    /** Text clips. `null` clears back to the default. */
+    ...typographyPatchFields,
+    /** Text clips. `null` clears back to the default. */
+    textAlign: textAlignSchema.nullable().optional(),
+    /** Caption clips: partial style update, merged onto the clip's style; typography fields accept `null` to clear. */
+    style: captionStylePatchSchema.optional(),
   }),
 
   // --- Animation (v4) ------------------------------------------------------

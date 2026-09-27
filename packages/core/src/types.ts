@@ -21,6 +21,35 @@ export interface Asset {
   fps?: number;
   /** Font assets: the CSS font-family name clips reference. */
   family?: string;
+  /** Font assets: the face's weight descriptor (100–900; default 400). */
+  weight?: FontWeight;
+  /** Font assets: the face's style descriptor (default "normal"). */
+  style?: FontStyle;
+}
+
+/** CSS font weight: 100–900 in steps of 100 (validated by the command schemas). */
+export type FontWeight = number;
+export type FontStyle = "normal" | "italic";
+export type TextAlign = "left" | "center" | "right";
+
+/**
+ * Optional typography shared by text clips and caption styles. Absent fields
+ * mean the default (see `TYPOGRAPHY_DEFAULTS`) — which is exactly how clips
+ * rendered before these fields existed. Documents only carry what was set, so
+ * older projects load, render, and serialize unchanged.
+ */
+export interface Typography {
+  /** 100–900 (default 400). */
+  fontWeight?: FontWeight;
+  /** Default "normal". */
+  fontStyle?: FontStyle;
+  /**
+   * Line box height as a multiple of font size. Absent = today's rendering:
+   * the font's natural line height for text clips, 1.3 for captions.
+   */
+  lineHeight?: number;
+  /** Extra space between characters in em — scales with font size (default 0). */
+  letterSpacing?: number;
 }
 
 export type TrackKind = "video" | "audio";
@@ -129,12 +158,14 @@ export interface ImageClip extends ClipBase {
   assetId: string;
 }
 
-export interface TextClip extends ClipBase {
+export interface TextClip extends ClipBase, Typography {
   kind: "text";
   text: string;
   fontFamily: string;
   fontSizePx: number;
   color: string;
+  /** Alignment of lines within the text block (default "left"). Independent of the clip's anchor/transform. */
+  textAlign?: TextAlign;
 }
 
 /** A template parameter value — plain data, so html clips serialize and cross process boundaries. */
@@ -163,7 +194,8 @@ export interface CaptionWord {
   durationUs: Us;
 }
 
-export interface CaptionStyle {
+/** Caption lines are always centered, so captions take no `textAlign`. */
+export interface CaptionStyle extends Typography {
   /** How the active word is emphasized. */
   preset: "plain" | "highlight" | "karaoke" | "pop";
   fontFamily: string;
@@ -202,6 +234,26 @@ export const isAudioClip = (clip: Clip): clip is AudioClip =>
   clip.kind === "audio" && "assetId" in clip;
 export const isImageClip = (clip: Clip): clip is ImageClip =>
   clip.kind === "image" && "assetId" in clip;
+/**
+ * What an absent typography field means. Renderers and editor UIs read these
+ * rather than hard-coding them; the schema deliberately has no `.default()`s
+ * for these fields, so parsed documents never gain keys nobody set.
+ */
+export const TYPOGRAPHY_DEFAULTS = {
+  fontWeight: 400,
+  fontStyle: "normal",
+  letterSpacing: 0,
+  textAlign: "left",
+  /** Caption line height multiple (text clips default to the font's natural line height). */
+  captionLineHeight: 1.3,
+} as const satisfies {
+  fontWeight: FontWeight;
+  fontStyle: FontStyle;
+  letterSpacing: number;
+  textAlign: TextAlign;
+  captionLineHeight: number;
+};
+
 export const isTextClip = (clip: Clip): clip is TextClip =>
   clip.kind === "text" && "text" in clip;
 export const isCaptionClip = (clip: Clip): clip is CaptionClip =>

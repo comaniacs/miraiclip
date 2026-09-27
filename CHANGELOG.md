@@ -2,6 +2,12 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
+## Unreleased
+
+### Added
+
+- `@miraiclip/core` **typography for text and caption clips** — optional `fontWeight` (100–900), `fontStyle`, `lineHeight` (× font size), `letterSpacing` (em, so it scales with font size between preview and export), and `textAlign` (text clips; lines within the block, independent of the anchor) on text clips and caption `style` (captions stay centered, so no `textAlign`). Font assets gain `weight`/`style` descriptors — one asset per face. `clip/add` and `clip/set-property` accept every field (`null` in `set-property` clears back to the default), the JSON Schema catalog carries the constraints to LLM tools and property panels, and `describeProject` lists typography only where set. No schema defaults: existing documents load, render, and serialize unchanged; `TYPOGRAPHY_DEFAULTS` exports what an absent field means. Docs: [Command Catalog → Typography](https://comaniacs.github.io/miraiclip/docs/command-catalog/#typography).
+
 ## [templates-0.1.0] + [server-export-0.4.0] + [renderer-0.7.1] + [mcp-0.1.2] — 2026-09-23
 
 ### Added

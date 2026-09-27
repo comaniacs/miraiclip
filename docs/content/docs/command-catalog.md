@@ -35,6 +35,8 @@ All time values are integer microseconds (1 s = 1,000,000 µs). Commands with a 
 | `height` | integer | no | > 0, integer |
 | `fps` | number | no | > 0 |
 | `family` | string | no | font assets: the CSS font-family name |
+| `weight` | integer | no | font assets: 100–900, step 100 (default 400) |
+| `style` | `"normal"` \| `"italic"` | no | font assets (default `"normal"`) |
 
 
 ## `asset/remove`
@@ -89,7 +91,7 @@ All time values are integer microseconds (1 s = 1,000,000 µs). Commands with a 
 
 ## `clip/add`
 
-Discriminated on `kind`: `video`/`audio` (assetId, trimStartUs, volume), `image` (assetId), `text` (text, fontFamily, fontSizePx, color), `caption` (words `[{text, startUs, durationUs}]` clip-relative + style `{preset, fontFamily, fontSizeFrac, color, highlightColor, backgroundColor?}`), or a registered custom kind (payload under `props`, validated by its schema). All take `id`, `trackId`, `startUs`, `durationUs`, optional partial `transform`. Asset-backed kinds reject asset-kind mismatches.
+Discriminated on `kind`: `video`/`audio` (assetId, trimStartUs, volume), `image` (assetId), `text` (text, fontFamily, fontSizePx, color, + [typography](#typography)), `caption` (words `[{text, startUs, durationUs}]` clip-relative + style `{preset, fontFamily, fontSizeFrac, color, highlightColor, backgroundColor?}` + [typography](#typography) minus `textAlign`), or a registered custom kind (payload under `props`, validated by its schema). All take `id`, `trackId`, `startUs`, `durationUs`, optional partial `transform`. Asset-backed kinds reject asset-kind mismatches.
 
 
 
@@ -149,7 +151,30 @@ Discriminated on `kind`: `video`/`audio` (assetId, trimStartUs, volume), `image`
 | `fontFamily` | string | no |  |
 | `fontSizePx` | number | no | > 0 |
 | `color` | string | no |  |
-| `style` | object | no | caption clips: partial style merge |
+| `fontWeight` `fontStyle` `lineHeight` `letterSpacing` `textAlign` | see [typography](#typography) | no | text clips; `null` clears to default |
+| `style` | object | no | caption clips: partial style merge; typography keys accept `null` |
+
+### Typography
+
+Optional on text clips and caption `style`. Absent = default = how clips rendered before these fields existed (`TYPOGRAPHY_DEFAULTS`).
+
+| Field | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `fontWeight` | integer | 400 | 100–900, step 100; needs a matching font asset `weight` or the browser synthesizes it |
+| `fontStyle` | `"normal"` \| `"italic"` | `"normal"` | same: pair with a font asset `style` |
+| `lineHeight` | number | font's natural (captions 1.3) | multiple of font size, > 0, ≤ 5 |
+| `letterSpacing` | number | 0 | em (scales with font size), −0.5–2 |
+| `textAlign` | `"left"` \| `"center"` \| `"right"` | `"left"` | text clips only; aligns lines within the block, not the anchor |
+
+```ts
+project.dispatch({ type: "asset/add", payload: { id: "inter-700", kind: "font", src: "/Inter-Bold.woff2", family: "Inter", weight: 700 } });
+project.dispatch({
+  type: "clip/add",
+  payload: { kind: "text", id: "t1", trackId: "v1", startUs: 0, durationUs: 2_000_000,
+    text: "SALE\nToday only", fontFamily: "Inter", fontWeight: 700, lineHeight: 1.1, letterSpacing: 0.04, textAlign: "center" },
+});
+project.dispatch({ type: "clip/set-property", payload: { clipId: "t1", letterSpacing: null } }); // back to 0
+```
 
 ## `keyframe/set`
 
