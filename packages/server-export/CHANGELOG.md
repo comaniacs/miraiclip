@@ -1,5 +1,11 @@
 # @miraiclip/server-export
 
+## 0.4.2
+
+### Patch Changes
+
+- 116f3b2: Harness rebuilt with the typography-aware renderer: server exports, render sessions, and export sessions (and so `@miraiclip/templates` batches and MCP previews) render text and caption `fontWeight`, `fontStyle`, `lineHeight`, `letterSpacing`, and `textAlign`, and load font assets per weight/style face.
+
 ## 0.4.1
 
 ### Patch Changes
