@@ -185,6 +185,28 @@ check("template validation rejects then renders", !!(await poll(async () => {
   return c && c.green > 800 && s?.includes("rejected") && s?.includes("data.plan") && !cls?.includes("error") ? c : false;
 })), JSON.stringify(await census("ex-template-validate")) + " status=" + (await status("ex-template-validate")));
 
+// 4g — effect library gallery: 79 real thumbnails; running applies the shown
+// stack; tapping a tile restacks, re-runs live, and changes the frame.
+await page.locator("#ex-gallery").scrollIntoViewIfNeeded();
+const thumbs = await poll(async () => {
+  const n = await page.locator("#ex-gallery .mirai-gallery-tile img[src]").count();
+  return n >= 79 ? n : false;
+}, 60000);
+check("effect gallery thumbnails render", !!thumbs, String(thumbs));
+await run("ex-gallery");
+const before = await poll(async () => {
+  const c = await census("ex-gallery");
+  return c && c.nonBlack > 50000 ? c : false;
+});
+await page.click('#ex-gallery .mirai-gallery-tile[data-kind="invert"]');
+const shownCode = await page.textContent("#ex-gallery .mirai-gallery-left code");
+const after = await poll(async () => {
+  const c = await census("ex-gallery");
+  return c && before && c.nonBlack > 50000 && Math.abs(c.cool - before.cool) > 20000 ? c : false;
+});
+check("effect gallery tile restacks live", !!before && !!after && shownCode.includes('kind: "invert"'),
+  JSON.stringify({ before, after }));
+
 // 5 — export: status reaches "exported N bytes".
 await run("ex-export");
 const exported = await poll(async () => {

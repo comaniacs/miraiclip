@@ -75,6 +75,8 @@ export { renderProjectStill } from "./export/render-still.js";
 export type { RenderProjectStillOptions } from "./export/render-still.js";
 
 export { registerEffectRenderer, getEffectRenderer } from "./effects/pixi-effects.js";
+export { renderEffectThumbnails } from "./effects/thumbnails.js";
+export type { EffectThumbnailOptions } from "./effects/thumbnails.js";
 export type { ActiveEffect, EffectContext, EffectRendererFactory } from "./effects/pixi-effects.js";
 export { registerTransitionRenderer, getTransitionRenderer } from "./transitions/registry.js";
 export type {

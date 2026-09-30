@@ -31,8 +31,8 @@ Miraiclip is not a video editor app — it is the engine you build one with. The
 | Package | Status | Description |
 | --- | --- | --- |
 | [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.5.0 on npm | Headless command-driven engine: state, commands, history, events, AI integration |
-| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.7.2 on npm | WebCodecs + WebGL playback, preview, export, and stills — animations, effects, transitions, captions, HTML clips |
-| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.4.1 on npm | Server-side export and frame rendering: the browser pipeline in headless Chrome, from Node |
+| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.7.3 on npm | WebCodecs + WebGL playback, preview, export, and stills — animations, effects, transitions, captions, HTML clips |
+| [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.4.2 on npm | Server-side export and frame rendering: the browser pipeline in headless Chrome, from Node |
 | [`@miraiclip/mcp`](https://www.npmjs.com/package/@miraiclip/mcp) | ✅ v0.1.3 on npm | MCP server: Claude, Codex, and other agents edit projects — with frame previews they can see |
 | [`@miraiclip/templates`](https://www.npmjs.com/package/@miraiclip/templates) | ✅ v0.1.1 on npm | Parameterized videos: template + data rows → batch personalized exports, with a CLI |
 | `@miraiclip/react` | planned | React hooks and selectors |

@@ -7,6 +7,7 @@
  */
 import { z } from "zod";
 import type { TrackKind } from "./types.js";
+import { EFFECT_CATALOG, type EffectParamInfo } from "./effect-catalog.js";
 
 // ---------------------------------------------------------------------------
 // Effects — length-denoting params are normalized to composition units
@@ -46,6 +47,27 @@ export const builtinEffectParamSchemas = {
 
 for (const [kind, schema] of Object.entries(builtinEffectParamSchemas)) {
   effectSchemas.set(kind, schema);
+}
+
+/** A catalog param → its Zod schema (the catalog is the single source of truth). */
+function catalogParamSchema(p: EffectParamInfo): z.ZodType {
+  if (p.type === "color") {
+    return z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .default(p.default);
+  }
+  const n = z.number().min(p.min).max(p.max);
+  return (p.format === "int" ? n.int() : n).default(p.default);
+}
+
+// The rest of the effect library: schemas derived from EFFECT_CATALOG.
+for (const info of EFFECT_CATALOG) {
+  if (effectSchemas.has(info.kind)) continue; // hand-written above (colorAdjust, blur, chromaKey)
+  effectSchemas.set(
+    info.kind,
+    z.object(Object.fromEntries(info.params.map((p) => [p.key, catalogParamSchema(p)]))),
+  );
 }
 
 /** Register a custom effect kind's param schema (renderer registers its filter separately). */

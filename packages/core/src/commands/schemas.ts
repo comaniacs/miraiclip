@@ -295,7 +295,7 @@ export const builtinPayloadSchemas = {
 
   "effect/add": z.object({
     clipId: id,
-    /** Registry kind: colorAdjust, blur, chromaKey, or a registered custom kind. */
+    /** Registry kind: any built-in in EFFECT_CATALOG (colorAdjust, blur, chromaKey, sepia, vignette, …) or a registered custom kind. */
     kind: z.string().min(1),
     /** Validated against the kind's schema; omitted fields take their defaults. */
     params: z.record(z.string(), z.unknown()).optional(),

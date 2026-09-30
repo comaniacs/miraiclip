@@ -4,6 +4,7 @@
  * e2e-frames.webm: frame-index colors (see golden-frames.spec.ts).
  */
 import { expect, test, type Page } from "@playwright/test";
+import { EFFECT_CATALOG } from "@miraiclip/core";
 
 interface Rgb {
   r: number;
@@ -17,6 +18,7 @@ declare global {
       project: { dispatch(command: unknown): void };
       player: { seek(us: number): void };
       exportProject: (project: unknown, options: unknown) => Promise<Uint8Array>;
+      exportProjectViaWorker: (options: unknown) => Promise<Uint8Array>;
     };
   }
 }
@@ -133,4 +135,88 @@ test("effects apply in exported files too (same compositor)", async ({ page }) =
   });
   // The green screen must be keyed out IN THE FILE (black background baked in).
   expect(Math.max(corner.r, corner.g, corner.b)).toBeLessThan(30);
+});
+
+test("every built-in library effect compiles and renders (real WebGL)", async ({ page }) => {
+  test.setTimeout(120_000);
+  const glErrors: string[] = [];
+  page.on("console", (m) => {
+    const text = m.text();
+    if (/shader|program not valid|Could not initialize|GL_INVALID/i.test(text)) glErrors.push(text.slice(0, 200));
+  });
+  await load(page, "/e2e-frames.webm");
+  await expect.poll(async () => (await pixelAt(page, 0.5, 0.5)).r, { timeout: 5_000 }).toBeGreaterThan(120);
+
+  const kinds = EFFECT_CATALOG.map((e) => e.kind);
+  expect(kinds.length).toBeGreaterThanOrEqual(75);
+  for (const kind of kinds) {
+    await page.evaluate(async (k) => {
+      const { project } = window.__mirai;
+      project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: k, effectId: "fx" } });
+      // Two frames: the filter compiles on first draw.
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      project.dispatch({ type: "effect/remove", payload: { clipId: "main", effectId: "fx" } });
+    }, kind);
+    expect(glErrors, `after ${kind}`).toEqual([]);
+  }
+  // The clip still draws unaffected once the stack is empty again.
+  await expect.poll(async () => (await pixelAt(page, 0.5, 0.5)).r, { timeout: 5_000 }).toBeGreaterThan(120);
+});
+
+test("library effects cross the worker boundary: worker export renders them", async ({ page }) => {
+  test.setTimeout(120_000);
+  await load(page, "/e2e-frames.webm");
+  const px = await page.evaluate(async () => {
+    const { project, exportProjectViaWorker } = window.__mirai;
+    // A library kind (not one of the original three built-ins).
+    project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "invert", effectId: "inv" } });
+    const bytes = await exportProjectViaWorker({ format: "webm", quality: "draft" });
+    const blob = new Blob([bytes as BlobPart], { type: "video/webm" });
+    const video = document.createElement("video");
+    video.src = URL.createObjectURL(blob);
+    video.muted = true;
+    await new Promise((resolve, reject) => {
+      video.onloadedmetadata = resolve;
+      video.onerror = () => reject(new Error("native decoder rejected the worker export"));
+    });
+    video.currentTime = 0.51; // frame ~15: r=240, g=0, b=128 → inverted ≈ 15, 255, 127
+    await new Promise((resolve) => (video.onseeked = resolve));
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+    ctx.drawImage(video, 0, 0);
+    const d = ctx.getImageData(Math.round(canvas.width / 2), Math.round(canvas.height / 2), 1, 1).data;
+    return { r: d[0]!, g: d[1]!, b: d[2]! };
+  });
+  // Inverted in the FILE: the dominant channel flips from red to green.
+  expect(px.g, JSON.stringify(px)).toBeGreaterThan(200);
+  expect(px.r, JSON.stringify(px)).toBeLessThan(70);
+});
+
+test("effect thumbnails (a second, offscreen renderer) don't disturb the live preview", async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await load(page, "/e2e-frames.webm");
+  // The Effects tab (first tab) renders all thumbnails on first interaction,
+  // then destroys its renderer.
+  await page.hover(".fx-grid");
+  await page.waitForFunction(() => document.querySelectorAll(".fx-tile img[src]").length >= 79, null, { timeout: 60_000 });
+  await page.waitForTimeout(500);
+  await page.evaluate(async () => {
+    const { project } = window.__mirai;
+    // Text uses Pixi's global TexturePool — destroying another renderer with
+    // releaseGlobalResources would break this add/remove cycle.
+    for (let i = 0; i < 3; i++) {
+      project.dispatch({
+        type: "clip/add",
+        payload: { kind: "text", id: `t${i}`, trackId: "overlay", startUs: 0, durationUs: 1_000_000, text: `hi ${i}` },
+      });
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      project.dispatch({ type: "clip/remove", payload: { clipId: `t${i}` } });
+    }
+  });
+  expect(errors).toEqual([]);
+  await expect.poll(async () => (await pixelAt(page, 0.5, 0.5)).r, { timeout: 5_000 }).toBeGreaterThan(120);
 });

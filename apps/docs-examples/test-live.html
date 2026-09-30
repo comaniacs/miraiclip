@@ -42,13 +42,13 @@
 </div>
 
 <div class="mirai-example" id="ex-custom" data-media="demo" data-assets="./">
-<div class="highlight"><pre><code>if (!miraiclip.getEffectRenderer("sepia")) {
-  miraiclip.registerEffectKind("sepia", miraiclip.z.object({ amount: miraiclip.z.number().min(0).max(1).default(1) }));
-  miraiclip.registerEffectRenderer("sepia", (params) => {
+<div class="highlight"><pre><code>if (!miraiclip.getEffectRenderer("oldPhoto")) {
+  miraiclip.registerEffectKind("oldPhoto", miraiclip.z.object({ amount: miraiclip.z.number().min(0).max(1).default(1) }));
+  miraiclip.registerEffectRenderer("oldPhoto", (params) => {
     const filter = new miraiclip.pixi.ColorMatrixFilter();
     const apply = (p) => { filter.reset(); filter.sepia(true); filter.alpha = p.amount ?? 1; };
     apply(params);
-    return { kind: "sepia", filter, update: apply };
+    return { kind: "oldPhoto", filter, update: apply };
   });
 }
 if (!miraiclip.getTransitionRenderer("flash")) {
@@ -83,7 +83,7 @@ project.dispatch({ type: "clip/add", payload: {
   kind: "typewriter", id: "type-1", trackId: "overlay", startUs: 0, durationUs: 6_000_000,
   props: { text: "EVERY FRAME IS CODE", charsPerSec: 8 },
 } });
-project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "sepia", params: { amount: 0.9 } } });
+project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "oldPhoto", params: { amount: 0.9 } } });
 project.transaction(() =&gt; {
   project.dispatch({ type: "clip/split", payload: { clipId: "main", atUs: 3_000_000, newClipId: "second" } });
   project.dispatch({ type: "transition/add", payload: { kind: "flash", fromClipId: "main", toClipId: "second", durationUs: 700_000 } });
@@ -294,6 +294,10 @@ project.dispatch({ type: "clip/set-property", payload: {
   onProgress: ({ framesDone, totalFrames }) => miraiclip.status(`exporting ${framesDone}/${totalFrames}`),
 });
 miraiclip.status(`exported ${bytes.byteLength} bytes`);</code></pre></div>
+<div class="mirai-example-stage"></div>
+</div>
+
+<div class="mirai-effect-gallery" id="ex-gallery" data-media="demo" data-assets="./">
 <div class="mirai-example-stage"></div>
 </div>
 

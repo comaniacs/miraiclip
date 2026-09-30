@@ -13,7 +13,7 @@
         font-family: system-ui, sans-serif;
       }
       h1 { font-size: 18px; font-weight: 600; margin: 0; }
-      #stage { width: min(1280px, 90vw); height: auto; border: 1px solid #2a2a33; border-radius: 8px; background: #000; }
+      #stage { width: 100%; height: auto; border: 1px solid #2a2a33; border-radius: 8px; background: #000; }
       #controls { display: flex; gap: 12px; align-items: center; }
       button { padding: 6px 18px; border-radius: 6px; border: 1px solid #3a3a46;
                background: #1c1c24; color: inherit; cursor: pointer; font-size: 14px; }
@@ -42,7 +42,26 @@
       .panel-note { margin: 0; font-size: 11px; color: #8a8a96; line-height: 1.4; }
       .panel-footer { display: flex; gap: 6px; margin-top: 4px; }
       .panel-footer button { flex: 1; padding: 5px; font-size: 12px; }
-      #stage-column { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; }
+      #panel.wide { width: 300px; }
+      .fx-controls { display: flex; gap: 6px; }
+      .fx-controls input, .fx-controls select { min-width: 0; flex: 1; padding: 5px 7px; border-radius: 6px;
+               border: 1px solid #3a3a46; background: #1c1c24; color: inherit; font-size: 12px; }
+      .fx-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; max-height: 360px; overflow-y: auto; padding-right: 2px; }
+      .fx-tile { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 7px; font-size: 10px; text-align: left; }
+      .fx-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: #26262f; }
+      .fx-tile span { padding: 3px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #b4b4c0; }
+      .fx-tile.active { border-color: #8fd18f; box-shadow: 0 0 0 1px #8fd18f; }
+      .fx-tile.active span { color: #e8e8ec; }
+      .fx-applied { display: flex; flex-direction: column; gap: 6px; }
+      .fx-row { border: 1px solid #2a2a33; border-radius: 8px; padding: 7px 8px; display: flex; flex-direction: column; gap: 5px; }
+      .fx-row.off { opacity: .55; }
+      .fx-row-head { display: flex; align-items: center; gap: 4px; font-size: 12px; }
+      .fx-row-head strong { flex: 1; }
+      .fx-row-head button { padding: 2px 7px; font-size: 11px; }
+      .fx-param { display: flex; flex-direction: column; gap: 2px; font-size: 10px; color: #8a8a96; }
+      .fx-param input[type="range"] { width: 100%; }
+      .fx-param input[type="color"] { width: 44px; height: 22px; padding: 0; border: 1px solid #3a3a46; background: none; }
+      #stage-column { display: flex; flex-direction: column; align-items: center; gap: 16px; min-width: 0; flex: 0 1 1280px; }
     </style>
   </head>
   <body>

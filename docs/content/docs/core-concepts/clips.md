@@ -15,7 +15,7 @@ Every clip has:
 - **Source trimming** — `trimStartUs` (video/audio): where in the source asset the clip starts playing; the out point follows from `durationUs`. Media beyond the visible range is *headroom* — what [transitions](../../rendering/transitions) draw from.
 - **Transform** — position, scale, rotation, opacity (normalized composition coordinates).
 - **Animations** — optional per-property keyframes (`keyframe/set`) on `x`/`y`/`scale`/`rotation`/`opacity`/`volume` — see [Rendering · Animation](../../rendering/animation).
-- **Effects** — an ordered stack of GPU effects (`effect/add`): colorAdjust, blur, chromaKey — see [Rendering · Effects](../../rendering/effects).
+- **Effects** — an ordered stack of GPU effects (`effect/add`): 79 built-in kinds (colorAdjust, blur, chromaKey, film looks, stylize, glitch, distort, …) — see [Rendering · Effects](../../rendering/effects).
 - **Type-specific properties** — e.g. text content and font for text clips, volume for audio, word timing and style for captions.
 
 ## Operations

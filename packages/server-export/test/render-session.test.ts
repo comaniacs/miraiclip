@@ -6,6 +6,7 @@
  */
 import { existsSync } from "node:fs";
 import path from "node:path";
+import { inflateSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createProject } from "@miraiclip/core";
@@ -27,6 +28,41 @@ function pngSize(bytes: Uint8Array): { width: number; height: number } {
   expect(Array.from(bytes.subarray(0, 4))).toEqual([0x89, 0x50, 0x4e, 0x47]);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   return { width: view.getUint32(16), height: view.getUint32(20) };
+}
+
+/** Minimal PNG decode (8-bit RGB/RGBA, all five row filters) → one pixel. */
+function pngPixel(bytes: Uint8Array, x: number, y: number): [number, number, number] {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const width = view.getUint32(16);
+  const channels = bytes[25] === 6 ? 4 : 3;
+  const idat: Uint8Array[] = [];
+  for (let off = 8; off < bytes.length; ) {
+    const len = view.getUint32(off);
+    const type = String.fromCharCode(...bytes.subarray(off + 4, off + 8));
+    if (type === "IDAT") idat.push(bytes.subarray(off + 8, off + 8 + len));
+    off += 12 + len;
+  }
+  const raw = inflateSync(Buffer.concat(idat));
+  const stride = width * channels;
+  let prev = new Uint8Array(stride);
+  let row = new Uint8Array(stride);
+  for (let r = 0; r <= y; r++) {
+    const base = r * (stride + 1);
+    const filter = raw[base]!;
+    row = new Uint8Array(stride);
+    for (let i = 0; i < stride; i++) {
+      const v = raw[base + 1 + i]!;
+      const a = i >= channels ? row[i - channels]! : 0;
+      const b = prev[i]!;
+      const c = i >= channels ? prev[i - channels]! : 0;
+      const p = a + b - c;
+      const pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+      const paeth = pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      row[i] = (v + [0, a, b, (a + b) >> 1, paeth][filter]!) & 0xff;
+    }
+    prev = row;
+  }
+  return [row[x * channels]!, row[x * channels + 1]!, row[x * channels + 2]!];
 }
 
 function textDoc() {
@@ -100,6 +136,26 @@ describe.skipIf(browserPath === undefined)("createRenderSession (integration)", 
     const png = await session.renderStill(project.toJSON(), { timeUs: 500_000 });
     expect(pngSize(png)).toEqual({ width: 320, height: 180 });
     expect(png.length).toBeGreaterThan(200); // a real card, not an empty frame
+  }, 60_000);
+
+  it("renders effect-library kinds server-side (built-ins cross the process boundary)", async () => {
+    const project = createProject({ width: 320, height: 180, fps: 30 });
+    project.transaction(() => {
+      project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+      project.dispatch({
+        type: "clip/add",
+        payload: {
+          kind: "html", id: "card", trackId: "v1", startUs: 0, durationUs: 1_000_000,
+          template: `<div style="width:100%;height:100%;background:#ff00ff"></div>`, params: {},
+        },
+      });
+      // A library kind, not one of the original three built-ins: magenta → green.
+      project.dispatch({ type: "effect/add", payload: { clipId: "card", kind: "invert" } });
+    });
+    const png = await session.renderStill(project.toJSON(), { timeUs: 500_000 });
+    const [r, g, b] = pngPixel(png, 160, 90);
+    expect(g, `rgb(${r},${g},${b})`).toBeGreaterThan(200);
+    expect(Math.max(r, b), `rgb(${r},${g},${b})`).toBeLessThan(60);
   }, 60_000);
 
   it("a failed render (missing asset file) rejects without wedging the session", async () => {

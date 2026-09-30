@@ -24,6 +24,8 @@
  * demo clip — the playground's ids), evaluates the snippet, and plays it.
  */
 import {
+  EFFECT_CATALOG,
+  EFFECT_CATEGORIES,
   createProject,
   registerEffectKind,
   registerTransitionKind,
@@ -50,6 +52,7 @@ import {
   openMediabunnyDemuxer,
   registerEffectRenderer,
   registerTransitionRenderer,
+  renderEffectThumbnails,
   type Player,
 } from "@miraiclip/renderer";
 import { registerClipKind } from "@miraiclip/core";
@@ -223,6 +226,9 @@ function createRunner(host: RunnerHost): Runner {
         registerTransitionKind,
         registerTransitionRenderer,
         getTransitionRenderer,
+        // The built-in effect library's data (kinds, categories, param ranges).
+        EFFECT_CATALOG,
+        EFFECT_CATEGORIES,
         // Custom clip kinds: registers the kind in core (once per page load)
         // and hands the factory to the player created after this snippet.
         registerClipKind: registerClipKindForExamples,
@@ -378,9 +384,140 @@ function initGroup(group: HTMLElement): void {
   select(0);
 }
 
+/**
+ * Effect library gallery: every built-in kind as a real thumbnail
+ * (renderEffectThumbnails), filterable by category/search. Tiles toggle kinds
+ * in a stack; the generated snippet is shown AND is what runs.
+ *   <div class="mirai-effect-gallery" data-media="demo" data-assets="<base>">
+ *     <div class="mirai-example-stage"></div>
+ *   </div>
+ */
+function initGallery(gallery: HTMLElement): void {
+  const stage = gallery.querySelector<HTMLElement>(".mirai-example-stage");
+  if (!stage) return;
+  const selected: string[] = ["tealOrange", "vignette"];
+  let category = "all";
+  let query = "";
+
+  const left = document.createElement("div");
+  left.className = "mirai-gallery-left";
+  const bar = document.createElement("div");
+  bar.className = "mirai-gallery-bar";
+  const search = document.createElement("input");
+  search.type = "search";
+  search.placeholder = `Search ${EFFECT_CATALOG.length} effects`;
+  const chips = document.createElement("div");
+  chips.className = "mirai-variant-tabs";
+  const cats = [{ id: "all", label: "All" }, ...EFFECT_CATEGORIES];
+  const chipButtons = cats.map((c) => {
+    const b = document.createElement("button");
+    b.textContent = c.label;
+    b.addEventListener("click", () => {
+      category = c.id;
+      refresh();
+    });
+    chips.append(b);
+    return b;
+  });
+  bar.append(search, chips);
+
+  const grid = document.createElement("div");
+  grid.className = "mirai-gallery-grid";
+  const tiles = new Map<string, { el: HTMLButtonElement; img: HTMLImageElement }>();
+  for (const info of EFFECT_CATALOG) {
+    const el = document.createElement("button");
+    el.className = "mirai-gallery-tile";
+    el.dataset["kind"] = info.kind;
+    el.title = `${info.label} — kind "${info.kind}"`;
+    const img = document.createElement("img");
+    img.alt = "";
+    const name = document.createElement("span");
+    name.textContent = info.label;
+    el.append(img, name);
+    el.addEventListener("click", () => {
+      const i = selected.indexOf(info.kind);
+      if (i >= 0) selected.splice(i, 1);
+      else selected.push(info.kind);
+      refresh();
+      if (runner.hasRun()) void runner.run();
+    });
+    tiles.set(info.kind, { el, img });
+    grid.append(el);
+  }
+
+  const codeBox = document.createElement("div");
+  codeBox.className = "highlight";
+  const pre = document.createElement("pre");
+  const code = document.createElement("code");
+  pre.append(code);
+  codeBox.append(pre);
+  left.append(bar, grid, codeBox);
+
+  const layout = document.createElement("div");
+  layout.className = "mirai-group-layout";
+  gallery.insertBefore(layout, stage);
+  layout.append(left, stage);
+
+  const snippet = (): string =>
+    selected.length === 0
+      ? "// Tap effects on the left — they stack in the order you pick them."
+      : "// Built-in effect library — array order is render order:\n" +
+        selected
+          .map((kind) => `project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "${kind}" } });`)
+          .join("\n");
+
+  function refresh(): void {
+    const q = query.trim().toLowerCase();
+    chipButtons.forEach((b, i) => b.classList.toggle("active", cats[i]!.id === category));
+    for (const info of EFFECT_CATALOG) {
+      const tile = tiles.get(info.kind)!;
+      tile.el.hidden = !(
+        (category === "all" || info.category === category) &&
+        (!q || info.label.toLowerCase().includes(q) || info.kind.toLowerCase().includes(q))
+      );
+      tile.el.classList.toggle("active", selected.includes(info.kind));
+    }
+    code.textContent = snippet();
+  }
+  search.addEventListener("input", () => {
+    query = search.value;
+    refresh();
+  });
+
+  const runner = createRunner({
+    stage,
+    assetsBase: gallery.dataset["assets"] ?? "",
+    media: () => gallery.dataset["media"] ?? "demo",
+    code: () => code.textContent ?? "",
+  });
+  refresh();
+
+  // Thumbnails render when the gallery first scrolls into view (their own
+  // offscreen renderer — never a preview canvas).
+  const load = (): void => {
+    void renderEffectThumbnails({
+      size: 112,
+      onThumbnail: (kind, url) => {
+        const tile = tiles.get(kind);
+        if (tile) tile.img.src = url;
+      },
+    }).catch((error) => console.error("[miraiclip example] thumbnails", error));
+  };
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) {
+        io.disconnect();
+        load();
+      }
+    }, { rootMargin: "200px" });
+    io.observe(gallery);
+  } else load();
+}
+
 function boot(): void {
   for (const group of document.querySelectorAll<HTMLElement>(".mirai-example-group")) initGroup(group);
   for (const block of document.querySelectorAll<HTMLElement>(".mirai-example")) initSingle(block);
+  for (const gallery of document.querySelectorAll<HTMLElement>(".mirai-effect-gallery")) initGallery(gallery);
 }
 
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

@@ -78,7 +78,7 @@ project.dispatch({ type: "clip/add", payload: {
 
 ## Effects
 
-Per-clip GPU effect stacks: `colorAdjust`, `blur`, and `chromaKey` built in — and [your own kinds](../docs/rendering/extensibility), registered through the same contract. Params are validated by schema, update in place (no shader recompiles), and length params are composition-relative — preview and export look identical.
+Per-clip GPU effect stacks: [79 built-in kinds](../docs/rendering/effects#built-in-kinds) — color grades, film looks, stylize, glitch, blur & light, distort — and [your own kinds](../docs/rendering/extensibility), registered through the same contract. Params are validated by schema, update in place (no shader recompiles), and length params are composition-relative — preview and export look identical.
 
 {{< example-group >}}
 {{< example-variant name="Grayscale" >}}
@@ -98,22 +98,46 @@ project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "blur", 
 // Defaults key #00ff00 — the green screen becomes transparent:
 project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "chromaKey" } });
 {{< /example-variant >}}
+{{< example-variant name="Film look" >}}
+// From the built-in library (79 kinds) — stack a grade and a vignette:
+project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "tealOrange", params: { intensity: 0.8 } } });
+project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "vignette", params: { intensity: 0.7 } } });
+{{< /example-variant >}}
+{{< example-variant name="Kaleidoscope" >}}
+project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "kaleidoscope", params: { segments: 8 } } });
+{{< /example-variant >}}
+{{< example-variant name="Halftone" >}}
+// Length params (dot size) are fractions of composition height:
+project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "halftone", params: { size: 0.012 } } });
+{{< /example-variant >}}
 {{< example-variant name="Custom kind" >}}
 // Register your own effect kind — schema in core, filter in the renderer —
 // then it's a first-class citizen: validated, undoable, exported.
-if (!miraiclip.getEffectRenderer("sepia")) {
-  miraiclip.registerEffectKind("sepia",
+if (!miraiclip.getEffectRenderer("oldPhoto")) {
+  miraiclip.registerEffectKind("oldPhoto",
     miraiclip.z.object({ amount: miraiclip.z.number().min(0).max(1).default(1) }));
-  miraiclip.registerEffectRenderer("sepia", (params) => {
+  miraiclip.registerEffectRenderer("oldPhoto", (params) => {
     const filter = new miraiclip.pixi.ColorMatrixFilter();
     const apply = (p) => { filter.reset(); filter.sepia(true); filter.alpha = p.amount ?? 1; };
     apply(params);
-    return { kind: "sepia", filter, update: apply }; // update mutates in place
+    return { kind: "oldPhoto", filter, update: apply }; // update mutates in place
   });
 }
-project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "sepia", params: { amount: 0.9 } } });
+project.dispatch({ type: "effect/add", payload: { clipId: "main", kind: "oldPhoto", params: { amount: 0.9 } } });
 {{< /example-variant >}}
 {{< /example-group >}}
+
+</div>
+</div>
+
+<div class="mirai-band">
+<div class="mirai-band-inner">
+
+## Effect library
+
+Browse all 79 built-in effects — each thumbnail is the real filter, rendered by `renderEffectThumbnails`. Tap to stack effects on the clip; the snippet below the grid is exactly what runs. Tiles, categories and labels come straight from core's `EFFECT_CATALOG`.
+
+{{< effect-gallery >}}
 
 </div>
 </div>

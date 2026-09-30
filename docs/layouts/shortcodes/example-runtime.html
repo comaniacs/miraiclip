@@ -40,5 +40,17 @@
 .mirai-example-controls .mirai-example-run { font-weight: 600; }
 .mirai-example-status { font-size: .8rem; opacity: .75; }
 .mirai-example-status.error { color: #e5534b; opacity: 1; }
+.mirai-gallery-left { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
+.mirai-gallery-bar { display: flex; flex-direction: column; gap: .5rem; }
+.mirai-gallery-bar input { padding: .4rem .7rem; border-radius: 7px; border: 1px solid rgba(128,128,128,.35); background: transparent; color: inherit; font-size: .85rem; }
+.mirai-gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: .5rem; max-height: 420px; overflow-y: auto; padding: 2px; }
+.mirai-gallery-tile { display: flex; flex-direction: column; padding: 0; overflow: hidden; border-radius: 8px; border: 1px solid rgba(128,128,128,.3); background: rgba(128,128,128,.08); color: inherit; cursor: pointer; text-align: left; }
+.mirai-gallery-tile[hidden] { display: none; }
+.mirai-gallery-tile img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: rgba(128,128,128,.2); }
+.mirai-gallery-tile span { padding: .25rem .4rem; font-size: .7rem; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mirai-gallery-tile:hover { border-color: rgba(59,130,246,.6); }
+.mirai-gallery-tile.active { border-color: rgb(59,130,246); box-shadow: 0 0 0 1px rgb(59,130,246); }
+.mirai-gallery-tile.active span { opacity: 1; font-weight: 600; }
+.mirai-gallery-left .highlight pre { margin: 0; padding: .8rem 1rem; border-radius: 8px; overflow: auto; background: rgba(128,128,128,.1); border: 1px solid rgba(128,128,128,.2); font-size: .75rem; line-height: 1.5; max-height: 180px; }
 </style>
 <script defer src="{{ "examples/miraiclip-examples.js" | relURL }}"></script>

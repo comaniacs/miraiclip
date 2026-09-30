@@ -10,7 +10,7 @@ import { registerEffectKind, registerTransitionKind } from "@miraiclip/core";
 import { registerEffectRenderer, registerTransitionRenderer } from "@miraiclip/renderer";
 ```
 
-Register at app startup, before creating players or running exports.
+Register at app startup, before creating players or running exports. Check the [built-in effect library](../effects#effect-library) first — 79 kinds ship built in, and built-ins also render in worker and server export.
 
 ## A custom effect
 
@@ -19,7 +19,7 @@ Core half — the param schema `effect/add` and `effect/update` validate against
 ```ts
 import { z } from "zod";
 
-registerEffectKind("sepia", z.object({
+registerEffectKind("oldPhoto", z.object({
   amount: z.number().min(0).max(1).default(1),
 }));
 ```
@@ -29,7 +29,7 @@ Renderer half — a factory building a Pixi filter from params, updated **in pla
 ```ts
 import { ColorMatrixFilter } from "pixi.js";
 
-registerEffectRenderer("sepia", (params) => {
+registerEffectRenderer("oldPhoto", (params) => {
   const filter = new ColorMatrixFilter();
   const apply = (p: Record<string, unknown>) => {
     filter.reset();
@@ -37,7 +37,7 @@ registerEffectRenderer("sepia", (params) => {
     filter.alpha = (p["amount"] as number) ?? 1;
   };
   apply(params);
-  return { kind: "sepia", filter, update: apply };
+  return { kind: "oldPhoto", filter, update: apply };
 });
 ```
 
@@ -46,11 +46,11 @@ Use it like any built-in:
 ```ts
 project.dispatch({
   type: "effect/add",
-  payload: { clipId: "clip-1", kind: "sepia", params: { amount: 0.8 } },
+  payload: { clipId: "clip-1", kind: "oldPhoto", params: { amount: 0.8 } },
 });
 ```
 
-For shader effects, build a `Filter` with `GlProgram.from({ vertex, fragment })` — the built-in chroma key ([source](https://github.com/comaniacs/miraiclip/blob/main/packages/renderer/src/effects/pixi-effects.ts)) is the reference pattern. Two rules the built-ins follow: length-denoting params are **composition-relative fractions** converted via `context.compositionSize()` (absolute pixels diverge between scaled preview and full-res export), and `update` mutates the existing filter rather than rebuilding it.
+For shader effects, build a `Filter` with `GlProgram.from({ vertex, fragment })` — the built-in library ([shaders](https://github.com/comaniacs/miraiclip/blob/main/packages/renderer/src/effects/library/shaders.ts), [factories](https://github.com/comaniacs/miraiclip/blob/main/packages/renderer/src/effects/library/library.ts)) is the reference pattern. Two rules the built-ins follow: length-denoting params are **fractions of composition height** converted via `context.compositionSize()` (times `context.renderScale()` inside shaders, which run in output pixels) (absolute pixels diverge between scaled preview and full-res export), and `update` mutates the existing filter rather than rebuilding it.
 
 ## A custom transition
 
@@ -98,6 +98,6 @@ Standard keyframes (`keyframe/set` on x, y, scale, rotation, opacity, volume) ap
 
 ## Boundaries
 
-Renderers and factories are functions, so they cannot cross a process or thread boundary: **server export and worker export support built-in kinds only** — main-thread preview, `exportProject`, and `renderProjectStill` all support custom kinds. A kind with a schema but no renderer is still valid data: an unknown effect applies no visual, and an unknown transition draws as a hard cut.
+Renderers and factories are functions, so they cannot cross a process or thread boundary: **server export and worker export support built-in kinds only** (all [79 built-in effects](../effects#built-in-kinds) included) — main-thread preview, `exportProject`, and `renderProjectStill` all support custom kinds. A kind with a schema but no renderer is still valid data: an unknown effect applies no visual, and an unknown transition draws as a hard cut.
 
 Registries are module-global and reject duplicate kinds (built-ins included), so two libraries can't silently fight over one name.

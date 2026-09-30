@@ -206,7 +206,7 @@ project.dispatch({ type: "clip/set-property", payload: { clipId: "t1", letterSpa
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `clipId` | string | yes | non-empty |
-| `kind` | string | yes | colorAdjust, blur, chromaKey, or a registered custom kind |
+| `kind` | string | yes | any [built-in kind](../rendering/effects#built-in-kinds) (`EFFECT_CATALOG`), or a registered custom kind |
 | `params` | object | no | validated against the kind's schema; omitted fields take defaults. Length params are composition-relative fractions, not pixels |
 | `enabled` | boolean | no | default true |
 | `index` | integer | no | stack insertion index (default: end) |

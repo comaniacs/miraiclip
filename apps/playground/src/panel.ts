@@ -5,6 +5,7 @@
  * the document like any other edit.
  */
 import type { Project } from "@miraiclip/core";
+import { renderEffectsBrowser } from "./effects-browser.js";
 
 export interface PanelContext {
   project: Project;
@@ -27,6 +28,8 @@ interface Tab {
   label: string;
   note?: string;
   cards: Card[];
+  /** Custom tab body (instead of cards). Returns a cleanup. */
+  render?(body: HTMLElement, getProject: () => Project | undefined): () => void;
 }
 
 const fx = (id: string) => `panel-${id}`;
@@ -118,43 +121,8 @@ const TABS: Tab[] = [
   {
     id: "effects",
     label: "Effects",
-    cards: [
-      {
-        id: "gray", label: "Grayscale", hint: "colorAdjust · saturation −1", toggle: true,
-        run: ({ project }, active) =>
-          project.dispatch(active
-            ? { type: "effect/remove", payload: { clipId: "main", effectId: fx("gray") } }
-            : { type: "effect/add", payload: { clipId: "main", kind: "colorAdjust", effectId: fx("gray"), params: { saturation: -1 } } }),
-      },
-      {
-        id: "punch", label: "Punchy", hint: "contrast +0.25 · saturation +0.3", toggle: true,
-        run: ({ project }, active) =>
-          project.dispatch(active
-            ? { type: "effect/remove", payload: { clipId: "main", effectId: fx("punch") } }
-            : { type: "effect/add", payload: { clipId: "main", kind: "colorAdjust", effectId: fx("punch"), params: { contrast: 0.25, saturation: 0.3 } } }),
-      },
-      {
-        id: "warm", label: "Warm shift", hint: "hue −20° · brightness +0.08", toggle: true,
-        run: ({ project }, active) =>
-          project.dispatch(active
-            ? { type: "effect/remove", payload: { clipId: "main", effectId: fx("warm") } }
-            : { type: "effect/add", payload: { clipId: "main", kind: "colorAdjust", effectId: fx("warm"), params: { hue: -20, brightness: 0.08 } } }),
-      },
-      {
-        id: "blur", label: "Blur", hint: "amount 0.04 (of frame height)", toggle: true,
-        run: ({ project }, active) =>
-          project.dispatch(active
-            ? { type: "effect/remove", payload: { clipId: "main", effectId: fx("blur") } }
-            : { type: "effect/add", payload: { clipId: "main", kind: "blur", effectId: fx("blur"), params: { amount: 0.04 } } }),
-      },
-      {
-        id: "key", label: "Chroma key", hint: "keys #00ff00 (green screens)", toggle: true,
-        run: ({ project }, active) =>
-          project.dispatch(active
-            ? { type: "effect/remove", payload: { clipId: "main", effectId: fx("key") } }
-            : { type: "effect/add", payload: { clipId: "main", kind: "chromaKey", effectId: fx("key") } }),
-      },
-    ],
+    cards: [],
+    render: renderEffectsBrowser,
   },
   {
     id: "text",
@@ -299,8 +267,13 @@ export function initPanel(root: HTMLElement, getContext: () => PanelContext | un
 
   const activeToggles = new Set<string>();
 
+  let cleanup: (() => void) | undefined;
+
   function renderTab(tab: Tab): void {
+    cleanup?.();
+    cleanup = undefined;
     body.innerHTML = "";
+    root.classList.toggle("wide", !!tab.render);
     for (const button of tabBar.children) {
       button.classList.toggle("active", (button as HTMLElement).dataset["tab"] === tab.id);
     }
@@ -310,6 +283,7 @@ export function initPanel(root: HTMLElement, getContext: () => PanelContext | un
       note.textContent = tab.note;
       body.append(note);
     }
+    if (tab.render) cleanup = tab.render(body, () => getContext()?.project);
     for (const card of tab.cards) {
       const el = document.createElement("button");
       el.className = "card";

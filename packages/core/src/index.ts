@@ -110,6 +110,9 @@ export {
 } from "./registry.js";
 export type { ClipKindRegistration } from "./registry.js";
 
+export { EFFECT_CATALOG, EFFECT_CATEGORIES, defaultEffectParams, getEffectInfo } from "./effect-catalog.js";
+export type { EffectCategory, EffectInfo, EffectParamFormat, EffectParamInfo } from "./effect-catalog.js";
+
 export {
   captionClipsFromAsrWords,
   captionClipsFromSubtitles,

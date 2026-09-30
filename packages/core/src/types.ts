@@ -111,7 +111,7 @@ export type AnimatableProperty = "x" | "y" | "scale" | "rotation" | "opacity" | 
 
 /**
  * One effect in a clip's stack. `kind` resolves through the effect registry
- * (built-ins: colorAdjust, blur, chromaKey); `params` are validated against
+ * (built-ins: see EFFECT_CATALOG); `params` are validated against
  * the kind's schema at command time. Length-denoting params are normalized
  * to composition units — absolute pixels would render differently between a
  * scaled preview and a full-resolution export.

@@ -9,6 +9,12 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ### Added
 
+- `@miraiclip/core` + `@miraiclip/renderer` **effect library — 79 built-in effect kinds** across color, film, stylize, glitch & retro, blur & light, distort, and frame & key. `EFFECT_CATALOG` (core) drives validation, the AI tools and editor UIs; the renderer draws every kind as a built-in, so they render in preview, browser and worker export, server export and stills. New `renderEffectThumbnails()` for effect pickers. See [Effects → Effect library](/miraiclip/docs/rendering/effects/#effect-library) and the new [Effect library gallery](/miraiclip/examples/#effect-library).
+
+## renderer-0.7.3 + server-export-0.4.2 — 2026-09-27
+
+### Added
+
 - `@miraiclip/renderer` **renders typography** — weight, style, line height, letter spacing, and alignment on text clips; weight, style, and spacing on caption words, with line height driving caption line stacking. Font asset `weight`/`style` become `FontFace` descriptors (and carry into html clips). Untyped clips render exactly as before. See [Command Catalog → Typography](/miraiclip/docs/command-catalog/#typography).
 
 ## core-0.5.0 + renderer-0.7.2 + server-export-0.4.1 + templates-0.1.1 + mcp-0.1.3 — 2026-09-27

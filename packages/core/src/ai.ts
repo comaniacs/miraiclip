@@ -24,6 +24,7 @@ import {
   UnknownCommandError,
 } from "./errors.js";
 import type { Project } from "./engine.js";
+import { EFFECT_CATALOG } from "./effect-catalog.js";
 import type { CaptionClip, Clip, ProjectDocument, TextAlign, TextClip, Typography } from "./types.js";
 
 // ---------------------------------------------------------------------------
@@ -57,7 +58,7 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "clip/set-property": "Set a clip property (transform fields, volume, text content, …) as a static value.",
   "clip/split": "Split a clip in two at a timeline position; the right half gets newClipId.",
   "clip/trim": "Change a clip's in-point (trimStartUs) and/or duration without moving other clips.",
-  "effect/add": "Add an effect (colorAdjust, blur, chromaKey, or a registered custom kind) to a clip's effect stack.",
+  "effect/add": `Add an effect to a clip's effect stack (omitted params take defaults). Built-in kinds: ${EFFECT_CATALOG.map((e) => e.kind).join(", ")}; or a registered custom kind.`,
   "effect/remove": "Remove one effect from a clip by index.",
   "effect/reorder": "Move an effect to a new index in the clip's stack (stack order = application order).",
   "effect/update": "Update an effect's params (and/or enabled flag) in place.",
