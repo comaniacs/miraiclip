@@ -159,6 +159,48 @@ describe("video in the compositor", () => {
     expect(pip?.timestampUs).toBe(Math.floor(pipMediaUs / FRAME_US) * FRAME_US);
   });
 
+  it("the lookahead never pulls a shared pipeline away from the visible clip (export stall at cuts)", async () => {
+    // A cut to a DIFFERENT part of the same footage: c1 shows media 0..5s,
+    // then c2 (5..6.5s) jumps ahead to media 8.5s, past the re-seek gap.
+    // Inside c1's last lookahead second, prepare() used to prime BOTH on the
+    // one shared pipeline (c1 at ~4.x s, c2 at 8.5s): every frame reversed
+    // the seek target, cleared the cache, and waitForFrame burned its full 2s
+    // timeout re-seeking, then drew a stale frame. Field report: a 28s 1080p
+    // export "stuck" at 50% with the CPU pegged (19k decoder resets, 1.5M
+    // decode calls, ~0.5 fps).
+    const asyncDecoder = () => {
+      const decoder = new FakeDecoder();
+      const original = decoder.decode.bind(decoder);
+      decoder.decode = (chunk) => {
+        setTimeout(() => original(chunk), 0);
+      };
+      return decoder;
+    };
+    const { project, videos, compositor, backend } = setup(undefined, asyncDecoder);
+    project.dispatch({
+      type: "clip/add",
+      payload: {
+        kind: "video", id: "c2", trackId: "v1", assetId: "vid",
+        startUs: 5_000_000, durationUs: 1_500_000, trimStartUs: 8_500_000,
+      },
+    });
+    const nodes = backend.nodes.filter((n): n is FakeVideoNode => n instanceof FakeVideoNode);
+    const started = Date.now();
+    // Walk the last lookahead second of c1 and into c2, like the exporter.
+    for (let f = 125; f < 160; f++) {
+      const t = f * FRAME_US;
+      await videos.renderFrameAt(compositor, t);
+      const visible = t < 5_000_000 ? nodes[0]! : nodes[1]!;
+      const mediaUs = t < 5_000_000 ? t : 8_500_000 + (t - 5_000_000);
+      const frame = visible.lastFrame as { timestampUs: number };
+      expect(frame?.timestampUs, `frame ${f}`).toBe(Math.floor(mediaUs / FRAME_US) * FRAME_US);
+    }
+    // One re-seek at the cut is expected; a fight costs ~2s per frame.
+    const resets = FakeDecoder.instances.reduce((sum, d) => sum + d.resets, 0);
+    expect(resets).toBeLessThanOrEqual(2);
+    expect(Date.now() - started).toBeLessThan(1_500);
+  }, 30_000);
+
   it("prepare primes only clips near the playhead", async () => {
     const { project, videos, manager } = setup(); // c1: 0..5s
     project.dispatch({

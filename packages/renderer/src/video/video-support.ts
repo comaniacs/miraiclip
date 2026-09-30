@@ -32,6 +32,11 @@ class VideoClipAdapter implements SceneNode {
   private pipelinePromise: Promise<VideoPipeline> | undefined;
   private dedicated = false;
 
+  /** Whether this clip decodes on its own pipeline rather than the asset's shared one. */
+  get isDedicated(): boolean {
+    return this.dedicated;
+  }
+
   constructor(
     private readonly inner: VideoSceneNode,
     private readonly acquire: (dedicated: boolean) => Promise<VideoPipeline>,
@@ -204,6 +209,8 @@ export function createVideoSupport(
     mediaUs: Us;
     fromUs: Us;
     toUs: Us;
+    /** Not on screen yet — only warmed because it starts within the lookahead. */
+    upcoming: boolean;
   }
 
   async function prepare(timeUs: Us): Promise<void> {
@@ -221,7 +228,14 @@ export function createVideoSupport(
       const visibleToUs = clip.startUs + clip.durationUs + extension.afterUs;
       if (!(timeUs < visibleToUs && timeUs >= visibleFromUs - lookaheadUs)) continue;
       const mediaUs = toMediaUs(clip, Math.min(Math.max(timeUs, visibleFromUs), visibleToUs));
-      relevant.push({ adapter, assetId: clip.assetId, mediaUs, fromUs: visibleFromUs, toUs: visibleToUs });
+      relevant.push({
+        adapter,
+        assetId: clip.assetId,
+        mediaUs,
+        fromUs: visibleFromUs,
+        toUs: visibleToUs,
+        upcoming: timeUs < visibleFromUs,
+      });
     }
     // CONCURRENT clips of one asset (picture-in-picture of the same footage,
     // echo overlays) each need their own pipeline, exactly as transition
@@ -243,7 +257,22 @@ export function createVideoSupport(
         }
       }
     }
-    await Promise.all(relevant.map((entry) => entry.adapter.prepareAt(entry.mediaUs)));
+    // Lookahead must never steal a SHARED pipeline from the clip on screen.
+    // A cut to another part of the same footage (sequential clips, one
+    // asset) puts both clips in `relevant` for the last lookahead window, and
+    // priming the upcoming clip's media position on the pipeline the visible
+    // clip is reading reverses its seek target every frame: the cache clears,
+    // waitForFrame times out re-seeking, and the export crawls at ~2s a frame
+    // while drawing stale frames. Skip that warm-up; the cut costs one
+    // re-seek when the upcoming clip becomes visible. Upcoming clips on other
+    // assets, or on dedicated pipelines, still warm up.
+    const onScreenShared = new Set(
+      relevant.filter((e) => !e.upcoming && !e.adapter.isDedicated).map((e) => e.assetId),
+    );
+    const jobs = relevant.filter(
+      (e) => !(e.upcoming && !e.adapter.isDedicated && onScreenShared.has(e.assetId)),
+    );
+    await Promise.all(jobs.map((entry) => entry.adapter.prepareAt(entry.mediaUs)));
   }
 
   return {
