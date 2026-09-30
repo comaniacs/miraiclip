@@ -1,5 +1,13 @@
 # @miraiclip/server-export
 
+## 0.4.3
+
+### Patch Changes
+
+- 6e75056: The export/still harness bundles the renderer's effect library, so all 79 built-in effect kinds render server-side.
+- Updated dependencies [6e75056]
+  - @miraiclip/core@0.5.1
+
 ## 0.4.2
 
 ### Patch Changes
