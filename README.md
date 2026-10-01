@@ -4,6 +4,8 @@ An open source, framework-agnostic library for building video editors in the bro
 
 📖 **[Documentation](https://comaniacs.github.io/miraiclip/)** · 🎬 **[Live examples](https://comaniacs.github.io/miraiclip/examples/)** · 📦 **[`@miraiclip/core` on npm](https://www.npmjs.com/package/@miraiclip/core)**
 
+**Community**: [Discord](https://discord.gg/7S2XmHBeX) 
+
 > ⚠️ Miraiclip is in early development (pre-1.0: expect API changes between minor versions). See [PLAN.md](./PLAN.md) for the roadmap and [CHANGELOG.md](./CHANGELOG.md) for what's new.
 
 ## Why Miraiclip?
