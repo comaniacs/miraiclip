@@ -116,7 +116,11 @@ export type { EffectCategory, EffectInfo, EffectParamFormat, EffectParamInfo } f
 export {
   captionClipsFromAsrWords,
   captionClipsFromSubtitles,
+  captionsToSrt,
+  captionsToText,
+  captionsToVtt,
   parseSubtitles,
+  retimeWords,
   wordsFromCue,
 } from "./captions.js";
-export type { AsrGroupingOptions, AsrWord, CaptionCue, CaptionImportOptions } from "./captions.js";
+export type { AsrGroupingOptions, AsrWord, CaptionCue, CaptionCueSource, CaptionImportOptions } from "./captions.js";

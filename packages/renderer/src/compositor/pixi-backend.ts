@@ -5,7 +5,7 @@
  */
 import { Application, Assets, CanvasSource, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
 import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
-import { captionProgress, layoutCaption, wordAppearance, type CaptionProgress } from "../captions/layout.js";
+import { captionProgress, displayText, layoutCaption, POP_SCALE, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { LocalBounds, Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
 import { htmlRasterKey, rasterizeHtml } from "../html/rasterize.js";
@@ -362,12 +362,20 @@ class PixiTextNode extends PixiNode<Text> {
  * Karaoke caption block: one Text per word (wrapped and centered by the pure
  * layout module), an optional background box, and per-word emphasis that
  * changes only at word boundaries (style writes are dirty-gated on progress).
+ *
+ * Decorations (core caption style): outline and drop shadow/glow live on the
+ * word style; `activeBackgroundColor` draws a box behind each emphasized
+ * word; `display: "word"` stacks every word at the center and shows only the
+ * current one; `reveal` hides words until they are spoken.
  */
 class PixiCaptionNode extends PixiNode<Container> {
   private readonly wordTexts: Text[] = [];
   private background: Graphics | undefined;
+  private activeBoxes: Graphics | undefined;
   private clip: CaptionClip;
   private lastProgress: CaptionProgress = { activeIndex: -2, startedCount: -1 };
+  private fontSizePx = 0;
+  private blockSize = { widthPx: 0, heightPx: 0 };
 
   constructor(
     stage: Container,
@@ -387,6 +395,8 @@ class PixiCaptionNode extends PixiNode<Container> {
     const comp = this.context.compositionSize();
     const { style, words } = clip;
     const fontSizePx = style.fontSizeFrac * comp.height;
+    this.fontSizePx = fontSizePx;
+    const wordStyle = captionWordStyle(style, fontSizePx);
 
     // One Text per word — created first so layout can measure real glyphs.
     while (this.wordTexts.length > words.length) this.wordTexts.pop()!.destroy();
@@ -398,42 +408,58 @@ class PixiCaptionNode extends PixiNode<Container> {
         this.display.addChild(text);
         this.wordTexts.push(text);
       }
-      text.text = words[i]!.text;
+      text.text = displayText(words[i]!.text, style.textTransform);
       text.resolution = Math.max(1, this.context.renderScale?.() ?? 1); // sharp under stage upscale
-      text.style = captionWordStyle(style, fontSizePx);
+      text.style = { ...wordStyle };
       text.scale.set(1);
+      text.visible = true;
     }
 
-    const layout = layoutCaption(words, {
-      maxWidthPx: comp.width * 0.8,
-      ...captionMetrics(style, fontSizePx),
-      measure: (i) => this.wordTexts[i]!.width,
-    });
-    layout.positions.forEach((position, i) => {
-      this.wordTexts[i]!.position.set(position.xPx, position.yPx);
-    });
+    const wordByWord = style.display === "word";
+    if (wordByWord) {
+      // Every word sits at the block center; only the current one shows.
+      for (const text of this.wordTexts) text.position.set(0, 0);
+      this.blockSize = { widthPx: 0, heightPx: captionMetrics(style, fontSizePx).lineHeightPx };
+    } else {
+      // Room for emphasis: a popped word grows by POP_SCALE and an active box
+      // pads its word — reserve it so neither collides with its neighbours.
+      // (Uniform extra gap, not per-word growth, keeps word spacing even.)
+      const popRoom = style.preset === "pop" ? fontSizePx * (POP_SCALE - 1) * 1.6 : 0;
+      const boxPad = style.activeBackgroundColor ? fontSizePx * 0.18 * 2 : 0;
+      const metrics = captionMetrics(style, fontSizePx);
+      const layout = layoutCaption(words, {
+        maxWidthPx: comp.width * 0.8,
+        ...metrics,
+        spaceWidthPx: metrics.spaceWidthPx + Math.max(popRoom, boxPad),
+        measure: (i) => this.wordTexts[i]!.width,
+      });
+      layout.positions.forEach((position, i) => {
+        this.wordTexts[i]!.position.set(position.xPx, position.yPx);
+      });
+      this.blockSize = { widthPx: layout.widthPx, heightPx: layout.heightPx };
+    }
 
-    // Background box behind the block (padding scales with the font).
+    // Graphics layers below the words: block background, then active-word boxes.
     if (style.backgroundColor) {
-      const pad = fontSizePx * 0.35;
       this.background ??= (() => {
         const g = new Graphics();
         this.display.addChildAt(g, 0);
         return g;
       })();
-      this.background.clear();
-      this.background
-        .roundRect(
-          -layout.widthPx / 2 - pad,
-          -layout.heightPx / 2 - pad * 0.6,
-          layout.widthPx + pad * 2,
-          layout.heightPx + pad * 1.2,
-          fontSizePx * 0.2,
-        )
-        .fill(style.backgroundColor);
+      if (!wordByWord) this.drawBackground(this.blockSize.widthPx, this.blockSize.heightPx);
     } else if (this.background) {
       this.background.destroy();
       this.background = undefined;
+    }
+    if (style.activeBackgroundColor) {
+      this.activeBoxes ??= (() => {
+        const g = new Graphics();
+        this.display.addChildAt(g, this.background ? 1 : 0);
+        return g;
+      })();
+    } else if (this.activeBoxes) {
+      this.activeBoxes.destroy();
+      this.activeBoxes = undefined;
     }
 
     // Re-apply emphasis for the current progress against the new texts.
@@ -441,6 +467,17 @@ class PixiCaptionNode extends PixiNode<Container> {
     this.lastProgress = { activeIndex: -2, startedCount: -1 };
     this.applyProgress(progress);
     this.invalidate();
+  }
+
+  /** Box behind the block (or behind the single word in word-by-word). Padding scales with the font. */
+  private drawBackground(widthPx: number, heightPx: number): void {
+    const g = this.background;
+    const color = this.clip.style.backgroundColor;
+    if (!g || !color) return;
+    const pad = this.fontSizePx * 0.35;
+    g.clear();
+    if (widthPx <= 0) return;
+    g.roundRect(-widthPx / 2 - pad, -heightPx / 2 - pad * 0.6, widthPx + pad * 2, heightPx + pad * 1.2, this.fontSizePx * 0.2).fill(color);
   }
 
   private applyProgress(progress: CaptionProgress): void {
@@ -452,12 +489,29 @@ class PixiCaptionNode extends PixiNode<Container> {
     }
     this.lastProgress = progress;
     const { style } = this.clip;
+    const display = style.display ?? "block";
+    const boxes = this.activeBoxes;
+    boxes?.clear();
+    let shownWidth = 0;
     for (let i = 0; i < this.wordTexts.length; i++) {
-      const appearance = wordAppearance(style.preset, i, progress);
+      const appearance = wordAppearance(style.preset, i, progress, display);
       const text = this.wordTexts[i]!;
+      text.visible = appearance.visible;
+      // With an active box, highlightColor is the text color ON the box.
       text.style.fill = appearance.highlighted ? style.highlightColor : style.color;
       text.scale.set(appearance.scale);
+      if (appearance.visible) shownWidth = Math.max(shownWidth, text.width);
+      if (boxes && appearance.visible && appearance.highlighted && style.activeBackgroundColor) {
+        const padX = this.fontSizePx * 0.18;
+        const padY = this.fontSizePx * 0.08;
+        const w = text.width + padX * 2;
+        const h = this.fontSizePx * 1.15 * appearance.scale + padY * 2;
+        boxes
+          .roundRect(text.x - w / 2, text.y - h / 2, w, h, this.fontSizePx * 0.16)
+          .fill(style.activeBackgroundColor);
+      }
     }
+    if (display === "word") this.drawBackground(shownWidth, this.blockSize.heightPx);
     this.invalidate();
   }
 

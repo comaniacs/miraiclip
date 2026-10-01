@@ -30,6 +30,8 @@ export interface WordAppearance {
   highlighted: boolean;
   /** Render scale of the word (pop enlarges the active word in place). */
   scale: number;
+  /** False while the word is hidden (reveal before it is spoken, word-by-word display). */
+  visible: boolean;
 }
 
 /** How the pop preset enlarges the active word. */
@@ -37,23 +39,38 @@ export const POP_SCALE = 1.18;
 
 /** What a word looks like under a style preset, given the current progress. */
 export function wordAppearance(
-  preset: "plain" | "highlight" | "karaoke" | "pop",
+  preset: "plain" | "highlight" | "karaoke" | "pop" | "reveal",
   wordIndex: number,
   progress: CaptionProgress,
+  display: "block" | "word" = "block",
 ): WordAppearance {
+  // Word-by-word: only the current word shows. Between words the last
+  // spoken one holds (no flicker in gaps); nothing shows before the first.
+  const visible =
+    display === "word"
+      ? wordIndex === (progress.activeIndex >= 0 ? progress.activeIndex : progress.startedCount - 1)
+      : preset !== "reveal" || wordIndex < progress.startedCount;
   switch (preset) {
     case "plain":
-      return { highlighted: false, scale: 1 };
+      return { highlighted: false, scale: 1, visible };
     case "highlight":
-      return { highlighted: wordIndex === progress.activeIndex, scale: 1 };
+      return { highlighted: wordIndex === progress.activeIndex, scale: 1, visible };
     case "karaoke":
       // Progressive: every word that has started stays lit.
-      return { highlighted: wordIndex < progress.startedCount, scale: 1 };
+      return { highlighted: wordIndex < progress.startedCount, scale: 1, visible };
     case "pop": {
       const active = wordIndex === progress.activeIndex;
-      return { highlighted: active, scale: active ? POP_SCALE : 1 };
+      return { highlighted: active, scale: active ? POP_SCALE : 1, visible };
     }
+    case "reveal":
+      // Words appear as spoken; the newest one carries the highlight color.
+      return { highlighted: wordIndex === progress.activeIndex, scale: 1, visible };
   }
+}
+
+/** Case transform for drawing (the document keeps the original words). */
+export function displayText(text: string, transform: "uppercase" | "lowercase" | undefined): string {
+  return transform === "uppercase" ? text.toUpperCase() : transform === "lowercase" ? text.toLowerCase() : text;
 }
 
 export interface CaptionLayoutOptions {

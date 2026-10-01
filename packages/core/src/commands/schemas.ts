@@ -73,22 +73,56 @@ const typographyPatchFields = {
   letterSpacing: letterSpacingSchema.nullable().optional(),
 };
 
+// Optional caption decorations — absent keys keep documents byte-identical.
+const captionDecorationFields = {
+  /** Box behind the whole caption block. */
+  backgroundColor: z.string(),
+  /** `word`: show only the active word (word-by-word). Default `block`. */
+  display: z.enum(["block", "word"]),
+  /** Case transform when drawing; the words keep their text. */
+  textTransform: z.enum(["uppercase", "lowercase"]),
+  /** Outline color; width = strokeWidthFrac × font size. */
+  strokeColor: z.string(),
+  strokeWidthFrac: z.number().min(0).max(0.3),
+  /** Drop shadow / glow (offset 0 = glow). Fractions of font size. */
+  shadowColor: z.string(),
+  shadowBlurFrac: z.number().min(0).max(1),
+  shadowOffsetFrac: z.number().min(0).max(0.5),
+  /** Rounded box behind each emphasized word. */
+  activeBackgroundColor: z.string(),
+};
+type DecorationKey = keyof typeof captionDecorationFields;
+const optionalDecorations = Object.fromEntries(
+  Object.entries(captionDecorationFields).map(([k, v]) => [k, v.optional()]),
+) as { [K in DecorationKey]: z.ZodOptional<(typeof captionDecorationFields)[K]> };
+const clearableDecorations = Object.fromEntries(
+  Object.entries(captionDecorationFields).map(([k, v]) => [k, v.nullable().optional()]),
+) as { [K in DecorationKey]: z.ZodOptional<z.ZodNullable<(typeof captionDecorationFields)[K]>> };
+
 export const captionStyleSchema = z.object({
-  preset: z.enum(["plain", "highlight", "karaoke", "pop"]).default("highlight"),
+  preset: z.enum(["plain", "highlight", "karaoke", "pop", "reveal"]).default("highlight"),
   fontFamily: z.string().default("sans-serif"),
   /** Fraction of composition height (resolution-independent). */
   fontSizeFrac: z.number().gt(0).max(0.5).default(0.06),
   color: z.string().default("#ffffff"),
   highlightColor: z.string().default("#ffd400"),
-  backgroundColor: z.string().optional(),
+  ...optionalDecorations,
   ...typographyFields,
 });
 
-/** clip/set-property `style`: partial merge; typography fields accept `null` to clear. */
-export const captionStylePatchSchema = captionStyleSchema
-  .omit({ fontWeight: true, fontStyle: true, lineHeight: true, letterSpacing: true })
-  .partial()
-  .extend(typographyPatchFields);
+/**
+ * clip/set-property `style`: partial merge; typography fields and the
+ * optional decorations (background, outline, shadow, …) accept `null` to clear.
+ */
+export const captionStylePatchSchema = z.object({
+  preset: z.enum(["plain", "highlight", "karaoke", "pop", "reveal"]).optional(),
+  fontFamily: z.string().optional(),
+  fontSizeFrac: z.number().gt(0).max(0.5).optional(),
+  color: z.string().optional(),
+  highlightColor: z.string().optional(),
+  ...clearableDecorations,
+  ...typographyPatchFields,
+});
 
 // ---------------------------------------------------------------------------
 // Payload schemas — one per built-in command.
@@ -116,6 +150,8 @@ export const builtinPayloadSchemas = {
     weight: fontWeightSchema.optional(),
     /** Font assets: this face's style (default "normal"). */
     style: fontStyleSchema.optional(),
+    /** Font assets: a variable font's weight axis range, e.g. [100, 900] (min ≤ max). */
+    weightRange: z.tuple([fontWeightSchema, fontWeightSchema]).refine(([a, b]) => a <= b, "weightRange min must be ≤ max").optional(),
   }),
   "asset/remove": z.object({ id }),
 
@@ -271,6 +307,8 @@ export const builtinPayloadSchemas = {
     textAlign: textAlignSchema.nullable().optional(),
     /** Caption clips: partial style update, merged onto the clip's style; typography fields accept `null` to clear. */
     style: captionStylePatchSchema.optional(),
+    /** Caption clips: replace the words (clip-relative timing, e.g. after a transcript edit or translation). */
+    words: z.array(captionWordSchema).min(1).optional(),
   }),
 
   // --- Animation (v4) ------------------------------------------------------

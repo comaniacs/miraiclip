@@ -92,3 +92,33 @@ describe("font faces with descriptors", () => {
     ]);
   });
 });
+
+describe("caption decorations → Pixi style", () => {
+  const base = { preset: "highlight", fontFamily: "sans-serif", fontSizeFrac: 0.05, color: "#fff", highlightColor: "#ff0" } as const;
+
+  it("adds no keys without decorations", () => {
+    expect(captionWordStyle({ ...base }, 100)).toEqual({ fontFamily: "sans-serif", fontSize: 100, fill: "#fff" });
+  });
+
+  it("maps outline and shadow as fractions of the font size, with padding", () => {
+    const s = captionWordStyle({ ...base, strokeColor: "#000", strokeWidthFrac: 0.1, shadowColor: "#111", shadowBlurFrac: 0.2, shadowOffsetFrac: 0 }, 100);
+    expect(s.stroke).toEqual({ color: "#000", width: 10, join: "round" });
+    expect(s.dropShadow).toMatchObject({ color: "#111", blur: 20, distance: 0 });
+    expect(s.padding).toBe(30);
+  });
+
+  it("defaults outline and shadow sizes when only a color is set", () => {
+    const s = captionWordStyle({ ...base, strokeColor: "#000", shadowColor: "#000" }, 100);
+    expect(s.stroke?.width).toBe(8);
+    expect(s.dropShadow).toMatchObject({ blur: 15, distance: 6 });
+  });
+});
+
+describe("font face descriptors", () => {
+  it("declares a variable font's whole weight range", async () => {
+    const { fontFaceDescriptors } = await import("../src/text/typography.js");
+    expect(fontFaceDescriptors({ weightRange: [100, 900] })).toEqual({ weight: "100 900" });
+    expect(fontFaceDescriptors({ weight: 700, weightRange: [200, 800], style: "italic" })).toEqual({ weight: "200 800", style: "italic" });
+    expect(fontFaceDescriptors({ weight: 700 })).toEqual({ weight: "700" });
+  });
+});

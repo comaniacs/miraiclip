@@ -167,3 +167,73 @@ export function captionClipsFromAsrWords(
   }));
   return toCommands(groups, options);
 }
+
+// ---------------------------------------------------------------------------
+// Export + retiming
+// ---------------------------------------------------------------------------
+
+/** The caption-clip fields subtitle export reads (any CaptionClip fits). */
+export interface CaptionCueSource {
+  startUs: Us;
+  durationUs: Us;
+  words: readonly CaptionWord[];
+}
+
+function pad(n: number, width: number): string {
+  return String(n).padStart(width, "0");
+}
+
+function formatTimestamp(us: Us, separator: "," | "."): string {
+  const totalMs = Math.max(0, Math.round(us / 1000));
+  const ms = totalMs % 1000;
+  const s = Math.floor(totalMs / 1000) % 60;
+  const m = Math.floor(totalMs / 60_000) % 60;
+  const h = Math.floor(totalMs / 3_600_000);
+  return `${pad(h, 2)}:${pad(m, 2)}:${pad(s, 2)}${separator}${pad(ms, 3)}`;
+}
+
+function cuesFrom(clips: readonly CaptionCueSource[]): CaptionCue[] {
+  return [...clips]
+    .sort((a, b) => a.startUs - b.startUs)
+    .map((clip) => ({
+      startUs: clip.startUs,
+      endUs: clip.startUs + clip.durationUs,
+      text: clip.words.map((w) => w.text).join(" "),
+    }))
+    .filter((cue) => cue.text.trim() !== "");
+}
+
+/** Caption clips → SubRip (.srt), one cue per clip, in timeline order. */
+export function captionsToSrt(clips: readonly CaptionCueSource[]): string {
+  return cuesFrom(clips)
+    .map((cue, i) => `${i + 1}\n${formatTimestamp(cue.startUs, ",")} --> ${formatTimestamp(cue.endUs, ",")}\n${cue.text}\n`)
+    .join("\n");
+}
+
+/** Caption clips → WebVTT (.vtt), one cue per clip, in timeline order. */
+export function captionsToVtt(clips: readonly CaptionCueSource[]): string {
+  const body = cuesFrom(clips)
+    .map((cue) => `${formatTimestamp(cue.startUs, ".")} --> ${formatTimestamp(cue.endUs, ".")}\n${cue.text}\n`)
+    .join("\n");
+  return `WEBVTT\n\n${body}`;
+}
+
+/** Caption clips → plain transcript text, one line per clip. */
+export function captionsToText(clips: readonly CaptionCueSource[]): string {
+  return cuesFrom(clips).map((cue) => cue.text).join("\n") + "\n";
+}
+
+/**
+ * New text for a caption clip, re-timed: when the word count is unchanged
+ * each word keeps its original timing (a typo fix keeps karaoke sync);
+ * otherwise the words split the clip's span evenly. Returns clip-relative
+ * words for `clip/set-property { words }`; empty text returns `[]`.
+ */
+export function retimeWords(previous: readonly CaptionWord[], text: string, durationUs: Us): CaptionWord[] {
+  const tokens = text.split(/\s+/).filter((t) => t !== "");
+  if (tokens.length === 0) return [];
+  if (tokens.length === previous.length) {
+    return previous.map((word, i) => ({ text: tokens[i]!, startUs: word.startUs, durationUs: word.durationUs }));
+  }
+  return wordsFromCue({ startUs: 0, endUs: durationUs, text: tokens.join(" ") });
+}

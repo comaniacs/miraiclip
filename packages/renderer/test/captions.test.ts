@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createProject, type CaptionWord, type ProjectDocument } from "@miraiclip/core";
 import {
   POP_SCALE,
+  displayText,
   captionProgress,
   layoutCaption,
   wordAppearance,
@@ -43,8 +44,31 @@ describe("caption timing", () => {
     expect(wordAppearance("karaoke", 1, at(400_000)).highlighted).toBe(true);
     expect(wordAppearance("karaoke", 2, at(400_000)).highlighted).toBe(false);
 
-    expect(wordAppearance("pop", 1, at(400_000))).toEqual({ highlighted: true, scale: POP_SCALE });
-    expect(wordAppearance("pop", 0, at(400_000))).toEqual({ highlighted: false, scale: 1 });
+    expect(wordAppearance("pop", 1, at(400_000))).toEqual({ highlighted: true, scale: POP_SCALE, visible: true });
+    expect(wordAppearance("pop", 0, at(400_000))).toEqual({ highlighted: false, scale: 1, visible: true });
+  });
+
+  it("reveal: words appear as they start; the newest is highlighted", () => {
+    const at = (us: number) => captionProgress(WORDS, us);
+    expect(wordAppearance("reveal", 1, at(100_000)).visible).toBe(false);
+    expect(wordAppearance("reveal", 0, at(100_000))).toEqual({ highlighted: true, scale: 1, visible: true });
+    expect(wordAppearance("reveal", 0, at(400_000))).toEqual({ highlighted: false, scale: 1, visible: true });
+    expect(wordAppearance("reveal", 2, at(2_000_000)).visible).toBe(true); // stays after the end
+  });
+
+  it("word display: only the current word shows, and it holds through gaps", () => {
+    const at = (us: number) => captionProgress(WORDS, us);
+    const shown = (us: number) => [0, 1, 2].filter((i) => wordAppearance("highlight", i, at(us), "word").visible);
+    expect(shown(100_000)).toEqual([0]);
+    expect(shown(400_000)).toEqual([1]);
+    expect(shown(700_000)).toEqual([1]); // gap → last spoken word holds
+    expect(shown(2_000_000)).toEqual([2]);
+  });
+
+  it("displayText applies the case transform only for drawing", () => {
+    expect(displayText("Hello", "uppercase")).toBe("HELLO");
+    expect(displayText("Hello", "lowercase")).toBe("hello");
+    expect(displayText("Hello", undefined)).toBe("Hello");
   });
 });
 

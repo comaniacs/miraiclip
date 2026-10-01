@@ -157,11 +157,12 @@ export const builtinHandlers: {
     if (p.height !== undefined) asset.height = p.height;
     if (p.fps !== undefined) asset.fps = p.fps;
     if (p.family !== undefined) asset.family = p.family;
-    if ((p.weight !== undefined || p.style !== undefined) && p.kind !== "font") {
-      reject("asset/add", "not-font", `"weight"/"style" only apply to font assets`);
+    if ((p.weight !== undefined || p.style !== undefined || p.weightRange !== undefined) && p.kind !== "font") {
+      reject("asset/add", "not-font", `"weight"/"style"/"weightRange" only apply to font assets`);
     }
     if (p.weight !== undefined) asset.weight = p.weight;
     if (p.style !== undefined) asset.style = p.style;
+    if (p.weightRange !== undefined) asset.weightRange = [p.weightRange[0], p.weightRange[1]];
     doc.assets[p.id] = asset;
   },
   "asset/remove": (doc, p) => {
@@ -374,6 +375,13 @@ export const builtinHandlers: {
       for (const [key, value] of Object.entries(p.style)) {
         if (value !== undefined) setOrClear(style, key, value);
       }
+    }
+    if (p.words !== undefined) {
+      if (clip.kind !== "caption" || !("words" in clip)) {
+        reject("clip/set-property", "not-caption", `"words" only applies to caption clips`);
+      }
+      // Sorted by start (the renderer's timing walk relies on it).
+      (clip as { words: unknown }).words = [...p.words].sort((a, b) => a.startUs - b.startUs).map((w) => ({ ...w }));
     }
   },
 

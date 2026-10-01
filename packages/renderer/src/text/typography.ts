@@ -19,6 +19,12 @@ export interface PixiTypographyStyle {
   /** Pixels (core stores em). */
   letterSpacing?: number;
   align?: "left" | "center" | "right";
+  /** Outline (captions). */
+  stroke?: { color: string; width: number; join: "round" };
+  /** Drop shadow / glow (captions). */
+  dropShadow?: { color: string; blur: number; distance: number; angle: number; alpha: number };
+  /** Room for stroke + shadow so glyph edges aren't clipped (px). */
+  padding?: number;
 }
 
 function applyTypography(style: PixiTypographyStyle, t: Typography, fontSizePx: number): void {
@@ -48,6 +54,21 @@ export function captionWordStyle(style: CaptionStyle, fontSizePx: number): PixiT
   const out: PixiTypographyStyle = { fontFamily: style.fontFamily, fontSize: fontSizePx, fill: style.color };
   const { lineHeight: _layoutOnly, ...wordTypography } = style;
   applyTypography(out, wordTypography, fontSizePx);
+  let padding = 0;
+  if (style.strokeColor) {
+    const width = (style.strokeWidthFrac ?? 0.08) * fontSizePx;
+    if (width > 0) {
+      out.stroke = { color: style.strokeColor, width, join: "round" };
+      padding += width;
+    }
+  }
+  if (style.shadowColor) {
+    const blur = (style.shadowBlurFrac ?? 0.15) * fontSizePx;
+    const distance = (style.shadowOffsetFrac ?? 0.06) * fontSizePx;
+    out.dropShadow = { color: style.shadowColor, blur, distance, angle: Math.PI / 2, alpha: 1 };
+    padding += blur + distance;
+  }
+  if (padding > 0) out.padding = Math.ceil(padding);
   return out;
 }
 
@@ -60,9 +81,16 @@ export function captionMetrics(style: CaptionStyle, fontSizePx: number): { lineH
 }
 
 /** `@font-face` descriptors for a font asset — only what the asset declares. */
-export function fontFaceDescriptors(asset: { weight?: number; style?: string }): { weight?: string; style?: string } {
+export function fontFaceDescriptors(asset: {
+  weight?: number;
+  style?: string;
+  weightRange?: readonly [number, number];
+}): { weight?: string; style?: string } {
   const d: { weight?: string; style?: string } = {};
-  if (asset.weight !== undefined) d.weight = String(asset.weight);
+  // A variable font declares its whole weight axis ("100 900"), so each
+  // requested weight renders from the axis instead of a synthesized bold.
+  if (asset.weightRange) d.weight = `${asset.weightRange[0]} ${asset.weightRange[1]}`;
+  else if (asset.weight !== undefined) d.weight = String(asset.weight);
   if (asset.style !== undefined) d.style = asset.style;
   return d;
 }

@@ -25,6 +25,13 @@ export interface Asset {
   weight?: FontWeight;
   /** Font assets: the face's style descriptor (default "normal"). */
   style?: FontStyle;
+  /**
+   * Font assets: a VARIABLE font's weight axis range, e.g. [100, 900]. The
+   * face is declared over the whole range, so every weight in it renders
+   * from the font's own axis instead of a synthesized bold. Takes precedence
+   * over `weight`.
+   */
+  weightRange?: [FontWeight, FontWeight];
 }
 
 /** CSS font weight: 100–900 in steps of 100 (validated by the command schemas). */
@@ -196,8 +203,12 @@ export interface CaptionWord {
 
 /** Caption lines are always centered, so captions take no `textAlign`. */
 export interface CaptionStyle extends Typography {
-  /** How the active word is emphasized. */
-  preset: "plain" | "highlight" | "karaoke" | "pop";
+  /**
+   * How words react to timing: `plain` (static), `highlight` (active word in
+   * highlightColor), `karaoke` (every started word lit), `pop` (active word
+   * enlarged + lit), `reveal` (words appear as they are spoken).
+   */
+  preset: "plain" | "highlight" | "karaoke" | "pop" | "reveal";
   fontFamily: string;
   /** Font size as a fraction of composition height (resolution-independent). */
   fontSizeFrac: number;
@@ -205,6 +216,19 @@ export interface CaptionStyle extends Typography {
   highlightColor: string;
   /** Optional box behind the caption block. */
   backgroundColor?: string;
+  /** `word` shows only the active word (word-by-word captions); default `block` (the whole clip). */
+  display?: "block" | "word";
+  /** Case transform applied when drawing (the words keep their original text). */
+  textTransform?: "uppercase" | "lowercase";
+  /** Outline color; width is `strokeWidthFrac` × font size (default 0.08 when a color is set). */
+  strokeColor?: string;
+  strokeWidthFrac?: number;
+  /** Drop shadow / glow color. Blur and downward offset are fractions of font size (defaults 0.15 / 0.06). An offset of 0 is a glow. */
+  shadowColor?: string;
+  shadowBlurFrac?: number;
+  shadowOffsetFrac?: number;
+  /** Rounded box behind each emphasized word (highlight / karaoke / pop). */
+  activeBackgroundColor?: string;
 }
 
 /** Reels-style karaoke caption: word-level timing with an active-word style. */
