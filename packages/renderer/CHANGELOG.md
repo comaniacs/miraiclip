@@ -1,5 +1,13 @@
 # @miraiclip/renderer
 
+## 0.7.7
+
+### Patch Changes
+
+- 16901eb: Render the new caption decorations: outline, drop shadow / glow, case transform, word-by-word display, active-word boxes and the `reveal` preset. Font assets with `weightRange` load as variable faces (`font-weight: 100 900`), so every weight comes from the font's axis — in captions, text clips and html clips alike.
+- Updated dependencies [16901eb]
+  - @miraiclip/core@0.5.2
+
 ## 0.7.6
 
 ### Patch Changes

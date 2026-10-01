@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/renderer",
-  "version": "0.7.6",
+  "version": "0.7.7",
   "description": "Rendering and playback for Miraiclip: WebCodecs media pipeline, WebGL compositor, frame-accurate playback.",
   "license": "MIT",
   "repository": {
@@ -61,7 +61,7 @@
     "pixi.js": "^8.6.0"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.5.1"
+    "@miraiclip/core": "^0.5.2"
   },
   "devDependencies": {
     "@miraiclip/core": "workspace:*",
