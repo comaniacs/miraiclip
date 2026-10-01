@@ -7,13 +7,19 @@ import { Application, Assets, CanvasSource, Container, Graphics, ImageSource, Sp
 import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { captionProgress, layoutCaption, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
-import type { Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
+import type { LocalBounds, Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
 import { htmlRasterKey, rasterizeHtml } from "../html/rasterize.js";
 import { captionMetrics, captionWordStyle, textClipStyle } from "../text/typography.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
   private effects: NodeEffects | undefined;
   private revealMask: Graphics | undefined;
+  /**
+   * The clip's own scale as last placed. The display's scale can carry an
+   * extra node-intrinsic factor (video fit-to-composition); bounds divide
+   * this out so they report size at clip scale 1.
+   */
+  protected layoutScale = 1;
 
   constructor(
     protected readonly display: T,
@@ -63,7 +69,17 @@ abstract class PixiNode<T extends Container> implements SceneNode {
     this.invalidate();
   }
 
+  getLocalBounds(): LocalBounds | null {
+    if (this.display.destroyed) return null;
+    if (this.display instanceof Sprite && this.display.texture === Texture.EMPTY) return null;
+    const b = this.display.getLocalBounds();
+    if (!(b.width > 0 && b.height > 0)) return null;
+    const k = this.layoutScale !== 0 ? this.display.scale.x / this.layoutScale : 1;
+    return { xPx: b.x * k, yPx: b.y * k, widthPx: b.width * k, heightPx: b.height * k };
+  }
+
   setPlacement(placement: Placement): void {
+    this.layoutScale = placement.scale;
     this.display.position.set(placement.xPx, placement.yPx);
     this.display.scale.set(placement.scale);
     this.display.rotation = placement.rotationRad;
@@ -200,6 +216,10 @@ class PixiImageNode extends PixiNode<Sprite> {
  */
 class PixiHtmlNode extends PixiNode<Sprite> {
   private key = "";
+  private box = { width: 0, height: 0 };
+  /** The current raster (DOM path) and its density — scanned lazily for content bounds. */
+  private raster: { canvas: HTMLCanvasElement; density: number } | undefined;
+  private contentBounds: LocalBounds | null | undefined;
   private ready: Promise<void> = Promise.resolve();
 
   constructor(
@@ -221,6 +241,7 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     const size = this.context.compositionSize();
     const widthPx = clip.widthPx ?? size.width;
     const heightPx = clip.heightPx ?? size.height;
+    this.box = { width: widthPx, height: heightPx };
     // Raster at the backend's render density (output ÷ composition, or the
     // preview's DPR): the texture carries the extra pixels while its
     // `resolution` keeps the sprite's LOGICAL size — sharp when the stage
@@ -240,6 +261,11 @@ class PixiHtmlNode extends PixiNode<Sprite> {
       // `source` is a laundered canvas (DOM) or a pre-rendered ImageBitmap
       // (worker export) — both are physical-size pixel buffers.
       if (this.key !== key || this.display.destroyed) return;
+      this.raster =
+        typeof HTMLCanvasElement !== "undefined" && source instanceof HTMLCanvasElement
+          ? { canvas: source, density }
+          : undefined;
+      this.contentBounds = undefined;
       const previous = this.display.texture;
       const textureSource =
         typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap
@@ -258,6 +284,49 @@ class PixiHtmlNode extends PixiNode<Sprite> {
   whenReady(): Promise<void> {
     return this.ready;
   }
+
+  /**
+   * The painted content, not the raster box: html boxes are usually larger
+   * than what they draw (room for offsets, rotation, shadows), and a
+   * selection outline around empty space reads as a bug. The opaque bounds
+   * are scanned from the raster's alpha once per raster, on first request.
+   * Before the raster lands (or for pre-rendered worker bitmaps) the whole
+   * box is reported.
+   */
+  override getLocalBounds(): LocalBounds | null {
+    const { width, height } = this.box;
+    if (!(width > 0 && height > 0)) return null;
+    const whole = { xPx: -width / 2, yPx: -height / 2, widthPx: width, heightPx: height };
+    if (!this.raster) return whole;
+    if (this.contentBounds === undefined) {
+      const opaque = opaqueBounds(this.raster.canvas);
+      const d = this.raster.density;
+      this.contentBounds = opaque
+        ? { xPx: opaque.x / d - width / 2, yPx: opaque.y / d - height / 2, widthPx: opaque.w / d, heightPx: opaque.h / d }
+        : null;
+    }
+    return this.contentBounds ?? whole;
+  }
+}
+
+/** Bounding box of pixels with visible alpha (null when fully transparent). */
+function opaqueBounds(canvas: HTMLCanvasElement): { x: number; y: number; w: number; h: number } | null {
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context || !canvas.width || !canvas.height) return null;
+  const { data, width, height } = context.getImageData(0, 0, canvas.width, canvas.height);
+  let x0 = width, y0 = height, x1 = -1, y1 = -1;
+  for (let y = 0; y < height; y++) {
+    const row = y * width * 4;
+    for (let x = 0; x < width; x++) {
+      if (data[row + x * 4 + 3]! > 8) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        y1 = y;
+      }
+    }
+  }
+  return x1 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
 
 class PixiTextNode extends PixiNode<Text> {
@@ -441,6 +510,7 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
     // and this reference outlives the call (re-applied on source-size changes).
     this.placement = { ...placement };
     super.setPlacement(this.effectivePlacement(placement));
+    this.layoutScale = placement.scale; // the fit factor is node-intrinsic size
   }
 
   setSourceSize(_widthPx: number, _heightPx: number): void {
@@ -466,7 +536,7 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
     if (bitmap.width !== this.frameWidthPx || bitmap.height !== this.frameHeightPx) {
       this.frameWidthPx = bitmap.width;
       this.frameHeightPx = bitmap.height;
-      if (this.placement) super.setPlacement(this.effectivePlacement(this.placement));
+      if (this.placement) this.setPlacement(this.placement);
     }
     if (!this.source || this.source.width !== bitmap.width || this.source.height !== bitmap.height) {
       this.texture?.destroy(true);

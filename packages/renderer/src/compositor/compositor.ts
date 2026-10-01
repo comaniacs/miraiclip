@@ -20,8 +20,10 @@ import { getTransitionRenderer } from "../transitions/registry.js";
 import { computePlacement, placementFromEvaluated, zIndexFor } from "./placement.js";
 import { isHtmlClip } from "@miraiclip/core";
 import type {
+  ClipBounds,
   NodeFactory,
   Placement,
+  Point,
   RevealDirection,
   SceneBackend,
   SceneNode,
@@ -74,6 +76,7 @@ const builtinFactories: Record<string, NodeFactory> = {
 export class Compositor {
   private readonly factories: Record<string, NodeFactory>;
   private readonly nodes = new Map<string, SceneNode>();
+  private readonly zByClip = new Map<string, number>();
   // Reused per-tick scratch — keyframe evaluation must not allocate.
   private readonly scratchEvaluated: EvaluatedClip = { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, volume: 1 };
   private readonly scratchPlacement: Placement = { xPx: 0, yPx: 0, scale: 1, rotationRad: 0, opacity: 1 };
@@ -210,6 +213,80 @@ export class Compositor {
   }
 
   /**
+   * Where a clip is drawn at `timeUs` (default: the last rendered time), in
+   * composition pixels — or null when the clip isn't on screen then, has no
+   * visual node, or has nothing drawn yet. Keyframed position/scale/rotation
+   * are evaluated at that time; transition offsets (slides) are not applied,
+   * since an interaction layer edits the clip's own transform.
+   */
+  getClipBounds(clipId: string, timeUs: Us = this.lastTimeUs): ClipBounds | null {
+    const doc = this.doc();
+    const clip = doc.clips[clipId];
+    const node = this.nodes.get(clipId);
+    if (!clip || !node?.getLocalBounds) return null;
+    if (!(clip.startUs <= timeUs && timeUs < clip.startUs + clip.durationUs)) return null;
+    const local = node.getLocalBounds();
+    if (!local) return null;
+    const placement = hasVisualAnimation(clip)
+      ? placementFromEvaluated(
+          evaluateClipInto(clip, timeUs - clip.startUs, { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, volume: 1 }),
+          doc.settings,
+          { xPx: 0, yPx: 0, scale: 1, rotationRad: 0, opacity: 1 },
+        )
+      : computePlacement(clip, doc.settings);
+    const { xPx: ox, yPx: oy, scale, rotationRad } = placement;
+    const cos = Math.cos(rotationRad);
+    const sin = Math.sin(rotationRad);
+    const toWorld = (lx: number, ly: number): Point => ({
+      xPx: ox + (lx * cos - ly * sin) * scale,
+      yPx: oy + (lx * sin + ly * cos) * scale,
+    });
+    const { xPx: lx, yPx: ly, widthPx: lw, heightPx: lh } = local;
+    const center = toWorld(lx + lw / 2, ly + lh / 2);
+    return {
+      clipId,
+      originXPx: ox,
+      originYPx: oy,
+      centerXPx: center.xPx,
+      centerYPx: center.yPx,
+      widthPx: lw * Math.abs(scale),
+      heightPx: lh * Math.abs(scale),
+      scale,
+      rotationDeg: (rotationRad * 180) / Math.PI,
+      corners: [toWorld(lx, ly), toWorld(lx + lw, ly), toWorld(lx + lw, ly + lh), toWorld(lx, ly + lh)],
+      local: { ...local },
+      z: this.zByClip.get(clipId) ?? 0,
+    };
+  }
+
+  /**
+   * The topmost clip whose drawn content contains the composition-pixel
+   * point at `timeUs` (default: the last rendered time), or null. Clips with
+   * a static opacity of 0 are skipped (nothing to click on). Pass `filter`
+   * to restrict candidates — e.g. exclude clips on locked tracks.
+   */
+  hitTest(
+    xPx: number,
+    yPx: number,
+    timeUs: Us = this.lastTimeUs,
+    filter?: (clip: Clip) => boolean,
+  ): string | null {
+    const doc = this.doc();
+    let best: { id: string; z: number } | null = null;
+    for (const clipId of this.nodes.keys()) {
+      const clip = doc.clips[clipId];
+      if (!clip || (filter && !filter(clip))) continue;
+      const z = this.zByClip.get(clipId) ?? 0;
+      if (best && z <= best.z) continue;
+      const bounds = this.getClipBounds(clipId, timeUs);
+      if (!bounds || bounds.scale === 0) continue;
+      if ((clip.transform.opacity ?? 1) <= 0 && !hasVisualAnimation(clip)) continue;
+      if (pointInBounds(xPx, yPx, bounds)) best = { id: clipId, z };
+    }
+    return best?.id ?? null;
+  }
+
+  /**
    * Resolves when every node's async content (image textures, html rasters)
    * is ready. Exports and stills await this so no frame bakes in a missing
    * texture; live playback doesn't wait (content pops in when loaded).
@@ -307,7 +384,9 @@ export class Compositor {
         .filter((clip) => clip.trackId === trackId)
         .sort((a, b) => a.startUs - b.startUs || (a.id < b.id ? -1 : 1));
       clips.forEach((clip, clipIndex) => {
-        this.nodes.get(clip.id)?.setZ(zIndexFor(trackIndex, clipIndex));
+        const z = zIndexFor(trackIndex, clipIndex);
+        this.zByClip.set(clip.id, z);
+        this.nodes.get(clip.id)?.setZ(z);
       });
     });
   }
@@ -372,4 +451,17 @@ export class Compositor {
     if (structural || clipIds.size > 0) this.resyncOrder(doc);
     this.renderAt(this.lastTimeUs);
   }
+}
+
+/** Point-in-rotated-rectangle, via the inverse of the bounds' transform. */
+function pointInBounds(xPx: number, yPx: number, bounds: ClipBounds): boolean {
+  const rad = (bounds.rotationDeg * Math.PI) / 180;
+  const dx = xPx - bounds.originXPx;
+  const dy = yPx - bounds.originYPx;
+  const cos = Math.cos(-rad);
+  const sin = Math.sin(-rad);
+  const lx = (dx * cos - dy * sin) / bounds.scale;
+  const ly = (dx * sin + dy * cos) / bounds.scale;
+  const { local } = bounds;
+  return lx >= local.xPx && lx <= local.xPx + local.widthPx && ly >= local.yPx && ly <= local.yPx + local.heightPx;
 }

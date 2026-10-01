@@ -13,6 +13,54 @@ export interface Placement {
 export type RevealDirection = "left" | "right" | "up" | "down";
 
 /** A node in the scene graph, owned by the Compositor. */
+/**
+ * A node's drawn content as a rectangle in its LOCAL space: relative to the
+ * node's placement point (the clip's transform x/y), before the clip's own
+ * scale and rotation, in composition pixels. Node-intrinsic sizing is already
+ * applied (a video's fit-to-composition, a text's measured glyphs, an html
+ * clip's raster box). `xPx/yPx` is the rectangle's top-left corner, so a node
+ * drawn centered on its placement point has `xPx = -widthPx / 2`.
+ */
+export interface LocalBounds {
+  xPx: number;
+  yPx: number;
+  widthPx: number;
+  heightPx: number;
+}
+
+/**
+ * Where a clip is drawn, in composition pixels, at one timeline position:
+ * the content rectangle after the clip's scale and rotation (keyframes
+ * evaluated). What an interaction layer needs to draw a selection box and
+ * map pointer drags back onto the clip's transform.
+ */
+export interface ClipBounds {
+  clipId: string;
+  /** The placement point (the clip's transform x/y, in pixels). Scale and rotation pivot here. */
+  originXPx: number;
+  originYPx: number;
+  /** Center of the drawn content (equals the origin for centered content). */
+  centerXPx: number;
+  centerYPx: number;
+  /** Content size after the clip's scale. */
+  widthPx: number;
+  heightPx: number;
+  /** The clip's (evaluated) scale and rotation. */
+  scale: number;
+  rotationDeg: number;
+  /** Content corners, clockwise from top-left (rotation applied). */
+  corners: [Point, Point, Point, Point];
+  /** The unscaled, unrotated content rectangle relative to the origin. */
+  local: LocalBounds;
+  /** Stacking order (higher draws on top). */
+  z: number;
+}
+
+export interface Point {
+  xPx: number;
+  yPx: number;
+}
+
 export interface SceneNode {
   /** Apply placement. The object may be REUSED by the caller — copy it if kept. */
   setPlacement(placement: Placement): void;
@@ -42,6 +90,12 @@ export interface SceneNode {
    * Optional; absent means always ready.
    */
   whenReady?(): Promise<void>;
+  /**
+   * The content rectangle in local space (see `LocalBounds`), or null when
+   * nothing is drawn yet (texture still loading, no decoded frame). Powers
+   * `Compositor.getClipBounds` / `hitTest`. Optional per backend.
+   */
+  getLocalBounds?(): LocalBounds | null;
   destroy(): void;
 }
 

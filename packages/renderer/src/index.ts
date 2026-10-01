@@ -26,9 +26,12 @@ export { Compositor } from "./compositor/compositor.js";
 export type { CompositorOptions } from "./compositor/compositor.js";
 export { computePlacement, zIndexFor, Z_PER_TRACK } from "./compositor/placement.js";
 export type {
+  ClipBounds,
+  LocalBounds,
   NodeFactory,
   NodeFactoryContext,
   Placement,
+  Point,
   RevealDirection,
   SceneBackend,
   SceneNode,

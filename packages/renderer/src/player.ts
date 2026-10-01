@@ -1,7 +1,7 @@
-import type { Project } from "@miraiclip/core";
+import type { Clip, Project } from "@miraiclip/core";
 import { RealtimeClock } from "./clock.js";
 import { Compositor } from "./compositor/compositor.js";
-import type { NodeFactory, SceneBackend } from "./compositor/types.js";
+import type { ClipBounds, NodeFactory, SceneBackend } from "./compositor/types.js";
 import { MediaManager } from "./media/media-manager.js";
 import type { DemuxerFactory, FrameDecoderFactory, Us } from "./media/types.js";
 import { createVideoSupport } from "./video/video-support.js";
@@ -52,6 +52,10 @@ export interface Player {
   readonly timeUs: Us;
   /** End of the last clip — the composition's duration. */
   readonly durationUs: Us;
+  /** Where a clip is drawn now (or at `timeUs`), in composition pixels — see `Compositor.getClipBounds`. */
+  getClipBounds(clipId: string, timeUs?: Us): ClipBounds | null;
+  /** Topmost clip drawn at a composition-pixel point now (or at `timeUs`) — see `Compositor.hitTest`. */
+  hitTest(xPx: number, yPx: number, options?: { timeUs?: Us; filter?: (clip: Clip) => boolean }): string | null;
   destroy(): void;
 }
 
@@ -240,6 +244,16 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     },
     get durationUs() {
       return durationUs();
+    },
+    // Default time is the compositor's last RENDERED time — what's on screen,
+    // which is what a pointer is pointing at.
+    getClipBounds(clipId, timeUs) {
+      if (destroyed) return null;
+      return compositor.getClipBounds(clipId, timeUs);
+    },
+    hitTest(xPx, yPx, hitOptions) {
+      if (destroyed) return null;
+      return compositor.hitTest(xPx, yPx, hitOptions?.timeUs, hitOptions?.filter);
     },
     destroy() {
       if (destroyed) return;

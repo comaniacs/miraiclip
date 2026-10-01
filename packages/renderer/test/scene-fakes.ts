@@ -1,5 +1,6 @@
 import type { Asset, Clip, ImageClip, TextClip } from "@miraiclip/core";
 import type {
+  LocalBounds,
   Placement,
   RevealDirection,
   SceneBackend,
@@ -14,6 +15,8 @@ export class FakeNode implements SceneNode {
   destroyed = false;
   updates: Clip[] = [];
   reveal: { fraction: number; direction: RevealDirection } | undefined;
+  /** What getLocalBounds reports (tests set it; null = nothing drawn yet). */
+  localBounds: LocalBounds | null = { xPx: -50, yPx: -10, widthPx: 100, heightPx: 20 };
 
   constructor(
     readonly kind: string,
@@ -40,6 +43,9 @@ export class FakeNode implements SceneNode {
   }
   update(clip: Clip): void {
     this.updates.push(clip);
+  }
+  getLocalBounds(): LocalBounds | null {
+    return this.localBounds;
   }
   destroy(): void {
     this.destroyed = true;
