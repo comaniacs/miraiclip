@@ -62,6 +62,42 @@ const template = defineTemplate({
 
 An html clip's `params` whose whole value is one placeholder binds **typed** — `params: { size: "{{fontSize}}" }` with a `number` field puts a number in the param, not a string.
 
+### From a finished project
+
+An editor's "Save as template" doesn't need hand-written placeholders. `suggestTemplateFields` lists what could stay editable — each text clip, each string param of an html clip that its template uses (colors detected), and each video / image / audio asset that clips use — and `templateFromDocument` turns the chosen ones into fields that default to their current values:
+
+```ts
+import { suggestTemplateFields, templateFromDocument } from "@miraiclip/templates";
+
+const candidates = suggestTemplateFields(project.toJSON());
+// [{ kind: "text", name: "summer_sale", label: 'Text "Summer sale"', clipId: "title", value: "Summer sale" },
+//  { kind: "param", name: "bg", label: "Bg · 50% off", clipId: "card", param: "bg", value: "#112233", color: true },
+//  { kind: "asset", name: "video", label: 'Video "Beach"', assetId: "clipA", assetKind: "video", value: "/media/a.mp4" }, …]
+
+const template = templateFromDocument(project.toJSON(), {
+  name: "Sale reel",
+  category: "promo",              // optional library metadata: category, tags, thumbnail
+  fields: candidates.filter(keep).map((c) => ({ ...c, label: myLabel(c) })), // default: all
+});
+hydrate(template, {}); // → the original content: every field is optional with its old value
+```
+
+Fields take an optional `label` for forms. Asset fields become media slots: a form shows a picker, and the value swaps the asset's `src`.
+
+## Insert into a project
+
+Starting a new project from a template is `createProject(hydrate(template, data))`. To add one to a project that already has content — an intro, a lower third, an end card at the playhead — use `insertDocument`:
+
+```ts
+import { fitClipsToMedia, hydrate, insertDocument } from "@miraiclip/templates";
+
+const doc = fitClipsToMedia(hydrate(template, { headline: "Hello", video: { src: myClip.src, durationUs: myClip.durationUs } }));
+const plan = insertDocument(project, doc, { atUs: project.getState().playheadUs }); // one undo step
+plan.ids.clips.title; // the inserted title's id; plan.startUs / plan.endUs: where it landed
+```
+
+The template's tracks are added on top of the existing ones, its clips shifted to `atUs`, with keyframes, effects and transitions; every id is remapped so nothing collides, and media or fonts the project already has (same kind and `src`) are reused. `insertCommands(targetDoc, doc, options)` returns the same batch without dispatching it. `fitClipsToMedia` shortens video / audio clips that would play past the end of a swapped-in file, and shortens or drops transitions that no longer have footage on both sides of their cut, for slots filled with shorter footage. Tracks without clips aren't inserted.
+
 ## Hydrate and render
 
 ```ts
@@ -124,5 +160,5 @@ Pair with the [AI command interface](ai-integration) for the full loop: an agent
 ## Boundaries
 
 - Hydration binds **content only** (text, caption words, html params, asset sources) — never durations, positions, or structure. That's what makes it safe by construction; repeaters (an array field producing N clips), conditionals, and formatters are future template versions.
-- Swapped video/audio should match the placeholder media's duration, or carry `durationUs` in the payload — clip timing is the template author's.
+- Swapped video/audio should match the placeholder media's duration, or carry `durationUs` in the payload — clip timing is the template author's (`fitClipsToMedia` trims clips that would overrun shorter media).
 - MP4 batch output needs a real Chrome (H.264), same as all [server export](export/server-side); WebM works on any Chromium.

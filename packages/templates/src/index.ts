@@ -9,6 +9,8 @@ export { defineTemplate, parseTemplate } from "./define.js";
 export { hydrate, tryHydrate, validateData } from "./hydrate.js";
 export { extractFields, scanPlaceholders, type PlaceholderSite } from "./scan.js";
 export { rowsFromCsv, rowsFromNdjson } from "./data.js";
+export { suggestTemplateFields, templateFromDocument, type TemplateCandidate, type TemplateFromDocumentOptions } from "./create.js";
+export { fitClipsToMedia, insertCommands, insertDocument, type InsertOptions, type InsertPlan } from "./insert.js";
 export { describeTemplate, toFieldToolDefinition, type ToFieldToolDefinitionOptions } from "./ai.js";
 export {
   TemplateValidationError,

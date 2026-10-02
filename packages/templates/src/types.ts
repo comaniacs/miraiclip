@@ -16,6 +16,8 @@ export type TemplateField =
 interface FieldBase {
   /** Placeholder name: `{{name}}` in the document binds to this field. */
   name: string;
+  /** Short form label ("Headline", "Main video"); defaults to the name. */
+  label?: string;
   /** What this blank means — surfaces in forms, prompts, and tool schemas. */
   description?: string;
   /** Required fields must appear in every payload (unless a default exists). */
@@ -81,6 +83,11 @@ export interface Template {
   version: 1;
   name: string;
   description?: string;
+  /** Library grouping, e.g. "intro", "social", "promo". */
+  category?: string;
+  tags?: string[];
+  /** A preview image: a URL or a small `data:` URL. */
+  thumbnail?: string;
   doc: ProjectDocument;
   fields: TemplateField[];
 }

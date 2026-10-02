@@ -19,6 +19,7 @@ const FIELD_NAME = /^[\w-]+$/;
 
 const fieldBase = {
   name: z.string().regex(FIELD_NAME, "field names are letters, digits, _ and -"),
+  label: z.string().optional(),
   description: z.string().optional(),
   required: z.boolean().optional(),
 };
@@ -60,6 +61,9 @@ const templateSchema = z.object({
   version: z.literal(1),
   name: z.string().min(1),
   description: z.string().optional(),
+  category: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  thumbnail: z.string().optional(),
   doc: z.object({
     schemaVersion: z.literal(1),
     settings: z.record(z.string(), z.unknown()),
@@ -120,18 +124,16 @@ function coherenceIssues(doc: ProjectDocument, fields: TemplateField[]): Templat
 }
 
 /** Build a template from a document and its declared fields; throws on incoherence. */
-export function defineTemplate(input: {
-  name: string;
-  description?: string;
-  doc: ProjectDocument;
-  fields: TemplateField[];
-}): Template {
+export function defineTemplate(input: Omit<Template, "version">): Template {
   const issues = coherenceIssues(input.doc, input.fields);
   if (issues.length > 0) throw new TemplateValidationError(issues);
   return {
     version: 1,
     name: input.name,
     ...(input.description !== undefined ? { description: input.description } : {}),
+    ...(input.category !== undefined ? { category: input.category } : {}),
+    ...(input.tags !== undefined ? { tags: input.tags } : {}),
+    ...(input.thumbnail !== undefined ? { thumbnail: input.thumbnail } : {}),
     doc: input.doc,
     fields: input.fields,
   };
