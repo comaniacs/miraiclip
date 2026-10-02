@@ -1,5 +1,15 @@
 # @miraiclip/renderer
 
+## 0.7.9
+
+### Patch Changes
+
+- 2ca45f2: Volume keyframes anchored to the clip's end (`anchor: "end"`) play and export at the right time; gain automation uses core's `resolveKeyframes`.
+- 2ca45f2: Hidden tracks aren't drawn: the compositor skips their clips in preview, exports and stills, and `getClipBounds` / `hitTest` ignore them. Sound still follows `muted`.
+- Updated dependencies [2ca45f2]
+- Updated dependencies [2ca45f2]
+  - @miraiclip/core@0.5.4
+
 ## 0.7.8
 
 ### Patch Changes
