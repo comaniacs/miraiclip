@@ -1,5 +1,13 @@
 # @miraiclip/renderer
 
+## 0.7.8
+
+### Patch Changes
+
+- f72deb3: Clip fades (`fadeInUs` / `fadeOutUs`) are applied in live playback and in the export mix through the shared gain math, as exact linear ramps. New `computeWaveformPeaks` (streamed max-abs peaks per asset), `peaksForRange` and `accumulatePeaks` for drawing waveforms, plus `clipFades` / `fadeGainAt` for fade handles.
+- Updated dependencies [f72deb3]
+  - @miraiclip/core@0.5.3
+
 ## 0.7.7
 
 ### Patch Changes
