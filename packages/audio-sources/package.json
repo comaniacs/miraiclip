@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/audio-sources",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Stock and generated audio for Miraiclip: one AudioProvider contract (search, resolve, generate) with Openverse, Freesound, static-catalog and HTTP-backend adapters, a one-transaction importAudio, and LLM tool definitions.",
   "license": "MIT",
   "repository": {
