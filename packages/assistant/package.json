@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/assistant",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "An AI editing assistant for Miraiclip: a vendor-neutral ChatModel contract (OpenAI first; any OpenAI-compatible server works), an agent loop that edits a forked project and lands each request as one undo step, high-level editing tools, and a server handler that keeps API keys off the browser.",
   "license": "MIT",
   "repository": {

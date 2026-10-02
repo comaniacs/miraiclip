@@ -1,5 +1,11 @@
 # @miraiclip/core
 
+## 0.5.5
+
+### Patch Changes
+
+- 1adfca3: Animation presets and cuts as shared logic: `ANIMATION_PRESETS` (in / loop / out), `animationCommands(clip, recipe)`, `readAnimation`, `describeAnimation`, `fitAnimation`, and `findCuts(doc)` / `clipHeadroomUs` for where transitions fit and how long they can be.
+
 ## 0.5.4
 
 ### Patch Changes
