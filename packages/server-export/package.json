@@ -58,7 +58,7 @@
     "playwright-core": "^1.49.0"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.5.4"
+    "@miraiclip/core": "^0.5.5"
   },
   "peerDependenciesMeta": {
     "@miraiclip/core": {
