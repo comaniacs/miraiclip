@@ -20,7 +20,7 @@
  */
 import type { Project } from "@miraiclip/core";
 import { openMediabunnyAudio } from "../../audio/webaudio.js";
-import { collectHtmlRasters } from "../../html/rasterize.js";
+import { collectHtmlRasters, rasterizeHtml } from "../../html/rasterize.js";
 import { compositionEnd, probeCompositionAudio } from "../export-project.js";
 import { mixCompositionAudio } from "../offline-audio.js";
 import { ExportAbortedError, type ExportProgress, type ExportRange, type PcmAudioChunk } from "../types.js";
@@ -129,6 +129,14 @@ export async function exportViaWorker(
           .then(() => post({ type: "output-chunk-ack", id: message.id }))
           .catch((error: unknown) =>
             post({ type: "output-chunk-ack", id: message.id, error: String((error as Error)?.message ?? error) }),
+          );
+      } else if (message.type === "need-html-raster") {
+        // Animated html clip frame: raster here (DOM), transfer the bitmap.
+        void rasterizeHtml({ ...message.request, assets: doc.assets })
+          .then((source) => createImageBitmap(source))
+          .then((bitmap) => post({ type: "html-raster", id: message.id, bitmap }, [bitmap]))
+          .catch((error: unknown) =>
+            post({ type: "html-raster", id: message.id, bitmap: null, error: String((error as Error)?.message ?? error) }),
           );
       } else if (message.type === "need-audio-chunk") {
         void mixChunk({ startUs: message.startUs, endUs: message.endUs })

@@ -335,6 +335,11 @@ export const builtinHandlers: {
       durationUs: clip.durationUs - offset,
     };
     if ("trimStartUs" in right) right.trimStartUs += offset;
+    // Animated html continues its animation across the cut.
+    if (right.kind === "html" && (right as { animated?: boolean }).animated) {
+      const r = right as { animationOffsetUs?: number };
+      r.animationOffsetUs = (r.animationOffsetUs ?? 0) + offset;
+    }
     // Fades belong to the outer edges: the left half keeps the fade-in, the right the fade-out.
     if ("volume" in clip) {
       delete (clip as { fadeOutUs?: number }).fadeOutUs;
@@ -405,6 +410,17 @@ export const builtinHandlers: {
         reject("clip/set-property", "not-html", `"params" only applies to html clips`);
       }
       Object.assign(clip.params, p.params);
+    }
+    if (p.animated !== undefined) {
+      if (clip.kind !== "html") {
+        reject("clip/set-property", "not-html", `"animated" only applies to html clips`);
+      }
+      const html = clip as Clip & { animated?: boolean; animationOffsetUs?: number };
+      if (p.animated) html.animated = true;
+      else {
+        delete html.animated;
+        delete html.animationOffsetUs;
+      }
     }
     if (p.style !== undefined) {
       if (clip.kind !== "caption" || !("style" in clip)) {

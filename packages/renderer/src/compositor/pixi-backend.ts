@@ -8,7 +8,7 @@ import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, ty
 import { captionProgress, displayText, layoutCaption, POP_SCALE, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { LocalBounds, Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
-import { htmlRasterKey, rasterizeHtml } from "../html/rasterize.js";
+import { htmlAnimationTiming, htmlRasterKey, rasterizeHtml } from "../html/rasterize.js";
 import { captionMetrics, captionWordStyle, textClipStyle } from "../text/typography.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
@@ -213,14 +213,30 @@ class PixiImageNode extends PixiNode<Sprite> {
  * html/rasterize.ts for the data-URL/launder mechanics. A key over
  * (template, params, size) gates re-rasters, so a params-driven content
  * update costs one raster and everything else is a plain sprite.
+ *
+ * Animated clips (`clip.animated`) re-raster per frame: `tick` asks for the
+ * frame at the clip's animation time. One raster runs at a time; requests
+ * made meanwhile collapse to the newest, and the previous frame stays on
+ * screen until the next lands (preview never stalls). `whenReady` resolves
+ * once the LATEST requested frame is on the texture — exports and stills
+ * await it per frame, so every exported frame is exact.
  */
 class PixiHtmlNode extends PixiNode<Sprite> {
+  /** Everything but time: a change re-rasters (and drops in-flight results). */
   private key = "";
   private box = { width: 0, height: 0 };
   /** The current raster (DOM path) and its density — scanned lazily for content bounds. */
   private raster: { canvas: HTMLCanvasElement; density: number } | undefined;
   private contentBounds: LocalBounds | null | undefined;
   private ready: Promise<void> = Promise.resolve();
+  private clip: HtmlClip;
+  /** Raster inputs other than time, captured at the last update. */
+  private inputs: { widthPx: number; heightPx: number; density: number } = { widthPx: 0, heightPx: 0, density: 1 };
+  /** Animated: the frame wanted (seconds) and the frame on the texture. */
+  private wantTimeS: number | undefined;
+  private shownTimeS: number | undefined;
+  private running = false;
+  private pending = false;
 
   constructor(
     stage: Container,
@@ -233,11 +249,13 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     sprite.anchor.set(0.5);
     stage.addChild(sprite);
     super(sprite, invalidate, context);
+    this.clip = clip;
     this.update(clip);
   }
 
   update(clip: Clip): void {
     if (!isHtmlClip(clip)) return;
+    this.clip = clip;
     const size = this.context.compositionSize();
     const widthPx = clip.widthPx ?? size.width;
     const heightPx = clip.heightPx ?? size.height;
@@ -247,20 +265,73 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     // `resolution` keeps the sprite's LOGICAL size — sharp when the stage
     // scales up, identical layout everywhere.
     const density = Math.max(1, this.context.renderScale?.() ?? 1);
-    const key = htmlRasterKey(clip, widthPx, heightPx, density);
+    const animated = clip.animated === true;
+    // Animated: the animation length is part of the content (`--T`), so a
+    // trim re-rasters too.
+    const key = htmlRasterKey(clip, widthPx, heightPx, density) +
+      (animated ? `|${clip.durationUs}|${clip.animationOffsetUs ?? 0}` : "");
     if (key === this.key) return;
     this.key = key;
-    const job = rasterizeHtml({
-      template: clip.template,
-      params: clip.params,
-      widthPx,
-      heightPx,
-      assets: this.assets,
-      density,
-    }).then((source) => {
+    this.inputs = { widthPx, heightPx, density };
+    this.shownTimeS = undefined;
+    // Animated: start from the frame last asked for (or the first frame).
+    this.wantTimeS = animated ? (this.wantTimeS ?? htmlAnimationTiming(clip, clip.startUs).timeS) : undefined;
+    this.request();
+  }
+
+  tick(clip: Clip, timeUs: number): void {
+    if (!isHtmlClip(clip) || !clip.animated) return;
+    const { timeS } = htmlAnimationTiming(clip, timeUs);
+    if (timeS === this.wantTimeS) return;
+    this.wantTimeS = timeS;
+    this.request();
+  }
+
+  /** True while the texture lags the wanted frame (a raster is due or running). */
+  isPending(): boolean {
+    return this.running || this.pending;
+  }
+
+  /** Raster the wanted content; coalesces while a raster is in flight. */
+  private request(): void {
+    this.pending = true;
+    if (this.running) return;
+    this.running = true;
+    this.ready = this.pump().finally(() => {
+      this.running = false;
+    });
+    // Live playback logs and renders empty; exports await whenReady and FAIL
+    // loudly (a silently missing overlay in an unattended export is worse).
+    this.ready.catch((error: unknown) => console.error("[miraiclip] html clip:", error));
+  }
+
+  private async pump(): Promise<void> {
+    while (this.pending && !this.display.destroyed) {
+      this.pending = false;
+      const key = this.key;
+      const clip = this.clip;
+      const { widthPx, heightPx, density } = this.inputs;
+      const timeS = this.wantTimeS;
+      const timing = timeS !== undefined && clip.animated
+        ? { timeS, durationS: htmlAnimationTiming(clip, clip.startUs).durationS }
+        : undefined;
+      const source = await rasterizeHtml({
+        template: clip.template,
+        params: clip.params,
+        widthPx,
+        heightPx,
+        assets: this.assets,
+        density,
+        ...(timing ?? {}),
+      });
       // `source` is a laundered canvas (DOM) or a pre-rendered ImageBitmap
-      // (worker export) — both are physical-size pixel buffers.
-      if (this.key !== key || this.display.destroyed) return;
+      // (worker export) — both are physical-size pixel buffers. A result for
+      // superseded content is dropped (the loop rasters the current one).
+      if (this.key !== key || this.display.destroyed) {
+        if (this.key !== key) this.pending = true;
+        continue;
+      }
+      this.shownTimeS = timeS;
       this.raster =
         typeof HTMLCanvasElement !== "undefined" && source instanceof HTMLCanvasElement
           ? { canvas: source, density }
@@ -274,11 +345,7 @@ class PixiHtmlNode extends PixiNode<Sprite> {
       this.display.texture = new Texture({ source: textureSource });
       if (previous !== Texture.EMPTY) previous.destroy(true);
       this.invalidate();
-    });
-    // Live playback logs and renders empty; exports await whenReady and FAIL
-    // loudly (a silently missing overlay in an unattended export is worse).
-    job.catch((error: unknown) => console.error("[miraiclip] html clip:", error));
-    this.ready = job;
+    }
   }
 
   whenReady(): Promise<void> {

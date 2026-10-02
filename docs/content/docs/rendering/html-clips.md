@@ -39,7 +39,35 @@ Params are the substrate for parameterized videos: one template, many renders.
 
 ## Sizing & animation
 
-The template rasterizes at `widthPx`×`heightPx` in composition pixels (default: the composition size) and places like every clip — `transform` positions its center, and standard keyframes animate `x`, `y`, `scale`, `rotation`, `opacity` over the raster for free. Content changes go through params. CSS animations inside the template don't run: a clip is a deterministic snapshot of (template, params, size), which is what preview/export parity requires.
+The template rasterizes at `widthPx`×`heightPx` in composition pixels (default: the composition size) and places like every clip — `transform` positions its center, and standard keyframes animate `x`, `y`, `scale`, `rotation`, `opacity` over the raster for free. Content changes go through params. By default CSS animations inside the template don't run: a static clip is a deterministic snapshot of (template, params, size), rasterized once.
+
+## Animated templates
+
+Set `animated: true` and the template re-rasterizes **every frame at the clip's time**, so CSS `@keyframes` inside it play in preview, seek when you scrub, and export frame-exactly. Write animations as usual, with two rules:
+
+- Every animation is paused and seeked by the renderer, which owns `animation-delay`. Stagger elements with the `--d` custom property instead (`style="--d:.4s"`); it inherits, so setting it on a parent delays the whole group.
+- Use `animation-fill-mode: both` (or `forwards`) so elements hold their end state.
+
+`--t` (seconds into the clip) and `--T` (the clip's length) are set on the template root, so exits can be timed from the end: `style="--d:calc(var(--T) - .5s)"`.
+
+```ts
+project.dispatch({
+  type: "clip/add",
+  payload: {
+    kind: "html", id: "follow", trackId: "overlay", startUs: 0, durationUs: 4_000_000,
+    animated: true, widthPx: 900, heightPx: 260,
+    template: `<style>
+      @keyframes rise { from { transform: translateY(120px); opacity: 0 } }
+      @keyframes press { 50% { transform: scale(.92) } }
+      .card { animation: rise .5s cubic-bezier(.2,.8,.2,1) both }
+      .btn { --d: 1s; animation: press .3s ease-in-out both }
+    </style>
+    <div class="card">… <button class="btn">Follow</button></div>`,
+  },
+});
+```
+
+Cost: one raster is a few milliseconds, and only visible animated clips re-raster. In preview, one raster runs at a time and the newest requested frame wins (the previous frame stays up meanwhile); exports and stills wait for each frame's raster before drawing it. A split continues the animation across the cut (`animationOffsetUs` on the right half). Toggle with `clip/set-property { animated }`.
 
 ## Fonts & images
 
@@ -64,9 +92,9 @@ project.dispatch({
 
 ## Boundaries
 
-- **Worker export renders html clips too**: workers have no DOM, so `exportProjectInWorker`/`exportViaWorker` rasterize every html clip on the main thread first (deduplicated, one raster per unique template + params + size) and transfer the bitmaps to the worker with the export. No API change — it just works. Posting to the worker yourself instead? Pre-render with `collectHtmlRasters(doc)` and include the result (transferring its `transfer` list) as `htmlRasters` on the start message.
+- **Worker export renders html clips too**: workers have no DOM, so `exportProjectInWorker`/`exportViaWorker` rasterize every html clip on the main thread first (deduplicated, one raster per unique template + params + size) and transfer the bitmaps to the worker with the export. No API change — it just works. Posting to the worker yourself instead? Pre-render with `collectHtmlRasters(doc)` and include the result (transferring its `transfer` list) as `htmlRasters` on the start message. Animated clips change every frame, so they aren't pre-rendered: the worker asks the main thread for each frame's raster (`need-html-raster` → `html-raster`); a custom worker host installs its own source with `setHtmlRasterSource`.
 - Exports and stills **wait for rasters** before the first frame (the same readiness gate now also covers image assets), so an overlay can never be half-missing in an exported file — a template that fails to rasterize fails the export loudly.
-- Scripts and iframes inside templates don't execute; interactivity has no meaning in rendered video.
+- Scripts and iframes inside templates don't execute; interactivity has no meaning in rendered video. CSS transitions don't run either (nothing changes state) — use `@keyframes` in an animated clip.
 - **Rasters are density-aware**: templates rasterize at the render density (output ÷ composition size in exports and stills, devicePixelRatio in previews via `createPlayer({ outputSize })`), so upscaled outputs and hi-DPI screens stay sharp — layout is identical at every density.
 - Text antialiasing varies across platforms, so exact pixels of text can differ between machines — Chromium-family browsers are the rendering target, as everywhere in Miraiclip.
 

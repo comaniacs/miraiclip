@@ -80,4 +80,27 @@ describe("html clip kind", () => {
     const catalog = project.commandCatalog();
     expect(JSON.stringify(catalog["clip/add"])).toContain('"html"');
   });
+
+  it("animated: set on add, toggled by set-property, continued across a split", () => {
+    const project = setup();
+    project.dispatch({
+      type: "clip/add",
+      payload: { kind: "html", id: "h1", trackId: "v1", startUs: 0, durationUs: 3_000_000, template: "<b>x</b>", animated: true },
+    });
+    expect((project.toJSON().clips["h1"] as HtmlClip).animated).toBe(true);
+    project.dispatch({ type: "clip/split", payload: { clipId: "h1", atUs: 1_000_000, newClipId: "h2" } });
+    project.dispatch({ type: "clip/split", payload: { clipId: "h2", atUs: 2_500_000, newClipId: "h3" } });
+    const doc = project.toJSON();
+    expect((doc.clips["h1"] as HtmlClip).animationOffsetUs).toBeUndefined();
+    expect((doc.clips["h2"] as HtmlClip).animationOffsetUs).toBe(1_000_000);
+    expect((doc.clips["h3"] as HtmlClip).animationOffsetUs).toBe(2_500_000);
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "h3", animated: false } });
+    const h3 = project.toJSON().clips["h3"] as HtmlClip;
+    expect(h3.animated).toBeUndefined();
+    expect(h3.animationOffsetUs).toBeUndefined();
+    project.dispatch({ type: "track/add", payload: { id: "t1", kind: "video" } });
+    project.dispatch({ type: "clip/add", payload: { kind: "text", id: "tx", trackId: "t1", startUs: 0, durationUs: 1_000_000, text: "hi" } });
+    expect(() => project.dispatch({ type: "clip/set-property", payload: { clipId: "tx", animated: true } })).toThrow(/only applies to html/);
+  });
 });
+

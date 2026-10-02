@@ -235,6 +235,22 @@ export interface HtmlClip extends ClipBase {
   /** Raster size in composition pixels (default: the composition size). */
   widthPx?: number;
   heightPx?: number;
+  /**
+   * Re-rasterize every frame at the clip's local time, so CSS animations
+   * inside the template play (and seek, and export) frame-exactly. The
+   * renderer pauses every animation and sets its delay to
+   * `calc(var(--d, 0s) - var(--t))`, with `--t` = seconds into the clip and
+   * `--T` = the clip's animation length on the root element: write
+   * `@keyframes` + `animation` as usual and stagger with `style="--d:.4s"`.
+   * Static (false/absent) clips raster once per param change.
+   */
+  animated?: boolean;
+  /**
+   * Animated clips: animation time at the clip's start (default 0). A split
+   * advances the right half's offset so the animation continues across the
+   * cut instead of restarting.
+   */
+  animationOffsetUs?: number;
 }
 
 /** One word of a caption, timed relative to the clip's start. */

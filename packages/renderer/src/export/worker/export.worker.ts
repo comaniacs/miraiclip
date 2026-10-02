@@ -19,7 +19,7 @@
 import { DOMAdapter, WebWorkerAdapter } from "pixi.js";
 import { createProject } from "@miraiclip/core";
 import type { StreamTargetChunk } from "mediabunny";
-import { provideHtmlRasters } from "../../html/rasterize.js";
+import { provideHtmlRasters, setHtmlRasterSource, type HtmlRasterRequest } from "../../html/rasterize.js";
 import { exportProject } from "../export-project.js";
 import type { ExportRange, PcmAudioChunk } from "../types.js";
 import type { MainToWorkerMessage, WorkerToMainMessage } from "./protocol.js";
@@ -36,6 +36,8 @@ const scope = globalThis as unknown as {
 let abortController: AbortController | undefined;
 let nextAudioRequestId = 0;
 const pendingAudio = new Map<number, { resolve: (chunk: PcmAudioChunk | null) => void; reject: (error: Error) => void }>();
+let nextHtmlRequestId = 0;
+const pendingHtml = new Map<number, { resolve: (bitmap: ImageBitmap) => void; reject: (error: Error) => void }>();
 let nextOutputChunkId = 0;
 const pendingOutput = new Map<number, { resolve: () => void; reject: (error: Error) => void }>();
 
@@ -44,6 +46,15 @@ function requestAudioChunk(range: ExportRange): Promise<PcmAudioChunk | null> {
     const id = nextAudioRequestId++;
     pendingAudio.set(id, { resolve, reject });
     scope.postMessage({ type: "need-audio-chunk", id, startUs: range.startUs, endUs: range.endUs });
+  });
+}
+
+/** Animated html clips: each frame's raster comes from main (it has the DOM). */
+function requestHtmlRaster(request: HtmlRasterRequest): Promise<ImageBitmap> {
+  return new Promise((resolve, reject) => {
+    const id = nextHtmlRequestId++;
+    pendingHtml.set(id, { resolve, reject });
+    scope.postMessage({ type: "need-html-raster", id, request });
   });
 }
 
@@ -93,6 +104,8 @@ async function run(message: Extract<MainToWorkerMessage, { type: "start" }>): Pr
     // Html clips: no DOM here, so their rasters arrived pre-rendered with the
     // start message — install them for `rasterizeHtml` to serve from.
     provideHtmlRasters(message.htmlRasters ?? {});
+    // Animated ones change every frame: ask main for each frame on demand.
+    setHtmlRasterSource(requestHtmlRaster);
     const project = createProject(message.doc);
     const bytes = await exportProject(project, {
       ...message.options,
@@ -127,6 +140,12 @@ scope.onmessage = (event: MessageEvent<MainToWorkerMessage>) => {
     if (!pending) return;
     if (message.error !== undefined) pending.reject(new Error(message.error));
     else pending.resolve(message.chunk);
+  } else if (message.type === "html-raster") {
+    const pending = pendingHtml.get(message.id);
+    pendingHtml.delete(message.id);
+    if (!pending) return;
+    if (message.error !== undefined || !message.bitmap) pending.reject(new Error(message.error ?? "html raster missing"));
+    else pending.resolve(message.bitmap);
   } else if (message.type === "output-chunk-ack") {
     const pending = pendingOutput.get(message.id);
     pendingOutput.delete(message.id);

@@ -67,6 +67,24 @@ async function toDataUri(src: string): Promise<string> {
  */
 const providedRasters = new Map<string, ImageBitmap>();
 
+/**
+ * Where a DOM-less thread gets rasters it wasn't given up front — animated
+ * html clips need one raster PER FRAME, far too many to pre-render and
+ * transfer, so the export worker installs a source that asks the main
+ * thread for each frame's raster on demand (see export.worker.ts).
+ */
+export type HtmlRasterSource = (request: HtmlRasterRequest) => Promise<ImageBitmap>;
+
+/** A raster request as data (no assets — the main thread has the document). */
+export type HtmlRasterRequest = Omit<RasterizeHtmlOptions, "assets">;
+
+let rasterSource: HtmlRasterSource | undefined;
+
+/** Install (or clear, with undefined) the on-demand raster source for DOM-less threads. */
+export function setHtmlRasterSource(source: HtmlRasterSource | undefined): void {
+  rasterSource = source;
+}
+
 /** Install pre-rendered rasters (replaces — and closes — any previous set). */
 export function provideHtmlRasters(rasters: Record<string, ImageBitmap>): void {
   for (const bitmap of providedRasters.values()) bitmap.close();
@@ -79,6 +97,8 @@ export function provideHtmlRasters(rasters: Record<string, ImageBitmap>): void {
  * transferable bitmaps for a worker export. Keys match what the worker-side
  * compositor computes, so `rasterizeHtml` there resolves without a DOM.
  * Deduplicated: clips sharing (template, params, size) share one raster.
+ * Animated clips are skipped — they change every frame, so the worker asks
+ * for each frame's raster on demand instead (`setHtmlRasterSource`).
  */
 export async function collectHtmlRasters(
   doc: Pick<ProjectDocument, "clips" | "assets" | "settings">,
@@ -102,7 +122,7 @@ export async function collectHtmlRasters(
   const rasters: Record<string, ImageBitmap> = {};
   const transfer: Transferable[] = [];
   for (const clip of Object.values(doc.clips)) {
-    if (!isHtmlClip(clip)) continue;
+    if (!isHtmlClip(clip) || clip.animated) continue;
     const widthPx = clip.widthPx ?? settings.width;
     const heightPx = clip.heightPx ?? settings.height;
     const key = htmlRasterKey(clip, widthPx, heightPx, density);
@@ -136,6 +156,35 @@ export interface RasterizeHtmlOptions {
    * identically at every density. Default 1.
    */
   density?: number;
+  /**
+   * Animated templates: seconds into the animation. Every CSS animation is
+   * paused and seeked to this time (`animation-delay: calc(var(--d, 0s) -
+   * var(--t))`), so the raster is the exact frame at `timeS` — deterministic
+   * in preview and export alike. `--t` and `--T` (`durationS`) are set on the
+   * template's root. Omit for a static raster (animations untouched).
+   */
+  timeS?: number;
+  /** Animated templates: the animation's total length in seconds (`--T`). */
+  durationS?: number;
+}
+
+/**
+ * Every animation paused and seeked: a negative delay of `t` starts it `t`
+ * seconds in; `--d` (inherited, so set it on a parent to stagger a group)
+ * is the element's own start offset.
+ */
+const SEEK_CSS =
+  "*,*::before,*::after{animation-play-state:paused!important;" +
+  "animation-delay:calc(var(--d,0s) - var(--t,0s))!important}";
+
+/** Seconds as a short CSS time (sub-millisecond precision is meaningless here). */
+const cssSeconds = (s: number): string => `${Math.round(s * 1e4) / 1e4}s`;
+
+/** The lookup key of one raster — what `htmlRasterKey` returns for a clip. */
+function rasterKeyOf(options: Omit<RasterizeHtmlOptions, "assets">): string {
+  const base: unknown[] = [options.template, options.params, options.widthPx, options.heightPx, options.density ?? 1];
+  if (options.timeS !== undefined) base.push(cssSeconds(options.timeS), cssSeconds(options.durationS ?? 0));
+  return JSON.stringify(base);
 }
 
 /**
@@ -149,10 +198,12 @@ export async function rasterizeHtml(
   options: RasterizeHtmlOptions,
 ): Promise<HTMLCanvasElement | ImageBitmap> {
   const { widthPx, heightPx } = options;
-  const provided = providedRasters.get(
-    JSON.stringify([options.template, options.params, widthPx, heightPx, options.density ?? 1]),
-  );
+  const provided = providedRasters.get(rasterKeyOf(options));
   if (provided) return provided;
+  if (typeof document === "undefined" && rasterSource) {
+    const { assets: _assets, ...request } = options;
+    return rasterSource(request);
+  }
   if (typeof document === "undefined") {
     throw new Error(
       "html clips need a DOM to rasterize, and no pre-rendered raster was provided for this clip — " +
@@ -187,14 +238,18 @@ export async function rasterizeHtml(
   // lays out at the LOGICAL size inside a scale transform — same layout at
   // every density, just more pixels per glyph.
   const density = options.density ?? 1;
+  const animated = options.timeS !== undefined;
+  const timeVars = animated
+    ? `;--t:${cssSeconds(options.timeS!)};--T:${cssSeconds(options.durationS ?? 0)}`
+    : "";
   const physicalW = Math.round(widthPx * density);
   const physicalH = Math.round(heightPx * density);
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${physicalW}" height="${physicalH}">` +
-    (fontCss ? `<style>${fontCss}</style>` : "") +
+    (fontCss || animated ? `<style>${fontCss}${animated ? SEEK_CSS : ""}</style>` : "") +
     `<foreignObject width="100%" height="100%">` +
     `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${physicalW}px;height:${physicalH}px;overflow:hidden">` +
-    `<div style="width:${widthPx}px;height:${heightPx}px;overflow:hidden;transform:scale(${density});transform-origin:0 0">${markup}</div>` +
+    `<div style="width:${widthPx}px;height:${heightPx}px;overflow:hidden;transform:scale(${density});transform-origin:0 0${timeVars}">${markup}</div>` +
     `</div></foreignObject></svg>`;
 
   const image = new Image();
@@ -214,12 +269,36 @@ export async function rasterizeHtml(
   return canvas;
 }
 
-/** The raster inputs that require a re-raster when they change. */
+/**
+ * The raster inputs that require a re-raster when they change. Animated
+ * clips pass the frame's `timeS` (and the animation length): one key per
+ * frame, matching `rasterizeHtml`'s lookup of provided rasters.
+ */
 export function htmlRasterKey(
   clip: HtmlClip,
   widthPx: number,
   heightPx: number,
   density = 1,
+  timing?: { timeS: number; durationS: number },
 ): string {
-  return JSON.stringify([clip.template, clip.params, widthPx, heightPx, density]);
+  return rasterKeyOf({
+    template: clip.template,
+    params: clip.params,
+    widthPx,
+    heightPx,
+    density,
+    ...(timing ?? {}),
+  });
+}
+
+/** Animated clips: the animation time (seconds) at timeline position `timeUs`, and its length. */
+export function htmlAnimationTiming(clip: HtmlClip, timeUs: number): { timeS: number; durationS: number } {
+  const offsetUs = clip.animationOffsetUs ?? 0;
+  const localUs = Math.min(Math.max(timeUs - clip.startUs, 0), clip.durationUs);
+  return {
+    // Millisecond grid: frame times are exact to well under a millisecond,
+    // and it keeps float noise out of raster keys.
+    timeS: Math.round((localUs + offsetUs) / 1000) / 1000,
+    durationS: Math.round((clip.durationUs + offsetUs) / 1000) / 1000,
+  };
 }

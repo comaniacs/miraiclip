@@ -284,6 +284,10 @@ export const builtinPayloadSchemas = {
       /** Raster size in composition pixels (default: the composition size). */
       widthPx: z.number().int().positive().optional(),
       heightPx: z.number().int().positive().optional(),
+      /** Re-raster every frame at the clip's time so CSS animations play (see HtmlClip.animated). */
+      animated: z.boolean().optional(),
+      /** Animated clips: animation time at the clip's start. */
+      animationOffsetUs: us.optional(),
       transform: transformSchema.partial().optional(),
     }),
     ]),
@@ -335,6 +339,8 @@ export const builtinPayloadSchemas = {
   "clip/set-property": z.object({
     /** html clips: merged into the clip's params (re-rasters the template). */
     params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
+    /** html clips: turn per-frame (CSS-animated) rasterizing on or off. */
+    animated: z.boolean().optional(),
     clipId: id,
     /** Partial transform update, merged onto the clip's transform. */
     transform: transformSchema.partial().optional(),

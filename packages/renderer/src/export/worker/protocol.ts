@@ -8,6 +8,7 @@ import type { ProjectDocument } from "@miraiclip/core";
 import type { StreamTargetChunk } from "mediabunny";
 import type { ExportProgress, ExportRange, PcmAudioChunk } from "../types.js";
 import type { ExportFormat, ExportQualityPreset } from "../mediabunny-sink.js";
+import type { HtmlRasterRequest } from "../../html/rasterize.js";
 
 /** The subset of ExportProjectOptions that crosses the boundary as data. */
 export interface WorkerExportWireOptions {
@@ -42,6 +43,8 @@ export type MainToWorkerMessage =
        * templates rasterize via the DOM, which workers lack, so the main
        * thread renders every html clip up front and TRANSFERS the bitmaps;
        * the worker installs them for `rasterizeHtml` to serve from.
+       * Animated html clips aren't in here — they change every frame, so the
+       * worker asks for each frame (`need-html-raster`).
        */
       htmlRasters?: Record<string, ImageBitmap>;
     }
@@ -54,6 +57,13 @@ export type MainToWorkerMessage =
       error?: string;
     }
   | {
+      type: "html-raster";
+      id: number;
+      bitmap: ImageBitmap | null;
+      /** Set when main-side rasterizing failed — the worker fails the export. */
+      error?: string;
+    }
+  | {
       type: "output-chunk-ack";
       id: number;
       /** Set when main's write into the target failed — the worker fails the export. */
@@ -62,6 +72,7 @@ export type MainToWorkerMessage =
 
 export type WorkerToMainMessage =
   | { type: "need-audio-chunk"; id: number; startUs: number; endUs: number }
+  | { type: "need-html-raster"; id: number; request: HtmlRasterRequest }
   | { type: "output-chunk"; id: number; chunk: StreamTargetChunk }
   | { type: "progress"; progress: ExportProgress }
   | { type: "done"; bytes: Uint8Array }

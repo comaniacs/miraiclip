@@ -91,6 +91,13 @@ export interface SceneNode {
    */
   whenReady?(): Promise<void>;
   /**
+   * True while content for the LAST render is still loading — time-varying
+   * async content (animated html rasters) that a `tick` just requested.
+   * Frame-exact renderers (export, stills) then await `whenReady` and render
+   * the frame again. Optional; absent means never pending.
+   */
+  isPending?(): boolean;
+  /**
    * The content rectangle in local space (see `LocalBounds`), or null when
    * nothing is drawn yet (texture still loading, no decoded frame). Powers
    * `Compositor.getClipBounds` / `hitTest`. Optional per backend.

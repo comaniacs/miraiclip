@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createProject, type Project } from "@miraiclip/core";
 import { Compositor } from "../src/compositor/compositor.js";
-import { collectHtmlRasters, htmlRasterKey, provideHtmlRasters, rasterizeHtml, substituteParams } from "../src/html/rasterize.js";
+import { collectHtmlRasters, htmlAnimationTiming, htmlRasterKey, provideHtmlRasters, rasterizeHtml, setHtmlRasterSource, substituteParams } from "../src/html/rasterize.js";
+import type { SceneNode } from "../src/compositor/types.js";
+import { FakeNode } from "./scene-fakes.js";
 import { FakeBackend, type FakeHtmlNode } from "./scene-fakes.js";
 
 function setup(): { project: Project; backend: FakeBackend } {
@@ -185,5 +187,88 @@ describe("raster density (sharp upscaled outputs and hi-DPI previews)", () => {
       delete scope.createImageBitmap;
       provideHtmlRasters({});
     }
+  });
+});
+
+describe("animated html clips", () => {
+  const animatedClip = (extra: Record<string, unknown> = {}) => ({
+    kind: "html" as const, id: "a", trackId: "v1", startUs: 1_000_000, durationUs: 4_000_000,
+    template: "<b>a</b>", params: {}, animated: true, ...extra,
+  });
+
+  it("maps timeline time to clamped animation time, honoring the split offset", () => {
+    const { project } = setup();
+    project.dispatch({ type: "clip/add", payload: animatedClip({ animationOffsetUs: 500_000 }) });
+    const clip = project.getState().doc.clips["a"] as never;
+    expect(htmlAnimationTiming(clip, 2_000_000)).toEqual({ timeS: 1.5, durationS: 4.5 });
+    expect(htmlAnimationTiming(clip, 0).timeS).toBe(0.5); // before the clip: its first frame
+    expect(htmlAnimationTiming(clip, 99_000_000).timeS).toBe(4.5); // past the end: the last
+    expect(htmlAnimationTiming(clip, 1_033_333).timeS).toBe(0.533); // millisecond grid
+  });
+
+  it("keys one raster per frame; static keys are unchanged", () => {
+    const { project } = setup();
+    project.dispatch({ type: "clip/add", payload: animatedClip() });
+    const clip = project.getState().doc.clips["a"] as never;
+    const still = htmlRasterKey(clip, 10, 10);
+    expect(still).toBe(JSON.stringify(["<b>a</b>", {}, 10, 10, 1]));
+    const f1 = htmlRasterKey(clip, 10, 10, 1, { timeS: 0.5, durationS: 4 });
+    const f2 = htmlRasterKey(clip, 10, 10, 1, { timeS: 0.533, durationS: 4 });
+    expect(new Set([still, f1, f2]).size).toBe(3);
+  });
+
+  it("without a DOM, asks the installed raster source (sans assets); pre-collect skips animated clips", async () => {
+    const { project } = setup();
+    project.dispatch({ type: "clip/add", payload: animatedClip() });
+    const doc = project.getState().doc;
+    expect(Object.keys((await collectHtmlRasters(doc)).rasters)).toEqual([]);
+    const seen: unknown[] = [];
+    const bitmap = { close() {} } as unknown as ImageBitmap;
+    setHtmlRasterSource(async (request) => {
+      seen.push(request);
+      return bitmap;
+    });
+    try {
+      const out = await rasterizeHtml({ template: "<b>a</b>", params: {}, widthPx: 8, heightPx: 8, timeS: 1.25, durationS: 4, assets: {} });
+      expect(out).toBe(bitmap);
+      expect(seen).toEqual([{ template: "<b>a</b>", params: {}, widthPx: 8, heightPx: 8, timeS: 1.25, durationS: 4 }]);
+    } finally {
+      setHtmlRasterSource(undefined);
+    }
+  });
+
+  it("renderExactAt waits for pending content and draws the frame again", async () => {
+    const { project, backend } = setup();
+    project.dispatch({ type: "clip/add", payload: animatedClip() });
+    let pending = false;
+    let release: (() => void) | undefined;
+    const ticks: number[] = [];
+    class PendingNode extends FakeNode implements SceneNode {
+      tick(_clip: unknown, timeUs: number): void {
+        ticks.push(timeUs);
+        if (!pending && ticks.length === 1) pending = true;
+      }
+      isPending(): boolean {
+        return pending;
+      }
+      whenReady(): Promise<void> {
+        return new Promise((resolve) => {
+          release = () => {
+            pending = false;
+            resolve();
+          };
+        });
+      }
+    }
+    const compositor = new Compositor(project, backend, { factories: { html: () => new PendingNode("html") } });
+    ticks.length = 0;
+    const done = compositor.renderExactAt(2_000_000);
+    await Promise.resolve();
+    expect(ticks).toEqual([2_000_000]);
+    release!();
+    await done;
+    expect(ticks).toEqual([2_000_000, 2_000_000]); // re-drawn once the frame landed
+    expect(compositor.hasPendingContent()).toBe(false);
+    compositor.destroy();
   });
 });

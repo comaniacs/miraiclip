@@ -301,6 +301,26 @@ export class Compositor {
   }
 
   /**
+   * Render the frame at `timeUs` with every node's content current — for
+   * time-varying async content (animated html clips) the first render asks
+   * for the frame, and this waits for it and renders again. What exports and
+   * stills draw each frame with; live playback uses `renderAt`.
+   */
+  async renderExactAt(timeUs: number): Promise<void> {
+    this.renderAt(timeUs);
+    for (let pass = 0; pass < 4 && this.hasPendingContent(); pass++) {
+      await this.whenReady();
+      this.renderAt(timeUs);
+    }
+  }
+
+  /** True when some node is still loading content for the last render. */
+  hasPendingContent(): boolean {
+    for (const node of this.nodes.values()) if (node.isPending?.()) return true;
+    return false;
+  }
+
+  /**
    * Re-sync every node from the document and re-render at the current time.
    * For out-of-band render-input changes the patch stream can't see — e.g. a
    * font asset finishing its load (text metrics changed under every node).

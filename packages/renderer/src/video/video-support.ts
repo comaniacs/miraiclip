@@ -280,7 +280,8 @@ export function createVideoSupport(
     prepare,
     async renderFrameAt(compositor, timeUs) {
       await prepare(timeUs);
-      compositor.renderAt(timeUs);
+      // Exact: animated html rasters for this frame land before it's drawn.
+      await compositor.renderExactAt(timeUs);
     },
     dispose() {
       adapters.clear();
