@@ -13,7 +13,7 @@ npm install @miraiclip/audio-sources
 
 | Adapter | What | Keys | Licenses |
 | --- | --- | --- | --- |
-| `staticProvider({ id, label, entries })` | Files you ship or host: a curated, cleared catalog | none | whatever you set per entry |
+| `staticProvider({ id, label, entries })` | Files you ship or host: a curated, cleared catalog (search ranks by matching title, creator and tag words) | none | whatever you set per entry |
 | `openverseProvider({ baseUrl?, accessToken?, sources? })` | [Openverse](https://openverse.org): openly licensed audio from Freesound, Jamendo, Wikimedia Commons, ccMixter… | none (anonymous is rate-limited) | per item: CC0, CC BY, BY-SA, **BY-NC**… |
 | `freesoundProvider({ token?, baseUrl? })` | [Freesound](https://freesound.org): sound effects and field recordings (MP3 previews) | API key | per item: CC0, CC BY, **BY-NC** |
 | `httpProvider({ id, label, endpoint })` | Any service behind your backend, through a small JSON contract | yours | yours |
@@ -169,7 +169,7 @@ const out = await runAudioTool(call.name, call.input, {
 // → { ok: true, result: { assetId, clipId, trackId, title, license, credit? } }
 ```
 
-`search_audio` and `generate_audio` list the configured providers and generators in their descriptions, including each generator's models and output license, so the model knows what it can use. `add_audio` takes the `provider` and `id` from a search result. The library remembers items it has seen and falls back to `getItem`. Results are small JSON objects meant to go straight back to the model.
+`search_audio` and `generate_audio` list the configured providers and generators in their descriptions, including each generator's models and output license, so the model knows what it can use. `add_audio` takes the `provider` and `id` from a search result. `add_audio` and `generate_audio` take `replaceClipId` for "replace the music with…": the old clip is removed and the new one takes its track, start, length (capped by the new file) and volume, in one undo step. The library remembers items it has seen and falls back to `getItem`. Results are small JSON objects meant to go straight back to the model.
 
 ## Backend contract (`httpProvider`)
 

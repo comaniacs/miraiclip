@@ -115,6 +115,13 @@ describe("staticProvider", () => {
     expect((await demo.search!({ query: "", kind: "music", commercialOnly: true })).items.map((i) => i.id)).toEqual(["sunny"]);
     expect((await demo.search!({ query: "", maxDurationS: 5 })).items.map((i) => i.id)).toEqual(["whoosh"]);
   });
+
+  it("ranks by matching words and ignores kind words like \"music\"", async () => {
+    expect((await demo.search!({ query: "upbeat acoustic music" })).items.map((i) => i.id)).toEqual(["sunny"]);
+    expect((await demo.search!({ query: "calm upbeat" })).items.map((i) => i.id)).toEqual(["sunny"]);
+    expect((await demo.search!({ query: "sunny whoosh transition" })).items.map((i) => i.id)).toEqual(["whoosh", "sunny"]);
+    expect((await demo.search!({ query: "lullaby" })).items).toEqual([]);
+  });
 });
 
 describe("httpProvider", () => {
@@ -185,6 +192,22 @@ describe("AI tools", () => {
 
     expect(await runAudioTool("add_audio", { provider: "demo", id: "missing" }, { library: lib, project: p })).toMatchObject({ ok: false });
     expect(await runAudioTool("nope", {}, { library: lib, project: p })).toMatchObject({ ok: false });
+  });
+
+  it("add_audio replaceClipId swaps a clip in one undo step, inheriting its place", async () => {
+    const lib = createAudioLibrary([demo]);
+    const p = project();
+    await runAudioTool("add_audio", { provider: "demo", id: "jam", atSeconds: 1, volume: 0.6, durationSeconds: 20 }, { library: lib, project: p });
+    const old = Object.values(p.getState().doc.clips)[0] as AudioClip;
+    const swapped = await runAudioTool("add_audio", { provider: "demo", id: "sunny", replaceClipId: old.id }, { library: lib, project: p });
+    expect(swapped).toMatchObject({ ok: true, result: { replaced: old.id } });
+    const clips = Object.values(p.getState().doc.clips) as AudioClip[];
+    expect(clips).toHaveLength(1);
+    // Same track, start and volume; length capped by the new file (27 s > 20 s, so 20 s).
+    expect(clips[0]).toMatchObject({ trackId: old.trackId, startUs: 1_000_000, durationUs: 20_000_000, volume: 0.6 });
+    p.undo();
+    expect((Object.values(p.getState().doc.clips) as AudioClip[]).map((c) => c.id)).toEqual([old.id]);
+    expect(await runAudioTool("add_audio", { provider: "demo", id: "sunny", replaceClipId: "nope" }, { library: lib, project: p })).toMatchObject({ ok: false, error: expect.stringMatching(/no clip/) });
   });
 
   it("searchAll reports provider failures without failing the rest", async () => {

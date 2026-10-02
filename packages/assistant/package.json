@@ -44,12 +44,14 @@
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval": "vitest run -c vitest.eval.config.ts"
   },
   "peerDependencies": {
     "@miraiclip/core": "^0.5.5"
   },
   "devDependencies": {
+    "@miraiclip/audio-sources": "workspace:*",
     "@miraiclip/core": "workspace:*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",

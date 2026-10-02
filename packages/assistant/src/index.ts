@@ -12,14 +12,22 @@ export type {
 } from "./types.js";
 export { ChatModelError, defineChatModel } from "./types.js";
 
-export { openAIChatModel, toOpenAIMessages, parseToolArguments } from "./openai.js";
+export { openAIChatModel, toOpenAIMessages, parseToolArguments, retryDelayMs } from "./openai.js";
 export type { OpenAIChatModelOptions } from "./openai.js";
 
 export { createChatHandler, remoteChatModel } from "./http.js";
+export { rateLimitedChatModel } from "./limits.js";
+export type { RateLimitOptions } from "./limits.js";
 export type { ChatHandlerOptions, RemoteChatModelOptions } from "./http.js";
 
+export { describeForAssistant } from "./state.js";
+export { unknownFields } from "./strict.js";
+export type { UnknownFields } from "./strict.js";
+
 export {
+  applyChecked,
   applyCommandsSchema,
+  BACKGROUND_TEMPLATE,
   defineTool,
   describeCommands,
   editorTools,

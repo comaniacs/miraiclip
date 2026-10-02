@@ -49,12 +49,21 @@ export function staticProvider(options: StaticProviderOptions): AudioProvider {
     ...(options.notice ? { notice: options.notice } : {}),
 
     async search(query: AudioQuery): Promise<AudioSearchResult> {
-      const words = query.query.toLowerCase().split(/\s+/).filter(Boolean);
-      const all = options.entries.map(toItem).filter((item) => {
-        if (!matchesQuery(item, query)) return false;
-        const hay = [item.title, item.creator, ...(item.tags ?? [])].join(" ").toLowerCase();
-        return words.every((w) => hay.includes(w));
-      });
+      // Words like "music" or "sound" describe the kind, not the item; the rest rank results by how many match.
+      const words = query.query
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((w) => w && !QUERY_FILLER.has(w));
+      const scored = options.entries
+        .map(toItem)
+        .filter((item) => matchesQuery(item, query))
+        .map((item, index) => {
+          const hay = [item.title, item.creator, ...(item.tags ?? [])].join(" ").toLowerCase();
+          return { item, index, score: words.filter((w) => hay.includes(w)).length };
+        })
+        .filter((r) => words.length === 0 || r.score > 0)
+        .sort((a, b) => b.score - a.score || a.index - b.index);
+      const all = scored.map((r) => r.item);
       const page = query.page ?? 1;
       const size = query.pageSize ?? 20;
       return { items: all.slice((page - 1) * size, page * size), page, hasMore: page * size < all.length, total: all.length };
@@ -81,3 +90,6 @@ export function staticProvider(options: StaticProviderOptions): AudioProvider {
     },
   };
 }
+
+/** Query words that name the kind of audio rather than describe it. */
+const QUERY_FILLER = new Set(["music", "song", "songs", "track", "tracks", "audio", "sound", "sounds", "sfx", "effect", "effects", "a", "an", "the", "some", "of", "for", "with", "and"]);

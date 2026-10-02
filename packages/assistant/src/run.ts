@@ -1,4 +1,5 @@
-import { describeProject, type Command, type Project, type ProjectDocument } from "@miraiclip/core";
+import type { Command, Project, ProjectDocument } from "@miraiclip/core";
+import { describeForAssistant } from "./state.js";
 import { commitFork, forkProject, type CommitResult, type ForkOptions } from "./fork.js";
 import { editorTools, type AssistantTool } from "./tools.js";
 import type { ChatMessage, ChatModel, ChatUsage, ToolCall } from "./types.js";
@@ -73,14 +74,27 @@ export const DEFAULT_INSTRUCTIONS = `You are the editing assistant inside a vide
 
 How to work:
 - The current project is summarized below. Clip, track and asset ids there are what tools expect. Call get_state to re-read it after big changes.
-- Prefer the high-level tools when they fit (add_transition, animate_clip, and any audio or media tools). Use apply_commands for everything else, batching related commands; look up a command's payload with get_command_schema the first time you use it.
+- Prefer the high-level tools when they fit (add_transition, animate_clip, add_effect, set_effects_enabled, set_background, trim_clip, set_keyframes, close_gaps, and any audio or media tools). Call tools directly; apply_commands takes only editing commands like "clip/add", never tool names. Use apply_commands for everything else, batching related commands; look up a command's payload with get_command_schema the first time you use it, and use only the fields it lists.
+- Fading a picture (text, image, logo, video) in or out is animate_clip (in / out: fade). fadeInUs / fadeOutUs are audio fades. "Fade the video in at the start / out at the end" means the first clip's entrance and the last clip's exit.
+- Constant values are set directly with clip/set-property: rotation ("rotate 45°", "tilt"), volume ("lower to 30%", "louder"), position, size, opacity. Only values that CHANGE over a time range ("duck the music between 10 and 15 s", "fade to silence between 18 and 20 s", "spin one full turn", "pan across") are keyframes: set_keyframes, with times in timeline seconds. Remove an animation with keyframe/clear.
+- "Cuts" are the ones listed in the project summary; use their times (e.g. one sound per cut).
+- "Add N more seconds of footage" adds a new clip (clip/add with trimStartUs for the source point) after the last one; it does not stretch an existing clip.
+- Caption looks (box behind the text, outline, shadow, colors, word preset) are the caption clip's style (clip/set-property { style }).
+- "The whole video" means from 0 to the composition length (trim_clip startSeconds / endSeconds).
+- A solid color background behind everything is set_background (add, recolor, remove). Other html clips are recolored through the params their template uses (shown in the clip details). A new track goes on top unless track/add gets index 0 (the bottom).
+- "Replace X with Y" removes X and adds Y in the same turn, whichever tool adds Y (audio tools take replaceClipId, which does both).
+- Solo / mute / lock / hide a track with track/set-property (solo, muted, locked, hidden). "Solo X" is solo: true on X, not muting the others.
+- Relative requests ("bigger", "louder", "a bit brighter", "twice as big") start from the current values in the clip details below: make a visible change in the asked direction (about 25% for "bigger"/"smaller", ×2 for "twice").
+- When something is selected, "this", "it", "the clip" and any request that names no target mean ONLY the selection, even with words like "at the end" (the end of that clip). Edit nothing else. "Here" / "now" / "this point" mean the playhead. "Clips" without a kind mean the video clips on the main video track.
+- "Again" / "also" / "another" mean keep the original and add a copy (clip/duplicate, or clip/add with the same asset); never move the original. "Instead" means move or replace.
+- Removing a clip leaves a gap; when asked to close it, also run close_gaps (or trim_clip with ripple).
 - Commands use integer microseconds (1 second = 1000000). High-level tools take seconds.
 - Positions (transform x, y) are fractions of the frame: 0.5, 0.5 is the center.
 - Only reference media that exists in the project or that a tool returned. Never invent file URLs.
-- If a tool fails, read the error, fix the input and retry. If something can't be done, say why.
+- If a tool fails, read the error, fix the input and retry. A failed apply_commands batch applied NONE of its commands: resend all of them, corrected. If something can't be done, say why.
 - If the request is ambiguous in a way that matters, ask one short question instead of guessing.
 
-When you're done, reply in one to three short sentences: what you changed, in plain words (times in seconds, names over ids). No markdown headings.`;
+When you're done, reply in one to three short sentences: what you changed, in plain words (times in seconds, names over ids). Describe only edits your tools reported as applied; if a tool says something changed nothing or failed, fix it or say so. No markdown headings.`;
 
 export function createAssistant(options: AssistantOptions): Assistant {
   const tools = options.tools ?? editorTools();
@@ -100,8 +114,9 @@ export function createAssistant(options: AssistantOptions): Assistant {
       const system = [
         DEFAULT_INSTRUCTIONS,
         options.instructions?.trim(),
-        `Current project:\n${describeProject(fork.toJSON())}`,
+        `Current project:\n${describeForAssistant(fork.toJSON())}`,
         turn.context?.trim() ? `What the user is looking at: ${turn.context.trim()}` : undefined,
+        selectionNote(fork.toJSON(), fork.getState().selection),
       ]
         .filter(Boolean)
         .join("\n\n");
@@ -241,4 +256,12 @@ function abortError() {
   const err = new Error("canceled");
   err.name = "AbortError";
   return err;
+}
+
+/** The selection, stated as a scope rule right before the request (models drift to "all clips" otherwise). */
+function selectionNote(doc: ProjectDocument, selection: readonly string[]): string | undefined {
+  const clips = selection.map((id) => doc.clips[id]).filter((c): c is NonNullable<typeof c> => !!c);
+  if (!clips.length) return undefined;
+  const list = clips.map((c) => `${c.id} (${c.kind}, ${Number((c.startUs / 1e6).toFixed(2))}–${Number(((c.startUs + c.durationUs) / 1e6).toFixed(2))}s)`).join(", ");
+  return `Selected: ${list}. In this request, "this", "it", "the clip" and anything that names no target mean ONLY ${clips.map((c) => c.id).join(", ")}. Leave every other clip alone.`;
 }

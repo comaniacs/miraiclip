@@ -38,6 +38,10 @@ export function audioToolDefinitions(library: AudioLibrary, options: AudioToolDe
     volume: { type: "number", minimum: 0, maximum: 4, description: "1 = original level; music under speech ≈ 0.25–0.4." },
     fadeInSeconds: { type: "number", minimum: 0 },
     fadeOutSeconds: { type: "number", minimum: 0 },
+    replaceClipId: {
+      type: "string",
+      description: "An audio clip this replaces (\"replace the music with…\"): it is removed, and the new clip takes its track, start, length and volume unless you set them.",
+    },
   };
 
   const tools: { name: AudioToolName; description: string; schema: Record<string, unknown> }[] = [
@@ -149,6 +153,37 @@ export type AudioToolResult = { ok: true; result: unknown } | { ok: false; error
 const us = (s: unknown) => (typeof s === "number" && Number.isFinite(s) ? Math.round(s * 1_000_000) : undefined);
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : undefined);
 
+/** `replaceClipId`: the clip to remove and the placement it hands over (explicit args win). */
+function replacement(project: RunAudioToolContext["project"], args: Record<string, unknown>, mediaUs: number | undefined) {
+  const id = str(args.replaceClipId);
+  if (!id) return { ok: true as const };
+  const clip = project.getState().doc.clips[id] as { kind: string; trackId: string; startUs: number; durationUs: number; volume?: number } | undefined;
+  if (!clip) return { ok: false as const, error: `no clip "${id}" to replace` };
+  if (clip.kind !== "audio") return { ok: false as const, error: `"${id}" is a ${clip.kind} clip; replaceClipId takes an audio clip` };
+  const durationUs = us(args.durationSeconds) ?? (mediaUs ? Math.min(mediaUs, clip.durationUs) : clip.durationUs);
+  return {
+    ok: true as const,
+    clipId: id,
+    defaults: { atUs: clip.startUs, trackId: clip.trackId, durationUs, ...(clip.volume !== undefined ? { volume: clip.volume } : {}) },
+  };
+}
+
+/** Import, removing the replaced clip in the same transaction (one undo step). */
+function importReplacing(
+  ctx: RunAudioToolContext,
+  resolved: Parameters<typeof importAudio>[1],
+  options: Parameters<typeof importAudio>[2],
+  replace: ReturnType<typeof replacement>,
+) {
+  if (!replace.ok || !replace.clipId) return { ...importAudio(ctx.project, resolved, options) };
+  let added!: ReturnType<typeof importAudio>;
+  ctx.project.transaction(() => {
+    ctx.project.dispatch({ type: "clip/remove", payload: { clipId: replace.clipId! } });
+    added = importAudio(ctx.project, resolved, { ...replace.defaults, ...options });
+  });
+  return { ...added, replaced: replace.clipId };
+}
+
 function placementFrom(args: Record<string, unknown>) {
   return {
     ...(us(args.atSeconds) !== undefined ? { atUs: us(args.atSeconds)! } : {}),
@@ -199,12 +234,16 @@ export async function runAudioTool(name: string, input: unknown, ctx: RunAudioTo
       if (!provider || !id) return { ok: false, error: "provider and id are required" };
       const item = await ctx.library.item(provider, id);
       if (!item) return { ok: false, error: `no item ${provider}/${id}; search first` };
+      const replace = replacement(ctx.project, args, item.durationUs);
+      if (!replace.ok) return replace;
       let resolved = await ctx.library.resolve(item, ctx.signal ? { signal: ctx.signal } : undefined);
       if (ctx.store) resolved = await ctx.store(resolved);
-      const added = importAudio(ctx.project, resolved, {
-        ...placementFrom(args),
-        ...(us(args.durationSeconds) ? { durationUs: us(args.durationSeconds)! } : {}),
-      });
+      const added = importReplacing(
+        ctx,
+        resolved,
+        { ...placementFrom(args), ...(us(args.durationSeconds) ? { durationUs: us(args.durationSeconds)! } : {}) },
+        replace,
+      );
       return {
         ok: true,
         result: {
@@ -247,6 +286,8 @@ export async function runAudioTool(name: string, input: unknown, ctx: RunAudioTo
       } else {
         return { ok: false, error: "kind must be sfx, music or voice" };
       }
+      const replaceCheck = replacement(ctx.project, args, undefined);
+      if (!replaceCheck.ok) return replaceCheck;
       const job = ctx.library.generate(generatorId, request, {
         ...(str(args.model) ? { model: args.model as string } : {}),
         ...(args.params && typeof args.params === "object" ? { params: args.params as Record<string, unknown> } : {}),
@@ -255,7 +296,10 @@ export async function runAudioTool(name: string, input: unknown, ctx: RunAudioTo
       });
       ctx.onGeneration?.(job);
       const { resolved } = await job.result;
-      const added = importAudio(ctx.project, resolved, placementFrom(args));
+      // Generated audio keeps its own length unless durationSeconds was asked for.
+      const replace = replacement(ctx.project, { durationSeconds: (resolved.durationUs ?? 0) / 1_000_000 || undefined, ...args }, resolved.durationUs);
+      if (!replace.ok) return replace;
+      const added = importReplacing(ctx, resolved, placementFrom(args), replace);
       return {
         ok: true,
         result: {

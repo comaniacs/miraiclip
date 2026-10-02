@@ -70,6 +70,9 @@ importers:
 
   packages/assistant:
     devDependencies:
+      '@miraiclip/audio-sources':
+        specifier: workspace:*
+        version: link:../audio-sources
       '@miraiclip/core':
         specifier: workspace:*
         version: link:../core

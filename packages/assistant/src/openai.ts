@@ -33,6 +33,12 @@ export interface OpenAIChatModelOptions {
   params?: Record<string, unknown>;
   /** Stream responses (default true). */
   stream?: boolean;
+  /**
+   * Retries on rate limits (429) and server errors (500/502/503/504), waiting
+   * as long as the server asks (Retry-After, or "try again in 1.2s"), else
+   * backing off 1 s, 2 s, 4 s… (capped at 30 s). Default 4; 0 disables.
+   */
+  maxRetries?: number;
   /** Adapter id / label (default "openai" / "OpenAI"), e.g. "ollama" when pointing elsewhere. */
   id?: string;
   label?: string;
@@ -68,6 +74,26 @@ export function parseToolArguments(raw: string): Record<string, unknown> {
   } catch {
     return { __invalidArguments: raw };
   }
+}
+
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+
+/** How long the server asked us to wait (Retry-After header, or "try again in 1.2s / 350ms"), else exponential backoff. */
+export function retryDelayMs(res: Pick<Response, "headers">, message: string, attempt: number): number {
+  const header = Number(res.headers.get("retry-after-ms") ?? NaN) || Number(res.headers.get("retry-after") ?? NaN) * 1000;
+  const m = /try again in ([\d.]+)\s*(ms|s)/i.exec(message);
+  const asked = header || (m ? Number(m[1]) * (m[2]!.toLowerCase() === "ms" ? 1 : 1000) : 0);
+  const backoff = Math.min(30_000, 1000 * 2 ** attempt);
+  // A little extra and some jitter, so parallel callers don't all retry at the same instant.
+  return Math.round(Math.min(60_000, Math.max(asked + 250, asked ? 0 : backoff)) * (1 + Math.random() * 0.25));
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason ?? new Error("aborted"));
+    const t = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => (clearTimeout(t), reject(signal.reason ?? new Error("aborted"))), { once: true });
+  });
 }
 
 const FINISH: Record<string, ChatResponse["finish"]> = {
@@ -106,20 +132,27 @@ export function openAIChatModel(options: OpenAIChatModelOptions): ChatModel {
       if (options.organization) headers["OpenAI-Organization"] = options.organization;
       if (options.project) headers["OpenAI-Project"] = options.project;
 
-      const res = await doFetch(`${base}/chat/completions`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(body),
-        ...(opts.signal ? { signal: opts.signal } : {}),
-      });
-      if (!res.ok) {
+      const maxRetries = options.maxRetries ?? 4;
+      let res: Response;
+      for (let attempt = 0; ; attempt++) {
+        res = await doFetch(`${base}/chat/completions`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(body),
+          ...(opts.signal ? { signal: opts.signal } : {}),
+        });
+        if (res.ok) break;
         const err = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
-        throw new ChatModelError(id, err?.error?.message ?? `HTTP ${res.status}`, res.status);
+        const message = err?.error?.message ?? `HTTP ${res.status}`;
+        // A 429 for an exhausted quota or no credits won't clear by waiting.
+        const permanent = /quota|credits|billing/i.test(message);
+        if (attempt >= maxRetries || !RETRYABLE.has(res.status) || permanent) throw new ChatModelError(id, message, res.status);
+        await sleep(retryDelayMs(res, message, attempt), opts.signal);
       }
       if (!stream || !res.body || !(res.headers.get("content-type") ?? "").includes("event-stream")) {
-        return fromCompletion(await res.json(), opts.onText);
+        return fromCompletion(await res!.json(), opts.onText);
       }
-      return readStream(res.body, opts.onText);
+      return readStream(res!.body!, opts.onText);
     },
   });
 }

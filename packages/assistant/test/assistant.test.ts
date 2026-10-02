@@ -64,7 +64,7 @@ describe("agent loop", () => {
     expect(first.messages[0]!.role).toBe("system");
     expect(first.messages[0]!.content).toContain("v2: video");
     expect(first.messages[0]!.content).toContain("Selected: clip title.");
-    expect(first.tools!.map((t) => t.name)).toEqual(["get_state", "get_command_schema", "apply_commands", "add_transition", "animate_clip"]);
+    expect(first.tools!.map((t) => t.name)).toEqual(["get_state", "get_command_schema", "apply_commands", "add_transition", "animate_clip", "add_effect", "remove_effects", "trim_clip", "set_effects_enabled", "set_keyframes", "set_background", "close_gaps"]);
     // History for the next turn: no system prompt, tool results paired with calls.
     expect(turn.messages[0]).toEqual({ role: "user", content: "smooth cuts and animate the title" });
     expect(turn.messages.filter((m) => m.role === "tool")).toHaveLength(2);
@@ -99,7 +99,7 @@ describe("agent loop", () => {
       { toolCalls: [{ name: "apply_commands", arguments: { commands: [{ type: "clip/move", payload: { clipId: "nope", startUs: 0 } }] } }] },
       (request) => {
         const result = JSON.parse(String(request.messages.at(-1)!.content));
-        expect(result).toMatchObject({ ok: false, error: { ok: false, failedIndex: 0, error: { kind: "rejected" } } });
+        expect(result).toMatchObject({ ok: false, error: { failedIndex: 0, kind: "rejected" } });
         return { toolCalls: [{ name: "apply_commands", arguments: { commands: [{ type: "clip/move", payload: { clipId: "title", startUs: 2 * S } }] } }] };
       },
       "Moved the title to 2s.",
@@ -284,7 +284,7 @@ describe("server handler + remote model", () => {
     const turn = await createAssistant({ model: remote }).run(demo(), "hello");
     expect(turn).toMatchObject({ status: "no-changes", reply: "Hi there" });
 
-    const failing = createChatHandler(openAIChatModel({ model: "m", fetch: async () => Response.json({ error: { message: "quota" } }, { status: 429 }) }));
+    const failing = createChatHandler(openAIChatModel({ model: "m", maxRetries: 0, fetch: async () => Response.json({ error: { message: "quota" } }, { status: 429 }) }));
     const failFetch: FetchLike = async (url, init) => (await failing(new Request(new URL(url, "http://app.local"), init)))!;
     const r2 = await remoteChatModel("", { fetch: failFetch, info: { id: "openai", label: "OpenAI" } });
     await expect(r2.complete({ messages: [] })).rejects.toMatchObject({ status: 429 });
