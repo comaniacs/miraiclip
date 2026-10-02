@@ -13,6 +13,8 @@ import {
   DEFAULT_TRANSFORM,
   TRACK_ACCEPTS,
   type Asset,
+  type AssetLicense,
+  type AssetSource,
   type Clip,
   type EffectInstance,
   type Keyframe,
@@ -163,7 +165,20 @@ export const builtinHandlers: {
     if (p.weight !== undefined) asset.weight = p.weight;
     if (p.style !== undefined) asset.style = p.style;
     if (p.weightRange !== undefined) asset.weightRange = [p.weightRange[0], p.weightRange[1]];
+    if (p.name !== undefined) asset.name = p.name;
+    if (p.source !== undefined) asset.source = { ...p.source } as AssetSource;
+    if (p.license !== undefined) asset.license = { ...p.license } as AssetLicense;
+    if (p.attribution !== undefined) asset.attribution = p.attribution;
     doc.assets[p.id] = asset;
+  },
+  "asset/set-property": (doc, p) => {
+    const asset = doc.assets[p.id];
+    if (!asset) reject("asset/set-property", "asset-not-found", `no asset "${p.id}"`);
+    const target = asset as unknown as Record<string, unknown>;
+    for (const key of ["name", "source", "license", "attribution"] as const) {
+      const value = p[key];
+      if (value !== undefined) setOrClear(target, key, value === null ? null : typeof value === "object" ? { ...value } : value);
+    }
   },
   "asset/remove": (doc, p) => {
     if (!doc.assets[p.id]) reject("asset/remove", "asset-not-found", `no asset "${p.id}"`);
@@ -315,6 +330,11 @@ export const builtinHandlers: {
       durationUs: clip.durationUs - offset,
     };
     if ("trimStartUs" in right) right.trimStartUs += offset;
+    // Fades belong to the outer edges: the left half keeps the fade-in, the right the fade-out.
+    if ("volume" in clip) {
+      delete (clip as { fadeOutUs?: number }).fadeOutUs;
+      delete (right as { fadeInUs?: number }).fadeInUs;
+    }
     clip.durationUs = offset;
     doc.clips[newId] = right;
     dropTransitionsTouching(doc, p.clipId);
@@ -343,6 +363,11 @@ export const builtinHandlers: {
         reject("clip/set-property", "no-audio", `${clip.kind} clips have no volume`);
       }
       clip.volume = p.volume;
+    }
+    for (const key of ["fadeInUs", "fadeOutUs"] as const) {
+      if (p[key] === undefined) continue;
+      if (!("volume" in clip)) reject("clip/set-property", "no-audio", `${clip.kind} clips have no audio to fade`);
+      setOrClear(clip as unknown as Record<string, unknown>, key, p[key]);
     }
     for (const key of ["text", "fontFamily", "fontSizePx", "color"] as const) {
       if (p[key] !== undefined) {

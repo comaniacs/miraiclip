@@ -37,6 +37,24 @@ All time values are integer microseconds (1 s = 1,000,000 µs). Commands with a 
 | `family` | string | no | font assets: the CSS font-family name |
 | `weight` | integer | no | font assets: 100–900, step 100 (default 400) |
 | `style` | `"normal"` \| `"italic"` | no | font assets (default `"normal"`) |
+| `weightRange` | `[min, max]` | no | variable font assets: the weight axis, e.g. `[100, 900]` |
+| `name` | string | no | display name (library title, file name) |
+| `source` | `{ provider, id, url? }` | no | where the asset came from: `"upload"`, `"recording"`, or a library/generator id |
+| `license` | `{ id, url?, commercial, attributionRequired }` | no | e.g. `{ id: "CC-BY-4.0", commercial: true, attributionRequired: true }` |
+| `attribution` | string | no | the credit line to show, when the license asks for one |
+
+
+## `asset/set-property`
+
+Edit an asset's display name and provenance. `null` clears a field.
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `id` | string | yes | non-empty |
+| `name` | string \| null | no |  |
+| `source` | object \| null | no | as in `asset/add` |
+| `license` | object \| null | no | as in `asset/add` |
+| `attribution` | string \| null | no |  |
 
 
 ## `asset/remove`
@@ -91,7 +109,7 @@ All time values are integer microseconds (1 s = 1,000,000 µs). Commands with a 
 
 ## `clip/add`
 
-Discriminated on `kind`: `video`/`audio` (assetId, trimStartUs, volume), `image` (assetId), `text` (text, fontFamily, fontSizePx, color, + [typography](#typography)), `caption` (words `[{text, startUs, durationUs}]` clip-relative + style `{preset, fontFamily, fontSizeFrac, color, highlightColor, backgroundColor?}` + [typography](#typography) minus `textAlign`), or a registered custom kind (payload under `props`, validated by its schema). All take `id`, `trackId`, `startUs`, `durationUs`, optional partial `transform`. Asset-backed kinds reject asset-kind mismatches.
+Discriminated on `kind`: `video`/`audio` (assetId, trimStartUs, volume, optional `fadeInUs`/`fadeOutUs`), `image` (assetId), `text` (text, fontFamily, fontSizePx, color, + [typography](#typography)), `caption` (words `[{text, startUs, durationUs}]` clip-relative + style `{preset, fontFamily, fontSizeFrac, color, highlightColor, backgroundColor?}` + [typography](#typography) minus `textAlign`), or a registered custom kind (payload under `props`, validated by its schema). All take `id`, `trackId`, `startUs`, `durationUs`, optional partial `transform`. Asset-backed kinds reject asset-kind mismatches.
 
 
 
@@ -147,6 +165,7 @@ Discriminated on `kind`: `video`/`audio` (assetId, trimStartUs, volume), `image`
 | `clipId` | string | yes | non-empty |
 | `transform` | object | no |  |
 | `volume` | number | no | min 0 |
+| `fadeInUs` / `fadeOutUs` | integer \| null | no | video/audio: linear fade length, ≥ 0; `null` clears |
 | `text` | string | no |  |
 | `fontFamily` | string | no |  |
 | `fontSizePx` | number | no | > 0 |

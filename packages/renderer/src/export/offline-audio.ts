@@ -5,7 +5,7 @@
  */
 import type { AudioClip, ProjectDocument, VideoClip } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
-import { gainFor, isAudible, mapChunkToTimeline, volumeAutomation } from "../audio/mapping.js";
+import { gainFor, hasGainEnvelope, isAudible, mapChunkToTimeline, volumeAutomation } from "../audio/mapping.js";
 import type { AudioSourceFactory } from "../audio/types.js";
 import { ExportAbortedError, type ExportRange, type MixAudioContext } from "./types.js";
 
@@ -30,7 +30,7 @@ export function planAudioJobs(doc: ProjectDocument, range: ExportRange): AudioMi
     const clipEndUs = clip.startUs + clip.durationUs;
     if (clipEndUs <= range.startUs || clip.startUs >= range.endUs) continue; // no overlap
     const gain = gainFor(clip, doc);
-    const animated = (clip.animations?.volume?.length ?? 0) > 0;
+    const animated = hasGainEnvelope(clip);
     // Muted/soloed-out contributes nothing; a statically-zero volume still
     // contributes when volume KEYFRAMES can raise it.
     if (gain <= 0 && !animated) continue;

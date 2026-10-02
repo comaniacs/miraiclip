@@ -10,10 +10,38 @@ export interface ProjectSettings {
 
 export type AssetKind = "video" | "audio" | "image" | "font";
 
+/** Where an asset came from (a stock library, a generator, a recording, an upload). */
+export interface AssetSource {
+  /** Provider id, e.g. "openverse", "freesound", "recording", "upload". */
+  provider: string;
+  /** The provider's own id for the item (empty for uploads/recordings). */
+  id: string;
+  /** Human-facing page for the item (license and credits live there). */
+  url?: string;
+}
+
+/** The terms an asset may be used under. */
+export interface AssetLicense {
+  /** SPDX-style id, e.g. "CC0-1.0", "CC-BY-4.0", "CC-BY-NC-4.0", or a provider's own name. */
+  id: string;
+  url?: string;
+  /** May the asset be used in commercial work? */
+  commercial: boolean;
+  /** Must the work credit the author (see `Asset.attribution`)? */
+  attributionRequired: boolean;
+}
+
 export interface Asset {
   id: string;
   kind: AssetKind;
   src: string;
+  /** Display name (e.g. a stock track's title). */
+  name?: string;
+  /** Provenance — set by importers; absent for plain uploads. */
+  source?: AssetSource;
+  license?: AssetLicense;
+  /** The credit line to show when the license requires it, e.g. "“Calm Piano” by Jane Doe (CC BY 4.0)". */
+  attribution?: string;
   /** Intrinsic duration of the media, if applicable (video/audio). */
   durationUs?: Us;
   width?: number;
@@ -145,7 +173,13 @@ export interface ClipBase {
   effects?: EffectInstance[];
 }
 
-export interface VideoClip extends ClipBase {
+/** Linear fades at a sound-making clip's edges (absent = none). Clamped to the clip's length when rendered. */
+export interface AudioFades {
+  fadeInUs?: Us;
+  fadeOutUs?: Us;
+}
+
+export interface VideoClip extends ClipBase, AudioFades {
   kind: "video";
   assetId: string;
   /** Source trim: offset into the asset where playback starts. */
@@ -153,7 +187,7 @@ export interface VideoClip extends ClipBase {
   volume: number;
 }
 
-export interface AudioClip extends ClipBase {
+export interface AudioClip extends ClipBase, AudioFades {
   kind: "audio";
   assetId: string;
   trimStartUs: Us;

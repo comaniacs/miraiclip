@@ -36,7 +36,47 @@ export function clipVolumeAt(clip: VideoClip | AudioClip, timelineUs: Us): numbe
 }
 
 /**
- * Effective gain: clip volume × track mute/solo state. Pass `atTimelineUs`
+ * The clip's fade envelope (0..1) at a timeline position: a linear ramp up
+ * over `fadeInUs` from the clip start and down over `fadeOutUs` to its end.
+ * Fades longer than the clip are scaled down proportionally so they meet.
+ */
+export function clipFades(clip: VideoClip | AudioClip): { inUs: Us; outUs: Us } {
+  const fadeIn = Math.max(0, clip.fadeInUs ?? 0);
+  const fadeOut = Math.max(0, clip.fadeOutUs ?? 0);
+  const total = fadeIn + fadeOut;
+  if (total <= clip.durationUs || total === 0) return { inUs: fadeIn, outUs: fadeOut };
+  const k = clip.durationUs / total;
+  return { inUs: fadeIn * k, outUs: fadeOut * k };
+}
+
+export function fadeGainAt(clip: VideoClip | AudioClip, timelineUs: Us): number {
+  const { inUs, outUs } = clipFades(clip);
+  if (inUs === 0 && outUs === 0) return 1;
+  const intoUs = timelineUs - clip.startUs;
+  const leftUs = clip.startUs + clip.durationUs - timelineUs;
+  let g = 1;
+  if (inUs > 0) g = Math.min(g, Math.max(0, intoUs / inUs));
+  if (outUs > 0) g = Math.min(g, Math.max(0, leftUs / outUs));
+  return Math.min(1, g);
+}
+
+/** Fade corner times inside (from, to) — ramp points that reproduce the envelope exactly. */
+function fadeRampTimes(clip: VideoClip | AudioClip, fromUs: Us, toUs: Us): Us[] {
+  const { inUs, outUs } = clipFades(clip);
+  const endUs = clip.startUs + clip.durationUs;
+  const corners: Us[] = [];
+  if (inUs > 0) corners.push(clip.startUs, clip.startUs + inUs);
+  if (outUs > 0) corners.push(endUs - outUs, endUs);
+  return corners.filter((t) => t > fromUs && t < toUs);
+}
+
+/** True when the clip's gain changes over time (keyframes or fades). */
+export function hasGainEnvelope(clip: VideoClip | AudioClip): boolean {
+  return (clip.animations?.volume?.length ?? 0) > 0 || (clip.fadeInUs ?? 0) > 0 || (clip.fadeOutUs ?? 0) > 0;
+}
+
+/**
+ * Effective gain: clip volume × fades × track mute/solo state. Pass `atTimelineUs`
  * to honor volume keyframes; omitted, the clip's static volume applies.
  */
 export function gainFor(
@@ -47,7 +87,11 @@ export function gainFor(
   const gate = trackGate(clip, doc);
   if (gate === 0) return 0;
   if (atTimelineUs === undefined) return clip.volume;
-  return clipVolumeAt(clip, atTimelineUs) * transitionGainAt(doc, clip.id, atTimelineUs);
+  return (
+    clipVolumeAt(clip, atTimelineUs) *
+    fadeGainAt(clip, atTimelineUs) *
+    transitionGainAt(doc, clip.id, atTimelineUs)
+  );
 }
 
 export interface GainPoint {
@@ -60,8 +104,9 @@ export interface GainPoint {
  * volume-keyframe boundary inside it, ready for `linearRampToValueAtTime`
  * scheduling (per-chunk gain STEPPING produces zipper noise — ramps don't).
  * Hold easings get a pre-point just before the jump so the ramp reproduces
- * the step. Returns null when the clip's volume is not animated — callers
- * use a plain setGain.
+ * the step; fade corners are points too (a linear fade is exact between
+ * them). Returns null when the clip's gain is constant — callers use a
+ * plain setGain.
  */
 export function volumeAutomation(
   clip: VideoClip | AudioClip,
@@ -70,8 +115,11 @@ export function volumeAutomation(
   toTimelineUs: Us,
 ): GainPoint[] | null {
   const keyframes = clip.animations?.volume ?? [];
-  const rampTimes = transitionRampTimes(doc, clip.id, fromTimelineUs, toTimelineUs);
-  if (keyframes.length === 0 && rampTimes.length === 0) return null;
+  const rampTimes = [
+    ...transitionRampTimes(doc, clip.id, fromTimelineUs, toTimelineUs),
+    ...fadeRampTimes(clip, fromTimelineUs, toTimelineUs),
+  ];
+  if (keyframes.length === 0 && rampTimes.length === 0 && !hasGainEnvelope(clip)) return null;
   const gate = trackGate(clip, doc);
   const times = new Set<Us>([fromTimelineUs, toTimelineUs, ...rampTimes]);
   for (let i = 0; i < keyframes.length; i++) {
@@ -88,7 +136,10 @@ export function volumeAutomation(
     .map((atTimelineUs) => ({
       atTimelineUs,
       value:
-        gate * clipVolumeAt(clip, atTimelineUs) * transitionGainAt(doc, clip.id, atTimelineUs),
+        gate *
+        clipVolumeAt(clip, atTimelineUs) *
+        fadeGainAt(clip, atTimelineUs) *
+        transitionGainAt(doc, clip.id, atTimelineUs),
     }));
 }
 

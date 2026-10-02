@@ -71,6 +71,21 @@ A clip's `transform.scale` of **1 means "fit the composition"** (contain, aspect
 
 Audio clips — and the embedded tracks of video clips — are decoded in **streaming windows** (never whole-file PCM) and scheduled on a WebAudio graph: one gain lane per clip, mixing clip `volume` with track `muted`/`solo` live. Because the master clock *is* the audio output's clock, sound and the frames chasing the clock cannot drift apart.
 
+Clip gain is `volume` × volume keyframes × fades × transition ramps × track gate. The same math (`audio/mapping`) drives live playback and the offline export mix, scheduled as linear ramps, so preview and export sound identical. `fadeGainAt(clip, timelineUs)` and `clipFades(clip)` are exported for drawing fade handles.
+
+### Waveforms
+
+`computeWaveformPeaks(source, { durationUs })` streams an asset once and returns max-abs peaks (0..1, default 50 per second); `peaksForRange(peaks, fromMediaUs, toMediaUs, width)` downsamples the visible part of a clip to drawing columns. Peaks depend only on the asset, so compute them once and cache them:
+
+```ts
+import { computeWaveformPeaks, openMediabunnyAudio, peaksForRange } from "@miraiclip/renderer";
+
+const source = await openMediabunnyAudio(asset.id, asset.src);
+const waveform = source && (await computeWaveformPeaks(source, { durationUs: asset.durationUs! }));
+source?.dispose();
+const columns = waveform && peaksForRange(waveform, clip.trimStartUs, clip.trimStartUs + clip.durationUs, 240);
+```
+
 ## The three layers
 
 **Media pipeline** — `MediaManager` owns one `VideoPipeline` per asset (clips sharing a source share it), capped at a decoder budget with LRU release. Pipelines stream continuously with a decode-ahead window; seeks are frame-accurate via the WebCodecs settle pattern.

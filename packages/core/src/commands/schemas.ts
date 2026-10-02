@@ -128,6 +128,20 @@ export const captionStylePatchSchema = z.object({
 // Payload schemas — one per built-in command.
 // ---------------------------------------------------------------------------
 
+// --- Asset provenance (optional) -------------------------------------------
+export const assetSourceSchema = z.object({
+  provider: z.string().min(1),
+  id: z.string(),
+  url: z.string().url().optional(),
+});
+export const assetLicenseSchema = z.object({
+  id: z.string().min(1),
+  url: z.string().url().optional(),
+  commercial: z.boolean(),
+  attributionRequired: z.boolean(),
+});
+const fadeUs = z.number().int().min(0);
+
 export const builtinPayloadSchemas = {
   "project/set-settings": z.object({
     width: z.number().int().positive().optional(),
@@ -152,8 +166,24 @@ export const builtinPayloadSchemas = {
     style: fontStyleSchema.optional(),
     /** Font assets: a variable font's weight axis range, e.g. [100, 900] (min ≤ max). */
     weightRange: z.tuple([fontWeightSchema, fontWeightSchema]).refine(([a, b]) => a <= b, "weightRange min must be ≤ max").optional(),
+    /** Display name (e.g. a stock track's title). */
+    name: z.string().min(1).optional(),
+    /** Provenance: where the asset came from. */
+    source: assetSourceSchema.optional(),
+    /** The terms it may be used under. */
+    license: assetLicenseSchema.optional(),
+    /** Credit line to show when the license requires it. */
+    attribution: z.string().min(1).optional(),
   }),
   "asset/remove": z.object({ id }),
+  "asset/set-property": z.object({
+    id,
+    /** Each field: a value sets it, `null` clears it. */
+    name: z.string().min(1).nullable().optional(),
+    source: assetSourceSchema.nullable().optional(),
+    license: assetLicenseSchema.nullable().optional(),
+    attribution: z.string().min(1).nullable().optional(),
+  }),
 
   "track/add": z.object({
     id,
@@ -183,6 +213,10 @@ export const builtinPayloadSchemas = {
       durationUs: positiveUs,
       trimStartUs: us.default(0),
       volume: z.number().min(0).default(1),
+      /** Linear fade-in from the clip's start. */
+      fadeInUs: fadeUs.optional(),
+      /** Linear fade-out to the clip's end. */
+      fadeOutUs: fadeUs.optional(),
       transform: transformSchema.partial().optional(),
     }),
     z.object({
@@ -194,6 +228,10 @@ export const builtinPayloadSchemas = {
       durationUs: positiveUs,
       trimStartUs: us.default(0),
       volume: z.number().min(0).default(1),
+      /** Linear fade-in from the clip's start. */
+      fadeInUs: fadeUs.optional(),
+      /** Linear fade-out to the clip's end. */
+      fadeOutUs: fadeUs.optional(),
       transform: transformSchema.partial().optional(),
     }),
     z.object({
@@ -297,6 +335,9 @@ export const builtinPayloadSchemas = {
     /** Partial transform update, merged onto the clip's transform. */
     transform: transformSchema.partial().optional(),
     volume: z.number().min(0).optional(),
+    /** Video/audio clips: edge fades; `null` removes. */
+    fadeInUs: fadeUs.nullable().optional(),
+    fadeOutUs: fadeUs.nullable().optional(),
     text: z.string().optional(),
     fontFamily: z.string().optional(),
     fontSizePx: z.number().positive().optional(),

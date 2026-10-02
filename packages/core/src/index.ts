@@ -54,6 +54,9 @@ export type {
   AnimatableProperty,
   Asset,
   AssetKind,
+  AssetLicense,
+  AssetSource,
+  AudioFades,
   AudioClip,
   BuiltinClip,
   CaptionClip,
@@ -123,4 +126,6 @@ export {
   retimeWords,
   wordsFromCue,
 } from "./captions.js";
+export { creditsFor, licenseReport, usedAssets } from "./provenance.js";
+export type { LicenseIssue } from "./provenance.js";
 export type { AsrGroupingOptions, AsrWord, CaptionCue, CaptionCueSource, CaptionImportOptions } from "./captions.js";

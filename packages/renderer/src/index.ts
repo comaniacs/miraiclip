@@ -53,6 +53,9 @@ export type {
   AudioTrackSource,
 } from "./audio/types.js";
 export { createWebAudioOutput, openMediabunnyAudio } from "./audio/webaudio.js";
+export { accumulatePeaks, computeWaveformPeaks, peaksForRange } from "./audio/waveform.js";
+export type { WaveformPeaks, WaveformPeaksOptions } from "./audio/waveform.js";
+export { clipFades, fadeGainAt } from "./audio/mapping.js";
 
 export { createPlayer } from "./player.js";
 export type { CreatePlayerOptions, Player } from "./player.js";

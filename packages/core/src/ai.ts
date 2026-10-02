@@ -51,11 +51,12 @@ export function commandTypeForTool(
 const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "asset/add": "Register a media asset (video, audio, image, font) by id and src. Metadata only — nothing is decoded.",
   "asset/remove": "Remove an asset. Fails while any clip still references it.",
+  "asset/set-property": "Set or clear an asset's name and provenance (source, license, attribution). `null` clears a field.",
   "clip/add": "Add a clip (video, text, caption, …) to a track at a timeline position. Times are microseconds.",
   "clip/duplicate": "Duplicate an existing clip to a new id, optionally at a new position.",
   "clip/move": "Move a clip to a new timeline start (and optionally another track).",
   "clip/remove": "Remove a clip. Transitions attached to it are dropped.",
-  "clip/set-property": "Set a clip property (transform fields, volume, text content, …) as a static value.",
+  "clip/set-property": "Set a clip property (transform fields, volume, audio fades, text content, …) as a static value.",
   "clip/split": "Split a clip in two at a timeline position; the right half gets newClipId.",
   "clip/trim": "Change a clip's in-point (trimStartUs) and/or duration without moving other clips.",
   "effect/add": `Add an effect to a clip's effect stack (omitted params take defaults). Built-in kinds: ${EFFECT_CATALOG.map((e) => e.kind).join(", ")}; or a registered custom kind.`,
@@ -276,6 +277,12 @@ function clipLine(clip: Clip): string {
     extra += ` ${JSON.stringify(text)}`;
   }
   if ("words" in clip && Array.isArray(clip.words)) extra += ` (${clip.words.length} words)`;
+  if ("volume" in clip) {
+    const c = clip as { volume: number; fadeInUs?: number; fadeOutUs?: number };
+    if (c.volume !== 1) extra += ` vol ${c.volume}`;
+    if (c.fadeInUs) extra += ` fade-in ${formatUs(c.fadeInUs)}`;
+    if (c.fadeOutUs) extra += ` fade-out ${formatUs(c.fadeOutUs)}`;
+  }
   const typography =
     clip.kind === "text" ? typographySummary(clip as TextClip)
     : clip.kind === "caption" && "style" in clip ? typographySummary((clip as CaptionClip).style)
@@ -312,7 +319,9 @@ export function describeProject(
   lines.push(assets.length === 0 ? "assets: (none)" : "assets:");
   for (const asset of assets) {
     const duration = asset.durationUs !== undefined ? `, ${formatUs(asset.durationUs)}` : "";
-    lines.push(`- ${asset.id}: ${asset.kind}${duration}, src ${JSON.stringify(asset.src)}`);
+    const name = asset.name ? ` "${asset.name}"` : "";
+    const license = asset.license ? `, license ${asset.license.id}${asset.license.commercial ? "" : " (non-commercial)"}` : "";
+    lines.push(`- ${asset.id}${name}: ${asset.kind}${duration}${license}, src ${JSON.stringify(asset.src)}`);
   }
 
   lines.push("tracks (bottom to top):");
