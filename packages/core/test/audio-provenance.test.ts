@@ -132,3 +132,18 @@ describe("credits and license report", () => {
     ]);
   });
 });
+
+describe("track hidden", () => {
+  it("sets and clears without bloating the document, and shows in the AI summary", async () => {
+    const { createProject, describeProject } = await import("../src/index.js");
+    const p = createProject({ width: 640, height: 360, fps: 30 });
+    p.dispatch({ type: "track/add", payload: { id: "v", kind: "video" } });
+    p.dispatch({ type: "track/set-property", payload: { trackId: "v", hidden: true, muted: true } });
+    expect(p.getState().doc.tracks.v).toMatchObject({ hidden: true, muted: true });
+    expect(describeProject(p.getState().doc)).toContain("v (video, muted, hidden)");
+    p.dispatch({ type: "track/set-property", payload: { trackId: "v", hidden: false } });
+    expect(p.getState().doc.tracks.v).not.toHaveProperty("hidden");
+    p.undo();
+    expect(p.getState().doc.tracks.v!.hidden).toBe(true);
+  });
+});

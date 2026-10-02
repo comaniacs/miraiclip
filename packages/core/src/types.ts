@@ -96,6 +96,8 @@ export interface Track {
   muted: boolean;
   solo: boolean;
   locked: boolean;
+  /** Visual tracks: when true, the track's clips aren't drawn (preview, export, stills). Audio is unaffected — use `muted`. */
+  hidden?: boolean;
 }
 
 export interface Transform {
@@ -135,8 +137,15 @@ export type Easing =
 export type EasingPreset = "linear" | "hold" | "easeIn" | "easeOut" | "easeInOut";
 
 export interface Keyframe {
-  /** Clip-relative time: 0 = the clip's visible start (anchor never moves with trims). */
+  /**
+   * Clip-relative time. By default measured from the clip's visible start
+   * (0 = start; never moves with trims). With `anchor: "end"` it is measured
+   * BACK from the clip's visible end (0 = the last instant), so Out animations
+   * stay glued to the end when the clip is trimmed or resized.
+   */
   timeUs: Us;
+  /** Omitted = "start". */
+  anchor?: "end";
   value: number;
   /** The curve from THIS keyframe to the next one. */
   easing: Easing;

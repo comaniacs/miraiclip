@@ -96,7 +96,9 @@ export {
   evaluateClipAt,
   evaluateClipInto,
   evaluateKeyframes,
+  keyframeTimeUs,
   resolveEasing,
+  resolveKeyframes,
 } from "./animation.js";
 export type { EvaluatedClip } from "./animation.js";
 

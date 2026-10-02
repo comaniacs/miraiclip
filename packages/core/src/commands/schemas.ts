@@ -25,6 +25,8 @@ export const easingInputSchema = z.union([
   z.object({ kind: z.literal("hold") }),
 ]);
 
+export const keyframeAnchor = z.enum(["start", "end"]);
+
 export const animatableProperty = z.enum([
   "x",
   "y",
@@ -200,6 +202,8 @@ export const builtinPayloadSchemas = {
     muted: z.boolean().optional(),
     solo: z.boolean().optional(),
     locked: z.boolean().optional(),
+    /** Hide the track's clips from rendering (false clears it). */
+    hidden: z.boolean().optional(),
   }),
 
   "clip/add": z.union([
@@ -357,13 +361,15 @@ export const builtinPayloadSchemas = {
   "keyframe/set": z.object({
     clipId: id,
     property: animatableProperty,
-    /** Clip-relative time (0 = the clip's visible start). */
+    /** Clip-relative time (0 = the clip's visible start; with anchor "end", time back from the visible end). */
     timeUs: us,
+    /** "end" measures timeUs back from the clip's end, so the keyframe follows trims of the end. Default "start". */
+    anchor: keyframeAnchor.optional(),
     value: z.number(),
     /** Curve from this keyframe to the next. Preset name or explicit bézier. */
     easing: easingInputSchema.default("linear"),
   }),
-  "keyframe/remove": z.object({ clipId: id, property: animatableProperty, timeUs: us }),
+  "keyframe/remove": z.object({ clipId: id, property: animatableProperty, timeUs: us, anchor: keyframeAnchor.optional() }),
   "keyframe/clear": z.object({
     clipId: id,
     /** Omit to clear every property's keyframes. */

@@ -126,6 +126,10 @@ export class Compositor {
         node.setVisible(false);
         continue;
       }
+      if (doc.tracks[clip.trackId]?.hidden) {
+        node.setVisible(false); // hidden track: not drawn (audio follows `muted`)
+        continue;
+      }
       const transitions = this.transitionsByClip.get(clipId);
       let visible = clip.startUs <= timeUs && timeUs < clip.startUs + clip.durationUs;
 
@@ -224,6 +228,7 @@ export class Compositor {
     const clip = doc.clips[clipId];
     const node = this.nodes.get(clipId);
     if (!clip || !node?.getLocalBounds) return null;
+    if (doc.tracks[clip.trackId]?.hidden) return null; // not drawn → no bounds, no hits
     if (!(clip.startUs <= timeUs && timeUs < clip.startUs + clip.durationUs)) return null;
     const local = node.getLocalBounds();
     if (!local) return null;

@@ -6,7 +6,14 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ### Added
 
-- `@miraiclip/audio-sources` **AI audio generation with a vendor-neutral contract** (0.2.0): an `AudioGenerator` declares its kinds (sfx / music / voice), models, voices, limits, a JSON-Schema `paramsSchema` for vendor-specific settings and its output `terms`. `generate(request, options)` returns bytes or a URL; `params` pass through untouched, so any service adapts without package changes. `startGeneration` / `library.generate` run cancellable jobs with progress and store the output with its source and license; `createGeneratorHandler` (Fetch-API server handler) + `remoteGenerators` (browser proxies) keep API keys server-side. Adapters: `elevenLabsGenerator` (sound effects, music, text-to-speech, voices) and an offline `toneGenerator`. New LLM tools `generate_audio` and `list_voices`. Breaking: the unused placeholder `GenerateAudioRequest` / `AudioJob` types and `AudioProvider.generate` are removed. See [Audio Sources → Generation](https://comaniacs.github.io/miraiclip/docs/audio-sources/#generation).
+- `@miraiclip/core` + `@miraiclip/renderer` **hidden tracks** — `track/set-property { hidden }` (optional `Track.hidden`; `false` removes it). The compositor skips a hidden track's clips in preview, exports and stills, and `getClipBounds` / `hitTest` ignore them; sound follows `muted` as before. `describeProject` lists track flags (muted, solo, locked, hidden). See [Tracks](https://comaniacs.github.io/miraiclip/docs/core-concepts/tracks/#mute-solo-lock-and-hide).
+- `@miraiclip/core` + `@miraiclip/renderer` **end-anchored keyframes** — `keyframe/set` / `keyframe/remove` take `anchor: "end"` (time measured back from the clip's end), so exit animations follow trims. New `resolveKeyframes` / `keyframeTimeUs` helpers; `evaluateKeyframes` takes an optional clip duration. `clip/split` keeps end-anchored keyframes on the right half only. Volume automation honors the anchor. See [Animation](https://comaniacs.github.io/miraiclip/docs/rendering/animation/#animate-out-from-the-end).
+
+## [audio-sources-0.2.0] — 2026-10-02
+
+### Added
+
+- `@miraiclip/audio-sources` **AI audio generation with a vendor-neutral contract**: an `AudioGenerator` declares its kinds (sfx / music / voice), models, voices, limits, a JSON-Schema `paramsSchema` for vendor-specific settings and its output `terms`. `generate(request, options)` returns bytes or a URL; `params` pass through untouched, so any service adapts without package changes. `startGeneration` / `library.generate` run cancellable jobs with progress and store the output with its source and license; `createGeneratorHandler` (Fetch-API server handler) + `remoteGenerators` (browser proxies) keep API keys server-side. Adapters: `elevenLabsGenerator` (sound effects, music, text-to-speech, voices) and an offline `toneGenerator`. New LLM tools `generate_audio` and `list_voices`. Breaking: the unused placeholder `GenerateAudioRequest` / `AudioJob` types and `AudioProvider.generate` are removed. See [Audio Sources → Generation](https://comaniacs.github.io/miraiclip/docs/audio-sources/#generation).
 
 ## [audio-sources-0.1.0] — 2026-10-02
 
@@ -231,6 +238,7 @@ First release of `@miraiclip/core`.
 - **Docs site** under `docs/`: Hugo + Hextra with landing page, quickstart, core-concepts pages, Command Catalog reference (generated from the actual Zod schemas), roadmap, and this changelog.
 
 [Unreleased]: https://github.com/comaniacs/miraiclip/compare/v0.1.0...HEAD
+[audio-sources-0.2.0]: https://www.npmjs.com/package/@miraiclip/audio-sources/v/0.2.0
 [audio-sources-0.1.0]: https://www.npmjs.com/package/@miraiclip/audio-sources/v/0.1.0
 [core-0.5.3]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.3
 [renderer-0.7.8]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.8

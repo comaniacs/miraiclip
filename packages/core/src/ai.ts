@@ -64,14 +64,14 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "effect/reorder": "Move an effect to a new index in the clip's stack (stack order = application order).",
   "effect/update": "Update an effect's params (and/or enabled flag) in place.",
   "keyframe/clear": "Remove ALL keyframes for one property of a clip.",
-  "keyframe/remove": "Remove the keyframe at an exact time for one property of a clip.",
-  "keyframe/set": "Set a keyframe (time is relative to the clip's visible start) for an animatable property, with optional easing.",
+  "keyframe/remove": "Remove the keyframe at an exact time (and anchor) for one property of a clip.",
+  "keyframe/set": "Set a keyframe for an animatable property, with optional easing. Time is relative to the clip's visible start, or with anchor \"end\" measured back from its end (use that for exit animations so they follow trims).",
   "project/set-settings": "Change composition settings (width, height, fps).",
   "track/add": "Add a track. Track order defines layering: later tracks render on top.",
   "track/remove": "Remove a track and every clip on it.",
   "track/rename": "Rename a track.",
   "track/reorder": "Move a track to a new index in the render order (0 = bottom layer).",
-  "track/set-property": "Set a track property (e.g. muted, locked).",
+  "track/set-property": "Set a track property: muted, solo, locked, or hidden (hidden tracks aren't drawn; audio follows muted).",
   "transition/add": "Add a transition (crossDissolve, dipToBlack, dipToWhite, wipe, slide) across the cut between two adjacent clips.",
   "transition/remove": "Remove a transition.",
   "transition/update": "Update a transition's duration, kind, or params.",
@@ -289,7 +289,11 @@ function clipLine(clip: Clip): string {
     : "";
   if (typography) extra += ` {${typography}}`;
   const effects = clip.effects?.length ? ` [${clip.effects.length} effect${clip.effects.length > 1 ? "s" : ""}]` : "";
-  const animated = clip.animations ? Object.keys(clip.animations) : [];
+  const animated = clip.animations
+    ? Object.entries(clip.animations)
+        .filter(([, list]) => list && list.length)
+        .map(([prop, list]) => (list!.some((k) => k.anchor === "end") ? `${prop} (some from end)` : prop))
+    : [];
   const keyframes = animated.length ? ` [keyframes: ${animated.sort().join(", ")}]` : "";
   return `${clip.id}: ${clip.kind}${extra} at ${formatUs(clip.startUs)}..${formatUs(endUs)}${effects}${keyframes}`;
 }
@@ -331,7 +335,8 @@ export function describeProject(
     const clips = Object.values(doc.clips)
       .filter((clip) => clip.trackId === trackId)
       .sort((a, b) => a.startUs - b.startUs || a.id.localeCompare(b.id));
-    lines.push(`- ${trackId} (${track.kind}), ${clips.length} clip${clips.length === 1 ? "" : "s"}:`);
+    const flags = [track.muted && "muted", track.solo && "solo", track.locked && "locked", track.hidden && "hidden"].filter(Boolean);
+    lines.push(`- ${trackId} (${track.kind}${flags.length ? `, ${flags.join(", ")}` : ""}), ${clips.length} clip${clips.length === 1 ? "" : "s"}:`);
     const shown =
       clips.length > maxClips
         ? [...clips.slice(0, Math.ceil(maxClips / 2)), null, ...clips.slice(-Math.floor(maxClips / 2))]

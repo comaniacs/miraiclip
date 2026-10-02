@@ -105,6 +105,7 @@ Edit an asset's display name and provenance. `null` clears a field.
 | `muted` | boolean | no |  |
 | `solo` | boolean | no |  |
 | `locked` | boolean | no |  |
+| `hidden` | boolean | no | visual tracks: clips aren't drawn in preview, export or stills (audio follows `muted`); `false` removes the flag |
 
 
 ## `clip/add`
@@ -201,9 +202,10 @@ project.dispatch({ type: "clip/set-property", payload: { clipId: "t1", letterSpa
 | --- | --- | --- | --- |
 | `clipId` | string | yes | non-empty |
 | `property` | enum | yes | x, y, scale, rotation, opacity, volume |
-| `timeUs` | integer | yes | clip-relative, min 0 |
+| `timeUs` | integer | yes | clip-relative, min 0; measured back from the clip's end when `anchor` is "end" |
+| `anchor` | enum | no | start (default), end. End-anchored keyframes follow trims of the clip's end; stored with `anchor: "end"`, omitted for start |
 | `value` | number | yes | opacity 0..1; scale/volume ≥ 0 |
-| `easing` | enum \| object | no | preset (linear, hold, easeIn, easeOut, easeInOut) or `{kind:"bezier", x1,y1,x2,y2}`; default linear. Curve from this keyframe to the next. Upserts at an existing time. |
+| `easing` | enum \| object | no | preset (linear, hold, easeIn, easeOut, easeInOut) or `{kind:"bezier", x1,y1,x2,y2}`; default linear. Curve from this keyframe to the next. Upserts at an existing time and anchor. |
 
 ## `keyframe/remove`
 
@@ -212,6 +214,7 @@ project.dispatch({ type: "clip/set-property", payload: { clipId: "t1", letterSpa
 | `clipId` | string | yes | non-empty |
 | `property` | enum | yes | as above |
 | `timeUs` | integer | yes | must match an existing keyframe exactly |
+| `anchor` | enum | no | start (default), end; must match too |
 
 ## `keyframe/clear`
 

@@ -107,3 +107,21 @@ describe("hit testing", () => {
     expect(compositor.hitTest(600, 250, 3_000_000)).toBeNull(); // nothing on screen
   });
 });
+
+describe("hidden tracks", () => {
+  it("aren't drawn, have no bounds and take no hits; showing restores them", () => {
+    const { project, compositor, node } = setup();
+    compositor.renderAt(1_000_000);
+    expect(node(1).visible).toBe(true);
+    project.dispatch({ type: "track/set-property", payload: { trackId: "t2", hidden: true } });
+    compositor.renderAt(1_000_000);
+    expect(node(1).visible).toBe(false);
+    expect(node(0).visible).toBe(true);
+    expect(compositor.getClipBounds("b", 1_000_000)).toBeNull();
+    expect(compositor.hitTest(600, 250, 1_000_000)).not.toBe("b");
+    project.dispatch({ type: "track/set-property", payload: { trackId: "t2", hidden: false } });
+    compositor.renderAt(1_000_000);
+    expect(node(1).visible).toBe(true);
+    expect(project.getState().doc.tracks.t2).not.toHaveProperty("hidden");
+  });
+});

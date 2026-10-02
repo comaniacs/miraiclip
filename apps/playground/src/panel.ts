@@ -204,10 +204,18 @@ const TABS: Tab[] = [
         },
       },
       {
-        id: "fadeout", label: "Fade out at end", hint: "last 2s → opacity 0",
-        run: ({ project, durationUs }) => {
-          project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "opacity", timeUs: Math.max(0, durationUs - 2_000_000), value: 1 } });
-          project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "opacity", timeUs: durationUs, value: 0, easing: "easeIn" } });
+        id: "fadeout", label: "Fade out at end", hint: "last 2s → opacity 0, anchored to the clip's end",
+        run: ({ project }) => {
+          project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "opacity", timeUs: 2_000_000, anchor: "end", value: 1 } });
+          project.dispatch({ type: "keyframe/set", payload: { clipId: "main", property: "opacity", timeUs: 0, anchor: "end", value: 0, easing: "easeIn" } });
+        },
+      },
+      {
+        id: "trimend", label: "Trim 2s off the end", hint: "clip/trim — the end-anchored fade-out moves with it",
+        run: ({ project }) => {
+          const clip = project.getState().doc.clips["main"];
+          if (!clip || clip.durationUs <= 3_000_000) return;
+          project.dispatch({ type: "clip/trim", payload: { clipId: "main", durationUs: clip.durationUs - 2_000_000 } });
         },
       },
       {

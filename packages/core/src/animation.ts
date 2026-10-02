@@ -75,9 +75,43 @@ export function cubicBezierProgress(
   return sampleY(t);
 }
 
+/** A keyframe's time from the clip's visible start, given the clip's duration. */
+export function keyframeTimeUs(keyframe: Keyframe, clipDurationUs: Us): Us {
+  return keyframe.anchor === "end" ? clipDurationUs - keyframe.timeUs : keyframe.timeUs;
+}
+
+const hasEndAnchor = (keyframes: readonly Keyframe[]): boolean => {
+  for (let i = 0; i < keyframes.length; i++) if (keyframes[i]!.anchor === "end") return true;
+  return false;
+};
+
+// Documents are immutable snapshots, so a resolved list stays valid for as
+// long as its source array lives — per-tick evaluation stays alloc-free.
+const resolvedCache = new WeakMap<readonly Keyframe[], { durationUs: Us; keyframes: readonly Keyframe[] }>();
+
+/**
+ * Keyframes with every time measured from the clip's visible start, sorted.
+ * End-anchored keyframes are placed using `clipDurationUs`; when a clip is
+ * shorter than its In + Out animations the two interleave by time (ties keep
+ * the start-anchored one first). Returns the input array itself when nothing
+ * is end-anchored.
+ */
+export function resolveKeyframes(keyframes: readonly Keyframe[], clipDurationUs: Us): readonly Keyframe[] {
+  if (!hasEndAnchor(keyframes)) return keyframes;
+  const cached = resolvedCache.get(keyframes);
+  if (cached && cached.durationUs === clipDurationUs) return cached.keyframes;
+  const resolved = keyframes
+    .map((k, i) => ({ k: { timeUs: keyframeTimeUs(k, clipDurationUs), value: k.value, easing: k.easing }, end: k.anchor === "end", i }))
+    .sort((a, b) => a.k.timeUs - b.k.timeUs || Number(a.end) - Number(b.end) || a.i - b.i)
+    .map((e) => e.k);
+  resolvedCache.set(keyframes, { durationUs: clipDurationUs, keyframes: resolved });
+  return resolved;
+}
+
 /**
  * Evaluate one property's keyframe list at a clip-relative time. Keyframes
- * must be sorted by timeUs (the keyframe/set command maintains this). Before
+ * must be in stored order (the keyframe/set command maintains it). Pass
+ * `clipDurationUs` when the list may hold end-anchored keyframes. Before
  * the first keyframe the first value holds; after the last, the last value
  * holds; between, the LEFT keyframe's easing shapes the segment.
  */
@@ -85,7 +119,9 @@ export function evaluateKeyframes(
   keyframes: readonly Keyframe[],
   timeUs: Us,
   fallback: number,
+  clipDurationUs?: Us,
 ): number {
+  if (clipDurationUs !== undefined) keyframes = resolveKeyframes(keyframes, clipDurationUs);
   const n = keyframes.length;
   if (n === 0) return fallback;
   const first = keyframes[0]!;
@@ -153,7 +189,7 @@ export function evaluateClipInto(clip: Clip, clipTimeUs: Us, out: EvaluatedClip)
   for (const prop of PROPS) {
     const keyframes = animations[prop];
     if (keyframes && keyframes.length > 0) {
-      out[prop] = evaluateKeyframes(keyframes, clipTimeUs, out[prop]);
+      out[prop] = evaluateKeyframes(keyframes, clipTimeUs, out[prop], clip.durationUs);
     }
   }
   return out;

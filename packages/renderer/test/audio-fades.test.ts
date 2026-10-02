@@ -113,3 +113,19 @@ describe("waveform peaks", () => {
     expect(Array.from(peaksForRange(wf, 2_000_000, 3_000_000, 2)).map((v) => +v.toFixed(2))).toEqual([0.9, 0.9]);
   });
 });
+
+describe("end-anchored volume keyframes", () => {
+  it("place automation points from the clip's end, through trims", () => {
+    const { project } = setup({});
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "c1", property: "volume", timeUs: 1_000_000, value: 1, anchor: "end" } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "c1", property: "volume", timeUs: 0, value: 0, anchor: "end" } });
+    project.dispatch({ type: "clip/trim", payload: { clipId: "c1", durationUs: 3_000_000 } });
+    const doc = project.getState().doc;
+    const clip = doc.clips.c1 as AudioClip;
+    // Clip spans 1s..4s: ramp 1 → 0 over 3s..4s.
+    expect(gainFor(clip, doc, 3_500_000)).toBeCloseTo(0.5);
+    const points = volumeAutomation(clip, doc, 1_000_000, 4_000_000)!;
+    expect(points.map((p) => p.atTimelineUs)).toEqual([1_000_000, 3_000_000, 4_000_000]);
+    expect(points.map((p) => p.value)).toEqual([1, 1, 0]);
+  });
+});

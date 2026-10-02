@@ -5,6 +5,7 @@
  */
 import {
   evaluateKeyframes,
+  resolveKeyframes,
   isAudioClip,
   isVideoClip,
   type AudioClip,
@@ -32,7 +33,7 @@ export function trackGate(clip: VideoClip | AudioClip, doc: ProjectDocument): nu
 export function clipVolumeAt(clip: VideoClip | AudioClip, timelineUs: Us): number {
   const keyframes = clip.animations?.volume;
   if (!keyframes || keyframes.length === 0) return clip.volume;
-  return evaluateKeyframes(keyframes, timelineUs - clip.startUs, clip.volume);
+  return evaluateKeyframes(keyframes, timelineUs - clip.startUs, clip.volume, clip.durationUs);
 }
 
 /**
@@ -114,7 +115,7 @@ export function volumeAutomation(
   fromTimelineUs: Us,
   toTimelineUs: Us,
 ): GainPoint[] | null {
-  const keyframes = clip.animations?.volume ?? [];
+  const keyframes = resolveKeyframes(clip.animations?.volume ?? [], clip.durationUs);
   const rampTimes = [
     ...transitionRampTimes(doc, clip.id, fromTimelineUs, toTimelineUs),
     ...fadeRampTimes(clip, fromTimelineUs, toTimelineUs),

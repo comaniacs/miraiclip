@@ -44,6 +44,9 @@ export type CommandHandler<P = unknown> = (doc: Draft<ProjectDocument>, payload:
 
 type Parsed<T extends BuiltinCommandType> = z.output<(typeof builtinPayloadSchemas)[T]>;
 
+const sameKeyframeSlot = (k: Keyframe, timeUs: number, end: boolean) =>
+  k.timeUs === timeUs && (k.anchor === "end") === end;
+
 function reject(type: string, code: string, message: string): never {
   throw new CommandRejectedError(type, code, message);
 }
@@ -227,6 +230,8 @@ export const builtinHandlers: {
     if (p.muted !== undefined) track.muted = p.muted;
     if (p.solo !== undefined) track.solo = p.solo;
     if (p.locked !== undefined) track.locked = p.locked;
+    if (p.hidden === true) track.hidden = true;
+    else if (p.hidden === false) delete track.hidden; // documents stay minimal
   },
 
   "clip/add": (doc, p) => {
@@ -335,6 +340,15 @@ export const builtinHandlers: {
       delete (clip as { fadeOutUs?: number }).fadeOutUs;
       delete (right as { fadeInUs?: number }).fadeInUs;
     }
+    // End-anchored keyframes (Out animations) belong to the outer end too.
+    if (clip.animations) {
+      for (const prop of Object.keys(clip.animations) as (keyof typeof clip.animations)[]) {
+        const kept = clip.animations[prop]!.filter((k) => k.anchor !== "end");
+        if (kept.length) clip.animations[prop] = kept;
+        else delete clip.animations[prop];
+      }
+      if (Object.keys(clip.animations).length === 0) delete clip.animations;
+    }
     clip.durationUs = offset;
     doc.clips[newId] = right;
     dropTransitionsTouching(doc, p.clipId);
@@ -425,26 +439,36 @@ export const builtinHandlers: {
     }
     clip.animations ??= {};
     const keyframes = (clip.animations[p.property] ??= []);
+    const end = p.anchor === "end";
     const keyframe: Keyframe = {
       timeUs: p.timeUs,
+      ...(end ? { anchor: "end" as const } : {}),
       value: p.value,
       easing: resolveEasing(p.easing),
     };
-    // Sorted upsert: replace an existing keyframe at the same time.
-    const at = keyframes.findIndex((k) => k.timeUs >= p.timeUs);
+    // Stored order: start-anchored ascending, then end-anchored by descending
+    // distance from the end (= ascending clip time while the clip is long
+    // enough). Same (anchor, time) replaces.
+    const rank = (k: Keyframe) => (k.anchor === "end" ? [1, -k.timeUs] : [0, k.timeUs]) as [number, number];
+    const [r0, r1] = rank(keyframe);
+    const at = keyframes.findIndex((k) => {
+      const [k0, k1] = rank(k);
+      return k0 > r0 || (k0 === r0 && k1 >= r1);
+    });
     if (at < 0) keyframes.push(keyframe);
-    else if (keyframes[at]!.timeUs === p.timeUs) keyframes[at] = keyframe;
+    else if (sameKeyframeSlot(keyframes[at]!, p.timeUs, end)) keyframes[at] = keyframe;
     else keyframes.splice(at, 0, keyframe);
   },
   "keyframe/remove": (doc, p) => {
     const clip = getClip(doc, "keyframe/remove", p.clipId);
     const keyframes = clip.animations?.[p.property];
-    const at = keyframes?.findIndex((k) => k.timeUs === p.timeUs) ?? -1;
+    const end = p.anchor === "end";
+    const at = keyframes?.findIndex((k) => sameKeyframeSlot(k, p.timeUs, end)) ?? -1;
     if (!keyframes || at < 0) {
       reject(
         "keyframe/remove",
         "keyframe-not-found",
-        `no ${p.property} keyframe at ${p.timeUs} on clip "${p.clipId}"`,
+        `no ${p.property} keyframe at ${p.timeUs}${end ? " from the end" : ""} on clip "${p.clipId}"`,
       );
     }
     keyframes.splice(at, 1);
