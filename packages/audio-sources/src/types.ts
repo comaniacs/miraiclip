@@ -61,34 +61,14 @@ export interface ResolvedAudio {
   kind?: AudioKind;
 }
 
-export interface GenerateAudioRequest {
-  prompt: string;
-  kind: AudioKind;
-  durationS?: number;
-  signal?: AbortSignal;
-}
-
-export type AudioJobStatus = "queued" | "running" | "done" | "failed" | "canceled";
-
-/** A generation in progress. `result` settles when the job finishes. */
-export interface AudioJob {
-  id: string;
-  readonly status: AudioJobStatus;
-  /** 0..1 when the provider reports it. */
-  readonly progress?: number;
-  result: Promise<ResolvedAudio>;
-  cancel(): void;
-}
-
 export interface AudioProviderCapabilities {
   /** Kinds `search` can return. Absent: the provider can't search. */
   search?: AudioKind[];
-  /** Kinds `generate` can produce. Absent: the provider can't generate. */
-  generate?: AudioKind[];
 }
 
 /**
- * One audio source: a stock library, an in-app catalog, a generation service.
+ * One searchable audio source: a stock library, an in-app catalog, your
+ * backend. (Generation services are `AudioGenerator`s — see generate/types.)
  * Network-facing adapters take `fetch` and a base URL so apps can route them
  * through their own backend (keys stay server-side, CORS is a non-issue).
  */
@@ -103,7 +83,6 @@ export interface AudioProvider {
   getItem?(id: string, options?: { signal?: AbortSignal }): Promise<AudioItem | null>;
   /** Turn an item into a playable file with its provenance. */
   resolve(item: AudioItem, options?: { signal?: AbortSignal }): Promise<ResolvedAudio>;
-  generate?(request: GenerateAudioRequest): AudioJob;
 }
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>;

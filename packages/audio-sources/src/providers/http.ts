@@ -8,7 +8,7 @@
  *   GET  {endpoint}/items/{id}           → AudioItem | 404
  *   POST {endpoint}/resolve  { item }    → ResolvedAudio
  *
- * Generation endpoints join this contract in a later release.
+ * Generation has its own contract: see generate/http.ts.
  */
 import { defaultFetch, getJson, joinUrl } from "../common.js";
 import type { AudioItem, AudioKind, AudioProvider, AudioSearchResult, FetchLike, ResolvedAudio } from "../types.js";

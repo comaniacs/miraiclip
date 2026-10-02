@@ -8,6 +8,11 @@ import { creditsFor, isAudioClip, licenseReport, type AudioClip, type Project } 
 import {
   audioToolDefinitions,
   createAudioLibrary,
+  remoteGenerators,
+  type AudioGenerator,
+  type GenerateRequest,
+  type GenerationJob,
+  type ParamsSchema,
   importAudio,
   openverseProvider,
   parseCreativeCommons,
@@ -40,6 +45,12 @@ const demo = staticProvider({
 
 // Openverse through the dev/preview proxy (vite.config.ts) — no CORS, no keys.
 export const library = createAudioLibrary([demo, openverseProvider({ baseUrl: "/api/openverse" })]);
+
+// Generators run on the dev server (vite.config.ts → /api/generate); the
+// browser gets same-shaped proxies. Loaded once, then registered.
+const generatorsReady = remoteGenerators("/api/generate")
+  .then((gens) => gens.forEach((g) => library.addGenerator(g)))
+  .catch((err) => console.warn("[audio] no generators:", err));
 
 /** Remote files play through the same-origin /api/fetch proxy (Range + no CORS). */
 async function store(resolved: ResolvedAudio): Promise<ResolvedAudio> {
@@ -141,6 +152,133 @@ export function renderAudioPanel(body: HTMLElement, getProject: () => Project | 
   };
   providerSel.onchange = kindSel.onchange = commercial.onchange = () => void search();
 
+  // ---------- generate (any AudioGenerator; UI built from its description) ----------
+  const genBox = el("div", { className: "fx-applied au-gen" });
+  const genStatus = el("p", { className: "panel-note au-gen-status" });
+  let activeJob: GenerationJob | undefined;
+  const renderGenerate = () => {
+    genBox.innerHTML = "";
+    const gens = library.generators();
+    if (!gens.length) {
+      genBox.append(el("p", { className: "panel-note", textContent: "No generators (is the dev server running?)." }));
+      return;
+    }
+    const genSel = el("select", { className: "au-gen-generator" });
+    for (const g of gens) genSel.append(el("option", { value: g.id, textContent: g.label }));
+    const kindSel = el("select", { className: "au-gen-kind" });
+    const modelSel = el("select", { className: "au-gen-model" });
+    const prompt = el("textarea", { className: "au-textarea au-gen-prompt", rows: 2, placeholder: "describe the sound" });
+    const duration = el("input", { className: "au-gen-duration", type: "number", min: "0.5", step: "0.5", placeholder: "seconds (auto)" });
+    const instrumental = el("input", { type: "checkbox", className: "au-gen-instrumental" });
+    const voiceSel = el("select", { className: "au-gen-voice" });
+    const paramsBox = el("div", { className: "fx-applied au-gen-params" });
+    const terms = el("p", { className: "panel-note au-gen-terms" });
+    const go = el("button", { textContent: "Generate", className: "au-gen-go" });
+    const cancel = el("button", { textContent: "Cancel", className: "au-gen-cancel", disabled: true });
+    const params: Record<string, unknown> = {};
+
+    const current = (): AudioGenerator => library.generator(genSel.value)!;
+    const sync = () => {
+      const g = current();
+      const kind = (kindSel.value || g.kinds[0]) as GenerateRequest["kind"];
+      kindSel.innerHTML = "";
+      for (const k of g.kinds) kindSel.append(el("option", { value: k, textContent: k, selected: k === kind }));
+      modelSel.innerHTML = "";
+      modelSel.append(el("option", { value: "", textContent: "default model" }));
+      for (const m of g.models ?? []) if (m.kinds.includes(kind)) modelSel.append(el("option", { value: m.id, textContent: m.label }));
+      prompt.placeholder = kind === "voice" ? "text to speak" : "describe the sound";
+      duration.hidden = kind === "voice";
+      instrumental.parentElement!.hidden = kind !== "music";
+      voiceSel.hidden = kind !== "voice";
+      if (kind === "voice" && g.voices && !voiceSel.options.length) {
+        voiceSel.append(el("option", { value: "", textContent: "loading voices…" }));
+        void g.voices().then(
+          (vs) => {
+            voiceSel.innerHTML = "";
+            voiceSel.append(el("option", { value: "", textContent: "default voice" }));
+            for (const v of vs) voiceSel.append(el("option", { value: v.id, textContent: `${v.name}${v.language ? ` (${v.language})` : ""}` }));
+          },
+          (err) => (voiceSel.innerHTML = `<option value="">voices failed: ${(err as Error).message}</option>`),
+        );
+      }
+      // Vendor-specific knobs, straight from the adapter's JSON Schema.
+      paramsBox.innerHTML = "";
+      for (const key of Object.keys(params)) delete params[key];
+      const schema: ParamsSchema | undefined = g.paramsSchema?.[kind];
+      for (const [key, prop] of Object.entries(schema?.properties ?? {})) {
+        const label = String(prop.title ?? key);
+        if (prop.type === "boolean") {
+          const box = el("input", { type: "checkbox", checked: prop.default === true });
+          box.onchange = () => (params[key] = box.checked);
+          paramsBox.append(el("label", { className: "fx-param" }, el("span", {}, box, ` ${label}`)));
+        } else if (prop.type === "number") {
+          const min = Number(prop.minimum ?? 0), max = Number(prop.maximum ?? 1);
+          const out = el("span", { textContent: String(prop.default ?? "default") });
+          const range = el("input", { type: "range", min: String(min), max: String(max), step: String((max - min) / 100), value: String(prop.default ?? min) });
+          range.oninput = () => {
+            params[key] = Number(range.value);
+            out.textContent = Number(range.value).toFixed(2);
+          };
+          paramsBox.append(el("label", { className: "fx-param" }, el("span", {}, `${label} `, out), range));
+        }
+      }
+      terms.textContent = `${g.terms.license.id}${g.terms.license.commercial ? "" : " · non-commercial"}${g.terms.notice ? ` — ${g.terms.notice}` : ""}`;
+    };
+    genSel.onchange = () => {
+      voiceSel.innerHTML = "";
+      sync();
+    };
+    kindSel.onchange = sync;
+
+    go.onclick = async () => {
+      const kind = kindSel.value as GenerateRequest["kind"];
+      const text = prompt.value.trim();
+      const durationS = Number(duration.value) || undefined;
+      const request: GenerateRequest =
+        kind === "voice"
+          ? { kind, text, ...(voiceSel.value ? { voice: voiceSel.value } : {}) }
+          : kind === "music"
+            ? { kind, prompt: text, ...(durationS ? { durationS } : {}), ...(instrumental.checked ? { instrumental: true } : {}) }
+            : { kind, prompt: text, ...(durationS ? { durationS } : {}) };
+      const job = library.generate(genSel.value, request, {
+        ...(modelSel.value ? { model: modelSel.value } : {}),
+        ...(Object.keys(params).length ? { params: { ...params } } : {}),
+      });
+      activeJob = job;
+      go.disabled = true;
+      cancel.disabled = false;
+      job.onChange((j) => {
+        genStatus.textContent = `${j.status}${j.progress !== undefined && j.status === "running" ? ` ${Math.round(j.progress * 100)}%` : ""}${j.message && j.status === "running" ? ` — ${j.message}` : ""}${j.error ? ` — ${j.error}` : ""}`;
+      });
+      genStatus.textContent = "running…";
+      try {
+        const { resolved } = await job.result;
+        importAudio(project, resolved, { volume: kind === "music" ? 0.5 : 1 });
+        genStatus.textContent = `added “${resolved.name}” (${fmt(resolved.durationUs)}, ${resolved.license?.id})`;
+      } catch {
+        /* status line shows the error */
+      } finally {
+        go.disabled = false;
+        cancel.disabled = true;
+        activeJob = undefined;
+      }
+    };
+    cancel.onclick = () => activeJob?.cancel();
+
+    genBox.append(
+      el("div", { className: "fx-controls" }, genSel, kindSel),
+      el("div", { className: "fx-controls" }, modelSel, voiceSel),
+      prompt,
+      el("div", { className: "fx-controls" }, duration, el("label", { className: "panel-note" }, instrumental, " instrumental")),
+      paramsBox,
+      terms,
+      el("div", { className: "fx-controls" }, go, cancel),
+    );
+    sync();
+  };
+  void generatorsReady.then(renderGenerate);
+  const offGenerators = library.onGeneratorsChange(renderGenerate);
+
   // ---------- project audio (fades, volume, waveform) ----------
   const clipsBox = el("div", { className: "fx-applied au-clips" });
   const renderClips = () => {
@@ -219,12 +357,15 @@ export function renderAudioPanel(body: HTMLElement, getProject: () => Project | 
   runTool.onclick = async () => {
     try {
       const { name, input } = JSON.parse(toolInput.value) as { name: string; input: unknown };
+      await generatorsReady;
       toolOut.textContent = JSON.stringify(await runAudioTool(name, input, { library, project, store }), null, 1);
     } catch (err) {
       toolOut.textContent = `error: ${(err as Error).message}`;
     }
   };
-  const defs = el("details", {}, el("summary", { textContent: "Tool definitions" }), el("pre", { className: "au-pre", textContent: JSON.stringify(audioToolDefinitions(library), null, 1) }));
+  const defsPre = el("pre", { className: "au-pre au-tool-defs", textContent: JSON.stringify(audioToolDefinitions(library), null, 1) });
+  const defs = el("details", {}, el("summary", { textContent: "Tool definitions" }), defsPre);
+  void generatorsReady.then(() => (defsPre.textContent = JSON.stringify(audioToolDefinitions(library), null, 1)));
 
   body.append(
     el("p", { className: "panel-note", textContent: "Library → + adds at the playhead (importAudio: one undo). Sliders commit on release." }),
@@ -233,6 +374,9 @@ export function renderAudioPanel(body: HTMLElement, getProject: () => Project | 
     el("label", { className: "panel-note" }, commercial, " commercial-safe only"),
     libStatus,
     results,
+    el("strong", { textContent: "Generate" }),
+    genBox,
+    genStatus,
     el("strong", { textContent: "Project audio" }),
     clipsBox,
     el("strong", { textContent: "Credits & licenses" }),
@@ -260,6 +404,8 @@ export function renderAudioPanel(body: HTMLElement, getProject: () => Project | 
   void search();
   return () => {
     off();
+    offGenerators();
+    activeJob?.cancel();
     preview.pause();
     clearTimeout(timer);
   };

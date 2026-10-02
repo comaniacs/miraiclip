@@ -6,6 +6,43 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ### Added
 
+- `@miraiclip/audio-sources` **AI audio generation with a vendor-neutral contract** (0.2.0): an `AudioGenerator` declares its kinds (sfx / music / voice), models, voices, limits, a JSON-Schema `paramsSchema` for vendor-specific settings and its output `terms`. `generate(request, options)` returns bytes or a URL; `params` pass through untouched, so any service adapts without package changes. `startGeneration` / `library.generate` run cancellable jobs with progress and store the output with its source and license; `createGeneratorHandler` (Fetch-API server handler) + `remoteGenerators` (browser proxies) keep API keys server-side. Adapters: `elevenLabsGenerator` (sound effects, music, text-to-speech, voices) and an offline `toneGenerator`. New LLM tools `generate_audio` and `list_voices`. Breaking: the unused placeholder `GenerateAudioRequest` / `AudioJob` types and `AudioProvider.generate` are removed. See [Audio Sources → Generation](https://comaniacs.github.io/miraiclip/docs/audio-sources/#generation).
+
+## [audio-sources-0.1.0] — 2026-10-02
+
+### Added
+
+- **`@miraiclip/audio-sources` — stock and library audio** (new package): one `AudioProvider` contract (search, getItem, resolve) with adapters for Openverse, Freesound, a static in-app catalog and any backend (`httpProvider`). `createAudioLibrary` groups providers; `importAudio` adds a file with its source, license and credit line as one undoable step on a free audio track; `audioToolDefinitions` / `runAudioTool` expose `search_audio` and `add_audio` to LLMs; `parseCreativeCommons` maps CC codes, names and deed URLs to `AssetLicense`. See [Audio Sources](https://comaniacs.github.io/miraiclip/docs/audio-sources/).
+
+## [core-0.5.3] + [renderer-0.7.8] — 2026-10-02
+
+### Added
+
+- `@miraiclip/core` **asset provenance and clip fades** — assets take optional `name`, `source` (`{ provider, id, url? }`), `license` (`{ id, url?, commercial, attributionRequired }`) and `attribution`, editable with the new `asset/set-property` command (`null` clears). Video and audio clips take `fadeInUs` / `fadeOutUs`; `clip/split` keeps the fade-in on the left half and the fade-out on the right. New pure helpers `usedAssets`, `creditsFor` and `licenseReport`; `describeProject` shows names, licenses, volume and fades. See [Clips → Asset provenance and licensing](https://comaniacs.github.io/miraiclip/docs/core-concepts/clips/#asset-provenance-and-licensing).
+- `@miraiclip/renderer` **fades and waveforms** — fades apply in live playback and the export mix through the shared gain math, as exact linear ramps. New `computeWaveformPeaks`, `peaksForRange` and `accumulatePeaks` for drawing waveforms, plus `clipFades` / `fadeGainAt` for fade handles. See [Rendering → Audio](https://comaniacs.github.io/miraiclip/docs/rendering/#audio).
+
+## [core-0.5.2] + [renderer-0.7.7] — 2026-10-01
+
+### Added
+
+- `@miraiclip/core` + `@miraiclip/renderer` **caption decorations** — `display: "word"` (word-by-word), `textTransform`, outline (`strokeColor`, `strokeWidthFrac`), drop shadow / glow (`shadowColor`, `shadowBlurFrac`, `shadowOffsetFrac`), `activeBackgroundColor` (a box behind each emphasized word) and a `reveal` preset. All optional; `clip/set-property` clears them with `null` and can replace caption `words`. New helpers `captionsToSrt`, `captionsToVtt`, `captionsToText` and `retimeWords`. Font assets accept `weightRange`, loaded as variable faces in captions, text and html clips. See [Rendering → Captions](https://comaniacs.github.io/miraiclip/docs/rendering/captions/).
+
+## [renderer-0.7.6] — 2026-10-01
+
+### Added
+
+- `@miraiclip/renderer` **`getClipBounds` and `hitTest`** on the Compositor and the Player: a clip's drawn box (rotated, composition pixels, keyframes evaluated) and the topmost clip under a point — the geometry for on-canvas selection and move/scale/rotate handles. Html clips report their painted content.
+
+## [renderer-0.7.5] — 2026-09-30
+
+### Fixed
+
+- `@miraiclip/renderer` **exports no longer stall at cuts between two clips of the same video**: the lookahead stopped warming the upcoming clip on the pipeline the on-screen clip was reading (they fought over one decoder's seek position — about 2 s per frame, CPU pegged).
+
+## [core-0.5.1] + [renderer-0.7.4] + [server-export-0.4.3] — 2026-09-30
+
+### Added
+
 - `@miraiclip/core` + `@miraiclip/renderer` **effect library — 79 built-in effect kinds** (76 new, alongside `colorAdjust`, `blur`, `chromaKey`) in seven categories: color (warm/cool, hue shift, vibrance, exposure, gamma, duotone, gradient map, color pop, solarize, posterize…), film (sepia, vintage, teal & orange, noir, bleach bypass, cross process, cyberpunk, vaporwave, night vision, grain…), stylize (halftone, LED matrix, crosshatch, neon edges, sketch, emboss, sharpen, cartoon, oil paint, hex mosaic, 8-bit, dither…), glitch & retro (RGB split, scanlines, CRT, VHS, glitch, TV static, lens fringe), blur & light (glow, dreamy, tilt shift, zoom/motion blur, vignettes, light leak), distort (fisheye, pinch, swirl, wave, ripple, mirror, kaleidoscope) and frame & key (letterbox, rounded corners, green screen). Core's `EFFECT_CATALOG` is the single source of truth — param schemas are derived from it (validation + defaults), the `effect/add` AI tool names every kind, and editors read labels, categories, ranges, steps and display formats from it (`EFFECT_CATEGORIES`, `getEffectInfo`, `defaultEffectParams`); length params are fractions of composition height. The renderer draws every kind as a **built-in** (data-driven GLSL generated from the catalog params, Pixi color-matrix looks, seeded grain), so all 79 render in preview, browser **and worker** export, server export and stills — unlike custom kinds. New `renderEffectThumbnails()` renders each kind's real filter on its own offscreen renderer for effect pickers. Effects are static (no time input); noise looks take a `seed`. Docs: [Effects → Effect library](https://comaniacs.github.io/miraiclip/docs/rendering/effects/#effect-library), plus three new live examples and a browsable **Effect library gallery** on the [Examples](https://comaniacs.github.io/miraiclip/examples/) page (real thumbnails, tap to stack, the shown snippet is what runs). The playground's Effects tab is now the full catalog-driven library with live param sliders.
 
 ## [renderer-0.7.3] + [server-export-0.4.2] — 2026-09-27
@@ -194,6 +231,16 @@ First release of `@miraiclip/core`.
 - **Docs site** under `docs/`: Hugo + Hextra with landing page, quickstart, core-concepts pages, Command Catalog reference (generated from the actual Zod schemas), roadmap, and this changelog.
 
 [Unreleased]: https://github.com/comaniacs/miraiclip/compare/v0.1.0...HEAD
+[audio-sources-0.1.0]: https://www.npmjs.com/package/@miraiclip/audio-sources/v/0.1.0
+[core-0.5.3]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.3
+[renderer-0.7.8]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.8
+[core-0.5.2]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.2
+[renderer-0.7.7]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.7
+[renderer-0.7.6]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.6
+[renderer-0.7.5]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.5
+[core-0.5.1]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.1
+[renderer-0.7.4]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.4
+[server-export-0.4.3]: https://www.npmjs.com/package/@miraiclip/server-export/v/0.4.3
 [renderer-0.4.0]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.4.0
 [server-export-0.2.0]: https://www.npmjs.com/package/@miraiclip/server-export/v/0.2.0
 [0.1.0]: https://github.com/comaniacs/miraiclip/releases/tag/v0.1.0

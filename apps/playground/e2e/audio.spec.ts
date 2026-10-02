@@ -91,3 +91,30 @@ test("AI tools: search_audio then add_audio by id; credits and license report", 
   await page.locator(".au-commercial-use").check();
   await expect(page.locator(".au-license")).toContainText("[non-commercial]");
 });
+
+test("generation: server-side generator through the UI and through generate_audio", async ({ page }) => {
+  await openAudioTab(page);
+  // The offline test-tone generator is always served by the dev/preview server.
+  await expect(page.locator(".au-gen-generator option")).not.toHaveCount(0);
+  await page.locator(".au-gen-generator").selectOption("tone");
+  await page.locator(".au-gen-kind").selectOption("sfx");
+  await page.locator(".au-gen-prompt").fill("laser zap");
+  await page.locator(".au-gen-duration").fill("1.5");
+  await page.locator(".au-gen-go").click();
+  await expect(page.locator(".au-gen-status")).toContainText("added “laser zap”", { timeout: 10_000 });
+  let d = await doc(page);
+  const zap = Object.values(d.assets).find((a) => a.name === "laser zap")!;
+  expect(zap).toMatchObject({ source: { provider: "tone" }, license: { id: "CC0-1.0" } });
+  expect(Object.values(d.clips).some((c) => c.assetId && d.assets[c.assetId]?.name === "laser zap")).toBe(true);
+
+  // Voice: voices come from the server.
+  await page.locator(".au-gen-kind").selectOption("voice");
+  await expect(page.locator(".au-gen-voice option", { hasText: "High tone" })).toHaveCount(1);
+
+  // The same generator as an LLM tool.
+  await page.locator(".au-tool-input").fill(JSON.stringify({ name: "generate_audio", input: { generator: "tone", kind: "music", prompt: "tiny loop", durationSeconds: 2, atSeconds: 0 } }));
+  await page.locator(".au-run-tool").click();
+  await expect(page.locator(".au-tool-out")).toContainText('"ok": true', { timeout: 10_000 });
+  d = await doc(page);
+  expect(Object.values(d.assets).some((a) => a.name === "tiny loop" && a.source?.provider === "tone")).toBe(true);
+});

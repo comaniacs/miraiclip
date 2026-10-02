@@ -1,6 +1,12 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { Readable } from "node:stream";
-import { defineConfig, type Connect, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Connect, type Plugin } from "vite";
+// Relative source imports (bundled into the config): these modules only use
+// fetch + type imports, so they run in Node without building the package.
+import { createGeneratorHandler } from "../../packages/audio-sources/src/generate/http";
+import { elevenLabsGenerator } from "../../packages/audio-sources/src/generate/elevenlabs";
+import { toneGenerator } from "../../packages/audio-sources/src/generate/tone";
+import type { AudioGenerator } from "../../packages/audio-sources/src/generate/types";
 
 /**
  * Audio-sources testing helpers (dev + preview):
@@ -49,6 +55,47 @@ async function proxy(req: IncomingMessage, res: ServerResponse): Promise<void> {
   }
 }
 
+/**
+ * AI generation on the dev/preview server: /api/generate/* runs the real
+ * adapters here, so keys never reach the browser. Offline test tones are
+ * always on; ElevenLabs joins when ELEVENLABS_API_KEY is set (shell or
+ * .env.local; ELEVENLABS_PLAN=paid records commercial terms).
+ */
+function generation(env: Record<string, string | undefined>): Plugin {
+  const generators: AudioGenerator[] = [toneGenerator({ latencyMs: 600 })];
+  if (env.ELEVENLABS_API_KEY) {
+    generators.unshift(elevenLabsGenerator({ apiKey: env.ELEVENLABS_API_KEY, plan: env.ELEVENLABS_PLAN === "paid" ? "paid" : "free" }));
+  }
+  const handle = createGeneratorHandler(generators, { basePath: "/api/generate" });
+  const handler: Connect.NextHandleFunction = (req, res, next) => {
+    if (!req.url?.startsWith("/api/generate")) return next();
+    void (async () => {
+      const controller = new AbortController();
+      res.on("close", () => controller.abort());
+      const hasBody = req.method !== "GET" && req.method !== "HEAD";
+      const request = new Request(new URL(req.url!, "http://localhost"), {
+        method: req.method,
+        headers: req.headers as Record<string, string>,
+        signal: controller.signal,
+        ...(hasBody ? { body: Readable.toWeb(req) as never, duplex: "half" } : {}),
+      } as RequestInit);
+      const response = await handle(request);
+      if (!response) return next();
+      res.statusCode = response.status;
+      response.headers.forEach((value, key) => res.setHeader(key, value));
+      res.end(Buffer.from(await response.arrayBuffer()));
+    })().catch((err) => {
+      res.statusCode = 500;
+      res.end(String(err));
+    });
+  };
+  return {
+    name: "playground-generation",
+    configureServer: (server) => void server.middlewares.use(handler),
+    configurePreviewServer: (server) => void server.middlewares.use(handler),
+  };
+}
+
 const apiProxy = {
   "/api/openverse": {
     target: "https://api.openverse.org",
@@ -60,8 +107,8 @@ const apiProxy = {
 // Workspace packages resolve to their TypeScript source via their dev
 // `exports` (see each package.json; publishConfig swaps in dist on publish),
 // so no aliases are needed and edits in packages/* hot-reload directly.
-export default defineConfig({
-  plugins: [remoteFetch()],
+export default defineConfig(({ mode }) => ({
+  plugins: [remoteFetch(), generation({ ...loadEnv(mode, process.cwd(), ""), ...process.env })],
   server: { proxy: apiProxy },
   preview: { proxy: apiProxy },
   worker: {
@@ -69,4 +116,4 @@ export default defineConfig({
     // code-splitting legal inside the worker build (iife forbids it).
     format: "es",
   },
-});
+}));

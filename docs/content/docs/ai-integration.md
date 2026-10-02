@@ -156,4 +156,6 @@ Because every change flows through the same commands a human UI dispatches, the 
 
 Don't want to build the loop yourself? The [MCP Server](mcp-server) packages all of this — plus frame previews and export — behind `npx @miraiclip/mcp`, for Claude, Codex, and any other MCP client.
 
+For audio, [`@miraiclip/audio-sources`](audio-sources#ai-tools) adds `search_audio`, `add_audio`, `generate_audio` and `list_voices`: the tool descriptions list the configured libraries and generators, and adding audio lands as ordinary commands with the license and credit recorded.
+
 And when the agent should design a video once and fill it many times, [Templates](templates) turn a document's declared fields into a single typed tool (`toFieldToolDefinition`) — one tool call per personalized video, with no LLM in the render loop.
