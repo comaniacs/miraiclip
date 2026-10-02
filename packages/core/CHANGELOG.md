@@ -1,5 +1,12 @@
 # @miraiclip/core
 
+## 0.5.4
+
+### Patch Changes
+
+- 2ca45f2: End-anchored keyframes: `keyframe/set` and `keyframe/remove` accept `anchor: "end"`, measuring `timeUs` back from the clip's visible end so exit animations follow trims. Adds `resolveKeyframes` and `keyframeTimeUs`; `evaluateKeyframes` takes an optional clip duration (`evaluateClipAt`/`evaluateClipInto` pass it). `clip/split` keeps end-anchored keyframes on the right half only. `describeProject` marks properties with end-anchored keyframes.
+- 2ca45f2: Tracks can be hidden: `track/set-property { hidden }` sets an optional `Track.hidden` (`false` removes it, so documents stay minimal). `describeProject` now lists track flags (muted, solo, locked, hidden).
+
 ## 0.5.3
 
 ### Patch Changes
