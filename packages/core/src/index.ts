@@ -101,6 +101,30 @@ export {
   resolveKeyframes,
 } from "./animation.js";
 export type { EvaluatedClip } from "./animation.js";
+export {
+  ANIMATION_DEFAULT_SLOT_US,
+  ANIMATION_EASINGS,
+  ANIMATION_MAX_SLOT_US,
+  ANIMATION_MIN_SLOT_US,
+  ANIMATION_PRESETS,
+  animationCommands,
+  animationPreset,
+  describeAnimation,
+  fitAnimation,
+  planAnimation,
+  readAnimation,
+} from "./animation-presets.js";
+export type {
+  AnimationEasing,
+  AnimationPreset,
+  AnimationRecipe,
+  AnimationSlot,
+  AnimationSlotChoice,
+  PlannedKeyframe,
+  ReadAnimation,
+} from "./animation-presets.js";
+export { clipHeadroomUs, findCuts } from "./cuts.js";
+export type { Cut } from "./cuts.js";
 
 export {
   builtinEffectParamSchemas,

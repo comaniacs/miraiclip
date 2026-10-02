@@ -73,6 +73,19 @@ registerTransitionKind("glitch", z.object({ intensity: z.number().min(0).max(1).
 
 Today a custom kind gets validation, document storage, and the **automatic equal-power audio crossfade** — visually it renders as a plain cut under that crossfade. Custom blend visuals arrive with the public renderer registry in v4.x.
 
+## Find the cuts
+
+`findCuts(doc)` lists every place a transition fits: adjacent clips on a video track, with the transition on it (if any) and `maxTransitionUs`, the longest the spare footage on both sides allows. `short` says which side has none.
+
+```ts
+import { findCuts } from "@miraiclip/core";
+
+for (const cut of findCuts(project.getState().doc)) {
+  if (cut.maxTransitionUs < 200_000) continue; // trim a clip edge to make room
+  project.dispatch({ type: "transition/add", payload: { kind: "crossDissolve", fromClipId: cut.fromClipId, toClipId: cut.toClipId, durationUs: Math.min(600_000, cut.maxTransitionUs) } });
+}
+```
+
 ## Good to know
 
 - Two clips of the **same asset** transition fine — each gets its own decode pipeline for the overlap.

@@ -42,6 +42,9 @@ importers:
 
   apps/playground:
     dependencies:
+      '@miraiclip/assistant':
+        specifier: workspace:*
+        version: link:../../packages/assistant
       '@miraiclip/audio-sources':
         specifier: workspace:*
         version: link:../../packages/audio-sources
@@ -64,6 +67,21 @@ importers:
       vite:
         specifier: ^7.1.0
         version: 7.3.6(@types/node@22.20.1)(yaml@2.9.0)
+
+  packages/assistant:
+    devDependencies:
+      '@miraiclip/core':
+        specifier: workspace:*
+        version: link:../core
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(postcss@8.5.28)(typescript@5.9.3)(yaml@2.9.0)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.4
+        version: 3.2.7(@types/node@22.20.1)(yaml@2.9.0)
 
   packages/audio-sources:
     devDependencies:

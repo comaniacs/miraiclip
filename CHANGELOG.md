@@ -6,6 +6,13 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ### Added
 
+- `@miraiclip/assistant` (new) **AI editing assistant** — a vendor-neutral `ChatModel` contract with an OpenAI adapter (`openAIChatModel`, Chat Completions with function calling and streaming; `baseUrl` reaches any OpenAI-compatible server). `createAssistant` runs an agent loop on a working copy of the project and lands each request as one undo step (or waits for `turn.apply()` in review mode), with streamed events, a "what changed" list and cancel. Tools: `get_state`, `get_command_schema`, `apply_commands`, `add_transition`, `animate_clip`, plus `defineTool` / `toolsFromDefinitions` for your own (e.g. audio). `createChatHandler` + `remoteChatModel` keep API keys on the server. See [Assistant](https://comaniacs.github.io/miraiclip/docs/assistant/).
+- `@miraiclip/core` **animation presets and cuts** — `ANIMATION_PRESETS` (in / loop / out: fade, slides, zoom, spin, pop; pulse, float, sway, Ken Burns), `animationCommands(clip, recipe)`, `readAnimation(clip)` (recognizes a recipe from keyframes), `describeAnimation`, `fitAnimation`; `findCuts(doc)` and `clipHeadroomUs` for where transitions fit and how long they can be. Editor panels and AI tools share them.
+
+## [core-0.5.4] + [renderer-0.7.9] — 2026-10-02
+
+### Added
+
 - `@miraiclip/core` + `@miraiclip/renderer` **hidden tracks** — `track/set-property { hidden }` (optional `Track.hidden`; `false` removes it). The compositor skips a hidden track's clips in preview, exports and stills, and `getClipBounds` / `hitTest` ignore them; sound follows `muted` as before. `describeProject` lists track flags (muted, solo, locked, hidden). See [Tracks](https://comaniacs.github.io/miraiclip/docs/core-concepts/tracks/#mute-solo-lock-and-hide).
 - `@miraiclip/core` + `@miraiclip/renderer` **end-anchored keyframes** — `keyframe/set` / `keyframe/remove` take `anchor: "end"` (time measured back from the clip's end), so exit animations follow trims. New `resolveKeyframes` / `keyframeTimeUs` helpers; `evaluateKeyframes` takes an optional clip duration. `clip/split` keeps end-anchored keyframes on the right half only. Volume automation honors the anchor. See [Animation](https://comaniacs.github.io/miraiclip/docs/rendering/animation/#animate-out-from-the-end).
 
@@ -238,6 +245,8 @@ First release of `@miraiclip/core`.
 - **Docs site** under `docs/`: Hugo + Hextra with landing page, quickstart, core-concepts pages, Command Catalog reference (generated from the actual Zod schemas), roadmap, and this changelog.
 
 [Unreleased]: https://github.com/comaniacs/miraiclip/compare/v0.1.0...HEAD
+[core-0.5.4]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.4
+[renderer-0.7.9]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.9
 [audio-sources-0.2.0]: https://www.npmjs.com/package/@miraiclip/audio-sources/v/0.2.0
 [audio-sources-0.1.0]: https://www.npmjs.com/package/@miraiclip/audio-sources/v/0.1.0
 [core-0.5.3]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.3

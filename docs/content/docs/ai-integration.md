@@ -5,6 +5,8 @@ weight: 8
 
 Drive Miraiclip with an LLM. Every edit is already a validated, descriptive command, so an agent needs exactly three things: the commands as **tool definitions**, a **dispatch that returns machine-readable failures** it can correct from, and the **project state as a compact prompt**. `@miraiclip/core` ships all three — no extra package, no new dependencies.
 
+Want the loop ready-made? [`@miraiclip/assistant`](../assistant) runs it for you: model adapters (OpenAI first), a working copy so each request is one undo step, high-level editing tools and a server handler for your API key.
+
 ```ts
 import {
   applyCommands,

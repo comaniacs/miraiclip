@@ -14,12 +14,13 @@ Miraiclip is a monorepo of focused packages:
 
 | Package | Status | Description |
 | --- | --- | --- |
-| [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.5.3 on npm | Headless command-driven engine: state, commands, history, events, [AI integration](ai-integration) |
-| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.7.8 on npm | WebCodecs + WebGL playback, preview, export, and stills — see [Rendering](rendering) |
+| [`@miraiclip/core`](https://www.npmjs.com/package/@miraiclip/core) | ✅ v0.5.4 on npm | Headless command-driven engine: state, commands, history, events, [AI integration](ai-integration) |
+| [`@miraiclip/renderer`](https://www.npmjs.com/package/@miraiclip/renderer) | ✅ v0.7.9 on npm | WebCodecs + WebGL playback, preview, export, and stills — see [Rendering](rendering) |
 | [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.4.3 on npm | Server-side export and frame rendering: the browser pipeline in headless Chrome, from Node — see [Server side](export/server-side) |
 | [`@miraiclip/mcp`](https://www.npmjs.com/package/@miraiclip/mcp) | ✅ v0.1.3 on npm | MCP server: Claude, Codex, and other agents edit projects with visual feedback — see [MCP Server](mcp-server) |
 | [`@miraiclip/templates`](https://www.npmjs.com/package/@miraiclip/templates) | ✅ v0.1.1 on npm | Parameterized videos: template + data rows → batch personalized exports — see [Templates](templates) |
-| [`@miraiclip/audio-sources`](https://www.npmjs.com/package/@miraiclip/audio-sources) | ✅ v0.1.0 on npm | Stock and AI-generated audio: Openverse, Freesound, your own catalog or backend, vendor-neutral generators, `importAudio`, LLM tools — see [Audio Sources](audio-sources) |
+| [`@miraiclip/audio-sources`](https://www.npmjs.com/package/@miraiclip/audio-sources) | ✅ v0.2.0 on npm | Stock and AI-generated audio: Openverse, Freesound, your own catalog or backend, vendor-neutral generators, `importAudio`, LLM tools — see [Audio Sources](audio-sources) |
+| [`@miraiclip/assistant`](https://www.npmjs.com/package/@miraiclip/assistant) | 🚧 unreleased | AI editing assistant: vendor-neutral models (OpenAI first), an agent loop that lands each request as one undo step, editing tools, server-side keys — see [Assistant](assistant) |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
 ## Core concepts

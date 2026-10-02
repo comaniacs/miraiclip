@@ -61,6 +61,25 @@ project.dispatch({ type: "keyframe/set", payload: { clipId: "clip-1", property: 
 
 Start- and end-anchored keyframes mix freely on one property. If a clip gets shorter than its In plus Out animations, the keyframes interleave by time. On `clip/split`, the left half drops end-anchored keyframes (like a fade-out, they belong to the outer end). Code that evaluates keyframes itself can call `resolveKeyframes(keyframes, clip.durationUs)` (returns start-relative, sorted times) or pass the clip's duration to `evaluateKeyframes`. `evaluateClipAt` / `evaluateClipInto` handle it for you.
 
+## Presets
+
+Core ships the presets an editor's Animate panel offers, as plain keyframes: **in** and **out** (fade, slide up / down / left / right, zoom, spin, pop) with duration and easing (smooth, linear, snappy), and **loops** between them (pulse, float, sway, Ken Burns). A clip's animation is a recipe of up to three slots:
+
+```ts
+import { animationCommands, applyCommands, readAnimation, describeAnimation } from "@miraiclip/core";
+
+const clip = project.getState().doc.clips["title"];
+applyCommands(project, animationCommands(clip, {
+  in: { preset: "in:pop", durationUs: 600_000, easing: "smooth" },
+  loop: { preset: "loop:float", durationUs: 0, easing: "linear" },
+  out: { preset: "out:fade", durationUs: 400_000, easing: "smooth" },
+})); // one undo step; out keyframes are end-anchored
+
+describeAnimation(readAnimation(project.getState().doc.clips["title"]).recipe); // "Pop in · Float · Fade out"
+```
+
+`readAnimation` recognizes the recipe from the keyframes (presets are deterministic), so a panel can show it after a reload or an undo. It reports `custom: true` for hand-made keyframes, and `stale: true` when a trim left a loop's spacing behind (apply the recipe again to refresh). `animationCommands(clip, {})` removes the animation; volume keyframes are never touched.
+
 ## Edit and remove
 
 ```ts

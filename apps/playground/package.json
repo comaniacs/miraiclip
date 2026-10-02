@@ -13,6 +13,7 @@
     "repro:4k": "playwright test -c playwright.repro.config.ts"
   },
   "dependencies": {
+    "@miraiclip/assistant": "workspace:*",
     "@miraiclip/audio-sources": "workspace:*",
     "@miraiclip/core": "workspace:*",
     "@miraiclip/renderer": "workspace:*"
