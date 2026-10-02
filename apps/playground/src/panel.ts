@@ -6,6 +6,7 @@
  */
 import type { Project } from "@miraiclip/core";
 import { renderEffectsBrowser } from "./effects-browser.js";
+import { renderAudioPanel } from "./audio-panel.js";
 
 export interface PanelContext {
   project: Project;
@@ -123,6 +124,12 @@ const TABS: Tab[] = [
     label: "Effects",
     cards: [],
     render: renderEffectsBrowser,
+  },
+  {
+    id: "audio",
+    label: "Audio",
+    cards: [],
+    render: renderAudioPanel,
   },
   {
     id: "text",

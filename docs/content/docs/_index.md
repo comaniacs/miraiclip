@@ -19,6 +19,7 @@ Miraiclip is a monorepo of focused packages:
 | [`@miraiclip/server-export`](https://www.npmjs.com/package/@miraiclip/server-export) | ✅ v0.4.2 on npm | Server-side export and frame rendering: the browser pipeline in headless Chrome, from Node — see [Server side](export/server-side) |
 | [`@miraiclip/mcp`](https://www.npmjs.com/package/@miraiclip/mcp) | ✅ v0.1.3 on npm | MCP server: Claude, Codex, and other agents edit projects with visual feedback — see [MCP Server](mcp-server) |
 | [`@miraiclip/templates`](https://www.npmjs.com/package/@miraiclip/templates) | ✅ v0.1.1 on npm | Parameterized videos: template + data rows → batch personalized exports — see [Templates](templates) |
+| `@miraiclip/audio-sources` | new (0.1.0) | Stock and library audio: Openverse, Freesound, your own catalog or backend, `importAudio`, LLM tools — see [Audio Sources](audio-sources) |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
 ## Core concepts

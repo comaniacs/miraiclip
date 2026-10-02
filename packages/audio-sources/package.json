@@ -1,0 +1,69 @@
+{
+  "name": "@miraiclip/audio-sources",
+  "version": "0.0.0",
+  "description": "Stock and generated audio for Miraiclip: one AudioProvider contract (search, resolve, generate) with Openverse, Freesound, static-catalog and HTTP-backend adapters, a one-transaction importAudio, and LLM tool definitions.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/audio-sources"
+  },
+  "homepage": "https://comaniacs.github.io/miraiclip/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@miraiclip/core": "^0.5.3"
+  },
+  "devDependencies": {
+    "@miraiclip/core": "workspace:*",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "video",
+    "video-editor",
+    "audio",
+    "stock-audio",
+    "music",
+    "sound-effects",
+    "openverse",
+    "freesound",
+    "ai"
+  ]
+}

@@ -1,9 +1,69 @@
-import { defineConfig } from "vite";
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { Readable } from "node:stream";
+import { defineConfig, type Connect, type Plugin } from "vite";
+
+/**
+ * Audio-sources testing helpers (dev + preview):
+ * - /api/openverse → https://api.openverse.org (search without CORS concerns);
+ * - GET /api/fetch?url=https://… streams a remote media file same-origin,
+ *   forwarding Range, so library results decode without the host's CORS.
+ *   Public https hosts only — a local test aid, not a production proxy.
+ */
+function remoteFetch(): Plugin {
+  const handler: Connect.NextHandleFunction = (req, res, next) => {
+    if (!req.url?.startsWith("/api/fetch?")) return next();
+    void proxy(req, res);
+  };
+  return {
+    name: "playground-remote-fetch",
+    configureServer: (server) => void server.middlewares.use(handler),
+    configurePreviewServer: (server) => void server.middlewares.use(handler),
+  };
+}
+
+async function proxy(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const target = new URL(req.url!, "http://local").searchParams.get("url") ?? "";
+  let url: URL;
+  try {
+    url = new URL(target);
+  } catch {
+    res.statusCode = 400;
+    return void res.end("bad url");
+  }
+  if (url.protocol !== "https:" || /^(localhost|127\.|10\.|192\.168\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.)/.test(url.hostname)) {
+    res.statusCode = 400;
+    return void res.end("public https only");
+  }
+  try {
+    const upstream = await fetch(url, { headers: req.headers.range ? { range: String(req.headers.range) } : {}, redirect: "follow" });
+    res.statusCode = upstream.status;
+    for (const h of ["content-type", "content-length", "content-range", "accept-ranges"]) {
+      const v = upstream.headers.get(h);
+      if (v) res.setHeader(h, v);
+    }
+    if (!upstream.body || req.method === "HEAD") return void res.end();
+    Readable.fromWeb(upstream.body as never).pipe(res);
+  } catch {
+    res.statusCode = 502;
+    res.end("upstream failed");
+  }
+}
+
+const apiProxy = {
+  "/api/openverse": {
+    target: "https://api.openverse.org",
+    changeOrigin: true,
+    rewrite: (path: string) => path.replace(/^\/api\/openverse/, ""),
+  },
+};
 
 // Workspace packages resolve to their TypeScript source via their dev
 // `exports` (see each package.json; publishConfig swaps in dist on publish),
 // so no aliases are needed and edits in packages/* hot-reload directly.
 export default defineConfig({
+  plugins: [remoteFetch()],
+  server: { proxy: apiProxy },
+  preview: { proxy: apiProxy },
   worker: {
     // The export worker bundles pixi + the renderer; ES format keeps
     // code-splitting legal inside the worker build (iife forbids it).
