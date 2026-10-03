@@ -1,5 +1,12 @@
 # @miraiclip/templates
 
+## 0.1.3
+
+### Patch Changes
+
+- 1ff5fe5: Html clips that draw media inside their markup (`asset:<id>`) now survive insertion: `insertCommands`/`insertDocument` rewrite those references when an asset is renamed or reused, and `suggestTemplateFields` offers media used only that way as a slot.
+- @miraiclip/server-export@0.4.3
+
 ## 0.1.2
 
 ### Patch Changes
