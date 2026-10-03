@@ -341,6 +341,13 @@ export const builtinPayloadSchemas = {
     params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
     /** html clips: turn per-frame (CSS-animated) rasterizing on or off. */
     animated: z.boolean().optional(),
+    /** html clips: replace the markup (code editing); params, keyframes, effects stay. */
+    template: z.string().min(1).optional(),
+    /** html clips: drop these params (placeholders the new markup no longer uses). */
+    unsetParams: z.array(z.string()).optional(),
+    /** html clips: raster size in composition px; `null` falls back to the composition size. */
+    widthPx: z.number().int().positive().nullable().optional(),
+    heightPx: z.number().int().positive().nullable().optional(),
     clipId: id,
     /** Partial transform update, merged onto the clip's transform. */
     transform: transformSchema.partial().optional(),

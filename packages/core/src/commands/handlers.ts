@@ -411,6 +411,18 @@ export const builtinHandlers: {
       }
       Object.assign(clip.params, p.params);
     }
+    for (const key of ["template", "unsetParams", "widthPx", "heightPx"] as const) {
+      if (p[key] !== undefined && clip.kind !== "html") {
+        reject("clip/set-property", "not-html", `"${key}" only applies to html clips`);
+      }
+    }
+    if (clip.kind === "html") {
+      const html = clip as Clip & { template: string; params: Record<string, unknown>; widthPx?: number; heightPx?: number };
+      if (p.template !== undefined) html.template = p.template;
+      for (const key of p.unsetParams ?? []) delete html.params[key];
+      if (p.widthPx !== undefined) setOrClear(html as unknown as Record<string, unknown>, "widthPx", p.widthPx);
+      if (p.heightPx !== undefined) setOrClear(html as unknown as Record<string, unknown>, "heightPx", p.heightPx);
+    }
     if (p.animated !== undefined) {
       if (clip.kind !== "html") {
         reject("clip/set-property", "not-html", `"animated" only applies to html clips`);

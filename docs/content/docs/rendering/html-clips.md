@@ -37,6 +37,15 @@ project.dispatch({
 
 Params are the substrate for parameterized videos: one template, many renders.
 
+The markup itself can change too (a code editor, say): `clip/set-property` takes `template`, `unsetParams` (placeholders the new markup no longer uses) and `widthPx` / `heightPx` (`null` falls back to the composition size). The clip keeps its id, keyframes, effects and transitions, and the change is one undo step.
+
+```ts
+project.dispatch({
+  type: "clip/set-property",
+  payload: { clipId: "badge", template: `<b style="color:{{color}}">{{label}}</b>`, params: { label: "New" }, unsetParams: ["name"], widthPx: 600 },
+});
+```
+
 ## Sizing & animation
 
 The template rasterizes at `widthPx`×`heightPx` in composition pixels (default: the composition size) and places like every clip — `transform` positions its center, and standard keyframes animate `x`, `y`, `scale`, `rotation`, `opacity` over the raster for free. Content changes go through params. By default CSS animations inside the template don't run: a static clip is a deterministic snapshot of (template, params, size), rasterized once.

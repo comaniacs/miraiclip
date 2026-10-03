@@ -102,5 +102,27 @@ describe("html clip kind", () => {
     project.dispatch({ type: "clip/add", payload: { kind: "text", id: "tx", trackId: "t1", startUs: 0, durationUs: 1_000_000, text: "hi" } });
     expect(() => project.dispatch({ type: "clip/set-property", payload: { clipId: "tx", animated: true } })).toThrow(/only applies to html/);
   });
+
+  it("code editing: replaces template, drops params, sets and clears raster size (one undo step)", () => {
+    const project = setup();
+    project.dispatch({
+      type: "clip/add",
+      payload: { kind: "html", id: "h1", trackId: "v1", startUs: 0, durationUs: 2_000_000, template: "<b>{{a}}{{b}}</b>", params: { a: "1", b: "2" }, widthPx: 400, heightPx: 100 },
+    });
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "h1", template: "<i>{{a}}{{c}}</i>", params: { c: "3" }, unsetParams: ["b"], widthPx: 800, heightPx: null } });
+    let clip = project.toJSON().clips["h1"] as HtmlClip;
+    expect(clip.template).toBe("<i>{{a}}{{c}}</i>");
+    expect(clip.params).toEqual({ a: "1", c: "3" });
+    expect(clip.widthPx).toBe(800);
+    expect(clip.heightPx).toBeUndefined();
+    project.undo();
+    clip = project.toJSON().clips["h1"] as HtmlClip;
+    expect(clip.template).toBe("<b>{{a}}{{b}}</b>");
+    expect(clip.params).toEqual({ a: "1", b: "2" });
+    expect(clip.heightPx).toBe(100);
+    project.dispatch({ type: "track/add", payload: { id: "t1", kind: "video" } });
+    project.dispatch({ type: "clip/add", payload: { kind: "text", id: "tx", trackId: "t1", startUs: 0, durationUs: 1_000_000, text: "hi" } });
+    expect(() => project.dispatch({ type: "clip/set-property", payload: { clipId: "tx", template: "<b/>" } })).toThrow(/only applies to html/);
+  });
 });
 
