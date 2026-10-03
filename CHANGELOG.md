@@ -4,6 +4,39 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ## Unreleased
 
+_Nothing yet._
+
+## [core-0.5.7] + [renderer-0.7.11] + [templates-0.1.3] — 2026-10-03
+
+### Added
+
+- `@miraiclip/core` **editable html clip code** — `clip/set-property` takes `template` (replace the markup), `unsetParams` (drop params the new markup no longer uses) and `widthPx` / `heightPx` (`null` falls back to the composition size). The clip keeps its id, keyframes, effects and transitions; the change is one undo step. The groundwork for in-app code editors. See [HTML clips → Params](https://comaniacs.github.io/miraiclip/docs/rendering/html-clips/#params).
+
+### Fixed
+
+- `@miraiclip/renderer` **html clips no longer render blank at some output sizes** (a fractional texture resolution made Pixi resize, and so clear, the raster canvas — e.g. a 2720 px preview or export). Html clips also recover from a failed raster (a font fetch during a dev-server restart, say), retrying on a backoff instead of keeping a stale or empty frame.
+- `@miraiclip/templates` **html clips that draw media (`asset:<id>`) survive insertion**: `insertCommands` / `insertDocument` rewrite those references when an asset is renamed or reused, and `suggestTemplateFields` offers media used only that way as a slot.
+
+## [core-0.5.6] + [renderer-0.7.10] — 2026-10-02
+
+### Added
+
+- `@miraiclip/core` + `@miraiclip/renderer` **animated html clips** — `animated: true` re-rasterizes an html clip every frame, so CSS animations inside the template play, seek and export frame-exactly. The renderer pauses the animations and seeks them to the clip's time (`--t` / `--T` on the root, `--d` for per-element delays); preview coalesces rasters, exports and stills await each frame (`compositor.renderExactAt`), worker exports request them from the main thread. `clip/split` sets `animationOffsetUs` so the animation continues across the cut. New renderer exports: `htmlAnimationTiming`, `htmlRasterKey`, `setHtmlRasterSource`. See [HTML clips → Animated templates](https://comaniacs.github.io/miraiclip/docs/rendering/html-clips/#animated-templates).
+
+## [assistant-0.1.1] + [templates-0.1.2] + [audio-sources-0.2.1] — 2026-10-02
+
+### Added
+
+- `@miraiclip/assistant` **fixes and tools from live evals** — new `add_effect`, `remove_effects`, `set_effects_enabled`, `trim_clip`, `close_gaps`, `set_keyframes` and `set_background` tools; `apply_commands` rejects fields a command would ignore and reports commands that changed nothing; a richer project summary for the model (transforms, styles, volume, effects, animation, cuts, captions). `openAIChatModel` retries rate limits and server errors as long as the server asks (`maxRetries`), and `rateLimitedChatModel` keeps any model under a per-minute budget. See [Assistant](https://comaniacs.github.io/miraiclip/docs/assistant/).
+- `@miraiclip/templates` **templates for editors** — `suggestTemplateFields` lists what in a finished project could stay editable and `templateFromDocument` turns the picks into fields ("Save as template"); `insertDocument` / `insertCommands` add a hydrated template to an existing project as one undo step (new tracks on top, ids remapped, media and fonts reused); `fitClipsToMedia` fits clips and transitions to shorter swapped-in media. Templates take `category`, `tags` and `thumbnail`; fields take a `label`. See [Templates → From a finished project](https://comaniacs.github.io/miraiclip/docs/templates/#from-a-finished-project).
+- `@miraiclip/audio-sources` — `add_audio` and `generate_audio` take `replaceClipId` (the new clip takes the old one's track, start, length and volume, in one transaction).
+
+### Fixed
+
+- `@miraiclip/audio-sources` — `staticProvider` search ranks by how many query words match instead of requiring all of them, and ignores words that only name the kind ("music", "sound"): "calm ambient music" finds a track tagged calm and ambient.
+
+## [assistant-0.1.0] + [core-0.5.5] — 2026-10-02
+
 ### Added
 
 - `@miraiclip/assistant` (new) **AI editing assistant** — a vendor-neutral `ChatModel` contract with an OpenAI adapter (`openAIChatModel`, Chat Completions with function calling and streaming; `baseUrl` reaches any OpenAI-compatible server). `createAssistant` runs an agent loop on a working copy of the project and lands each request as one undo step (or waits for `turn.apply()` in review mode), with streamed events, a "what changed" list and cancel. Tools: `get_state`, `get_command_schema`, `apply_commands`, `add_transition`, `animate_clip`, plus `defineTool` / `toolsFromDefinitions` for your own (e.g. audio). `createChatHandler` + `remoteChatModel` keep API keys on the server. See [Assistant](https://comaniacs.github.io/miraiclip/docs/assistant/).
@@ -245,6 +278,16 @@ First release of `@miraiclip/core`.
 - **Docs site** under `docs/`: Hugo + Hextra with landing page, quickstart, core-concepts pages, Command Catalog reference (generated from the actual Zod schemas), roadmap, and this changelog.
 
 [Unreleased]: https://github.com/comaniacs/miraiclip/compare/v0.1.0...HEAD
+[core-0.5.7]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.7
+[renderer-0.7.11]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.11
+[templates-0.1.3]: https://www.npmjs.com/package/@miraiclip/templates/v/0.1.3
+[core-0.5.6]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.6
+[renderer-0.7.10]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.10
+[assistant-0.1.1]: https://www.npmjs.com/package/@miraiclip/assistant/v/0.1.1
+[templates-0.1.2]: https://www.npmjs.com/package/@miraiclip/templates/v/0.1.2
+[audio-sources-0.2.1]: https://www.npmjs.com/package/@miraiclip/audio-sources/v/0.2.1
+[assistant-0.1.0]: https://www.npmjs.com/package/@miraiclip/assistant/v/0.1.0
+[core-0.5.5]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.5
 [core-0.5.4]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.4
 [renderer-0.7.9]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.9
 [audio-sources-0.2.0]: https://www.npmjs.com/package/@miraiclip/audio-sources/v/0.2.0
