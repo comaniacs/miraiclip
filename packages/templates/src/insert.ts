@@ -36,6 +36,11 @@ export interface InsertPlan {
 
 const easingInput = (e: Easing | undefined): unknown => (!e ? "linear" : e.kind === "hold" ? "hold" : e);
 
+/** `asset:<id>` references in html markup, renamed per `map` (unmapped ids stay). */
+export function remapAssetRefs(template: string, map: Record<string, string>): string {
+  return template.replace(/asset:([\w-]+)/g, (whole, id: string) => (map[id] && map[id] !== id ? `asset:${map[id]}` : whole));
+}
+
 /** Same media, same face: reuse the target's asset instead of adding a copy. */
 function sameAsset(a: ProjectDocument["assets"][string], b: ProjectDocument["assets"][string]): boolean {
   if (a.kind !== b.kind || a.src !== b.src) return false;
@@ -102,6 +107,8 @@ export function insertCommands(target: ProjectDocument, source: ProjectDocument,
     const { animations, effects, ...rest } = clip as Clip & Record<string, unknown>;
     const payload: Record<string, unknown> = { ...rest, id: ids.clips[clip.id], trackId, startUs: clip.startUs + atUs };
     if ("assetId" in clip && typeof clip.assetId === "string") payload.assetId = ids.assets[clip.assetId] ?? clip.assetId;
+    // Html templates reference media as `asset:<id>` (inlined at raster time): follow renamed assets.
+    if (clip.kind === "html" && typeof payload.template === "string") payload.template = remapAssetRefs(payload.template, ids.assets);
     // Custom clip kinds keep their own fields under `props` in clip/add.
     const builtin = ["video", "audio", "image", "text", "caption", "html"].includes(clip.kind);
     commands.push({ type: "clip/add", payload: builtin ? payload : { kind: clip.kind, id: payload.id, trackId, startUs: payload.startUs, durationUs: clip.durationUs, ...(rest.transform ? { transform: rest.transform } : {}), props: (clip as { props?: unknown }).props ?? {} } });

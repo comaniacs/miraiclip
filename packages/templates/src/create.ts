@@ -6,7 +6,7 @@
  * defaults are the current values, so the template hydrates with no data to
  * exactly the project it came from.
  */
-import { isHtmlClip, isTextClip, type ProjectDocument } from "@miraiclip/core";
+import { isHtmlClip, isTextClip, type Clip, type ProjectDocument } from "@miraiclip/core";
 import { defineTemplate } from "./define.js";
 import type { Template, TemplateField } from "./types.js";
 
@@ -90,7 +90,15 @@ export function suggestTemplateFields(doc: ProjectDocument): TemplateCandidate[]
   }
 
   const used = new Set(Object.values(doc.clips).map((c) => (c as { assetId?: string }).assetId).filter(Boolean));
-  const firstUse = (assetId: string) => Math.min(...Object.values(doc.clips).filter((c) => (c as { assetId?: string }).assetId === assetId).map((c) => c.startUs));
+  // Media an html clip draws inside its markup (`asset:<id>`) is used too.
+  for (const c of Object.values(doc.clips)) {
+    if (c.kind !== "html") continue;
+    for (const m of String((c as { template?: string }).template ?? "").matchAll(/asset:([\w-]+)/g)) used.add(m[1]!);
+  }
+  const usesAsset = (c: Clip, assetId: string) =>
+    (c as { assetId?: string }).assetId === assetId ||
+    (c.kind === "html" && new RegExp(`asset:${assetId}(?![\\w-])`).test(String((c as { template?: string }).template ?? "")));
+  const firstUse = (assetId: string) => Math.min(...Object.values(doc.clips).filter((c) => usesAsset(c, assetId)).map((c) => c.startUs));
   const media = Object.values(doc.assets)
     .filter((a) => (a.kind === "video" || a.kind === "image" || a.kind === "audio") && used.has(a.id))
     .sort((a, b) => firstUse(a.id) - firstUse(b.id));

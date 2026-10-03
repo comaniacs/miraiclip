@@ -144,3 +144,22 @@ describe("fitClipsToMedia", () => {
     expect(two.transitions).toEqual({}); // v1 now ends before v2 starts
   });
 });
+
+describe("html asset references", () => {
+  it("insert follows renamed assets inside html markup; Save as template offers them", async () => {
+    const { createProject } = await import("@miraiclip/core");
+    const { insertCommands, suggestTemplateFields } = await import("../src/index.js");
+    const source = createProject({ width: 100, height: 100, fps: 30 });
+    source.dispatch({ type: "track/add", payload: { id: "v", kind: "video" } });
+    source.dispatch({ type: "asset/add", payload: { id: "pic", kind: "image", src: "/a.png" } });
+    source.dispatch({ type: "clip/add", payload: { kind: "html", id: "h", trackId: "v", startUs: 0, durationUs: 1_000_000, template: '<img src="asset:pic"/><img src="asset:picture"/>' } });
+    const target = createProject({ width: 100, height: 100, fps: 30 });
+    target.dispatch({ type: "asset/add", payload: { id: "pic", kind: "image", src: "/other.png" } });
+    const plan = insertCommands(target.toJSON(), source.toJSON());
+    const newId = plan.ids.assets["pic"]!;
+    expect(newId).not.toBe("pic");
+    const add = plan.commands.find((c) => c.type === "clip/add") as { payload: { template: string } };
+    expect(add.payload.template).toBe(`<img src="asset:${newId}"/><img src="asset:picture"/>`);
+    expect(suggestTemplateFields(source.toJSON()).some((f) => f.kind === "asset" && f.assetId === "pic")).toBe(true);
+  });
+});

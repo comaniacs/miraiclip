@@ -3,7 +3,7 @@
  * its tests never touch this file. Rendering is manual (no Pixi ticker) — the
  * playback controller decides when frames are drawn.
  */
-import { Application, Assets, CanvasSource, Container, Graphics, ImageSource, Sprite, Text, Texture } from "pixi.js";
+import { Application, Assets, CanvasSource, Container, Graphics, ImageSource, Sprite, Text, Texture, type TextureSource } from "pixi.js";
 import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { captionProgress, displayText, layoutCaption, POP_SCALE, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
@@ -237,6 +237,11 @@ class PixiHtmlNode extends PixiNode<Sprite> {
   private shownTimeS: number | undefined;
   private running = false;
   private pending = false;
+  /** The current content (key) has a raster on the texture. */
+  private shown = false;
+  /** Failed rasters retry on a backoff (ms timestamp of the next attempt). */
+  private failures = 0;
+  private retryAt = 0;
 
   constructor(
     stage: Container,
@@ -274,16 +279,30 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     this.key = key;
     this.inputs = { widthPx, heightPx, density };
     this.shownTimeS = undefined;
+    this.shown = false;
+    this.failures = 0;
+    this.retryAt = 0;
     // Animated: start from the frame last asked for (or the first frame).
     this.wantTimeS = animated ? (this.wantTimeS ?? htmlAnimationTiming(clip, clip.startUs).timeS) : undefined;
     this.request();
   }
 
   tick(clip: Clip, timeUs: number): void {
-    if (!isHtmlClip(clip) || !clip.animated) return;
+    if (!isHtmlClip(clip)) return;
+    const now = Date.now();
+    if (!clip.animated) {
+      // A failed static raster retries (on a backoff) instead of staying blank.
+      if (!this.shown && !this.running && this.failures > 0 && now >= this.retryAt) this.request();
+      return;
+    }
     const { timeS } = htmlAnimationTiming(clip, timeUs);
-    if (timeS === this.wantTimeS) return;
+    // Up to date, or on its way. A frame that never landed (its raster
+    // failed) is asked for again — paused playback requests the same frame
+    // forever, so waiting for the time to change would leave a stale (or
+    // empty) frame on screen. While failing, retries wait for the backoff.
+    if (timeS === this.wantTimeS && (this.running || this.shownTimeS === timeS)) return;
     this.wantTimeS = timeS;
+    if (!this.running && this.failures > 0 && now < this.retryAt) return;
     this.request();
   }
 
@@ -315,15 +334,26 @@ class PixiHtmlNode extends PixiNode<Sprite> {
       const timing = timeS !== undefined && clip.animated
         ? { timeS, durationS: htmlAnimationTiming(clip, clip.startUs).durationS }
         : undefined;
-      const source = await rasterizeHtml({
-        template: clip.template,
-        params: clip.params,
-        widthPx,
-        heightPx,
-        assets: this.assets,
-        density,
-        ...(timing ?? {}),
-      });
+      let source: HTMLCanvasElement | ImageBitmap;
+      try {
+        source = await rasterizeHtml({
+          template: clip.template,
+          params: clip.params,
+          widthPx,
+          heightPx,
+          assets: this.assets,
+          density,
+          ...(timing ?? {}),
+        });
+      } catch (error) {
+        // Transient failures (a font fetch during a dev-server restart, say)
+        // retry from tick on a backoff; whenReady still rejects so exports
+        // fail loudly.
+        this.failures++;
+        this.retryAt = Date.now() + Math.min(5000, 250 * 2 ** (this.failures - 1));
+        this.pending = false;
+        throw error;
+      }
       // `source` is a laundered canvas (DOM) or a pre-rendered ImageBitmap
       // (worker export) — both are physical-size pixel buffers. A result for
       // superseded content is dropped (the loop rasters the current one).
@@ -332,16 +362,16 @@ class PixiHtmlNode extends PixiNode<Sprite> {
         continue;
       }
       this.shownTimeS = timeS;
+      this.shown = true;
+      this.failures = 0;
+      this.retryAt = 0;
       this.raster =
         typeof HTMLCanvasElement !== "undefined" && source instanceof HTMLCanvasElement
           ? { canvas: source, density }
           : undefined;
       this.contentBounds = undefined;
       const previous = this.display.texture;
-      const textureSource =
-        typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap
-          ? new ImageSource({ resource: source, resolution: density })
-          : new CanvasSource({ resource: source as HTMLCanvasElement, resolution: density });
+      const textureSource = htmlTextureSource(source, density);
       this.display.texture = new Texture({ source: textureSource });
       if (previous !== Texture.EMPTY) previous.destroy(true);
       this.invalidate();
@@ -374,6 +404,24 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     }
     return this.contentBounds ?? whole;
   }
+}
+
+/**
+ * A texture source over a raster without touching its pixels. CanvasSource
+ * computes its pixel size as (canvas.width / resolution) × resolution and
+ * RESIZES the canvas when float error makes that differ from the real size
+ * (1388 / (2720/1920) × (2720/1920) = 1387.99…) — and resizing a canvas
+ * clears it, so at some densities the clip rendered blank. Build it at
+ * resolution 1 (pixel size = the canvas size, exactly), then set the
+ * density: the resolution setter only rescales the logical size.
+ */
+export function htmlTextureSource(source: HTMLCanvasElement | ImageBitmap, density: number): TextureSource {
+  if (typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap) {
+    return new ImageSource({ resource: source, resolution: density });
+  }
+  const textureSource = new CanvasSource({ resource: source as HTMLCanvasElement, resolution: 1 });
+  textureSource.resolution = density;
+  return textureSource;
 }
 
 /** Bounding box of pixels with visible alpha (null when fully transparent). */
