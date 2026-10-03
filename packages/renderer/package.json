@@ -61,7 +61,7 @@
     "pixi.js": "^8.6.0"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.5.6"
+    "@miraiclip/core": "^0.5.7"
   },
   "devDependencies": {
     "@miraiclip/core": "workspace:*",

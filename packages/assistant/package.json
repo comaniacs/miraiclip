@@ -48,7 +48,7 @@
     "eval": "vitest run -c vitest.eval.config.ts"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.5.6"
+    "@miraiclip/core": "^0.5.7"
   },
   "devDependencies": {
     "@miraiclip/audio-sources": "workspace:*",
