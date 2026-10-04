@@ -47,7 +47,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.5.7"
+    "@miraiclip/core": "^0.5.8"
   },
   "devDependencies": {
     "@miraiclip/core": "workspace:*",
