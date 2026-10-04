@@ -26,6 +26,7 @@ import {
 import type { Project } from "./engine.js";
 import { EFFECT_CATALOG } from "./effect-catalog.js";
 import type { CaptionClip, Clip, ProjectDocument, TextAlign, TextClip, Typography } from "./types.js";
+import { formatFrameRate, projectFrameRate } from "./timeline.js";
 
 // ---------------------------------------------------------------------------
 // Tool naming: command types use "/" (clip/add), which LLM tool-name rules
@@ -66,7 +67,7 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "keyframe/clear": "Remove ALL keyframes for one property of a clip.",
   "keyframe/remove": "Remove the keyframe at an exact time (and anchor) for one property of a clip.",
   "keyframe/set": "Set a keyframe for an animatable property, with optional easing. Time is relative to the clip's visible start, or with anchor \"end\" measured back from its end (use that for exit animations so they follow trims).",
-  "project/set-settings": "Change composition settings (width, height, fps).",
+  "project/set-settings": "Change composition settings (width, height, fps; NTSC rates like 29.97 are stored exactly as 30000/1001, or pass frameRate {num, den}).",
   "track/add": "Add a track. Track order defines layering: later tracks render on top.",
   "track/remove": "Remove a track and every clip on it.",
   "track/rename": "Rename a track.",
@@ -314,7 +315,7 @@ export function describeProject(
 
   const lines: string[] = [];
   lines.push(
-    `Miraiclip project — ${settings.width}x${settings.height} @ ${settings.fps}fps. ` +
+    `Miraiclip project — ${settings.width}x${settings.height} @ ${formatFrameRate(projectFrameRate(settings))}fps. ` +
       `Composition length: ${formatUs(endUs)} (${(endUs / 1_000_000).toFixed(2)}s). ` +
       `All command times are MICROSECONDS (1 second = 1000000us).`,
   );

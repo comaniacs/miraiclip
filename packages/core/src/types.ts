@@ -1,10 +1,25 @@
 /** Microseconds — the timeline unit. 1 second = 1_000_000 µs. */
 export type Us = number;
 
+/** An exact frame rate as a ratio of positive integers: NTSC 29.97 is `{ num: 30000, den: 1001 }`. */
+export interface FrameRate {
+  num: number;
+  den: number;
+}
+
 export interface ProjectSettings {
   width: number;
   height: number;
+  /**
+   * Frames per second. A decimal NTSC rate (29.97, 23.976, 59.94) is read as
+   * its exact `/1001` ratio; read the exact rate with `projectFrameRate(settings)`.
+   */
   fps: number;
+  /**
+   * The exact rate, kept when it isn't a whole number (`fps` then mirrors
+   * num/den). `project/set-settings` keeps the two in sync.
+   */
+  frameRate?: FrameRate;
   name?: string;
 }
 

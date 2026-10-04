@@ -19,7 +19,8 @@ All time values are integer microseconds (1 s = 1,000,000 µs). Commands with a 
 | --- | --- | --- | --- |
 | `width` | integer | no | > 0, integer |
 | `height` | integer | no | > 0, integer |
-| `fps` | number | no | > 0 |
+| `fps` | number | no | > 0; 29.97, 23.976, 59.94… are stored as their exact /1001 ratio |
+| `frameRate` | `{ num, den }` | no | exact rate, positive integers, e.g. `{ num: 30000, den: 1001 }`; must agree with `fps` if both are given |
 | `name` | string | no |  |
 
 

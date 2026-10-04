@@ -17,6 +17,7 @@ import {
 import { CommandValidationError, UnknownCommandError } from "./errors.js";
 import { Emitter } from "./events.js";
 import { toJsonPatches, type JsonPatchOp } from "./patches.js";
+import { toFrameRate } from "./timeline.js";
 import type { ProjectDocument, ProjectSettings, ProjectState, Us } from "./types.js";
 
 enablePatches();
@@ -87,10 +88,21 @@ export interface Project {
 
 const DEFAULT_HISTORY_LIMIT = 500;
 
+/** Store a decimal NTSC fps (29.97…) with its exact ratio, as `project/set-settings` does. */
+function normalizeSettings(settings: ProjectSettings): ProjectSettings {
+  const out = { ...settings };
+  if (!(Number.isFinite(out.fps) && out.fps > 0) && !out.frameRate) return out;
+  const exact = toFrameRate(out.frameRate ?? out.fps);
+  out.fps = exact.num / exact.den;
+  if (exact.den === 1) delete out.frameRate;
+  else out.frameRate = exact;
+  return out;
+}
+
 function emptyDocument(settings: ProjectSettings): ProjectDocument {
   return {
     schemaVersion: 1,
-    settings: { ...settings },
+    settings: normalizeSettings(settings),
     assets: {},
     tracks: {},
     trackOrder: [],

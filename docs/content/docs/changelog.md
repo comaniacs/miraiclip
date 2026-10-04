@@ -7,7 +7,13 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ## Unreleased
 
-_Nothing yet._
+### Added
+
+- `@miraiclip/core` **exact frame rates** — `ProjectSettings.frameRate` holds the rate as a ratio (`{ num: 30000, den: 1001 }` for 29.97). `project/set-settings` and `createProject` store decimal NTSC rates (29.97, 23.976, 59.94…) exactly and keep `fps` in sync; `project/set-settings` also takes `frameRate` directly. New helpers: `toFrameRate`, `projectFrameRate`, `formatFrameRate`, `frameCount`. `usToTimecode` takes `{ dropFrame: true }` for SMPTE drop-frame timecode at 29.97 / 59.94. See [Timeline precision](/miraiclip/docs/core-concepts/project-state/#timeline-precision).
+
+### Fixed
+
+- `@miraiclip/core` **frame ↔ µs conversion round-trips**: `frameToUs` rounded and `usToFrame` floored, so at 30, 29.97, 23.976 and 59.94 fps a third of frame starts mapped back to the previous frame (frame 1 at 30 fps became 33,333 µs → frame 0), and timecode could read one frame early. One rule now: frame *n* starts at ⌈n · 1e6 · den / num⌉ and `usToFrame` is ⌊us · num / (1e6 · den)⌋, in exact integer arithmetic. `frameToUs` results move by at most 1 µs. Thanks to Launch Gate on dev.to for the report.
 
 ## core-0.5.7 + renderer-0.7.11 + templates-0.1.3 — 2026-10-03
 

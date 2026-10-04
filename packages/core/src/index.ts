@@ -77,6 +77,7 @@ export type {
   ImageClip,
   Keyframe,
   ProjectDocument,
+  FrameRate,
   ProjectSettings,
   ProjectState,
   TextAlign,

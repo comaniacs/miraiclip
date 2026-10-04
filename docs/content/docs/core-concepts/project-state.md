@@ -26,9 +26,28 @@ State is never mutated directly — the document changes only through the [comma
 
 ## Timeline precision
 
-The timeline is microsecond-based: **1 second = 1,000,000 µs**. This guarantees frame-accurate positioning at any frame rate (a frame at 30 fps is exactly 33,333.33… µs — integers in µs avoid floating-point drift that plagues second-based timelines).
+Positions and durations are whole **microseconds** (1 second = 1,000,000 µs). A frame rarely lasts a whole number of µs (33,333.3… at 30 fps, 33,366.6… at 29.97), so Miraiclip maps frames to µs with one rule, used everywhere:
 
-Utilities are provided for µs ↔ frame ↔ timecode conversion, snapping, and overlap resolution.
+- frame *n* starts at the first whole µs inside it: `frameToUs(n, rate)` = ⌈n · 1e6 · den / num⌉
+- the frame holding a position is `usToFrame(us, rate)` = ⌊us · num / (1e6 · den)⌋
+
+Every µs belongs to exactly one frame, `usToFrame(frameToUs(n)) === n` for every frame, and each timestamp is computed from its frame index — nothing is added up frame by frame, so an hour of 29.97 doesn't drift. The math is exact integer arithmetic.
+
+**Frame rates are exact ratios.** `settings.fps` is a number; decimal NTSC rates (29.97, 23.976, 59.94) are stored with their exact ratio in `settings.frameRate`, e.g. `{ num: 30000, den: 1001 }`. Read the exact rate with `projectFrameRate(settings)`:
+
+```ts
+import { projectFrameRate, frameToUs, usToFrame, frameCount, usToTimecode } from "@miraiclip/core";
+
+project.dispatch({ type: "project/set-settings", payload: { fps: 29.97 } }); // stored as 30000/1001
+const rate = projectFrameRate(project.getState().doc.settings);
+
+frameToUs(107_892, rate);            // 3_599_996_400 — exact
+frameCount(3_600_000_000, rate);     // 107_893 frames in an hour
+usToTimecode(3_599_996_400, rate);   // "00:59:56:12"  non-drop-frame
+usToTimecode(3_599_996_400, rate, { dropFrame: true }); // "01:00:00;00"
+```
+
+`snapToFrame` snaps a position to the nearest frame start. All helpers accept a number or a `{ num, den }` ratio.
 
 ## Serialization
 

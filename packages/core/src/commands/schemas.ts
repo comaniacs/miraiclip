@@ -148,7 +148,12 @@ export const builtinPayloadSchemas = {
   "project/set-settings": z.object({
     width: z.number().int().positive().optional(),
     height: z.number().int().positive().optional(),
-    fps: z.number().positive().optional(),
+    /** Frames per second; 29.97, 23.976, 59.94… are stored as their exact /1001 ratio. */
+    fps: z.number().positive().finite().optional(),
+    /** The exact rate, e.g. { num: 30000, den: 1001 } for 29.97. */
+    frameRate: z
+      .object({ num: z.number().int().positive().max(1_000_000), den: z.number().int().positive().max(1_000_000) })
+      .optional(),
     name: z.string().optional(),
   }),
 

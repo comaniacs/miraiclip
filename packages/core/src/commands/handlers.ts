@@ -23,6 +23,7 @@ import {
   type Transition,
   type Us,
 } from "../types.js";
+import { toFrameRate } from "../timeline.js";
 import { builtinPayloadSchemas, type BuiltinCommandType } from "./schemas.js";
 
 const TEXT_TYPOGRAPHY_KEYS = [
@@ -148,7 +149,21 @@ export const builtinHandlers: {
   [T in BuiltinCommandType]: CommandHandler<Parsed<T>>;
 } = {
   "project/set-settings": (doc, p) => {
-    Object.assign(doc.settings, p);
+    const { fps, frameRate, ...rest } = p;
+    Object.assign(doc.settings, rest);
+    if (fps === undefined && frameRate === undefined) return;
+    const exact = toFrameRate(frameRate ?? fps!);
+    if (frameRate && fps !== undefined && Math.abs(fps - exact.num / exact.den) > 1e-6) {
+      reject(
+        "project/set-settings",
+        "fps-mismatch",
+        `fps ${fps} does not match frameRate ${frameRate.num}/${frameRate.den}; pass one of them`,
+      );
+    }
+    // Whole rates stay a plain number; others keep the exact ratio beside it.
+    doc.settings.fps = exact.num / exact.den;
+    if (exact.den === 1) delete doc.settings.frameRate;
+    else doc.settings.frameRate = exact;
   },
 
   "asset/add": (doc, p) => {
