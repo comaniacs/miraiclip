@@ -1,4 +1,4 @@
-import type { Project, ProjectDocument } from "@miraiclip/core";
+import { projectFrameRate, type FrameRate, type Project, type ProjectDocument } from "@miraiclip/core";
 import { Compositor } from "../compositor/compositor.js";
 import type { NodeFactory } from "../compositor/types.js";
 import { createPixiBackend } from "../compositor/pixi-backend.js";
@@ -28,8 +28,8 @@ import type { StreamTargetChunk } from "mediabunny";
 export interface ExportProjectOptions {
   format: ExportFormat;
   quality?: ExportQualityPreset | { videoBitrate: number };
-  /** Output frame rate (default: the project's fps). */
-  fps?: number;
+  /** Output frame rate (default: the project's exact rate, `projectFrameRate`). A number or `{ num, den }`. */
+  fps?: number | FrameRate;
   /** Output size (default: the project's composition size). */
   width?: number;
   height?: number;
@@ -133,7 +133,7 @@ export async function exportProject(
 
   const width = options.width ?? doc.settings.width;
   const height = options.height ?? doc.settings.height;
-  const fps = options.fps ?? doc.settings.fps;
+  const fps = options.fps ?? projectFrameRate(doc.settings);
   const canvas = new OffscreenCanvas(width, height);
 
   // Decode capped at 2× the output's longest side: compositing a 4K source

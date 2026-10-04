@@ -1,3 +1,4 @@
+import { frameCount, frameToUs, toFrameRate, type FrameRate } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
 import {
   ExportAbortedError,
@@ -10,8 +11,11 @@ export interface ExportCompositionOptions {
   /** Composition range to export. `endUs` must be greater than `startUs`. */
   startUs: Us;
   endUs: Us;
-  /** Output frame rate. */
-  fps: number;
+  /**
+   * Output frame rate: a number (29.97 is read as 30000/1001) or an exact
+   * `{ num, den }` ratio — see `toFrameRate` in @miraiclip/core.
+   */
+  fps: number | FrameRate;
   /**
    * Render the composition at a timeline position into the sink's canvas —
    * awaits exact decode (`videos.renderFrameAt` in production).
@@ -65,15 +69,40 @@ export interface ExportCompositionOptions {
  * clock anywhere. Cancellation is checked between frames and the sink is
  * always cancelled exactly once on any failure path.
  */
+/**
+ * Output frame `n` of an export of [rangeStartUs, rangeEndUs): its timeline
+ * span and the position it is rendered at. Frames follow the core frame rule
+ * (`frameToUs` from @miraiclip/core) measured from the range start — for a
+ * full export (start 0) they are exactly the timeline's frames. Each frame is
+ * computed from its index, never by adding frame durations. The last frame is
+ * clipped to end at `rangeEndUs`. `sampleUs` is the frame's temporal midpoint
+ * (the NLE convention), maximally far from container timestamp rounding.
+ */
+export function exportFrameWindow(
+  n: number,
+  rangeStartUs: Us,
+  rangeEndUs: Us,
+  fps: number | FrameRate,
+): { startUs: Us; endUs: Us; sampleUs: Us } {
+  const frameStartUs = rangeStartUs + frameToUs(n, fps);
+  const frameEndUs = Math.min(rangeStartUs + frameToUs(n + 1, fps), rangeEndUs);
+  return { startUs: frameStartUs, endUs: frameEndUs, sampleUs: frameStartUs + Math.floor((frameEndUs - frameStartUs) / 2) };
+}
+
 export async function exportComposition(
   options: ExportCompositionOptions,
 ): Promise<Uint8Array> {
   const { startUs, endUs, fps, renderFrame, sink, signal, onProgress } = options;
   if (!(endUs > startUs)) throw new Error("export range is empty");
-  if (!(fps > 0)) throw new Error(`invalid fps: ${fps}`);
+  let rate: FrameRate;
+  try {
+    rate = toFrameRate(fps);
+  } catch {
+    throw new Error(`invalid fps: ${typeof fps === "object" ? `${fps.num}/${fps.den}` : fps}`);
+  }
 
   const durationUs = endUs - startUs;
-  const totalFrames = Math.max(1, Math.ceil((durationUs * fps) / 1_000_000));
+  const totalFrames = Math.max(1, frameCount(durationUs, rate));
   const progress = (phase: ExportProgress["phase"], framesDone: number): void => {
     onProgress?.({ phase, framesDone, totalFrames });
   };
@@ -113,7 +142,7 @@ export async function exportComposition(
         const chunkEndUs = Math.min(chunkStartUs + audioChunkUs, durationUs);
         const first = chunkStartUs === 0;
         const phase: ExportProgress["phase"] = first ? "audio" : "video";
-        const framesDone = first ? 0 : Math.min(totalFrames, Math.ceil((chunkStartUs * fps) / 1_000_000));
+        const framesDone = first ? 0 : Math.min(totalFrames, frameCount(chunkStartUs, rate));
         onProgress?.({ phase, framesDone, totalFrames, audioMixedUs: chunkStartUs, audioTotalUs: durationUs });
         const mixContext: MixAudioContext = {
           ...(signal ? { signal } : {}),
@@ -166,11 +195,7 @@ export async function exportComposition(
     for (let n = 0; n < totalFrames; n++) {
       await throwIfAborted();
       if (sinkError) throw sinkError;
-      const frameStartUs = startUs + Math.round((n * 1_000_000) / fps);
-      const frameEndUs = Math.min(
-        startUs + Math.round(((n + 1) * 1_000_000) / fps),
-        endUs,
-      );
+      const { startUs: frameStartUs, endUs: frameEndUs, sampleUs } = exportFrameWindow(n, startUs, endUs, rate);
       // Keep mixed audio ahead of the frame walk, one chunk at a time.
       await pumpAudioThrough((frameEndUs - startUs) as Us);
       if (sinkError) throw sinkError;
@@ -179,7 +204,6 @@ export async function exportComposition(
       // sampling at the exact frame start grabs the previous source frame
       // whenever that jitter lands the boundary ±1ms off. The midpoint is
       // maximally far from both boundaries.
-      const sampleUs = frameStartUs + Math.floor((frameEndUs - frameStartUs) / 2);
       await renderFrame(sampleUs);
       await throwIfAborted(); // rendering awaits decode — abort may land there
       if (sinkError) throw sinkError;

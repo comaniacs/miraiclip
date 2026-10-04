@@ -55,12 +55,13 @@ describe("exportComposition", () => {
     expect(rendered.length).toBe(30);
     // Monotonic, derived-not-accumulated timestamps; frames sample at their
     // temporal midpoint (robust to container timestamp rounding).
-    expect(rendered[15]).toBe(500_000 + 16_666);
+    // Frame 15 = [500,000, 533,334) µs (core rule: a frame starts at its first whole µs).
+    expect(rendered[15]).toBe(500_000 + 16_667);
     for (let i = 1; i < rendered.length; i++) {
       expect(rendered[i]!).toBeGreaterThan(rendered[i - 1]!);
     }
     // Sink timestamps are range-relative and durations tile without gaps.
-    expect(sink.frames[0]).toEqual({ timestampUs: 0, durationUs: 33_333 });
+    expect(sink.frames[0]).toEqual({ timestampUs: 0, durationUs: 33_334 }); // frame 1 starts at 33,334
     const total = sink.frames.reduce((sum, f) => sum + f.durationUs, 0);
     expect(total).toBe(1_000_000); // last frame clipped to the exact end
     expect(sink.finalized).toBe(true);

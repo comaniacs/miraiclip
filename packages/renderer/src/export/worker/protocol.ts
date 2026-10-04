@@ -8,13 +8,14 @@ import type { ProjectDocument } from "@miraiclip/core";
 import type { StreamTargetChunk } from "mediabunny";
 import type { ExportProgress, ExportRange, PcmAudioChunk } from "../types.js";
 import type { ExportFormat, ExportQualityPreset } from "../mediabunny-sink.js";
+import type { FrameRate } from "@miraiclip/core";
 import type { HtmlRasterRequest } from "../../html/rasterize.js";
 
 /** The subset of ExportProjectOptions that crosses the boundary as data. */
 export interface WorkerExportWireOptions {
   format: ExportFormat;
   quality?: ExportQualityPreset | { videoBitrate: number };
-  fps?: number;
+  fps?: number | FrameRate;
   width?: number;
   height?: number;
   range?: ExportRange;

@@ -71,7 +71,7 @@ export {
 } from "./media/webcodecs.js";
 export type { MediaSrc, WebCodecsDecoderOptions } from "./media/webcodecs.js";
 
-export { exportComposition } from "./export/exporter.js";
+export { exportComposition, exportFrameWindow } from "./export/exporter.js";
 export type { ExportCompositionOptions } from "./export/exporter.js";
 export { compositionEnd, exportProject, probeCompositionAudio } from "./export/export-project.js";
 export type { ExportProjectOptions } from "./export/export-project.js";

@@ -439,7 +439,8 @@ describe("clocks", () => {
     clock.setTime(0);
     clock.step(30);
     clock.step(30);
-    expect(clock.timeUs).toBe(66_666);
+    // Frame 2 starts at 66,667 µs; the old += round(1e6/30) landed on 66,666 — still frame 1.
+    expect(clock.timeUs).toBe(66_667);
     expect(clock.playing).toBe(false);
   });
 

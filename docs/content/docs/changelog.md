@@ -7,6 +7,12 @@ All notable changes to Miraiclip. Format: [Keep a Changelog](https://keepachange
 
 ## Unreleased
 
+### Fixed
+
+- `@miraiclip/renderer` **exports use the same frame rule**: `exportComposition` / `exportProject` compute each frame's start, duration and the frame count with core's `frameToUs` / `frameCount` on the exact rate (`fps` takes a number or `{ num, den }`; default `projectFrameRate`), so the main-thread, worker and headless exports match core's frames. `StepClock.step` derives the next frame from its index instead of adding a rounded frame length (it drifted about one frame per hour at 30 fps). New `exportFrameWindow` exposes an output frame's span and sample time. Tests: an hour at 29.97 with frame-boundary cuts, saved and reloaded, where preview seeks, clock steps and the export walk agree on every frame's time and clip; and a headless Chromium export whose WebM holds exactly the predicted 1,799 frames at the predicted times. Requires core 0.5.8.
+
+## core-0.5.8 — 2026-10-04
+
 ### Added
 
 - `@miraiclip/core` **exact frame rates** — `ProjectSettings.frameRate` holds the rate as a ratio (`{ num: 30000, den: 1001 }` for 29.97). `project/set-settings` and `createProject` store decimal NTSC rates (29.97, 23.976, 59.94…) exactly and keep `fps` in sync; `project/set-settings` also takes `frameRate` directly. New helpers: `toFrameRate`, `projectFrameRate`, `formatFrameRate`, `frameCount`. `usToTimecode` takes `{ dropFrame: true }` for SMPTE drop-frame timecode at 29.97 / 59.94. See [Timeline precision](/miraiclip/docs/core-concepts/project-state/#timeline-precision).

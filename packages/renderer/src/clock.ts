@@ -1,3 +1,4 @@
+import { frameToUs, usToFrame, type FrameRateLike } from "@miraiclip/core";
 import type { Us } from "./media/types.js";
 
 /**
@@ -26,9 +27,13 @@ export class StepClock implements Clock {
     this.currentUs = us;
   }
 
-  /** Advance exactly one frame at the given rate. */
-  step(fps: number): Us {
-    this.currentUs += Math.round(1_000_000 / fps);
+  /**
+   * Advance to the start of the next frame at the given rate (a number or
+   * `{ num, den }`). The new time is computed from the frame index
+   * (`frameToUs(usToFrame(t) + 1)`), so stepping never accumulates rounding.
+   */
+  step(fps: FrameRateLike): Us {
+    this.currentUs = frameToUs(usToFrame(this.currentUs, fps) + 1, fps);
     return this.currentUs;
   }
 }
