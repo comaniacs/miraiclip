@@ -92,8 +92,8 @@ npx @miraiclip/mcp --project ./video.miraiclip.json --assets ./media
 
 | Package | Version | What it does |
 | --- | --- | --- |
-| [`@miraiclip/core`](https://comaniacs.github.io/miraiclip/docs/core-concepts/) | 0.5.7 | State, commands, history, events, AI tools |
-| [`@miraiclip/renderer`](https://comaniacs.github.io/miraiclip/docs/rendering/) | 0.7.11 | Playback, preview, stills and export |
+| [`@miraiclip/core`](https://comaniacs.github.io/miraiclip/docs/core-concepts/) | 0.5.8 | State, commands, history, events, AI tools |
+| [`@miraiclip/renderer`](https://comaniacs.github.io/miraiclip/docs/rendering/) | 0.7.12 | Playback, preview, stills and export |
 | [`@miraiclip/server-export`](https://comaniacs.github.io/miraiclip/docs/export/server-side/) | 0.4.3 | The same export from Node, plus a CLI |
 | [`@miraiclip/templates`](https://comaniacs.github.io/miraiclip/docs/templates/) | 0.1.3 | Parameterized videos and batch rendering |
 | [`@miraiclip/audio-sources`](https://comaniacs.github.io/miraiclip/docs/audio-sources/) | 0.2.1 | Stock and AI-generated audio with licenses |
@@ -107,4 +107,4 @@ Pre-1.0: APIs can change between minor versions. See the [changelog](./CHANGELOG
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](./LICENSE). A commercial editor kit and a hosted product built on Miraiclip are on the way. For early access, join the [Discord](https://discord.gg/7S2XmHBeX).
