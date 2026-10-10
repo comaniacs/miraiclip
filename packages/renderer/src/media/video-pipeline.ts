@@ -96,6 +96,13 @@ export class VideoPipeline {
   private targetUs = 0;
   private needsReseek = true;
   private decodeError: Error | undefined;
+  /**
+   * Decoder failures since the last frame arrived. A failed decoder is torn
+   * down and replaced on the next prime (from a keyframe); repeated failures
+   * back off so an undecodable stream can't spin a retry per animation frame.
+   */
+  private failures = 0;
+  private retryAtMs = 0;
   private pumpPromise: Promise<void> | null = null;
   /**
    * Set on a hard seek: frames ending at or before this are decode lead-in
@@ -282,6 +289,9 @@ export class VideoPipeline {
       const epoch = this.epoch;
 
       if (this.needsReseek) {
+        // Backing off after a decoder failure: the display holds the last
+        // frame; a later prime retries once the delay has passed.
+        if (this.failures > 0 && Date.now() < this.retryAtMs) return;
         this.needsReseek = false;
         await this.reseek(this.targetUs, epoch);
         if (epoch !== this.epoch || this.disposed) continue;
@@ -313,17 +323,28 @@ export class VideoPipeline {
           this.iteratorDone = true;
           break;
         }
-        this.decoder.decode(value);
+        try {
+          this.decoder.decode(value);
+        } catch (error) {
+          // The decoder died under us (closed by the platform, e.g. iOS Safari
+          // reclaiming a hardware decoder: "VideoDecoder is not configured").
+          this.decodeError ??= asError(error);
+          break;
+        }
         this.maxFedUs = Math.max(this.maxFedUs, value.timestampUs);
       }
 
       if (this.disposed) return;
-      if (epoch !== this.epoch || this.needsReseek) continue;
       if (this.decodeError) {
         const error = this.decodeError;
         this.decodeError = undefined;
+        this.replaceFailedDecoder();
+        // Reclaimed / closed decoders are routine on mobile: rebuild quietly
+        // (the backoff still applies). Anything else is reported once per failure.
+        if (isRecoverableDecoderError(error)) continue;
         throw error;
       }
+      if (epoch !== this.epoch || this.needsReseek) continue;
       // Drain remaining frames when the stream is exhausted.
       if (this.iteratorDone && this.decoder) await this.decoder.flush();
       return;
@@ -335,6 +356,7 @@ export class VideoPipeline {
     // not schedule another one for the same region. If this seek is aborted,
     // the abort's own needsReseek re-runs it with the latest target.
     this.streamStartUs = targetUs;
+    const reused = !!this.decoder;
     // Reuse the live decoder: reset() drops pending frames (so no stale ones
     // arrive) and avoids re-initializing a hardware decoder on every seek.
     if (!this.decoder) {
@@ -356,6 +378,7 @@ export class VideoPipeline {
           }
           this.settleUntilUs = null; // reached the target — presentable from here
         }
+        this.failures = 0; // decoding works again
         this.cache.put(frame);
         if (this.lastArrivedUs !== undefined) {
           const deltaUs = frame.timestampUs - this.lastArrivedUs;
@@ -370,17 +393,27 @@ export class VideoPipeline {
         this.cache.evict(this.targetUs);
       };
       decoder.onError = (error) => {
-        this.decodeError = error;
+        // A replaced decoder's late error must not fail its successor.
+        if (this.decoder === decoder) this.decodeError = error;
       };
       this.decoder = decoder;
-    } else {
-      this.decoder.reset();
     }
-    this.decodeError = undefined;
 
     const config = await this.demuxer.decoderConfig(); // cached after first call
-    if (epoch !== this.epoch || this.disposed) return;
-    this.decoder.configure(config);
+    if (epoch !== this.epoch || this.disposed || !this.decoder) return;
+    // Reset only now, right before configure: never leave the decoder
+    // unconfigured across an await.
+    try {
+      if (reused) this.decoder.reset();
+      this.decodeError = undefined;
+      this.decoder.configure(config);
+    } catch (error) {
+      // Closed between primes (no error callback reached us): start over with
+      // a fresh decoder on the next pass.
+      this.replaceFailedDecoder();
+      if (isRecoverableDecoderError(asError(error))) return;
+      throw error;
+    }
 
     // A hard seek lands in a different GOP: drop the old frames so the display
     // holds the last correct frame instead of flashing stale content, then the
@@ -398,6 +431,21 @@ export class VideoPipeline {
     this.pendingArrivalsUs = [];
     this.lastArrivedUs = undefined;
     this.settleUntilUs = targetUs;
+  }
+
+  /**
+   * Drop a decoder that failed (closed by an error or by the platform) so the
+   * next pass builds a fresh one and re-seeks from a keyframe. Without this a
+   * dead decoder was fed forever and every frame failed with "decode on a
+   * closed codec" / "VideoDecoder is not configured".
+   */
+  private replaceFailedDecoder(): void {
+    this.teardownDecoder();
+    this.cache.clear();
+    this.needsReseek = true;
+    this.epoch++;
+    this.failures++;
+    this.retryAtMs = Date.now() + retryDelayMs(this.failures);
   }
 
   private teardownDecoder(): void {
@@ -419,4 +467,23 @@ export class VideoPipeline {
     this.cache.clear();
     this.demuxer.dispose();
   }
+}
+
+/** 0 ms for the first failure (rebuild straight away), then 250 ms doubling, capped at 5 s. */
+function retryDelayMs(failures: number): number {
+  return failures <= 1 ? 0 : Math.min(5_000, 250 * 2 ** (failures - 2));
+}
+
+function asError(value: unknown): Error {
+  return value instanceof Error ? value : new Error(String(value));
+}
+
+/**
+ * Errors that mean "this decoder instance is gone", not "this media can't be
+ * decoded": reclamation (QuotaExceededError, WebCodecs spec) and calls on a
+ * closed/unconfigured codec (InvalidStateError — Safari words it "VideoDecoder
+ * is not configured", Chromium "Cannot call 'decode' on a closed codec").
+ */
+export function isRecoverableDecoderError(error: Error): boolean {
+  return error.name === "QuotaExceededError" || error.name === "InvalidStateError";
 }

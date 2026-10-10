@@ -364,6 +364,87 @@ describe("VideoPipeline", () => {
     const pipeline = new VideoPipeline(demuxer, failing);
     await expect(pipeline.prime(0)).rejects.toThrow("boom");
   });
+
+  it("rebuilds a decoder the platform closed (iOS reclaim) and keeps decoding", async () => {
+    const demuxer = new FakeDemuxer(300, 30);
+    let made = 0;
+    const factory = () => {
+      const decoder = new FakeDecoder();
+      if (++made === 1) {
+        // Safari: after a reclaim, decode() throws instead of decoding.
+        const decode = decoder.decode.bind(decoder);
+        let n = 0;
+        decoder.decode = (chunk) => {
+          if (++n > 5) throw new DOMException("VideoDecoder is not configured", "InvalidStateError");
+          decode(chunk);
+        };
+      }
+      return decoder;
+    };
+    const pipeline = new VideoPipeline(demuxer, factory, { aheadUs: 500_000 });
+    const targetUs = 20 * FRAME_US;
+    await pipeline.prime(targetUs); // recovers quietly — no rejection
+    expect(FakeDecoder.instances).toHaveLength(2);
+    expect(FakeDecoder.instances[0].closed).toBe(true);
+    expect(pipeline.frameAt(targetUs)?.timestampUs).toBe(targetUs);
+    // later playback keeps using the new decoder
+    await pipeline.prime(40 * FRAME_US);
+    expect(pipeline.frameAt(40 * FRAME_US)?.timestampUs).toBe(40 * FRAME_US);
+    expect(FakeDecoder.instances).toHaveLength(2);
+  });
+
+  it("a reclaim reported through the error callback is recovered too", async () => {
+    const demuxer = new FakeDemuxer(120, 30);
+    let made = 0;
+    const factory = () => {
+      const decoder = new FakeDecoder();
+      if (++made === 1) {
+        decoder.decode = () => decoder.onError?.(new DOMException("Codec reclaimed", "QuotaExceededError"));
+      }
+      return decoder;
+    };
+    const pipeline = new VideoPipeline(demuxer, factory);
+    await pipeline.prime(0);
+    expect(pipeline.frameAt(0)?.timestampUs).toBe(0);
+    expect(FakeDecoder.instances).toHaveLength(2);
+  });
+
+  it("a late error from a replaced decoder never fails its successor", async () => {
+    const demuxer = new FakeDemuxer(120, 30);
+    let made = 0;
+    let first: FakeDecoder | undefined;
+    const factory = () => {
+      const decoder = new FakeDecoder();
+      if (++made === 1) {
+        first = decoder;
+        decoder.decode = () => {
+          throw new DOMException("closed", "InvalidStateError");
+        };
+      }
+      return decoder;
+    };
+    const pipeline = new VideoPipeline(demuxer, factory);
+    await pipeline.prime(0);
+    first!.onError?.(new Error("late error from the old decoder"));
+    await expect(pipeline.prime(5 * FRAME_US)).resolves.toBeUndefined();
+    expect(pipeline.frameAt(5 * FRAME_US)?.timestampUs).toBe(5 * FRAME_US);
+  });
+
+  it("an undecodable stream backs off instead of rebuilding every frame", async () => {
+    const demuxer = new FakeDemuxer(120, 30);
+    const failing = () => {
+      const decoder = new FakeDecoder();
+      decoder.decode = () => decoder.onError?.(new Error("boom"));
+      return decoder;
+    };
+    const pipeline = new VideoPipeline(demuxer, failing);
+    await expect(pipeline.prime(0)).rejects.toThrow("boom"); // reported
+    await expect(pipeline.prime(0)).rejects.toThrow("boom"); // first retry is immediate
+    expect(FakeDecoder.instances).toHaveLength(2);
+    for (let i = 0; i < 10; i++) await pipeline.prime(0); // within the backoff: no new decoders
+    expect(FakeDecoder.instances).toHaveLength(2);
+    expect(FakeDecoder.instances.every((d) => d.closed)).toBe(true);
+  });
 });
 
 describe("MediaManager", () => {

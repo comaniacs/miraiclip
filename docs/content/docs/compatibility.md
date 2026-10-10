@@ -15,6 +15,8 @@ What Miraiclip runs on, and what media it handles.
 
 The renderer requires WebCodecs by design — there is no `<video>`-element fallback pipeline. Per-asset capability failures surface as `UnsupportedMediaError` naming the codec, not as silent black frames.
 
+**Mobile Safari** limits and reclaims hardware decoders (more video clips playing at once, or the page left idle, can close one). The renderer rebuilds a closed decoder from the nearest keyframe on the next frame; check with `isRecoverableDecoderError` if you log decoder errors yourself.
+
 ## Containers (input)
 
 Demuxing is mediabunny, so the renderer reads: MP4/M4V/M4A (ISOBMFF), QuickTime MOV, segmented MP4/CMAF, Matroska MKV, WebM, Ogg, MP3, WAV, ADTS AAC, FLAC, MPEG-TS, and HLS playlists.

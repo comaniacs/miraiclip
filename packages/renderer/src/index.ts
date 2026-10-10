@@ -4,7 +4,7 @@ export type { Clock } from "./clock.js";
 export { FrameCache } from "./media/frame-cache.js";
 export type { FrameCacheOptions } from "./media/frame-cache.js";
 
-export { VideoPipeline } from "./media/video-pipeline.js";
+export { VideoPipeline, isRecoverableDecoderError } from "./media/video-pipeline.js";
 export type { VideoPipelineOptions } from "./media/video-pipeline.js";
 
 export { MediaManager } from "./media/media-manager.js";
