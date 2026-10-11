@@ -162,14 +162,62 @@ class PixiSolidNode implements SolidSceneNode {
   }
 }
 
+/**
+ * Image textures shared by every image node of one backend, reference-counted
+ * by source. Pixi's `Assets` cache keeps a loaded texture forever; with nodes
+ * mounted only near the playhead, a long timeline would still accumulate every
+ * image it ever showed. The last release unloads the texture (after a short
+ * grace, so a scrub back across the clip doesn't re-decode it).
+ */
+class ImageTextureCache {
+  private readonly refs = new Map<string, number>();
+  private readonly timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+  constructor(private readonly graceMs = 2_000) {}
+
+  acquire(src: string): Promise<Texture> {
+    this.refs.set(src, (this.refs.get(src) ?? 0) + 1);
+    const timer = this.timers.get(src);
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      this.timers.delete(src);
+    }
+    return Assets.load<Texture>(src);
+  }
+
+  release(src: string): void {
+    const count = (this.refs.get(src) ?? 0) - 1;
+    if (count > 0) {
+      this.refs.set(src, count);
+      return;
+    }
+    this.refs.delete(src);
+    if (this.timers.has(src)) return;
+    this.timers.set(
+      src,
+      setTimeout(() => {
+        this.timers.delete(src);
+        if (!this.refs.has(src)) void Assets.unload(src).catch(() => undefined);
+      }, this.graceMs),
+    );
+  }
+
+  destroy(): void {
+    for (const timer of this.timers.values()) clearTimeout(timer);
+    this.timers.clear();
+  }
+}
+
 class PixiImageNode extends PixiNode<Sprite> {
   private loadedSrc: string | undefined;
+  private loading = false;
 
   constructor(
     stage: Container,
     private asset: Asset | undefined,
     invalidate: () => void,
     effectContext: EffectContext,
+    private readonly textures: ImageTextureCache,
   ) {
     const sprite = new Sprite(Texture.EMPTY);
     sprite.anchor.set(0.5);
@@ -183,19 +231,30 @@ class PixiImageNode extends PixiNode<Sprite> {
   private loadTexture(): void {
     const src = this.asset?.src;
     if (!src || src === this.loadedSrc) return;
+    if (this.loadedSrc !== undefined) this.textures.release(this.loadedSrc);
     this.loadedSrc = src;
-    this.ready = Assets.load<Texture>(src)
+    this.loading = true;
+    this.ready = this.textures
+      .acquire(src)
       .then((texture) => {
         if (this.loadedSrc === src && !this.display.destroyed) {
           this.display.texture = texture;
           this.invalidate();
         }
       })
-      .catch(() => undefined); // a missing image renders empty, as before — exports just no longer race it
+      .catch(() => undefined) // a missing image renders empty, as before — exports just no longer race it
+      .finally(() => {
+        if (this.loadedSrc === src) this.loading = false;
+      });
   }
 
   whenReady(): Promise<void> {
     return this.ready.then(() => undefined);
+  }
+
+  /** Still loading: frame-exact renderers (export) wait for it before drawing. */
+  isPending(): boolean {
+    return this.loading;
   }
 
   update(_clip: Clip): void {
@@ -205,6 +264,14 @@ class PixiImageNode extends PixiNode<Sprite> {
   setAsset(asset: Asset | undefined): void {
     this.asset = asset;
     this.loadTexture();
+  }
+
+  override destroy(): void {
+    // Detach first: the shared texture must outlive this sprite.
+    this.display.texture = Texture.EMPTY;
+    super.destroy();
+    if (this.loadedSrc !== undefined) this.textures.release(this.loadedSrc);
+    this.loadedSrc = undefined;
   }
 }
 
@@ -242,6 +309,17 @@ class PixiHtmlNode extends PixiNode<Sprite> {
   /** Failed rasters retry on a backoff (ms timestamp of the next attempt). */
   private failures = 0;
   private retryAt = 0;
+  /**
+   * This node's own raster canvas and the texture over it, reused across
+   * rasters: an animated clip re-rasters every frame, and a new canvas plus a
+   * new GPU texture per frame was the main source of preview memory churn.
+   */
+  private rasterCanvas: HTMLCanvasElement | undefined;
+  /** This node's SVG loader, reused across rasters (see RasterizeHtmlOptions.image). */
+  private rasterImage: HTMLImageElement | undefined;
+  private canvasTexture: { texture: Texture; source: TextureSource; width: number; height: number } | undefined;
+  /** When the last animated raster started (ms) — for the preview frame cap. */
+  private lastRasterAtMs = 0;
 
   constructor(
     stage: Container,
@@ -249,6 +327,7 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     private readonly assets: Readonly<Record<string, Asset>>,
     invalidate: () => void,
     private readonly context: EffectContext,
+    private readonly rasterOptions: HtmlRasterOptions = {},
   ) {
     const sprite = new Sprite(Texture.EMPTY);
     sprite.anchor.set(0.5);
@@ -269,7 +348,7 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     // preview's DPR): the texture carries the extra pixels while its
     // `resolution` keeps the sprite's LOGICAL size — sharp when the stage
     // scales up, identical layout everywhere.
-    const density = Math.max(1, this.context.renderScale?.() ?? 1);
+    const density = Math.max(this.rasterOptions.minDensity ?? 1, this.context.renderScale?.() ?? 1);
     const animated = clip.animated === true;
     // Animated: the animation length is part of the content (`--T`), so a
     // trim re-rasters too.
@@ -301,6 +380,9 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     // forever, so waiting for the time to change would leave a stale (or
     // empty) frame on screen. While failing, retries wait for the backoff.
     if (timeS === this.wantTimeS && (this.running || this.shownTimeS === timeS)) return;
+    // Preview frame cap: the newest wanted time is picked up by a later tick.
+    const maxFps = this.rasterOptions.maxAnimatedFps;
+    if (maxFps && !this.running && this.shown && now - this.lastRasterAtMs < 1000 / maxFps) return;
     this.wantTimeS = timeS;
     if (!this.running && this.failures > 0 && now < this.retryAt) return;
     this.request();
@@ -335,8 +417,15 @@ class PixiHtmlNode extends PixiNode<Sprite> {
         ? { timeS, durationS: htmlAnimationTiming(clip, clip.startUs).durationS }
         : undefined;
       let source: HTMLCanvasElement | ImageBitmap;
+      this.lastRasterAtMs = Date.now();
+      if (typeof document !== "undefined") {
+        this.rasterCanvas ??= document.createElement("canvas");
+        this.rasterImage ??= new Image();
+      }
       try {
         source = await rasterizeHtml({
+          ...(this.rasterCanvas ? { target: this.rasterCanvas } : {}),
+          ...(this.rasterImage ? { image: this.rasterImage } : {}),
           template: clip.template,
           params: clip.params,
           widthPx,
@@ -346,6 +435,8 @@ class PixiHtmlNode extends PixiNode<Sprite> {
           ...(timing ?? {}),
         });
       } catch (error) {
+        // Unmounted mid-raster (residency): the abort is the teardown itself.
+        if (this.display.destroyed) return;
         // Transient failures (a font fetch during a dev-server restart, say)
         // retry from tick on a backoff; whenReady still rejects so exports
         // fail loudly.
@@ -370,16 +461,54 @@ class PixiHtmlNode extends PixiNode<Sprite> {
           ? { canvas: source, density }
           : undefined;
       this.contentBounds = undefined;
-      const previous = this.display.texture;
-      const textureSource = htmlTextureSource(source, density);
-      this.display.texture = new Texture({ source: textureSource });
-      if (previous !== Texture.EMPTY) previous.destroy(true);
+      if (source === this.rasterCanvas) {
+        // Same canvas as last time: re-upload into the existing texture when
+        // the size is unchanged, else rebuild it once.
+        const reuse =
+          this.canvasTexture &&
+          this.canvasTexture.width === source.width &&
+          this.canvasTexture.height === source.height &&
+          this.canvasTexture.source.resolution === density;
+        if (reuse) {
+          this.canvasTexture!.source.update();
+        } else {
+          const previous = this.display.texture;
+          const textureSource = htmlTextureSource(source, density);
+          const texture = new Texture({ source: textureSource });
+          this.canvasTexture = { texture, source: textureSource, width: source.width, height: source.height };
+          this.display.texture = texture;
+          if (previous !== Texture.EMPTY) previous.destroy(true);
+        }
+      } else {
+        // Worker export: pre-rendered/provided bitmaps, one texture each.
+        const previous = this.display.texture;
+        const textureSource = htmlTextureSource(source, density);
+        this.display.texture = new Texture({ source: textureSource });
+        if (previous === this.canvasTexture?.texture) this.canvasTexture = undefined;
+        if (previous !== Texture.EMPTY) previous.destroy(true);
+      }
       this.invalidate();
     }
   }
 
   whenReady(): Promise<void> {
     return this.ready;
+  }
+
+  override destroy(): void {
+    super.destroy(); // destroys the sprite and its current texture
+    this.canvasTexture = undefined;
+    if (this.rasterCanvas) {
+      // Release the backing store now (GC alone can take a while on mobile).
+      this.rasterCanvas.width = 0;
+      this.rasterCanvas.height = 0;
+      this.rasterCanvas = undefined;
+    }
+    if (this.rasterImage) {
+      this.rasterImage.src = ""; // release the last SVG document
+      this.rasterImage = undefined;
+    }
+    this.raster = undefined;
   }
 
   /**
@@ -701,18 +830,22 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
     this.lastNative = native;
     // Frames arrive as ImageBitmaps (see the WebCodecs adapter) and upload
     // straight to the GL texture — one copy, no 2D-canvas hop.
-    const bitmap = native as ImageBitmap;
-    if (bitmap.width !== this.frameWidthPx || bitmap.height !== this.frameHeightPx) {
-      this.frameWidthPx = bitmap.width;
-      this.frameHeightPx = bitmap.height;
+    // ImageBitmap (default) or VideoFrame (frameStorage "videoframe"): both
+    // are WebGL texture sources; only their size properties differ.
+    const isVideoFrame = typeof VideoFrame !== "undefined" && native instanceof VideoFrame;
+    const width = isVideoFrame ? (native as VideoFrame).displayWidth : (native as ImageBitmap).width;
+    const height = isVideoFrame ? (native as VideoFrame).displayHeight : (native as ImageBitmap).height;
+    if (width !== this.frameWidthPx || height !== this.frameHeightPx) {
+      this.frameWidthPx = width;
+      this.frameHeightPx = height;
       if (this.placement) this.setPlacement(this.placement);
     }
-    if (!this.source || this.source.width !== bitmap.width || this.source.height !== bitmap.height) {
+    if (!this.source || this.source.width !== width || this.source.height !== height) {
       this.texture?.destroy(true);
-      this.source = new ImageSource({ resource: bitmap });
+      this.source = new ImageSource({ resource: native as ImageBitmap, width, height });
       this.texture = new Texture({ source: this.source });
     } else {
-      this.source.resource = bitmap;
+      this.source.resource = native as ImageBitmap;
       this.source.update();
     }
     if (this.display.texture !== this.texture) this.display.texture = this.texture!;
@@ -736,6 +869,7 @@ class PixiSceneBackend implements SceneBackend {
    * scene (a paused 4K frame, say) burns GPU/CPU for identical pixels.
    */
   private dirty = true;
+  private readonly imageTextures = new ImageTextureCache();
   private compSize = { width: 0, height: 0 };
   private outputSize: { width: number; height: number } | undefined;
   private readonly invalidate = (): void => {
@@ -753,7 +887,10 @@ class PixiSceneBackend implements SceneBackend {
     },
   };
 
-  constructor(private readonly app: Application) {
+  constructor(
+    private readonly app: Application,
+    private readonly htmlRaster: HtmlRasterOptions = {},
+  ) {
     this.app.stage.sortableChildren = true;
     this.compSize = { width: app.renderer.width, height: app.renderer.height };
   }
@@ -782,7 +919,7 @@ class PixiSceneBackend implements SceneBackend {
 
   createImage(_clip: ImageClip, asset: Asset | undefined): SceneNode {
     this.invalidate();
-    return new PixiImageNode(this.app.stage, asset, this.invalidate, this.effectContext);
+    return new PixiImageNode(this.app.stage, asset, this.invalidate, this.effectContext, this.imageTextures);
   }
 
   createText(clip: TextClip): SceneNode {
@@ -802,7 +939,7 @@ class PixiSceneBackend implements SceneBackend {
 
   createHtml(clip: HtmlClip, assets: Readonly<Record<string, Asset>>): SceneNode {
     this.invalidate();
-    return new PixiHtmlNode(this.app.stage, clip, assets, this.invalidate, this.effectContext);
+    return new PixiHtmlNode(this.app.stage, clip, assets, this.invalidate, this.effectContext, this.htmlRaster);
   }
 
   createSolid(): SolidSceneNode {
@@ -817,8 +954,22 @@ class PixiSceneBackend implements SceneBackend {
   }
 
   destroy(): void {
+    this.imageTextures.destroy();
     this.app.destroy(undefined, { children: true });
   }
+}
+
+/** Live-preview quality limits for html clips (exports leave these unset: exact, full density). */
+export interface HtmlRasterOptions {
+  /**
+   * Lowest raster density (physical ÷ composition pixels). Default 1: rasters
+   * are never smaller than the composition. A live preview smaller than the
+   * composition (a phone) can pass e.g. 0.25 to raster at the size actually
+   * displayed — ~6× fewer pixels per raster for a 1080p project on a phone.
+   */
+  minDensity?: number;
+  /** Cap animated html re-rasters per clip (preview only; export waits for every frame). */
+  maxAnimatedFps?: number;
 }
 
 export interface PixiBackendOptions {
@@ -832,6 +983,8 @@ export interface PixiBackendOptions {
    * enable for testing, thumbnails, or screenshot features (default false).
    */
   preserveDrawingBuffer?: boolean;
+  /** Html clip raster limits for live preview — see `HtmlRasterOptions`. */
+  htmlRaster?: HtmlRasterOptions;
 }
 
 /** Create the PixiJS scene backend bound to a canvas. */
@@ -847,5 +1000,5 @@ export async function createPixiBackend(options: PixiBackendOptions): Promise<Sc
     antialias: true,
     preserveDrawingBuffer: options.preserveDrawingBuffer ?? false,
   });
-  return new PixiSceneBackend(app);
+  return new PixiSceneBackend(app, options.htmlRaster);
 }

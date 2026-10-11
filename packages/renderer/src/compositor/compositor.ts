@@ -53,6 +53,62 @@ export interface CompositorOptions {
    * (the Pixi backend has it).
    */
   outputSize?: { width: number; height: number };
+  /**
+   * Mount scene nodes only for clips near the time being rendered, instead of
+   * one node per clip in the document (default: on, 2s ahead / 1s behind).
+   * Nodes hold the heavy resources — decoded frames, textures, html rasters,
+   * effect filters — so with residency, memory follows how much is on screen
+   * around the playhead, not how long the timeline is. A node is unmounted
+   * once its clip is more than twice the window away (hysteresis, so a scrub
+   * along a window edge doesn't remount it every frame). Pass `false` for the
+   * old mount-everything behaviour.
+   */
+  residency?: CompositorResidencyOptions | false;
+}
+
+export interface CompositorResidencyOptions {
+  /** Mount clips starting within this far ahead of the render time (default 2s). */
+  aheadUs?: Us;
+  /** Keep clips that ended within this far behind the render time (default 1s). */
+  behindUs?: Us;
+}
+
+/**
+ * Clip render spans (bounds plus transition windows) bucketed by time, so
+ * "which clips touch [from, to]" costs a few bucket lookups instead of a scan
+ * of every clip — per-frame work must not grow with timeline length.
+ */
+class SpanIndex {
+  private static readonly BUCKET_US = 1_000_000;
+  private readonly buckets = new Map<number, string[]>();
+  private readonly spans = new Map<string, { fromUs: Us; toUs: Us }>();
+
+  set(clipId: string, fromUs: Us, toUs: Us): void {
+    this.spans.set(clipId, { fromUs, toUs });
+    const first = Math.floor(fromUs / SpanIndex.BUCKET_US);
+    const last = Math.floor(toUs / SpanIndex.BUCKET_US);
+    for (let b = first; b <= last; b++) {
+      let list = this.buckets.get(b);
+      if (!list) this.buckets.set(b, (list = []));
+      list.push(clipId);
+    }
+  }
+
+  /** Clip ids whose span intersects [fromUs, toUs] (into `out`). */
+  query(fromUs: Us, toUs: Us, out: Set<string>): Set<string> {
+    const first = Math.floor(fromUs / SpanIndex.BUCKET_US);
+    const last = Math.floor(toUs / SpanIndex.BUCKET_US);
+    for (let b = first; b <= last; b++) {
+      const list = this.buckets.get(b);
+      if (!list) continue;
+      for (const clipId of list) {
+        if (out.has(clipId)) continue;
+        const span = this.spans.get(clipId)!;
+        if (span.fromUs <= toUs && span.toUs >= fromUs) out.add(clipId);
+      }
+    }
+    return out;
+  }
 }
 
 const builtinFactories: Record<string, NodeFactory> = {
@@ -88,6 +144,10 @@ export class Compositor {
   private overlay: SolidSceneNode | undefined;
   private lastTimeUs: Us = 0;
   private destroyed = false;
+  private readonly residency: { aheadUs: Us; behindUs: Us } | null;
+  private spanIndex: SpanIndex | undefined;
+  /** Render time residency was last computed for (NaN: recompute). */
+  private residencyAtUs = Number.NaN;
 
   constructor(
     private readonly project: Project,
@@ -95,6 +155,13 @@ export class Compositor {
     options: CompositorOptions = {},
   ) {
     this.factories = { ...builtinFactories, ...options.factories };
+    this.residency =
+      options.residency === false
+        ? null
+        : {
+            aheadUs: options.residency?.aheadUs ?? 2_000_000,
+            behindUs: options.residency?.behindUs ?? 1_000_000,
+          };
     const { settings } = this.doc();
     backend.resize(settings.width, settings.height);
     if (options.outputSize) backend.setOutputSize?.(options.outputSize.width, options.outputSize.height);
@@ -109,14 +176,70 @@ export class Compositor {
     return this.project.getState().doc;
   }
 
+  /** Mounted scene nodes (with residency: only clips near the last render time). */
   get nodeCount(): number {
     return this.nodes.size;
+  }
+
+  /**
+   * Mount nodes for clips near `timeUs` and unmount far ones. `renderAt` does
+   * this itself; call it directly before preparing decode for a time that
+   * hasn't been rendered yet (seeks, export frames). Cheap when the time
+   * moved less than 200ms since the last call.
+   */
+  updateResidency(timeUs: Us): void {
+    const residency = this.residency;
+    if (!residency || this.destroyed) return;
+    if (Math.abs(timeUs - this.residencyAtUs) < 200_000) return;
+    this.residencyAtUs = timeUs;
+    const doc = this.doc();
+    const index = (this.spanIndex ??= this.buildSpanIndex(doc));
+    const keep = index.query(timeUs - 2 * residency.behindUs, timeUs + 2 * residency.aheadUs, new Set());
+    for (const [clipId, node] of this.nodes) {
+      if (keep.has(clipId) && doc.clips[clipId]) continue;
+      node.destroy();
+      this.nodes.delete(clipId);
+    }
+    const want = index.query(timeUs - residency.behindUs, timeUs + residency.aheadUs, new Set());
+    for (const clipId of want) {
+      if (this.nodes.has(clipId)) continue;
+      const clip = doc.clips[clipId];
+      if (!clip || doc.tracks[clip.trackId]?.hidden) continue; // hidden: never drawn
+      const node = this.createNode(clip);
+      if (!node) continue;
+      this.nodes.set(clipId, node);
+      node.setPlacement(computePlacement(clip, doc.settings));
+      node.setEffects?.(clip.effects ?? []);
+      const z = this.zByClip.get(clipId);
+      if (z !== undefined) node.setZ(z);
+    }
+  }
+
+  private buildSpanIndex(doc: ProjectDocument): SpanIndex {
+    const index = new SpanIndex();
+    for (const clip of Object.values(doc.clips)) {
+      let fromUs = clip.startUs;
+      let toUs = clip.startUs + clip.durationUs;
+      for (const { window } of this.transitionsByClip.get(clip.id) ?? []) {
+        fromUs = Math.min(fromUs, window.startUs);
+        toUs = Math.max(toUs, window.endUs);
+      }
+      index.set(clip.id, fromUs, toUs);
+    }
+    return index;
+  }
+
+  /** The document's clips or transitions changed: rebuild spans on next use. */
+  private invalidateResidency(): void {
+    this.spanIndex = undefined;
+    this.residencyAtUs = Number.NaN;
   }
 
   /** Render the composition at a timeline position. Cheap when nothing changed. */
   renderAt(timeUs: Us): void {
     if (this.destroyed) return;
     this.lastTimeUs = timeUs;
+    this.updateResidency(timeUs);
     const doc = this.doc();
     let dipAlpha = 0;
     let dipColor = 0x000000;
@@ -352,9 +475,15 @@ export class Compositor {
         this.nodes.delete(clipId);
       }
     }
-    for (const clipId of Object.keys(doc.clips)) this.syncClip(clipId, doc);
+    if (this.residency) {
+      // Mounted nodes re-sync; mounting itself is residency's job.
+      for (const clipId of this.nodes.keys()) this.syncClip(clipId, doc);
+    } else {
+      for (const clipId of Object.keys(doc.clips)) this.syncClip(clipId, doc);
+    }
     this.rebuildTransitions(doc);
     this.resyncOrder(doc);
+    this.invalidateResidency();
   }
 
   private rebuildTransitions(doc: ProjectDocument): void {
@@ -385,6 +514,9 @@ export class Compositor {
     }
     let node = existing;
     if (!node) {
+      // With residency, clips far from the render time stay unmounted; the
+      // next residency pass mounts this one if it is (now) near.
+      if (this.residency) return;
       node = this.createNode(clip) ?? undefined;
       if (!node) return;
       this.nodes.set(clipId, node);
@@ -474,6 +606,7 @@ export class Compositor {
     }
     for (const clipId of clipIds) this.syncClip(clipId, doc);
     if (structural || clipIds.size > 0) this.resyncOrder(doc);
+    if (structural || clipIds.size > 0 || transitionsChanged) this.invalidateResidency();
     this.renderAt(this.lastTimeUs);
   }
 }

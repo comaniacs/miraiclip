@@ -144,9 +144,9 @@ describe("video in the compositor", () => {
     });
     const t = 60 * FRAME_US; // 2s: both clips visible
     await videos.renderFrameAt(compositor, t);
-    // Each clip got its own dedicated lane (the shared per-asset pipeline may
-    // still exist from before the overlap — idle, and LRU-evicted in time).
-    expect(manager.activeCount).toBe(3);
+    // The overlap puts the clips on two decoder lanes: two pipelines, each
+    // holding its own media position.
+    expect(manager.activeCount).toBe(2);
     // The behavioral proof: both clips show their OWN exact frame — base at t,
     // pip at trim + (t - start). A shared pipeline cannot hold both at once.
     const base = node.lastFrame as { timestampUs: number };
@@ -184,13 +184,16 @@ describe("video in the compositor", () => {
         startUs: 5_000_000, durationUs: 1_500_000, trimStartUs: 8_500_000,
       },
     });
-    const nodes = backend.nodes.filter((n): n is FakeVideoNode => n instanceof FakeVideoNode);
     const started = Date.now();
     // Walk the last lookahead second of c1 and into c2, like the exporter.
     for (let f = 125; f < 160; f++) {
       const t = f * FRAME_US;
       await videos.renderFrameAt(compositor, t);
-      const visible = t < 5_000_000 ? nodes[0]! : nodes[1]!;
+      // Nodes mount near the playhead (compositor residency): read the live,
+      // visible video node rather than a snapshot taken before c2 mounted.
+      const visible = backend.nodes.find(
+        (n): n is FakeVideoNode => n instanceof FakeVideoNode && !n.destroyed && n.visible,
+      )!;
       const mediaUs = t < 5_000_000 ? t : 8_500_000 + (t - 5_000_000);
       const frame = visible.lastFrame as { timestampUs: number };
       expect(frame?.timestampUs, `frame ${f}`).toBe(Math.floor(mediaUs / FRAME_US) * FRAME_US);

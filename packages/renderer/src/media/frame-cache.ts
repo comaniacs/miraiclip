@@ -5,6 +5,20 @@ export interface FrameCacheOptions {
   maxFrames?: number;
   /** Maximum total bytes held (default 512 MiB — decoded frames are large). */
   maxBytes?: number;
+  /**
+   * Frames kept BEHIND the playhead regardless of budget headroom (default 8).
+   * Played frames are only useful for a short step back; without this cap a
+   * cache fills its whole budget with history (120 × 720p ≈ 440 MB per
+   * pipeline), which is what exhausted mobile memory.
+   */
+  maxBehindFrames?: number;
+  /**
+   * Cap on frames that still hold decoder output buffers (`poolBacked`
+   * handles — live VideoFrames), default 6. Hardware decoders own small
+   * output pools (often 8–16) and stall when a cache keeps them all; 6
+   * leaves headroom while still covering a few frames of decode-ahead.
+   */
+  maxPoolFrames?: number;
 }
 
 /**
@@ -15,11 +29,38 @@ export class FrameCache {
   private frames = new Map<Us, VideoFrameHandle>();
   private bytes = 0;
   private readonly maxFrames: number;
-  private readonly maxBytes: number;
+  private maxBytes: number;
+  private readonly maxBehindFrames: number;
+  private readonly maxPoolFrames: number;
+  /** Frames currently held that are pool-backed (live decoder buffers). */
+  private poolFrames = 0;
 
   constructor(options: FrameCacheOptions = {}) {
     this.maxFrames = options.maxFrames ?? 60;
     this.maxBytes = options.maxBytes ?? 512 * 1024 * 1024;
+    this.maxBehindFrames = options.maxBehindFrames ?? 8;
+    this.maxPoolFrames = options.maxPoolFrames ?? 6;
+  }
+
+  /**
+   * How many frames this cache will hold right now: the frame cap, reduced
+   * to the pool cap while it holds decoder buffers. Decode-ahead sizes itself
+   * by this (see VideoPipeline.effectiveAheadUs).
+   */
+  get frameCapacity(): number {
+    return this.poolFrames > 0 ? Math.min(this.maxFrames, this.maxPoolFrames) : this.maxFrames;
+  }
+
+  private get behindCapacity(): number {
+    return this.poolFrames > 0 ? Math.min(this.maxBehindFrames, 1) : this.maxBehindFrames;
+  }
+
+  /**
+   * Change the byte budget (the MediaManager splits one global budget across
+   * its live pipelines). Takes effect at the next `evict`.
+   */
+  setByteBudget(bytes: number): void {
+    this.maxBytes = Math.max(0, bytes);
   }
 
   get size(): number {
@@ -39,10 +80,12 @@ export class FrameCache {
     const existing = this.frames.get(frame.timestampUs);
     if (existing) {
       this.bytes -= existing.byteLength;
+      if (existing.poolBacked) this.poolFrames--;
       existing.close();
     }
     this.frames.set(frame.timestampUs, frame);
     this.bytes += frame.byteLength;
+    if (frame.poolBacked) this.poolFrames++;
   }
 
   /**
@@ -79,7 +122,23 @@ export class FrameCache {
    */
   evict(playheadUs: Us): void {
     const covering = this.frameAt(playheadUs);
-    while (this.frames.size > this.maxFrames || this.bytes > this.maxBytes) {
+    // History cap first: frames behind the playhead beyond `maxBehindFrames`
+    // go even when the budget has room (oldest first).
+    let behind = 0;
+    for (const frame of this.frames.values()) {
+      if (frame !== covering && frame.timestampUs < playheadUs) behind++;
+    }
+    while (behind > this.behindCapacity) {
+      let oldest: VideoFrameHandle | undefined;
+      for (const frame of this.frames.values()) {
+        if (frame === covering || frame.timestampUs >= playheadUs) continue;
+        if (!oldest || frame.timestampUs < oldest.timestampUs) oldest = frame;
+      }
+      if (!oldest) break;
+      this.drop(oldest);
+      behind--;
+    }
+    while (this.frames.size > this.frameCapacity || this.bytes > this.maxBytes) {
       let victim: VideoFrameHandle | undefined;
       for (const frame of this.frames.values()) {
         if (frame === covering) continue;
@@ -94,10 +153,15 @@ export class FrameCache {
         }
       }
       if (!victim) return; // only the covering frame left — keep it
-      this.frames.delete(victim.timestampUs);
-      this.bytes -= victim.byteLength;
-      victim.close();
+      this.drop(victim);
     }
+  }
+
+  private drop(frame: VideoFrameHandle): void {
+    this.frames.delete(frame.timestampUs);
+    this.bytes -= frame.byteLength;
+    if (frame.poolBacked) this.poolFrames--;
+    frame.close();
   }
 
   /** Close and drop every cached frame. */
@@ -105,5 +169,6 @@ export class FrameCache {
     for (const frame of this.frames.values()) frame.close();
     this.frames.clear();
     this.bytes = 0;
+    this.poolFrames = 0;
   }
 }

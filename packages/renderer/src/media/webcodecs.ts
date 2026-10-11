@@ -113,16 +113,40 @@ class MediabunnyDemuxer implements VideoTrackDemuxer {
 
 export type MediaSrc = string | Blob;
 
-/** Open the primary video track of a URL or Blob/File source. */
-export async function openMediabunnyDemuxer(
+export interface MediabunnyDemuxerOptions {
+  /**
+   * Read cache per open source, in bytes (default 16 MiB). Mediabunny's own
+   * default for URL sources is 64 MiB — per open file, and a timeline keeps
+   * several open at once (one per decoder lane), which on a phone is a
+   * meaningful slice of the tab's memory for no playback benefit: decoding
+   * reads forward, a few seconds of stream is plenty.
+   */
+  maxCacheBytes?: number;
+}
+
+/** A demuxer factory with options (see `MediabunnyDemuxerOptions`). */
+export function createMediabunnyDemuxerFactory(
+  options: MediabunnyDemuxerOptions = {},
+): (assetId: string, src: unknown) => Promise<VideoTrackDemuxer> {
+  const maxCacheSize = options.maxCacheBytes ?? 16 * 1024 * 1024;
+  return (assetId, src) => openDemuxer(assetId, src, maxCacheSize);
+}
+
+/** Open the primary video track of a URL or Blob/File source (16 MiB read cache). */
+export function openMediabunnyDemuxer(assetId: string, src: unknown): Promise<VideoTrackDemuxer> {
+  return openDemuxer(assetId, src, 16 * 1024 * 1024);
+}
+
+async function openDemuxer(
   assetId: string,
   src: unknown,
+  maxCacheSize: number,
 ): Promise<VideoTrackDemuxer> {
   const source =
     typeof src === "string"
-      ? new UrlSource(src)
+      ? new UrlSource(src, { maxCacheSize })
       : src instanceof Blob
-        ? new BlobSource(src)
+        ? new BlobSource(src, { maxCacheSize: Math.min(maxCacheSize, 8 * 1024 * 1024) })
         : null;
   if (!source) {
     throw new UnsupportedMediaError(assetId, "src must be a URL string or a Blob/File");
@@ -145,8 +169,32 @@ export interface WebCodecsDecoderOptions {
    * downscale happens on the GPU inside `createImageBitmap`. Layout is
    * unaffected: scene nodes normalize scale against the source's native size.
    * Leave unset for full-resolution output (export/thumbnails at full size).
+   *
+   * A function is read per frame — pass the preview's current pixel size so
+   * decoded frames never exceed what the canvas can show (a phone preview
+   * ~800px wide has no use for 1920px frames, and frame memory scales with
+   * the square of this).
    */
-  maxOutputDimensionPx?: number;
+  maxOutputDimensionPx?: number | (() => number | undefined);
+  /**
+   * How decoded frames are held until drawn.
+   *
+   * "auto" (default) decides per frame from where its pixels live:
+   * - CPU frames (I420/I422/I444 family — software decoders, e.g. VP9 in
+   *   most desktop Chromes): kept as the VideoFrame and uploaded straight to
+   *   WebGL. Converting them to ImageBitmaps went through the canvas image
+   *   path and left ~1 GB of image-cache and GPU transfer memory behind on
+   *   the launch film. They hold no decoder pool slot, so decode-ahead stays
+   *   as deep as the byte budget allows.
+   * - GPU frames (NV12, BGRA… — hardware decoders, e.g. H.264/HEVC on most
+   *   devices): copied to an ImageBitmap (GPU-side, resized to
+   *   `maxOutputDimensionPx`) and closed at once. Hardware decoders own a
+   *   small output pool and stall when a cache holds its frames — keeping
+   *   them as VideoFrames made playback of phone/camera footage stutter.
+   *
+   * "videoframe" / "bitmap" force one storage for every frame.
+   */
+  frameStorage?: "auto" | "bitmap" | "videoframe";
 }
 
 class WebCodecsFrameDecoder implements FrameDecoder {
@@ -173,7 +221,26 @@ class WebCodecsFrameDecoder implements FrameDecoder {
         // so fall back to a conservative frame length.
         const durationUs =
           frame.duration && frame.duration > 0 ? frame.duration : 33_333;
-        const cap = options.maxOutputDimensionPx;
+        const storage = options.frameStorage ?? "auto";
+        const cpuFrame = /^I4/.test(frame.format ?? "");
+        if (storage === "videoframe" || (storage === "auto" && cpuFrame)) {
+          const generation = this.generation;
+          const handle: VideoFrameHandle = {
+            timestampUs: frame.timestamp,
+            durationUs: frame.duration && frame.duration > 0 ? frame.duration : 33_333,
+            byteLength: frame.allocationSize?.() ?? frame.codedWidth * frame.codedHeight * 1.5,
+            native: frame,
+            // CPU frames are plain memory (budgeted by bytes); GPU frames held
+            // as VideoFrames ("videoframe" storage) occupy decoder pool slots.
+            poolBacked: !cpuFrame,
+            close: () => frame.close(),
+          };
+          if (generation === this.generation && this.onFrame) this.onFrame(handle);
+          else handle.close();
+          return;
+        }
+        const option = options.maxOutputDimensionPx;
+        const cap = typeof option === "function" ? option() : option;
         const sourceW = frame.displayWidth || frame.codedWidth;
         const sourceH = frame.displayHeight || frame.codedHeight;
         const longest = Math.max(sourceW, sourceH);

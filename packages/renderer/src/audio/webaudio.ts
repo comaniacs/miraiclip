@@ -39,9 +39,11 @@ export async function openMediabunnyAudio(
   assetId: string,
   src: unknown,
 ): Promise<AudioTrackSource | null> {
+  // Audio decodes strictly forward from a few seconds ahead of the playhead:
+  // an 8 MiB read cache per source (mediabunny's URL default is 64 MiB).
   const source =
     typeof src === "string"
-      ? new UrlSource(src)
+      ? new UrlSource(src, { maxCacheSize: 8 * 1024 * 1024 })
       : src instanceof Blob
         ? new BlobSource(src)
         : null;

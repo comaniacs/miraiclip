@@ -6,6 +6,14 @@ import type { AudioChannel, AudioOutput, AudioSourceFactory, AudioTrackSource } 
 export interface AudioEngineOptions {
   /** How far ahead of the playhead audio is kept scheduled (default 3s). */
   aheadUs?: Us;
+  /**
+   * Open a clip's audio source this long before it enters the scheduling
+   * window (default 1s), and close it this long after the clip ends. Only
+   * clips near the playhead hold an open source: each one is a demuxer with
+   * its own read cache, and opening every audible clip of a long timeline at
+   * play start doesn't scale.
+   */
+  prerollUs?: Us;
 }
 
 interface ClipLane {
@@ -29,6 +37,7 @@ interface ClipLane {
  */
 export class AudioEngine {
   private readonly aheadUs: Us;
+  private readonly prerollUs: Us;
   private readonly lanes = new Map<string, ClipLane>();
   private readonly unsubscribe: () => void;
   private epoch = 0;
@@ -46,6 +55,7 @@ export class AudioEngine {
     options: AudioEngineOptions = {},
   ) {
     this.aheadUs = options.aheadUs ?? 3_000_000;
+    this.prerollUs = options.prerollUs ?? 1_000_000;
     this.unsubscribe = project.events.on("patches", () => this.onDocChanged());
   }
 
@@ -63,17 +73,49 @@ export class AudioEngine {
     this.anchorTimelineUs = timelineUs;
     this.anchorOutputUs = this.output.currentTimeUs;
     this.windowEndUs = timelineUs + this.aheadUs;
-    for (const clip of Object.values(this.doc().clips)) {
+    this.admitLanes(timelineUs);
+  }
+
+  /**
+   * Start lanes for audible clips that overlap [timelineUs, window end +
+   * preroll) and aren't running yet; close lanes whose clip ended more than
+   * `prerollUs` before `timelineUs`. Clips further ahead start from pump()
+   * as the window reaches them.
+   */
+  private admitLanes(timelineUs: Us): void {
+    const doc = this.doc();
+    const horizonUs = this.windowEndUs + this.prerollUs;
+    for (const [clipId, lane] of this.lanes) {
+      const clip = doc.clips[clipId];
+      if (clip && clip.startUs + clip.durationUs > timelineUs - this.prerollUs) continue;
+      this.closeLane(clipId, lane);
+    }
+    for (const clip of Object.values(doc.clips)) {
       if (!isAudible(clip)) continue;
       if (clip.startUs + clip.durationUs <= timelineUs) continue; // already over
+      if (clip.startUs >= horizonUs) continue; // not near yet
+      const lane = this.lanes.get(clip.id);
+      // Already running, finished, or its source is still opening.
+      if (lane && (lane.generator || lane.exhausted || lane.source === undefined)) continue;
       this.startLane(clip, this.epoch);
     }
+  }
+
+  private closeLane(clipId: string, lane: ClipLane): void {
+    this.lanes.delete(clipId);
+    lane.channel.stopAll();
+    lane.channel.close();
+    const generator = lane.generator;
+    lane.generator = null;
+    void generator?.return?.(undefined)?.catch(() => undefined);
+    lane.source?.dispose();
   }
 
   /** Extend the scheduling window as the clock advances. Call periodically. */
   pump(timelineUs: Us): void {
     if (!this.playing || this.disposed) return;
     this.windowEndUs = timelineUs + this.aheadUs;
+    this.admitLanes(timelineUs);
     const doc = this.doc();
     for (const lane of this.lanes.values()) {
       const clip = doc.clips[lane.clipId];
@@ -112,7 +154,7 @@ export class AudioEngine {
     this.playing = false;
     for (const lane of this.lanes.values()) {
       lane.channel.stopAll();
-      void lane.generator?.return?.(undefined);
+      void lane.generator?.return?.(undefined)?.catch(() => undefined);
       lane.generator = null;
       lane.parked = false;
       lane.exhausted = false;
@@ -152,7 +194,16 @@ export class AudioEngine {
     const asset = this.doc().assets[clip.assetId];
     if (!asset) return;
     const begin = (source: AudioTrackSource | null) => {
-      if (epoch !== this.epoch || this.disposed) return;
+      if (this.lanes.get(clip.id) !== lane || this.disposed) {
+        // The lane was closed while its source was opening: nothing will
+        // ever dispose this source otherwise.
+        if (source && lane.source !== source) source.dispose();
+        return;
+      }
+      if (epoch !== this.epoch) {
+        lane.source = source; // keep it for the next start()
+        return;
+      }
       lane.source = source;
       if (!source) return; // asset has no audio track
       const fromTimelineUs = Math.max(this.anchorTimelineUs, clip.startUs);
@@ -177,8 +228,19 @@ export class AudioEngine {
         lane.parked = true; // resume from pump()
         return;
       }
-      const { value: chunk, done } = await lane.generator.next();
-      if (epoch !== this.epoch || this.disposed) return;
+      if (!lane.generator) return; // closed meanwhile
+      const generator: AsyncGenerator<import("./types.js").AudioChunk, void, undefined> = lane.generator;
+      let next: IteratorResult<import("./types.js").AudioChunk, void>;
+      try {
+        next = await generator.next();
+      } catch (error) {
+        // The lane was closed (its source disposed) or re-anchored while this
+        // read was in flight: teardown, not a media error.
+        if (epoch !== this.epoch || this.disposed || lane.generator !== generator || !this.lanes.has(lane.clipId)) return;
+        throw error;
+      }
+      const { value: chunk, done } = next;
+      if (epoch !== this.epoch || this.disposed || lane.generator !== generator) return;
       if (done || !chunk) {
         lane.exhausted = true;
         return;
@@ -228,11 +290,14 @@ export class AudioEngine {
       const clip = doc.clips[clipId];
       if (clip && isAudible(clip)) this.applyGain(lane, clip, this.anchorTimelineUs);
     }
-    // New audible clips join a running playback.
+    // New audible clips join a running playback once near the window (the
+    // next pump admits ones further ahead).
     if (this.playing) {
+      const horizonUs = this.windowEndUs + this.prerollUs;
       for (const clip of Object.values(doc.clips)) {
         if (!isAudible(clip) || this.lanes.has(clip.id)) continue;
         if (clip.startUs + clip.durationUs <= this.anchorTimelineUs) continue;
+        if (clip.startUs >= horizonUs) continue;
         this.startLane(clip, this.epoch);
       }
     }

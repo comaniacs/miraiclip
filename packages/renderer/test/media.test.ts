@@ -290,7 +290,12 @@ describe("VideoPipeline", () => {
       };
       return decoder;
     };
-    const pipeline = new VideoPipeline(demuxer, straggler, { aheadUs: 800_000 });
+    // History cap lifted: this test is about the arrival watermark, not about
+    // how many played frames the cache keeps (see "keeps a bounded history").
+    const pipeline = new VideoPipeline(demuxer, straggler, {
+      aheadUs: 800_000,
+      cache: { maxFrames: 120, maxBehindFrames: 120 },
+    });
     for (let f = 0; f <= 40; f++) await pipeline.prime(f * FRAME_US);
     expect(demuxer.iteratorsCreated).toBe(1); // held frame ≠ evicted frame
     expect(pipeline.frameAt(5 * FRAME_US)?.timestampUs).toBe(5 * FRAME_US); // landed late, kept

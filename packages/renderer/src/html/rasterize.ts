@@ -166,7 +166,34 @@ export interface RasterizeHtmlOptions {
   timeS?: number;
   /** Animated templates: the animation's total length in seconds (`--T`). */
   durationS?: number;
+  /**
+   * Draw into this canvas (resized if needed) instead of a new one. Animated
+   * clips re-raster every frame; a fresh full-size canvas per frame was the
+   * largest source of preview memory churn. DOM path only.
+   */
+  target?: HTMLCanvasElement;
+  /**
+   * Load the SVG through this image element instead of a new one. Changing
+   * the `src` of a live element releases the previous SVG document and its
+   * resource bytes right away; a fresh `Image()` per raster left each one
+   * waiting for garbage collection — hundreds of MB of retained SVG
+   * documents (inlined fonts included) within a minute of animated preview.
+   * DOM path only; one raster at a time per element.
+   */
+  image?: HTMLImageElement;
 }
+
+/**
+ * URL-encoded SVG around the time variables, per static raster input
+ * (template, params, size, density, fonts). An animated raster differs from
+ * the previous frame only in `--t`, but rebuilding and re-encoding the whole
+ * document — fonts inlined as base64, often hundreds of KB — every frame
+ * allocated megabytes of strings per second. encodeURIComponent is
+ * per-character, so encoding the parts separately is identical to encoding
+ * the whole. Small LRU: entries are only reused while a clip is animating.
+ */
+const encodedShells = new Map<string, { before: string; after: string }>();
+const MAX_ENCODED_SHELLS = 32;
 
 /**
  * Every animation paused and seeked: a negative delay of `t` starts it `t`
@@ -211,6 +238,56 @@ export async function rasterizeHtml(
         "exportProject on the main thread, or @miraiclip/server-export",
     );
   }
+  // Supersampling: the SVG (and canvas) are PHYSICAL size, while the markup
+  // lays out at the LOGICAL size inside a scale transform — same layout at
+  // every density, just more (or, for a small preview, fewer) pixels per glyph.
+  const density = options.density ?? 1;
+  const animated = options.timeS !== undefined;
+  const physicalW = Math.max(1, Math.round(widthPx * density));
+  const physicalH = Math.max(1, Math.round(heightPx * density));
+  const shellKey = JSON.stringify([options.template, options.params, widthPx, heightPx, density, animated]);
+  let shell = encodedShells.get(shellKey);
+  if (shell) {
+    encodedShells.delete(shellKey); // LRU: re-insert as most recent
+  } else {
+    shell = await buildShell(options, physicalW, physicalH, density, animated);
+  }
+  encodedShells.set(shellKey, shell);
+  while (encodedShells.size > MAX_ENCODED_SHELLS) encodedShells.delete(encodedShells.keys().next().value!);
+  const timeVars = animated
+    ? `;--t:${cssSeconds(options.timeS!)};--T:${cssSeconds(options.durationS ?? 0)}`
+    : "";
+
+  const image = options.image ?? new Image();
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error("html clip failed to rasterize (invalid markup?)"));
+    image.src = `data:image/svg+xml;charset=utf-8,${shell.before}${encodeURIComponent(timeVars)}${shell.after}`;
+  });
+
+  // The launder: via a 2D canvas the pixels are WebGL-safe (see header).
+  const canvas = options.target ?? document.createElement("canvas");
+  if (canvas.width !== physicalW) canvas.width = physicalW;
+  if (canvas.height !== physicalH) canvas.height = physicalH;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("could not create a 2D context for html rasterization");
+  context.clearRect(0, 0, physicalW, physicalH);
+  context.drawImage(image, 0, 0);
+  image.onload = null;
+  image.onerror = null;
+  // A reused element is released by its next `src`; a one-off one now.
+  if (!options.image) image.src = "";
+  return canvas;
+}
+
+/** The SVG document around the time variables, URL-encoded (see `encodedShells`). */
+async function buildShell(
+  options: RasterizeHtmlOptions,
+  physicalW: number,
+  physicalH: number,
+  density: number,
+  animated: boolean,
+): Promise<{ before: string; after: string }> {
   let markup = substituteParams(options.template, options.params);
 
   // Inline `asset:<id>` references (images inside the template).
@@ -234,39 +311,14 @@ export async function rasterizeHtml(
     fontCss += `@font-face{font-family:${JSON.stringify(asset.family)};src:url(${JSON.stringify(uri)})${descriptors}}`;
   }
 
-  // Supersampling: the SVG (and canvas) are PHYSICAL size, while the markup
-  // lays out at the LOGICAL size inside a scale transform — same layout at
-  // every density, just more pixels per glyph.
-  const density = options.density ?? 1;
-  const animated = options.timeS !== undefined;
-  const timeVars = animated
-    ? `;--t:${cssSeconds(options.timeS!)};--T:${cssSeconds(options.durationS ?? 0)}`
-    : "";
-  const physicalW = Math.round(widthPx * density);
-  const physicalH = Math.round(heightPx * density);
-  const svg =
+  const before =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${physicalW}" height="${physicalH}">` +
     (fontCss || animated ? `<style>${fontCss}${animated ? SEEK_CSS : ""}</style>` : "") +
     `<foreignObject width="100%" height="100%">` +
     `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${physicalW}px;height:${physicalH}px;overflow:hidden">` +
-    `<div style="width:${widthPx}px;height:${heightPx}px;overflow:hidden;transform:scale(${density});transform-origin:0 0${timeVars}">${markup}</div>` +
-    `</div></foreignObject></svg>`;
-
-  const image = new Image();
-  await new Promise<void>((resolve, reject) => {
-    image.onload = () => resolve();
-    image.onerror = () => reject(new Error("html clip failed to rasterize (invalid markup?)"));
-    image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-  });
-
-  // The launder: via a 2D canvas the pixels are WebGL-safe (see header).
-  const canvas = document.createElement("canvas");
-  canvas.width = physicalW;
-  canvas.height = physicalH;
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("could not create a 2D context for html rasterization");
-  context.drawImage(image, 0, 0);
-  return canvas;
+    `<div style="width:${options.widthPx}px;height:${options.heightPx}px;overflow:hidden;transform:scale(${density});transform-origin:0 0`;
+  const after = `">${markup}</div></div></foreignObject></svg>`;
+  return { before: encodeURIComponent(before), after: encodeURIComponent(after) };
 }
 
 /**

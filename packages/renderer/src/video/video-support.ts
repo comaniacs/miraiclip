@@ -1,4 +1,4 @@
-import { isVideoClip, type Clip, type EffectInstance, type Project, type VideoClip } from "@miraiclip/core";
+import { isVideoClip, type Clip, type EffectInstance, type Project, type ProjectDocument, type VideoClip } from "@miraiclip/core";
 import type { MediaManager } from "../media/media-manager.js";
 import type { Us } from "../media/types.js";
 import type { VideoPipeline } from "../media/video-pipeline.js";
@@ -10,7 +10,7 @@ import type {
   VideoSceneNode,
 } from "../compositor/types.js";
 import type { Compositor } from "../compositor/compositor.js";
-import { participatesInTransition, renderExtension } from "../transitions/timing.js";
+import { renderExtension } from "../transitions/timing.js";
 
 export interface VideoSupportOptions {
   /** Prepare clips that start within this window ahead of the playhead (default 1s). */
@@ -20,6 +20,53 @@ export interface VideoSupportOptions {
    * Silent-by-default was a mistake we made once — the default logs loudly.
    */
   onError?: (error: Error, clipId: string) => void;
+  /**
+   * Clips of one asset whose render spans come closer than this share a lane
+   * only if they don't — closer clips get separate decoder lanes, so the next
+   * clip can warm up while the current one plays (default: the lookahead).
+   */
+  laneGapUs?: Us;
+}
+
+/**
+ * Decoder lanes per asset — interval colouring over each clip's render span
+ * (its bounds plus any transition extension), padded by `gapUs`. Clips that
+ * never come within `gapUs` of each other share lane 0 (the asset's shared
+ * pipeline, where sequential cuts keep decoder continuity); overlapping or
+ * adjacent ones get the lowest free lane. The number of decoders an asset
+ * ever needs is therefore its peak overlap — a montage of 12 back-to-back
+ * transitioned cuts needs 2–3 lanes, not 12 (which is what one dedicated
+ * pipeline per transition clip cost, and what exhausted mobile memory).
+ */
+export function assignVideoLanes(
+  doc: ProjectDocument,
+  gapUs: Us,
+): Map<string, number> {
+  const byAsset = new Map<string, { id: string; fromUs: Us; toUs: Us }[]>();
+  for (const clip of Object.values(doc.clips)) {
+    if (!isVideoClip(clip)) continue;
+    const ext = renderExtension(doc, clip);
+    const span = {
+      id: clip.id,
+      fromUs: clip.startUs - ext.beforeUs,
+      toUs: clip.startUs + clip.durationUs + ext.afterUs,
+    };
+    let list = byAsset.get(clip.assetId);
+    if (!list) byAsset.set(clip.assetId, (list = []));
+    list.push(span);
+  }
+  const lanes = new Map<string, number>();
+  for (const spans of byAsset.values()) {
+    spans.sort((a, b) => a.fromUs - b.fromUs || (a.id < b.id ? -1 : 1));
+    const laneEnds: Us[] = []; // per lane: end of its last span (+ gap)
+    for (const span of spans) {
+      let lane = laneEnds.findIndex((endUs) => endUs <= span.fromUs);
+      if (lane === -1) lane = laneEnds.push(0) - 1;
+      laneEnds[lane] = span.toUs + gapUs;
+      lanes.set(span.id, lane);
+    }
+  }
+  return lanes;
 }
 
 /** Timeline position → position on the clip's source media. */
@@ -30,34 +77,53 @@ export function toMediaUs(clip: VideoClip, timelineUs: Us): Us {
 class VideoClipAdapter implements SceneNode {
   pipeline: VideoPipeline | undefined;
   private pipelinePromise: Promise<VideoPipeline> | undefined;
-  private dedicated = false;
+  /** Decoder lane for this clip's asset (0 = the asset's shared pipeline). */
+  private lane = 0;
+  /** The lane this adapter currently holds a pipeline on, if any. */
+  private heldLane: number | undefined;
 
-  /** Whether this clip decodes on its own pipeline rather than the asset's shared one. */
+  /** Whether this clip decodes on its own lane rather than the asset's shared pipeline. */
   get isDedicated(): boolean {
-    return this.dedicated;
+    return this.lane > 0;
+  }
+
+  get laneIndex(): number {
+    return this.lane;
   }
 
   constructor(
     private readonly inner: VideoSceneNode,
-    private readonly acquire: (dedicated: boolean) => Promise<VideoPipeline>,
-    private readonly touch: (dedicated: boolean) => void,
+    private readonly acquire: (lane: number) => Promise<VideoPipeline>,
+    private readonly touch: (lane: number) => void,
+    private readonly unhold: (lane: number) => void,
     private readonly onError: (error: Error) => void,
     private readonly onDestroy: () => void,
   ) {}
 
   /**
-   * A clip that participates in a transition needs its OWN pipeline: during
-   * the overlap window two clips of the same asset decode two positions at
-   * once, and a shared pipeline would fight over the seek target. Upgrading
-   * is one-way and idempotent; the shared pipeline stays owned by the
-   * manager for other clips of the asset. Lazy on purpose: the dedicated
-   * pipeline is acquired when the clip is next ticked/prepared, not here —
-   * eager acquisition for every transition clip in a long document would
-   * blow through the manager's pipeline cap at mount.
+   * Move to another decoder lane (lanes are recomputed when the timeline
+   * changes). The old lane's pipeline is released; the next tick/prepare
+   * acquires on the new one — lazily, so a long document never acquires
+   * pipelines for clips far from the playhead.
    */
+  setLane(lane: number): void {
+    if (lane === this.lane) return;
+    this.release();
+    this.lane = lane;
+  }
+
+  /** Kept for API compatibility: a dedicated clip is any clip on lane ≥ 1. */
   ensureDedicated(): void {
-    if (this.dedicated) return;
-    this.dedicated = true;
+    if (this.lane === 0) this.setLane(1);
+  }
+
+  /**
+   * Stop holding the pipeline (the clip left the playhead's neighbourhood).
+   * The MediaManager disposes it once no clip has held it for a moment.
+   */
+  release(): void {
+    if (this.heldLane !== undefined) this.unhold(this.heldLane);
+    this.heldLane = undefined;
     this.resetPipeline();
   }
 
@@ -73,23 +139,27 @@ class VideoClipAdapter implements SceneNode {
     // re-acquire instead of priming a dead pipeline forever (long timelines
     // with many assets went permanently black without this).
     if (this.pipeline?.isDisposed) this.resetPipeline();
-    this.pipelinePromise ??= this.acquire(this.dedicated).then((pipeline) => {
-      if (pipeline.isDisposed) {
-        // Evicted while opening — don't cache a dead pipeline; the next
-        // ensurePipeline() call re-acquires.
-        this.resetPipeline();
+    if (!this.pipelinePromise) {
+      const lane = this.lane;
+      this.heldLane = lane;
+      this.pipelinePromise = this.acquire(lane).then((pipeline) => {
+        if (pipeline.isDisposed || lane !== this.lane) {
+          // Evicted while opening, or moved lanes meanwhile — don't cache it;
+          // the next ensurePipeline() call re-acquires.
+          if (lane === this.lane) this.resetPipeline();
+          return pipeline;
+        }
+        this.pipeline = pipeline;
+        // Tell the scene node the source's NATIVE size: frames may arrive decoded
+        // below native resolution (proxy playback), and the node compensates so
+        // the clip renders at the same size regardless of decode resolution.
+        pipeline
+          .info()
+          .then((info) => this.inner.setSourceSize?.(info.width, info.height))
+          .catch(this.report);
         return pipeline;
-      }
-      this.pipeline = pipeline;
-      // Tell the scene node the source's NATIVE size: frames may arrive decoded
-      // below native resolution (proxy playback), and the node compensates so
-      // the clip renders at the same size regardless of decode resolution.
-      pipeline
-        .info()
-        .then((info) => this.inner.setSourceSize?.(info.width, info.height))
-        .catch(this.report);
-      return pipeline;
-    });
+      });
+    }
     return this.pipelinePromise;
   }
 
@@ -99,7 +169,7 @@ class VideoClipAdapter implements SceneNode {
 
   /** Await the exact frame at a media position (used by prepare/renderFrameAt). */
   async prepareAt(mediaUs: Us): Promise<void> {
-    this.touch(this.dedicated); // keep the manager's LRU order honest
+    this.touch(this.lane); // keep the manager's LRU order honest
     let pipeline = await this.ensurePipeline();
     // Evicted between (or during) acquisitions — one re-acquire attempt; if
     // the active set truly exceeds the cap this call yields no frame, and the
@@ -114,7 +184,7 @@ class VideoClipAdapter implements SceneNode {
   tick(clip: Clip, timeUs: Us): void {
     if (!isVideoClip(clip)) return;
     const mediaUs = toMediaUs(clip, timeUs);
-    this.touch(this.dedicated); // in use every frame → never the LRU victim
+    this.touch(this.lane); // in use every frame → never the LRU victim
     if (this.pipeline?.isDisposed) this.resetPipeline(); // evicted → re-acquire
     if (!this.pipeline) {
       // Kick off acquisition only — a deferred prime here could land after a
@@ -150,6 +220,7 @@ class VideoClipAdapter implements SceneNode {
     this.inner.update(clip);
   }
   destroy(): void {
+    this.release();
     this.onDestroy();
     this.inner.destroy();
   }
@@ -162,6 +233,8 @@ export interface VideoSupport {
   prepare(timeUs: Us): Promise<void>;
   /** Prepare then draw one exact frame — thumbnails, posters, export. */
   renderFrameAt(compositor: Compositor, timeUs: Us): Promise<void>;
+  /** Release pipelines no clip near the playhead needs (see MediaManager.sweep). */
+  sweep(): void;
   dispose(): void;
 }
 
@@ -181,6 +254,15 @@ export function createVideoSupport(
     ((error: Error, clipId: string) =>
       console.error(`[miraiclip] video clip "${clipId}" failed:`, error));
   const adapters = new Map<string, VideoClipAdapter>();
+  const laneGapUs = options.laneGapUs ?? lookaheadUs;
+  // Lanes depend only on the document; documents are immutable snapshots, so
+  // one colouring per document object.
+  let lanesFor: { doc: ProjectDocument; lanes: Map<string, number> } | undefined;
+  const lanes = (doc: ProjectDocument): Map<string, number> => {
+    if (lanesFor?.doc !== doc) lanesFor = { doc, lanes: assignVideoLanes(doc, laneGapUs) };
+    return lanesFor.lanes;
+  };
+  const laneKey = (lane: number): string | undefined => (lane === 0 ? undefined : `lane${lane}`);
 
   const factory: NodeFactory = (clip, { backend, assets }) => {
     if (!isVideoClip(clip)) return null;
@@ -190,88 +272,65 @@ export function createVideoSupport(
     const clipId = clip.id;
     const adapter = new VideoClipAdapter(
       inner,
-      (dedicated) => manager.acquire(asset.id, asset.src, dedicated ? clipId : undefined),
-      (dedicated) => manager.touch(asset.id, dedicated ? clipId : undefined),
+      (lane) => manager.acquire(asset.id, asset.src, laneKey(lane), clipId),
+      (lane) => manager.touch(asset.id, laneKey(lane)),
+      (lane) => manager.unhold(asset.id, laneKey(lane), clipId),
       (error) => onError(error, clipId),
       () => adapters.delete(clipId),
     );
     adapters.set(clipId, adapter);
-    if (participatesInTransition(project.getState().doc, clipId)) adapter.ensureDedicated();
-    // No eager acquisition here: a long document mounts every clip's node at
-    // once, and acquiring a pipeline per clip up front evicts the ones that
-    // are actually visible. The first tick/prepare acquires just-in-time.
+    adapter.setLane(lanes(project.getState().doc).get(clipId) ?? 0);
+    // No eager acquisition here: the first tick/prepare acquires just-in-time,
+    // and only for clips near the playhead.
     return adapter;
   };
 
   interface RelevantClip {
     adapter: VideoClipAdapter;
-    assetId: string;
+    /** Asset + lane: clips with the same key read the same pipeline. */
+    key: string;
     mediaUs: Us;
-    fromUs: Us;
-    toUs: Us;
     /** Not on screen yet — only warmed because it starts within the lookahead. */
     upcoming: boolean;
   }
 
   async function prepare(timeUs: Us): Promise<void> {
     const doc = project.getState().doc;
+    const laneOf = lanes(doc);
     const relevant: RelevantClip[] = [];
     for (const [clipId, adapter] of adapters) {
       const clip = doc.clips[clipId];
       if (!clip || !isVideoClip(clip)) continue;
+      adapter.setLane(laneOf.get(clipId) ?? 0);
       // Transitions render a clip beyond its bounds (from source headroom) —
-      // keep it decoded through the extension, and upgrade to a dedicated
-      // pipeline the moment a transition is attached to a live clip.
+      // keep it decoded through the extension.
       const extension = renderExtension(doc, clip);
-      if (participatesInTransition(doc, clipId)) adapter.ensureDedicated();
       const visibleFromUs = clip.startUs - extension.beforeUs;
       const visibleToUs = clip.startUs + clip.durationUs + extension.afterUs;
-      if (!(timeUs < visibleToUs && timeUs >= visibleFromUs - lookaheadUs)) continue;
+      if (!(timeUs < visibleToUs && timeUs >= visibleFromUs - lookaheadUs)) {
+        // Neither on screen nor about to be: give the pipeline back. (Kept for
+        // a short grace by the manager, so a scrub back across the cut is cheap.)
+        adapter.release();
+        continue;
+      }
       const mediaUs = toMediaUs(clip, Math.min(Math.max(timeUs, visibleFromUs), visibleToUs));
       relevant.push({
         adapter,
-        assetId: clip.assetId,
+        key: `${clip.assetId}\u0000${adapter.laneIndex}`,
         mediaUs,
-        fromUs: visibleFromUs,
-        toUs: visibleToUs,
         upcoming: timeUs < visibleFromUs,
       });
     }
-    // CONCURRENT clips of one asset (picture-in-picture of the same footage,
-    // echo overlays) each need their own pipeline, exactly as transition
-    // overlaps do: two clips demanding two media positions from one shared
-    // pipeline fight over its seek target every frame — the cache is cleared
-    // on every reversal and playback wedges. Sequential clips of one asset
-    // (splits, cuts) keep sharing: pipeline continuity is what makes those
-    // cheap. Dedication happens BEFORE the prepare jobs run, and prepare fires
-    // at least once per 300ms of playback with a 1s lookahead, so the upgrade
-    // lands before the overlap is visible.
-    for (let i = 0; i < relevant.length; i++) {
-      for (let j = i + 1; j < relevant.length; j++) {
-        const a = relevant[i]!;
-        const b = relevant[j]!;
-        if (a.assetId !== b.assetId) continue;
-        if (a.fromUs < b.toUs && b.fromUs < a.toUs) {
-          a.adapter.ensureDedicated();
-          b.adapter.ensureDedicated();
-        }
-      }
-    }
-    // Lookahead must never steal a SHARED pipeline from the clip on screen.
-    // A cut to another part of the same footage (sequential clips, one
-    // asset) puts both clips in `relevant` for the last lookahead window, and
-    // priming the upcoming clip's media position on the pipeline the visible
-    // clip is reading reverses its seek target every frame: the cache clears,
-    // waitForFrame times out re-seeking, and the export crawls at ~2s a frame
-    // while drawing stale frames. Skip that warm-up; the cut costs one
-    // re-seek when the upcoming clip becomes visible. Upcoming clips on other
-    // assets, or on dedicated pipelines, still warm up.
-    const onScreenShared = new Set(
-      relevant.filter((e) => !e.upcoming && !e.adapter.isDedicated).map((e) => e.assetId),
-    );
-    const jobs = relevant.filter(
-      (e) => !(e.upcoming && !e.adapter.isDedicated && onScreenShared.has(e.assetId)),
-    );
+    // Lanes already separate clips that overlap or come within the lane gap,
+    // so an upcoming clip normally warms its OWN pipeline. When it shares a
+    // lane with the clip on screen (a cut closer than the gap would have
+    // needed a further lane), warming would steal that pipeline: priming the
+    // upcoming media position reverses its seek target every frame — the
+    // cache clears, waitForFrame times out re-seeking, exports crawl. Skip
+    // the warm-up; the cut costs one re-seek when the clip becomes visible.
+    const onScreen = new Set(relevant.filter((e) => !e.upcoming).map((e) => e.key));
+    const jobs = relevant.filter((e) => !(e.upcoming && onScreen.has(e.key)));
+    manager.sweep();
     await Promise.all(jobs.map((entry) => entry.adapter.prepareAt(entry.mediaUs)));
   }
 
@@ -279,9 +338,15 @@ export function createVideoSupport(
     factory,
     prepare,
     async renderFrameAt(compositor, timeUs) {
+      // Clips are mounted around the playhead only — make sure the ones for
+      // this time exist before preparing their decode.
+      compositor.updateResidency(timeUs);
       await prepare(timeUs);
       // Exact: animated html rasters for this frame land before it's drawn.
       await compositor.renderExactAt(timeUs);
+    },
+    sweep() {
+      manager.sweep();
     },
     dispose() {
       adapters.clear();

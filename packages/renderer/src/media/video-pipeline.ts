@@ -41,6 +41,12 @@ export interface VideoPipelineOptions {
    */
   reseekGapUs?: Us;
   cache?: FrameCacheOptions;
+  /**
+   * Called when the platform reclaims this pipeline's decoder for lack of
+   * resources (QuotaExceededError) — the MediaManager shrinks its frame
+   * budget in response.
+   */
+  onMemoryPressure?: () => void;
 }
 
 /**
@@ -55,6 +61,7 @@ export class VideoPipeline {
   private readonly cache: FrameCache;
   private readonly aheadUs: Us;
   private readonly reseekGapUs: Us;
+  private readonly onMemoryPressure: (() => void) | undefined;
   private disposed = false;
 
   /**
@@ -129,6 +136,7 @@ export class VideoPipeline {
   ) {
     this.aheadUs = options.aheadUs ?? 1_000_000;
     this.reseekGapUs = options.reseekGapUs ?? 3_000_000;
+    this.onMemoryPressure = options.onMemoryPressure;
     // The byte budget matters as much as the frame count: 120 uncapped 4K
     // ImageBitmaps is ~4 GB of GPU-adjacent memory.
     this.cache = new FrameCache(
@@ -186,6 +194,21 @@ export class VideoPipeline {
     return this.cache.size;
   }
 
+  /** Bytes of decoded frames currently held. */
+  get cacheBytes(): number {
+    return this.cache.byteSize;
+  }
+
+  /**
+   * Resize this pipeline's share of the frame budget (set by the MediaManager
+   * as pipelines come and go). The ahead window adapts through
+   * `effectiveAheadUs`; excess frames go at the next arrival's eviction.
+   */
+  setCacheBudget(bytes: number): void {
+    this.cache.setByteBudget(bytes);
+    this.cache.evict(this.targetUs);
+  }
+
   /** Ensure frames around `targetUs` are decoded into the cache. */
   prime(targetUs: Us): Promise<void> {
     if (this.disposed) return Promise.resolve();
@@ -235,9 +258,15 @@ export class VideoPipeline {
     if (size === 0) return this.aheadUs;
     const bytesPerFrame = this.cache.byteSize / size;
     if (bytesPerFrame <= 0) return this.aheadUs;
+    // Bounded by bytes AND by how many frames the cache will hold (a small
+    // number while frames are live decoder buffers): decoding further ahead
+    // than the cache can keep just evicts frames on arrival.
     const budgetFrames = Math.max(
-      4,
-      Math.floor((this.cache.byteBudget * 0.75) / bytesPerFrame),
+      2,
+      Math.min(
+        Math.floor((this.cache.byteBudget * 0.75) / bytesPerFrame),
+        this.cache.frameCapacity - 1,
+      ),
     );
     return Math.min(this.aheadUs, budgetFrames * this.frameDurationUs);
   }
@@ -339,6 +368,8 @@ export class VideoPipeline {
         const error = this.decodeError;
         this.decodeError = undefined;
         this.replaceFailedDecoder();
+        // A reclaimed decoder is the platform saying it is short of resources.
+        if (error.name === "QuotaExceededError") this.onMemoryPressure?.();
         // Reclaimed / closed decoders are routine on mobile: rebuild quietly
         // (the backoff still applies). Anything else is reported once per failure.
         if (isRecoverableDecoderError(error)) continue;

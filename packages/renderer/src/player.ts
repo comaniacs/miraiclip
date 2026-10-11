@@ -1,6 +1,6 @@
 import type { Clip, Project } from "@miraiclip/core";
 import { RealtimeClock } from "./clock.js";
-import { Compositor } from "./compositor/compositor.js";
+import { Compositor, type CompositorResidencyOptions } from "./compositor/compositor.js";
 import type { ClipBounds, NodeFactory, SceneBackend } from "./compositor/types.js";
 import { MediaManager } from "./media/media-manager.js";
 import type { DemuxerFactory, FrameDecoderFactory, Us } from "./media/types.js";
@@ -41,6 +41,37 @@ export interface CreatePlayerOptions {
    */
   schedule?: (callback: () => void, intervalMs: number) => number;
   cancelSchedule?: (handle: number) => void;
+  /**
+   * Memory limits for preview playback. The defaults are sized for phones as
+   * well as desktops; raise `frameBudgetBytes` on a desktop app for deeper
+   * decode-ahead.
+   */
+  memory?: PlayerMemoryOptions;
+}
+
+export interface PlayerMemoryOptions {
+  /** Decoded-frame memory shared by all video pipelines (default 256 MiB). */
+  frameBudgetBytes?: number;
+  /** Simultaneous decoder pipelines before least-recently-used release (default 4). */
+  maxActivePipelines?: number;
+  /** Dispose a pipeline no clip has needed for this long (default 1500ms). */
+  idleReleaseMs?: number;
+  /** Mount scene nodes only near the playhead (default on) — see `CompositorOptions.residency`. */
+  residency?: CompositorResidencyOptions | false;
+}
+
+/** Live resource counts — for dev overlays, tests and memory dashboards. */
+export interface PlayerStats {
+  /** Decoder pipelines open (including idle ones about to be released). */
+  pipelines: number;
+  idlePipelines: number;
+  /** Decoded frames held across all pipelines, and their bytes. */
+  cachedFrames: number;
+  cachedBytes: number;
+  frameBudgetBytes: number;
+  /** Scene nodes mounted (clips near the playhead) / clips in the document. */
+  mountedNodes: number;
+  clips: number;
 }
 
 export interface Player {
@@ -56,6 +87,14 @@ export interface Player {
   getClipBounds(clipId: string, timeUs?: Us): ClipBounds | null;
   /** Topmost clip drawn at a composition-pixel point now (or at `timeUs`) — see `Compositor.hitTest`. */
   hitTest(xPx: number, yPx: number, options?: { timeUs?: Us; filter?: (clip: Clip) => boolean }): string | null;
+  /** Live resource counts (see `PlayerStats`). */
+  stats(): PlayerStats;
+  /**
+   * Tell the player the platform is short of memory (e.g. on a
+   * `webglcontextlost` or a page `memorypressure` signal): it shrinks the
+   * frame budget so playback degrades instead of the tab being killed.
+   */
+  reportMemoryPressure(): void;
   destroy(): void;
 }
 
@@ -73,9 +112,13 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   const cancelRaf =
     options.cancelRaf ?? ((handle: number) => cancelAnimationFrame(handle));
 
+  const memory = options.memory ?? {};
   const manager = new MediaManager({
     openDemuxer: options.openDemuxer,
     createDecoder: options.createDecoder,
+    ...(memory.frameBudgetBytes !== undefined ? { frameBudgetBytes: memory.frameBudgetBytes } : {}),
+    ...(memory.maxActivePipelines !== undefined ? { maxActivePipelines: memory.maxActivePipelines } : {}),
+    ...(memory.idleReleaseMs !== undefined ? { idleReleaseMs: memory.idleReleaseMs } : {}),
   });
   const videos = createVideoSupport(
     project,
@@ -85,7 +128,13 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   const compositor = new Compositor(project, options.backend, {
     factories: { ...options.factories, video: videos.factory },
     ...(options.outputSize ? { outputSize: options.outputSize } : {}),
+    ...(memory.residency !== undefined ? { residency: memory.residency } : {}),
   });
+  /** Mount the clips around `timeUs`, then prepare their decode. */
+  const prepareAt = (timeUs: Us): Promise<void> => {
+    compositor.updateResidency(timeUs);
+    return videos.prepare(timeUs);
+  };
   const audio = new AudioEngine(project, options.audioOutput, options.openAudio);
   const clock = new RealtimeClock(() => options.audioOutput.currentTimeUs / 1000);
 
@@ -138,7 +187,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     // Keep decode/schedule windows rolling without doing it every frame.
     if (Math.abs(t - lastPumpUs) > 300_000) {
       lastPumpUs = t;
-      videos.prepare(t).catch(() => undefined); // per-clip errors surface via onError
+      prepareAt(t).catch(() => undefined); // per-clip errors surface via onError
       audio.pump(t);
     }
     return t;
@@ -172,14 +221,18 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   const cancelSchedule =
     options.cancelSchedule ?? ((handle: number) => clearInterval(handle));
   const pumpHandle = schedule(() => {
-    if (!destroyed && clock.playing) advance();
+    if (destroyed) return;
+    if (clock.playing) advance();
+    // Release decoders no clip near the playhead needs — also while paused,
+    // so memory drops back after a heavy section even without playback.
+    else videos.sweep();
   }, 500);
 
   /** Resume the transport once the target frame is ready (capped at 400ms). */
   function resumeWhenReady(timeUs: Us): void {
     const epoch = ++holdEpoch;
     pendingPlay = true;
-    const ready = videos.prepare(timeUs).catch(() => undefined);
+    const ready = prepareAt(timeUs).catch(() => undefined);
     const cap = new Promise<void>((resolve) => setTimeout(resolve, 400));
     void Promise.race([ready, cap]).then(() => {
       if (destroyed || epoch !== holdEpoch || !pendingPlay) return;
@@ -204,7 +257,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       resumeWhenReady(timeUs); // audio restarts in sync with the ready frame
     } else {
       lastPumpUs = Number.NEGATIVE_INFINITY;
-      void videos.prepare(timeUs);
+      void prepareAt(timeUs);
     }
   }
 
@@ -254,6 +307,17 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     hitTest(xPx, yPx, hitOptions) {
       if (destroyed) return null;
       return compositor.hitTest(xPx, yPx, hitOptions?.timeUs, hitOptions?.filter);
+    },
+    stats() {
+      const media = manager.stats();
+      return {
+        ...media,
+        mountedNodes: compositor.nodeCount,
+        clips: Object.keys(project.getState().doc.clips).length,
+      };
+    },
+    reportMemoryPressure() {
+      manager.reportMemoryPressure();
     },
     destroy() {
       if (destroyed) return;

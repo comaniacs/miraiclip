@@ -12,7 +12,7 @@ import {
   transitionsForClip,
   windowOf,
 } from "../src/transitions/timing.js";
-import { createVideoSupport } from "../src/video/video-support.js";
+import { assignVideoLanes, createVideoSupport } from "../src/video/video-support.js";
 import { FakeDemuxer, createFakeDecoder } from "./fakes.js";
 import { FakeBackend } from "./scene-fakes.js";
 
@@ -217,10 +217,12 @@ describe("transition media pipelines", () => {
     // are live, so both dedicated lanes exist. Acquisition is lazy — a lane
     // is only opened when its clip nears visibility, never at mount.
     await videos.prepare(2 * SEC);
-    // Two clips of ONE asset, both in the transition → two dedicated lanes,
-    // and no shared per-asset pipeline was ever created.
+    // Two clips of ONE asset, both in the transition → two decoder lanes
+    // (lane 0 is the asset's shared pipeline, lane 1 the overlap's second
+    // decoder) — two pipelines, never a third.
     expect(manager.activeCount).toBe(2);
-    expect(manager.isActive("media")).toBe(false);
+    const lanes = assignVideoLanes(project.getState().doc, SEC);
+    expect(new Set(lanes.values()).size).toBe(2);
     compositor.destroy();
     videos.dispose();
   });

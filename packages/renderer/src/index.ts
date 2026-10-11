@@ -8,7 +8,7 @@ export { VideoPipeline, isRecoverableDecoderError } from "./media/video-pipeline
 export type { VideoPipelineOptions } from "./media/video-pipeline.js";
 
 export { MediaManager } from "./media/media-manager.js";
-export type { MediaManagerOptions } from "./media/media-manager.js";
+export type { MediaManagerOptions, MediaManagerStats } from "./media/media-manager.js";
 
 export { UnsupportedMediaError } from "./media/types.js";
 export type {
@@ -23,7 +23,7 @@ export type {
 } from "./media/types.js";
 
 export { Compositor } from "./compositor/compositor.js";
-export type { CompositorOptions } from "./compositor/compositor.js";
+export type { CompositorOptions, CompositorResidencyOptions } from "./compositor/compositor.js";
 export { computePlacement, zIndexFor, Z_PER_TRACK } from "./compositor/placement.js";
 export type {
   ClipBounds,
@@ -40,7 +40,7 @@ export type {
 } from "./compositor/types.js";
 
 export { loadFontAssets } from "./captions/fonts.js";
-export { createVideoSupport, toMediaUs } from "./video/video-support.js";
+export { assignVideoLanes, createVideoSupport, toMediaUs } from "./video/video-support.js";
 export type { VideoSupport, VideoSupportOptions } from "./video/video-support.js";
 
 export { AudioEngine } from "./audio/audio-engine.js";
@@ -58,17 +58,19 @@ export type { WaveformPeaks, WaveformPeaksOptions } from "./audio/waveform.js";
 export { clipFades, fadeGainAt } from "./audio/mapping.js";
 
 export { createPlayer } from "./player.js";
-export type { CreatePlayerOptions, Player } from "./player.js";
+export type { CreatePlayerOptions, Player, PlayerMemoryOptions, PlayerStats } from "./player.js";
 export { createPixiBackend } from "./compositor/pixi-backend.js";
-export type { PixiBackendOptions } from "./compositor/pixi-backend.js";
+export type { HtmlRasterOptions, PixiBackendOptions } from "./compositor/pixi-backend.js";
 
 export {
   assertDecodable,
   createWebCodecsDecoder,
   createWebCodecsDecoderFactory,
+  createMediabunnyDemuxerFactory,
   isWebCodecsSupported,
   openMediabunnyDemuxer,
 } from "./media/webcodecs.js";
+export type { MediabunnyDemuxerOptions } from "./media/webcodecs.js";
 export type { MediaSrc, WebCodecsDecoderOptions } from "./media/webcodecs.js";
 
 export { exportComposition, exportFrameWindow } from "./export/exporter.js";

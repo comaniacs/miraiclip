@@ -81,9 +81,10 @@ describe("frame parity on a long NTSC timeline", () => {
 
     const backend = new RecordingBackend();
     const compositor = new Compositor(project, backend);
-    const nodes = [...backend.byClip];
+    // Nodes are mounted around the render time (compositor residency), so
+    // read the live set — a snapshot taken at construction goes stale.
     const visibleClip = (): string => {
-      const shown = nodes.filter(([, node]) => node.visible);
+      const shown = [...backend.byClip].filter(([, node]) => !node.destroyed && node.visible);
       return shown.length === 1 ? shown[0]![0] : `(${shown.length} visible)`;
     };
     const endUs = Math.max(...Object.values(doc.clips).map((c) => c.startUs + c.durationUs));

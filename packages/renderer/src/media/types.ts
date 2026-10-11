@@ -14,6 +14,12 @@ export interface VideoFrameHandle {
   readonly byteLength: number;
   /** The underlying frame (a `VideoFrame` in the browser). */
   readonly native: unknown;
+  /**
+   * The frame still holds a decoder output buffer (a live `VideoFrame`).
+   * Hardware decoders own a small pool of these and stall when it runs dry,
+   * so caches hold only a few such frames at a time (see FrameCache).
+   */
+  readonly poolBacked?: boolean;
   close(): void;
 }
 
