@@ -8,7 +8,8 @@ import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, ty
 import { captionProgress, displayText, layoutCaption, POP_SCALE, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { LocalBounds, Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
-import { htmlAnimationTiming, htmlRasterKey, rasterizeHtml } from "../html/rasterize.js";
+import { htmlAnimationTiming, htmlRasterKey, rasterizeHtml, substituteParams } from "../html/rasterize.js";
+import { analyzeHtmlAnimations, type HtmlAnimationTimeline } from "../html/animation-timeline.js";
 import { captionMetrics, captionWordStyle, textClipStyle } from "../text/typography.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
@@ -320,6 +321,15 @@ class PixiHtmlNode extends PixiNode<Sprite> {
   private canvasTexture: { texture: Texture; source: TextureSource; width: number; height: number } | undefined;
   /** When the last animated raster started (ms) — for the preview frame cap. */
   private lastRasterAtMs = 0;
+  /**
+   * `reuseStaticFrames`: when the content's picture changes (from its CSS
+   * animations), `null` when it can't be analysed, undefined before analysis.
+   */
+  private timeline: HtmlAnimationTimeline | null | undefined;
+  /** The constant span (`sinceS`) of the frame on the texture, when known. */
+  private shownSinceS: number | undefined;
+  /** Smoothed main-thread cost of one raster of this content (ms), for the budget. */
+  private rasterCostMs = 0;
 
   constructor(
     stage: Container,
@@ -328,6 +338,7 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     invalidate: () => void,
     private readonly context: EffectContext,
     private readonly rasterOptions: HtmlRasterOptions = {},
+    private readonly load: HtmlRasterLoad = new HtmlRasterLoad(),
   ) {
     const sprite = new Sprite(Texture.EMPTY);
     sprite.anchor.set(0.5);
@@ -358,6 +369,9 @@ class PixiHtmlNode extends PixiNode<Sprite> {
     this.key = key;
     this.inputs = { widthPx, heightPx, density };
     this.shownTimeS = undefined;
+    this.shownSinceS = undefined;
+    this.timeline = undefined;
+    this.rasterCostMs = 0;
     this.shown = false;
     this.failures = 0;
     this.retryAt = 0;
@@ -375,17 +389,49 @@ class PixiHtmlNode extends PixiNode<Sprite> {
       return;
     }
     const { timeS } = htmlAnimationTiming(clip, timeUs);
+    // Same picture as the frame on screen (nothing animates between them):
+    // keep it — no raster, no main-thread time, no garbage.
+    if (this.shown && !this.running && this.shownSinceS !== undefined && this.constantSince(timeS) === this.shownSinceS) {
+      this.load.idle(this);
+      return;
+    }
     // Up to date, or on its way. A frame that never landed (its raster
     // failed) is asked for again — paused playback requests the same frame
     // forever, so waiting for the time to change would leave a stale (or
     // empty) frame on screen. While failing, retries wait for the backoff.
     if (timeS === this.wantTimeS && (this.running || this.shownTimeS === timeS)) return;
-    // Preview frame cap: the newest wanted time is picked up by a later tick.
-    const maxFps = this.rasterOptions.maxAnimatedFps;
-    if (maxFps && !this.running && this.shown && now - this.lastRasterAtMs < 1000 / maxFps) return;
+    // Preview pacing: the frame cap, and the shared main-thread budget (each
+    // animating clip gets an equal share). The newest wanted time is picked
+    // up by a later tick; the last frame stays on screen meanwhile.
+    // Checked while a raster runs too: requests made meanwhile would chain
+    // the next raster straight after it, back to back, ignoring the pace.
+    this.load.active(this, now);
+    if (this.shown && now - this.lastRasterAtMs < this.minIntervalMs()) return;
     this.wantTimeS = timeS;
     if (!this.running && this.failures > 0 && now < this.retryAt) return;
     this.request();
+  }
+
+  /** Shortest gap between animated rasters (ms) from the frame cap and the budget. */
+  private minIntervalMs(): number {
+    const maxFps = this.rasterOptions.maxAnimatedFps;
+    const capMs = maxFps ? 1000 / maxFps : 0;
+    const budget = this.rasterOptions.budget;
+    if (!budget || budget <= 0 || this.rasterCostMs <= 0) return capMs;
+    return Math.max(capMs, (this.rasterCostMs * this.load.activeCount()) / Math.min(1, budget));
+  }
+
+  /**
+   * Start of the constant span containing animation time `timeS`, or
+   * undefined when every frame differs there (or reuse is off / unknown).
+   */
+  private constantSince(timeS: number): number | undefined {
+    if (!this.rasterOptions.reuseStaticFrames || !this.clip.animated) return undefined;
+    if (this.timeline === undefined) {
+      const { widthPx, heightPx } = this.inputs;
+      this.timeline = analyzeHtmlAnimations(substituteParams(this.clip.template, this.clip.params), widthPx, heightPx) ?? null;
+    }
+    return this.timeline?.constantSpanAt(timeS)?.sinceS;
   }
 
   /** True while the texture lags the wanted frame (a raster is due or running). */
@@ -418,6 +464,7 @@ class PixiHtmlNode extends PixiNode<Sprite> {
         : undefined;
       let source: HTMLCanvasElement | ImageBitmap;
       this.lastRasterAtMs = Date.now();
+      const startedMs = typeof performance !== "undefined" ? performance.now() : Date.now();
       if (typeof document !== "undefined") {
         this.rasterCanvas ??= document.createElement("canvas");
         this.rasterImage ??= new Image();
@@ -452,7 +499,10 @@ class PixiHtmlNode extends PixiNode<Sprite> {
         if (this.key !== key) this.pending = true;
         continue;
       }
+      const costMs = (typeof performance !== "undefined" ? performance.now() : Date.now()) - startedMs;
+      this.rasterCostMs = this.rasterCostMs > 0 ? this.rasterCostMs * 0.7 + costMs * 0.3 : costMs;
       this.shownTimeS = timeS;
+      this.shownSinceS = timeS === undefined ? undefined : this.constantSince(timeS);
       this.shown = true;
       this.failures = 0;
       this.retryAt = 0;
@@ -497,6 +547,7 @@ class PixiHtmlNode extends PixiNode<Sprite> {
 
   override destroy(): void {
     super.destroy(); // destroys the sprite and its current texture
+    this.load.idle(this);
     this.canvasTexture = undefined;
     if (this.rasterCanvas) {
       // Release the backing store now (GC alone can take a while on mobile).
@@ -887,6 +938,9 @@ class PixiSceneBackend implements SceneBackend {
     },
   };
 
+  /** Which animated html clips share the raster budget right now. */
+  private readonly htmlLoad = new HtmlRasterLoad();
+
   constructor(
     private readonly app: Application,
     private readonly htmlRaster: HtmlRasterOptions = {},
@@ -939,7 +993,7 @@ class PixiSceneBackend implements SceneBackend {
 
   createHtml(clip: HtmlClip, assets: Readonly<Record<string, Asset>>): SceneNode {
     this.invalidate();
-    return new PixiHtmlNode(this.app.stage, clip, assets, this.invalidate, this.effectContext, this.htmlRaster);
+    return new PixiHtmlNode(this.app.stage, clip, assets, this.invalidate, this.effectContext, this.htmlRaster, this.htmlLoad);
   }
 
   createSolid(): SolidSceneNode {
@@ -970,6 +1024,52 @@ export interface HtmlRasterOptions {
   minDensity?: number;
   /** Cap animated html re-rasters per clip (preview only; export waits for every frame). */
   maxAnimatedFps?: number;
+  /**
+   * Share of main-thread time animated html rasters may use, 0..1 (e.g. 0.3).
+   * An html raster is a full document build on the main thread (~10–15 ms on
+   * a desktop, several times that on a phone), so an unbounded preview spends
+   * the whole frame on it and video, audio and input starve. With a budget,
+   * every animating clip gets an equal share and lowers its own frame rate to
+   * stay inside it — the picture stays exact, just updated less often.
+   * Preview only; unset = no limit.
+   */
+  budget?: number;
+  /**
+   * Keep the current raster while nothing animates. The template's CSS
+   * animations are analysed once (through the browser's own CSS engine) to
+   * find when the picture actually changes — fly-ins, then holds; `steps()`
+   * counters — and identical frames are not rasterized again. Anything that
+   * can't be analysed (markup reading `--t` directly, SMIL) re-rasters every
+   * frame as before. Preview only (exports leave it off and raster every frame).
+   */
+  reuseStaticFrames?: boolean;
+}
+
+/**
+ * The animated html clips currently re-rasterizing, shared by one backend's
+ * nodes so the raster budget is split between them. A clip holding a static
+ * frame (or unmounted) leaves the set; a clip not heard from for a second
+ * (scrolled out, paused) drops out on its own.
+ */
+export class HtmlRasterLoad {
+  private readonly lastActiveMs = new Map<object, number>();
+
+  active(node: object, nowMs: number): void {
+    this.lastActiveMs.set(node, nowMs);
+  }
+
+  idle(node: object): void {
+    this.lastActiveMs.delete(node);
+  }
+
+  activeCount(nowMs: number = Date.now()): number {
+    let count = 0;
+    for (const [node, at] of this.lastActiveMs) {
+      if (nowMs - at > 1000) this.lastActiveMs.delete(node);
+      else count++;
+    }
+    return Math.max(1, count);
+  }
 }
 
 export interface PixiBackendOptions {

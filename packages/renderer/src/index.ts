@@ -77,6 +77,8 @@ export { exportComposition, exportFrameWindow } from "./export/exporter.js";
 export type { ExportCompositionOptions } from "./export/exporter.js";
 export { compositionEnd, exportProject, probeCompositionAudio } from "./export/export-project.js";
 export type { ExportProjectOptions } from "./export/export-project.js";
+export { analyzeHtmlAnimations, buildAnimationTimeline } from "./html/animation-timeline.js";
+export type { AnimationDescriptor, ConstantSpan, HtmlAnimationTimeline } from "./html/animation-timeline.js";
 export { collectHtmlRasters, htmlAnimationTiming, htmlRasterKey, provideHtmlRasters, rasterizeHtml, setHtmlRasterSource, substituteParams } from "./html/rasterize.js";
 export type { HtmlRasterRequest, HtmlRasterSource, RasterizeHtmlOptions } from "./html/rasterize.js";
 export { renderProjectStill } from "./export/render-still.js";

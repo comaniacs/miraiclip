@@ -10,6 +10,7 @@ Preview memory now follows what is near the playhead, not timeline length (mobil
 - Frame cache keeps at most `maxBehindFrames` (8) played frames; live VideoFrames are capped by `maxPoolFrames` (6).
 - `frameStorage: "auto"` (default): CPU-decoded frames (I4xx) are kept as VideoFrames and uploaded straight to WebGL; GPU/hardware frames are still copied to preview-sized ImageBitmaps and released (decoder pools stay free). `"videoframe"`/`"bitmap"` force one path; `maxOutputDimensionPx` may be a function.
 - Html clips reuse one canvas, texture and image element per clip; `htmlRaster: { minDensity, maxAnimatedFps }` for live preview.
+- Html preview pacing (opt-in, preview only — exports still raster every frame): `htmlRaster.reuseStaticFrames` analyses a template's CSS animations once (`analyzeHtmlAnimations`) and keeps the current raster while nothing animates (holds, `steps()` counters); `htmlRaster.budget` (0..1) caps the main-thread share animated html rasters may use, split across animating clips. Animated rasters no longer chain back to back past `maxAnimatedFps`.
 - Image textures are reference-counted and unloaded when no mounted clip uses them.
 - Audio lanes open near the playhead and close behind it; mediabunny read caches capped (16 MiB video, 8 MiB audio).
 - Player: `memory` options, `stats()`, `reportMemoryPressure()`.
