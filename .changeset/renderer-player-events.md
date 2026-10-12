@@ -1,5 +1,5 @@
 ---
-"@miraiclip/renderer": minor
+"@miraiclip/renderer": patch
 ---
 
 Player transport events and a framework-free preview controller.
