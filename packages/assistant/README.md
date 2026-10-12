@@ -1,6 +1,6 @@
 # @miraiclip/assistant
 
-An AI editing assistant for [Miraiclip](https://comaniacs.github.io/miraiclip/) editors. The user asks in plain words; the project changes as **one undo step**.
+An AI editing assistant for [Miraiclip](https://docs.miraiclip.com/) editors. The user asks in plain words; the project changes as **one undo step**.
 
 - **Any model**: one small `ChatModel` contract. OpenAI ships first (`openAIChatModel`, Chat Completions with function calling and streaming); `baseUrl` reaches any OpenAI-compatible server (Azure OpenAI, OpenRouter, Groq, vLLM, Ollama…).
 - **Safe edits**: the agent works on a copy of the project; when the request finishes, its commands replay onto the real project in one transaction. Failed or canceled requests leave nothing behind. Review mode waits for `turn.apply()`.
@@ -16,6 +16,6 @@ turn.reply;   // what the model says it did
 turn.changes; // ["Added crossDissolve at 10s (0.6s)", …]
 ```
 
-Docs: https://comaniacs.github.io/miraiclip/docs/assistant/
+Docs: https://docs.miraiclip.com/ai/assistant
 
 MIT

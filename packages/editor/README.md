@@ -37,4 +37,4 @@ el.addEventListener("pointerdown", (down) => {
 });
 ```
 
-**Documentation**: [comaniacs.github.io/miraiclip](https://comaniacs.github.io/miraiclip/) · [Source](https://github.com/comaniacs/miraiclip)
+**Documentation**: [docs.miraiclip.com](https://docs.miraiclip.com/) · [Source](https://github.com/comaniacs/miraiclip)

@@ -1,6 +1,6 @@
 # @miraiclip/audio-sources
 
-Stock and AI-generated audio for [Miraiclip](https://comaniacs.github.io/miraiclip/):
+Stock and AI-generated audio for [Miraiclip](https://docs.miraiclip.com/):
 
 - **Search** — one `AudioProvider` contract with adapters for Openverse, Freesound, an in-app catalog and your own backend.
 - **Generate** — sound effects, music and voiceover through one vendor-neutral `AudioGenerator` contract. Any service is a small adapter; `elevenLabsGenerator` ships first, plus an offline `toneGenerator`. `createGeneratorHandler` / `remoteGenerators` keep API keys on the server.
@@ -29,4 +29,4 @@ const { resolved } = await library.generate("elevenlabs", { kind: "sfx", prompt:
 importAudio(project, resolved);
 ```
 
-Docs: https://comaniacs.github.io/miraiclip/docs/audio-sources/ — providers, generators, writing an adapter, the server handler, and licensing notes (Freesound's API is for non-commercial use without an agreement; many Openverse items are NC; ElevenLabs output terms depend on your plan).
+Docs: https://docs.miraiclip.com/creative/audio — providers, generators, writing an adapter, the server handler, and licensing notes (Freesound's API is for non-commercial use without an agreement; many Openverse items are NC; ElevenLabs output terms depend on your plan).

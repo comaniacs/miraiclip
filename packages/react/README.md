@@ -44,4 +44,4 @@ function Transport() {
 | Preview | `PlaybackProvider`, `usePlayback` (attach a `<canvas>`, play, seek, volume, hit-testing) |
 | Timeline | `useCompositorPlayhead`, `useVisibleRange`, `usePlayheadFollow`, `useTimelineZoom` |
 
-**Documentation**: [comaniacs.github.io/miraiclip](https://comaniacs.github.io/miraiclip/) · [Source](https://github.com/comaniacs/miraiclip)
+**Documentation**: [docs.miraiclip.com](https://docs.miraiclip.com/) · [Source](https://github.com/comaniacs/miraiclip)

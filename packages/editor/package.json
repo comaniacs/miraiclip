@@ -8,7 +8,7 @@
     "url": "git+https://github.com/comaniacs/miraiclip.git",
     "directory": "packages/editor"
   },
-  "homepage": "https://comaniacs.github.io/miraiclip/",
+  "homepage": "https://docs.miraiclip.com/",
   "bugs": {
     "url": "https://github.com/comaniacs/miraiclip/issues"
   },

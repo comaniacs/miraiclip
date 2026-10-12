@@ -33,5 +33,5 @@ node examples/server-export/export.mjs
 
 `export.mjs` shows the programmatic call: `exportProjectFile(doc, options)`
 with progress reporting, `assetsDir` resolution, and `out` writing. See the
-[Server export docs](https://comaniacs.github.io/miraiclip/docs/export/server-side/)
+[Server export docs](https://docs.miraiclip.com/export/server)
 for every option.

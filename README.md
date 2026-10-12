@@ -10,19 +10,19 @@
 <p align="center"><b>Build video editors, not video editor plumbing.</b></p>
 
 <p align="center">
-  <a href="https://comaniacs.github.io/miraiclip/docs/quickstart/">Quickstart</a> ·
-  <a href="https://comaniacs.github.io/miraiclip/examples/">Live examples</a> ·
-  <a href="https://comaniacs.github.io/miraiclip/docs/">Docs</a> ·
-  <a href="https://comaniacs.github.io/miraiclip/docs/roadmap/">Roadmap</a> ·
+  <a href="https://docs.miraiclip.com/quickstart">Quickstart</a> ·
+  <a href="https://react.miraiclip.com">Live editor</a> ·
+  <a href="https://docs.miraiclip.com/">Docs</a> ·
+  <a href="https://docs.miraiclip.com/reference/roadmap">Roadmap</a> ·
   <a href="https://discord.gg/7S2XmHBeX">Discord</a>
 </p>
 
 <p align="center">
-  <a href="https://comaniacs.github.io/miraiclip/#demo">
+  <a href="https://react.miraiclip.com">
     <img src="docs/static/media/miraiclip-demo-teaser.webp" alt="An editor built with Miraiclip: a template, designed text, live HTML code, music and themes — then export" width="800">
   </a>
   <br>
-  <sub>An editor built with Miraiclip, start to export. <a href="https://comaniacs.github.io/miraiclip/#demo">Watch the full 90-second demo with sound →</a></sub>
+  <sub>An editor built with Miraiclip, start to export. <a href="https://react.miraiclip.com">Try the editor live →</a></sub>
 </p>
 
 Miraiclip is an open source, framework-agnostic engine for video editors in the browser. You bring the UI; it brings the timeline, the commands, the renderer and the export.
@@ -66,7 +66,7 @@ project.redo();
 const mp4 = await exportProject(project, { format: "mp4", quality: "high" });
 ```
 
-Times are in microseconds (1 s = 1,000,000 µs). Next: [playback on a canvas](https://comaniacs.github.io/miraiclip/docs/rendering/), [reading state](https://comaniacs.github.io/miraiclip/docs/core-concepts/project-state/), [the command catalog](https://comaniacs.github.io/miraiclip/docs/command-catalog/).
+Times are in microseconds (1 s = 1,000,000 µs). Next: [playback on a canvas](https://docs.miraiclip.com/build-an-editor/preview), [reading state](https://docs.miraiclip.com/fundamentals/project-and-time), [the command catalog](https://docs.miraiclip.com/fundamentals/commands).
 
 ## Let an agent edit
 
@@ -86,25 +86,25 @@ Or plug Claude, Codex or any MCP client straight in, with frame previews it can 
 npx @miraiclip/mcp --project ./video.miraiclip.json --assets ./media
 ```
 
-[AI integration](https://comaniacs.github.io/miraiclip/docs/ai-integration/) · [Assistant](https://comaniacs.github.io/miraiclip/docs/assistant/) · [MCP server](https://comaniacs.github.io/miraiclip/docs/mcp-server/)
+[AI integration](https://docs.miraiclip.com/ai/tools) · [Assistant](https://docs.miraiclip.com/ai/assistant) · [MCP server](https://docs.miraiclip.com/ai/mcp-server)
 
 ## Packages
 
 | Package | Version | What it does |
 | --- | --- | --- |
-| [`@miraiclip/core`](https://comaniacs.github.io/miraiclip/docs/core-concepts/) | 0.5.8 | State, commands, history, events, AI tools |
-| [`@miraiclip/renderer`](https://comaniacs.github.io/miraiclip/docs/rendering/) | 0.7.12 | Playback, preview, stills and export |
-| [`@miraiclip/server-export`](https://comaniacs.github.io/miraiclip/docs/export/server-side/) | 0.4.3 | The same export from Node, plus a CLI |
-| [`@miraiclip/templates`](https://comaniacs.github.io/miraiclip/docs/templates/) | 0.1.3 | Parameterized videos and batch rendering |
-| [`@miraiclip/audio-sources`](https://comaniacs.github.io/miraiclip/docs/audio-sources/) | 0.2.1 | Stock and AI-generated audio with licenses |
-| [`@miraiclip/assistant`](https://comaniacs.github.io/miraiclip/docs/assistant/) | 0.1.1 | AI editing assistant, any model |
-| [`@miraiclip/mcp`](https://comaniacs.github.io/miraiclip/docs/mcp-server/) | 0.1.3 | MCP server for agents |
+| [`@miraiclip/core`](https://docs.miraiclip.com/fundamentals/project-and-time) | 0.5.8 | State, commands, history, events, AI tools |
+| [`@miraiclip/renderer`](https://docs.miraiclip.com/build-an-editor/preview) | 0.7.12 | Playback, preview, stills and export |
+| [`@miraiclip/server-export`](https://docs.miraiclip.com/export/server) | 0.4.3 | The same export from Node, plus a CLI |
+| [`@miraiclip/templates`](https://docs.miraiclip.com/templates/defining-templates) | 0.1.3 | Parameterized videos and batch rendering |
+| [`@miraiclip/audio-sources`](https://docs.miraiclip.com/creative/audio) | 0.2.1 | Stock and AI-generated audio with licenses |
+| [`@miraiclip/assistant`](https://docs.miraiclip.com/ai/assistant) | 0.1.1 | AI editing assistant, any model |
+| [`@miraiclip/mcp`](https://docs.miraiclip.com/ai/mcp-server) | 0.1.3 | MCP server for agents |
 | [`@miraiclip/editor`](packages/editor) | 0.1.0 | Headless editor logic: timeline geometry, clip drag and trim with snapping, shortcuts |
 | [`@miraiclip/react`](packages/react) | 0.1.0 | React providers and hooks: state, playback, timeline behaviour |
 
 ## Status
 
-Pre-1.0: APIs can change between minor versions. See the [changelog](./CHANGELOG.md), the [roadmap](https://comaniacs.github.io/miraiclip/docs/roadmap/) and [PLAN.md](./PLAN.md).
+Pre-1.0: APIs can change between minor versions. See the [changelog](./CHANGELOG.md), the [roadmap](https://docs.miraiclip.com/reference/roadmap) and [PLAN.md](./PLAN.md).
 
 ## License
 
