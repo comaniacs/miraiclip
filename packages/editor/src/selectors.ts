@@ -97,3 +97,36 @@ export function isTrackFree(
   const clips = clipsByTrack(doc.clips).get(trackId) ?? [];
   return !clipsInRange(clips, startUs, endUs).some((clip) => clip.id !== ignoreClipId);
 }
+
+/** A cut on one track: `from` ends exactly where `to` starts. */
+export interface TrackCut {
+  from: Clip;
+  to: Clip;
+  /** Timeline position of the cut. */
+  atUs: Us;
+  /** The transition on this cut, if any. */
+  transition?: Transition;
+}
+
+const CUT_KINDS = new Set(["video", "image", "text", "html"]);
+
+/**
+ * The cuts on one track, in time order, from its start-sorted clips (one
+ * list from `clipsByTrack`) and its transitions. Only visual clips form
+ * cuts, as in core's `findCuts`, which covers the whole project with the
+ * transition-length limits.
+ */
+export function trackCuts(clips: readonly Clip[], transitions: readonly Transition[] = []): TrackCut[] {
+  const byPair = new Map<string, Transition>();
+  for (const t of transitions) byPair.set(`${t.fromClipId}>${t.toClipId}`, t);
+  const visual = clips.filter((c) => CUT_KINDS.has(c.kind));
+  const out: TrackCut[] = [];
+  for (let i = 0; i + 1 < visual.length; i++) {
+    const from = visual[i]!;
+    const to = visual[i + 1]!;
+    if (from.startUs + from.durationUs !== to.startUs) continue;
+    const transition = byPair.get(`${from.id}>${to.id}`);
+    out.push(transition ? { from, to, atUs: to.startUs, transition } : { from, to, atUs: to.startUs });
+  }
+  return out;
+}

@@ -11,7 +11,9 @@ export {
   compositionDurationUs,
   isTrackFree,
   lowerBound,
+  trackCuts,
   transitionsByTrack,
+  type TrackCut,
 } from "./selectors.js";
 export {
   followPlayheadScroll,
@@ -35,3 +37,21 @@ export type { EditorAction, ShortcutKey } from "./shortcuts.js";
 export { placeAssetAtPlayhead, placeAssetOnTrack, type PlaceAssetOptions } from "./placement.js";
 export { ASPECT_PRESETS, fillScale, isFramable, presetFor, refillForAspect, type AspectPreset } from "./framing.js";
 export { isSourceReachable, probeMediaFile, type ProbedMedia } from "./media-probe.js";
+export {
+  beginTransformDrag,
+  canTransformClip,
+  cornerCursor,
+  nudgeClip,
+  rotateHandlePosition,
+  snapOffset,
+  writeClipTransform,
+} from "./transform.js";
+export type {
+  CompositionPoint,
+  TransformBounds,
+  TransformDrag,
+  TransformDragMode,
+  TransformDragOptions,
+  TransformGuides,
+  TransformModifiers,
+} from "./transform.js";

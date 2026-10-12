@@ -23,6 +23,11 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ## Unreleased
 
+### Added
+
+- `@miraiclip/react` **unstyled components** (react 0.2.0): `<Timeline.*>` (`Root`, `Viewport`, `Ruler`, `Track`, `TrackHeader`, `Lane`, `Clip`, `TrimHandle`, `Playhead`, `Cuts`, `PlayheadFollow`), `<Preview>`, `<Scrubber.*>`, `<Waveform>` with `useWaveformPeaks`, and `<TransformBox.*>`. They own the behaviour — virtualised lanes, clip drag and trim with snapping, ruler seeking, the compositor-driven playhead, canvas move/scale/rotate with frame snapping — and expose state as data attributes (`data-selected`, `data-dragging`, `data-locked`, `data-drop-target`, …) for your styles. The React template's timeline and stage are built on them.
+- `@miraiclip/editor` **preview transforms and track cuts** (editor 0.2.0): `beginTransformDrag` (move with frame snapping and guides, uniform scale, rotate with right-angle and 15° snapping; one undo step), `writeClipTransform` (keyframes at the playhead for animated properties), `nudgeClip`, `rotateHandlePosition`, `cornerCursor`, `snapOffset`, and `trackCuts` for one track's cuts and transitions.
+
 ### Fixed
 
 - `@miraiclip/renderer` **exports use the same frame rule**: `exportComposition` / `exportProject` compute each frame's start, duration and the frame count with core's `frameToUs` / `frameCount` on the exact rate (`fps` takes a number or `{ num, den }`; default `projectFrameRate`), so the main-thread, worker and headless exports match core's frames. `StepClock.step` derives the next frame from its index instead of adding a rounded frame length (it drifted about one frame per hour at 30 fps). New `exportFrameWindow` exposes an output frame's span and sample time. Tests: an hour at 29.97 with frame-boundary cuts, saved and reloaded, where preview seeks, clock steps and the export walk agree on every frame's time and clip; and a headless Chromium export whose WebM holds exactly the predicted 1,799 frames at the predicted times. Requires core 0.5.8.

@@ -213,6 +213,8 @@ export interface TimelineZoomOptions {
   maxPxPerSecond: number;
   /** Sticky header column width inside the scroll container. */
   headerWidthPx?: number;
+  /** Set false to leave Ctrl/⌘ + wheel to the browser (default true). */
+  enabled?: boolean;
 }
 
 /** Ctrl/⌘ + wheel zooms the timeline around the pointer; plain wheel keeps scrolling. */
@@ -223,9 +225,9 @@ export function useTimelineZoom(scrollRef: RefObject<HTMLElement | null>, option
     const el = scrollRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      if (!(e.ctrlKey || e.metaKey)) return;
-      e.preventDefault();
       const o = latest.current;
+      if (!(e.ctrlKey || e.metaKey) || o.enabled === false) return;
+      e.preventDefault();
       const next = zoomAtPoint({
         pxPerSecond: o.pxPerSecond,
         scrollLeftPx: el.scrollLeft,

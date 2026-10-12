@@ -4,7 +4,8 @@ The logic of a video editor UI, with no UI framework. Everything except the medi
 
 - **Timeline geometry**: `usToPx` / `pxToUs`, `visibleRange` (virtualisation), `zoomAtPoint`, playhead follow and reveal
 - **Clip drag and trim**: `beginClipDrag` with snapping to clip edges, 0 and the playhead; one undo step per drag; locked tracks respected
-- **Selectors**: `clipsByTrack`, `clipsInRange`, `compositionDurationUs`, `isTrackFree`, cached per document
+- **Preview transforms**: `beginTransformDrag` moves, scales and rotates a clip from the renderer's bounds, with frame snapping and guides; `writeClipTransform` keyframes animated properties at the playhead; `nudgeClip`, `rotateHandlePosition`, `cornerCursor`
+- **Selectors**: `clipsByTrack`, `clipsInRange`, `compositionDurationUs`, `isTrackFree`, `trackCuts`, cached per document
 - **Commands**: `createCommands(project)`, typed builders for every built-in command
 - **Gestures**: `beginGesture`, a live edit (canvas drag, slider) that lands in history as one entry
 - **Shortcuts**: `matchEditorShortcut` + `runEditorAction` (delete, split, undo, redo)

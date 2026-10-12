@@ -1,6 +1,6 @@
 # @miraiclip/react
 
-React bindings for [Miraiclip](https://github.com/comaniacs/miraiclip): providers for a project and its preview, narrow state hooks, and the timeline behaviour an editor needs. The logic lives in `@miraiclip/editor` and `@miraiclip/renderer`; this package adapts it to React.
+React bindings for [Miraiclip](https://github.com/comaniacs/miraiclip): providers for a project and its preview, narrow state hooks, the timeline behaviour an editor needs, and unstyled components that carry that behaviour while you supply the look. The logic lives in `@miraiclip/editor` and `@miraiclip/renderer`; this package adapts it to React.
 
 ## Install
 
@@ -43,5 +43,41 @@ function Transport() {
 | Editing | `useCommands`, `useUndoRedo`, `useGesture`, `useEditorShortcuts` |
 | Preview | `PlaybackProvider`, `usePlayback` (attach a `<canvas>`, play, seek, volume, hit-testing) |
 | Timeline | `useCompositorPlayhead`, `useVisibleRange`, `usePlayheadFollow`, `useTimelineZoom` |
+| Components | `<Timeline.*>`, `<Preview>`, `<Scrubber.*>`, `<Waveform>` + `useWaveformPeaks`, `<TransformBox.*>` |
+
+## Components
+
+The components render plain elements with no styles beyond layout (positions, sizes, scrolling). State shows up as data attributes, so you style them with Tailwind variants or CSS:
+
+```tsx
+import { Timeline, useTracks } from "@miraiclip/react";
+
+function Tracks({ pxPerSecond }: { pxPerSecond: number }) {
+  const tracks = useTracks();
+  return (
+    <Timeline.Root pxPerSecond={pxPerSecond} className="h-64">
+      <Timeline.Viewport className="h-full">
+        <Timeline.Ruler className="h-6 border-b">
+          <Timeline.Playhead className="h-full w-px bg-red-500" />
+        </Timeline.Ruler>
+        {tracks.map((track) => (
+          <Timeline.Track key={track.id} track={track} className="h-12">
+            <Timeline.Lane className="border-b data-[drop-target]:bg-sky-50">
+              {(clip) => (
+                <Timeline.Clip clip={clip} className="h-10 rounded bg-sky-200 data-[selected]:ring-2">
+                  <Timeline.TrimHandle side="start" className="w-1.5 bg-sky-500" />
+                  <Timeline.TrimHandle side="end" className="w-1.5 bg-sky-500" />
+                </Timeline.Clip>
+              )}
+            </Timeline.Lane>
+          </Timeline.Track>
+        ))}
+      </Timeline.Viewport>
+    </Timeline.Root>
+  );
+}
+```
+
+Lanes render only the clips in view, drags snap and land as one undo step, and the playhead moves on the compositor. `<Preview>` with `<TransformBox.*>` inside gives the canvas side: select, move, scale and rotate clips with frame snapping.
 
 **Documentation**: [docs.miraiclip.com](https://docs.miraiclip.com/) · [Source](https://github.com/comaniacs/miraiclip)
