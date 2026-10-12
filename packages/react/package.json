@@ -1,0 +1,81 @@
+{
+  "name": "@miraiclip/react",
+  "version": "0.0.0",
+  "description": "React bindings for Miraiclip: providers, state hooks, playback, and timeline behaviour hooks.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://comaniacs.github.io/miraiclip/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@miraiclip/editor": "workspace:^",
+    "use-sync-external-store": "^1.2.2"
+  },
+  "peerDependencies": {
+    "@miraiclip/core": "^0.5.8",
+    "@miraiclip/renderer": "^0.9.0",
+    "react": "^18.2.0 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@miraiclip/core": "workspace:*",
+    "@miraiclip/renderer": "workspace:*",
+    "@testing-library/react": "^16.1.0",
+    "@types/react": "^18.3.12",
+    "@types/use-sync-external-store": "^0.0.6",
+    "jsdom": "^25.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "video",
+    "video-editor",
+    "react",
+    "hooks",
+    "timeline"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      }
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

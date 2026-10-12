@@ -163,6 +163,85 @@ describe("createPlayer", () => {
   });
 });
 
+describe("player transport events", () => {
+  it("emits play, pause and seek as the transport changes", async () => {
+    const { player } = setup();
+    const log: string[] = [];
+    player.on("play", (e) => log.push(`play@${e.timeUs}`));
+    player.on("pause", (e) => log.push(`pause:${e.reason}`));
+    player.on("seek", (e) => log.push(`seek@${e.timeUs}`));
+
+    player.pause(); // already paused: no event
+    player.play();
+    player.play(); // already playing: no second event
+    await flushHold();
+    player.seek(1_500_000);
+    player.pause();
+    expect(log).toEqual(["play@0", "seek@1500000", "pause:pause"]);
+    player.destroy();
+  });
+
+  it("emits pause (reason ended) then ended at the end of the composition", async () => {
+    const { output, player, tick } = setup();
+    const log: string[] = [];
+    player.on("pause", (e) => log.push(`pause:${e.reason}@${e.timeUs}`));
+    player.on("ended", (e) => log.push(`ended@${e.timeUs}`));
+    player.play();
+    await flushHold();
+    output.nowUs += 5_000_000;
+    tick();
+    expect(log).toEqual(["pause:ended@4000000", "ended@4000000"]);
+    expect(player.playing).toBe(false);
+    player.destroy();
+  });
+
+  it("emits ratechange only when the rate changes, and stops after unsubscribe", () => {
+    const { player } = setup();
+    const rates: number[] = [];
+    const off = player.on("ratechange", (e) => rates.push(e.rate));
+    player.setRate(1);
+    player.setRate(2);
+    expect(player.rate).toBe(2);
+    off();
+    player.setRate(0.5);
+    expect(rates).toEqual([2]);
+    player.destroy();
+  });
+
+  it("forwards media failures to the error event and onError", async () => {
+    const project = createProject({ width: 640, height: 360, fps: 30 });
+    project.transaction(() => {
+      project.dispatch({ type: "asset/add", payload: { id: "bad", kind: "video", src: "/bad.mp4", durationUs: 2_000_000 } });
+      project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+      project.dispatch({
+        type: "clip/add",
+        payload: { kind: "video", id: "c1", trackId: "v1", assetId: "bad", startUs: 0, durationUs: 2_000_000 },
+      });
+    });
+    const seen: string[] = [];
+    const player = createPlayer(project, {
+      backend: new FakeBackend(),
+      openDemuxer: async () => {
+        throw new Error("no demuxer");
+      },
+      createDecoder: createFakeDecoder,
+      audioOutput: new FakeOutput(),
+      openAudio: openFakeAudio(60_000_000),
+      onError: (error, clipId) => seen.push(`onError:${clipId}:${error.message}`),
+      raf: () => 0,
+      cancelRaf: () => undefined,
+      schedule: () => 1,
+      cancelSchedule: () => undefined,
+    });
+    player.on("error", (e) => seen.push(`event:${e.clipId}:${e.error.message}`));
+    player.seek(0);
+    await flushHold();
+    expect(seen).toContain("event:c1:no demuxer");
+    expect(seen).toContain("onError:c1:no demuxer");
+    player.destroy();
+  });
+});
+
 describe("custom clip kinds through createPlayer", () => {
   it("forwards custom factories to the compositor (the extension seam)", () => {
     registerClipKind("sticker", {

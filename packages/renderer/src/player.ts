@@ -1,4 +1,4 @@
-import type { Clip, Project } from "@miraiclip/core";
+import { Emitter, type Clip, type Project } from "@miraiclip/core";
 import { RealtimeClock } from "./clock.js";
 import { Compositor, type CompositorResidencyOptions } from "./compositor/compositor.js";
 import type { ClipBounds, NodeFactory, SceneBackend } from "./compositor/types.js";
@@ -74,12 +74,35 @@ export interface PlayerStats {
   clips: number;
 }
 
+/**
+ * Transport events. Subscribe with `player.on(type, listener)`; adapters use
+ * these instead of polling `playing`.
+ */
+export interface PlayerEvents extends Record<string, unknown> {
+  /** `playing` turned true (`play()` was called; frames may still be loading). */
+  play: { timeUs: Us };
+  /** `playing` turned false. `reason` is "ended" when the composition ran out (no `loop`). */
+  pause: { timeUs: Us; reason: "pause" | "ended" };
+  /** Playback reached the end of the composition and stopped (fires after its `pause`). */
+  ended: { timeUs: Us };
+  /** A seek moved the transport (user seek or a loop back to 0). */
+  seek: { timeUs: Us };
+  /** Playback speed changed. */
+  ratechange: { rate: number };
+  /** A media failure on one clip (also passed to `onError`). */
+  error: { error: Error; clipId: string };
+}
+
 export interface Player {
+  /** Subscribe to a transport event. Returns an unsubscribe function. */
+  on<K extends keyof PlayerEvents>(type: K, listener: (event: PlayerEvents[K]) => void): () => void;
   play(): void;
   pause(): void;
   seek(timeUs: Us): void;
   setRate(rate: number): void;
   readonly playing: boolean;
+  /** Current playback speed (1 = normal). */
+  readonly rate: number;
   readonly timeUs: Us;
   /** End of the last clip — the composition's duration. */
   readonly durationUs: Us;
@@ -120,11 +143,17 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     ...(memory.maxActivePipelines !== undefined ? { maxActivePipelines: memory.maxActivePipelines } : {}),
     ...(memory.idleReleaseMs !== undefined ? { idleReleaseMs: memory.idleReleaseMs } : {}),
   });
-  const videos = createVideoSupport(
-    project,
-    manager,
-    options.onError ? { onError: options.onError } : {},
-  );
+  const events = new Emitter<PlayerEvents>();
+  const reportError =
+    options.onError ??
+    ((error: Error, clipId: string) =>
+      console.error(`[miraiclip] video clip "${clipId}" failed:`, error));
+  const videos = createVideoSupport(project, manager, {
+    onError: (error, clipId) => {
+      events.emit("error", { error, clipId });
+      reportError(error, clipId);
+    },
+  });
   const compositor = new Compositor(project, options.backend, {
     factories: { ...options.factories, video: videos.factory },
     ...(options.outputSize ? { outputSize: options.outputSize } : {}),
@@ -179,9 +208,9 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
         seekInternal(0, true);
         t = 0;
       } else {
-        pause();
-        clock.seek(end);
+        pause("ended", end);
         t = end;
+        events.emit("ended", { timeUs: end });
       }
     }
     // Keep decode/schedule windows rolling without doing it every frame.
@@ -257,40 +286,57 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       resumeWhenReady(timeUs); // audio restarts in sync with the ready frame
     } else {
       lastPumpUs = Number.NEGATIVE_INFINITY;
-      void prepareAt(timeUs);
+      prepareAt(timeUs).catch(() => undefined); // per-clip errors surface via onError
     }
+    events.emit("seek", { timeUs });
   }
 
-  function pause(): void {
+  /** Stop the transport; `atUs` parks the clock there (end of composition). */
+  function pause(reason: "pause" | "ended" = "pause", atUs?: Us): void {
+    const wasPlaying = clock.playing || pendingPlay;
     holdEpoch++; // cancel any pending resume
     pendingPlay = false;
     clock.pause();
+    if (atUs !== undefined) clock.seek(atUs);
     audio.stop();
     lastPlayheadUs = Number.NEGATIVE_INFINITY; // one event so UI reflects the pause
+    if (wasPlaying) events.emit("pause", { timeUs: clock.timeUs, reason });
   }
 
   return {
+    on(type, listener) {
+      return events.on(type, listener);
+    },
     play() {
       if (destroyed || clock.playing || pendingPlay) return;
       void options.audioOutput.resume();
       const end = durationUs();
       if (end > 0 && clock.timeUs >= end) clock.seek(0);
       resumeWhenReady(clock.timeUs);
+      events.emit("play", { timeUs: clock.timeUs });
     },
-    pause,
+    pause() {
+      if (destroyed) return;
+      pause("pause");
+    },
     seek(timeUs) {
       if (destroyed) return;
       seekInternal(Math.max(0, timeUs), true);
     },
     setRate(rate) {
       if (destroyed) return;
+      const changed = rate !== clock.rate;
       clock.setRate(rate);
       if (clock.playing) audio.start(clock.timeUs, rate);
+      if (changed) events.emit("ratechange", { rate: clock.rate });
     },
     get playing() {
       // A transport hold is still "playing" to the outside world — the user
       // pressed play/seeked; the clock just hasn't been released yet.
       return clock.playing || pendingPlay;
+    },
+    get rate() {
+      return clock.rate;
     },
     get timeUs() {
       return clock.timeUs;

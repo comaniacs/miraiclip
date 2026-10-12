@@ -99,7 +99,8 @@ npx @miraiclip/mcp --project ./video.miraiclip.json --assets ./media
 | [`@miraiclip/audio-sources`](https://comaniacs.github.io/miraiclip/docs/audio-sources/) | 0.2.1 | Stock and AI-generated audio with licenses |
 | [`@miraiclip/assistant`](https://comaniacs.github.io/miraiclip/docs/assistant/) | 0.1.1 | AI editing assistant, any model |
 | [`@miraiclip/mcp`](https://comaniacs.github.io/miraiclip/docs/mcp-server/) | 0.1.3 | MCP server for agents |
-| `@miraiclip/react` | planned | React hooks and selectors |
+| [`@miraiclip/editor`](packages/editor) | 0.1.0 | Headless editor logic: timeline geometry, clip drag and trim with snapping, shortcuts |
+| [`@miraiclip/react`](packages/react) | 0.1.0 | React providers and hooks: state, playback, timeline behaviour |
 
 ## Status
 

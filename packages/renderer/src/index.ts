@@ -58,7 +58,15 @@ export type { WaveformPeaks, WaveformPeaksOptions } from "./audio/waveform.js";
 export { clipFades, fadeGainAt } from "./audio/mapping.js";
 
 export { createPlayer } from "./player.js";
-export type { CreatePlayerOptions, Player, PlayerMemoryOptions, PlayerStats } from "./player.js";
+export type { CreatePlayerOptions, Player, PlayerEvents, PlayerMemoryOptions, PlayerStats } from "./player.js";
+export { createMonitoredWebAudioOutput, createPreviewController } from "./preview/preview-controller.js";
+export type {
+  MonitoredAudioOutput,
+  PreviewController,
+  PreviewControllerOptions,
+  PreviewMode,
+  PreviewState,
+} from "./preview/preview-controller.js";
 export { createPixiBackend } from "./compositor/pixi-backend.js";
 export type { HtmlRasterOptions, PixiBackendOptions } from "./compositor/pixi-backend.js";
 
