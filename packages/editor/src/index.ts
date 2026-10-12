@@ -1,8 +1,9 @@
 /**
- * @miraiclip/editor — the logic of an editor UI with no framework and no DOM:
- * timeline geometry, clip drag and trim with snapping, cached selectors,
- * typed commands, live-edit gestures, shortcuts and placement. Framework
- * adapters (@miraiclip/react, …) and vanilla apps build on these.
+ * @miraiclip/editor — the logic of an editor UI with no framework: timeline
+ * geometry, clip drag and trim with snapping, cached selectors, typed
+ * commands, live-edit gestures, shortcuts and placement (no DOM needed), plus
+ * browser helpers for media import. Framework adapters (@miraiclip/react, …)
+ * and vanilla apps build on these.
  */
 export {
   clipsByTrack,
@@ -33,3 +34,4 @@ export { matchEditorShortcut, runEditorAction } from "./shortcuts.js";
 export type { EditorAction, ShortcutKey } from "./shortcuts.js";
 export { placeAssetAtPlayhead, placeAssetOnTrack, type PlaceAssetOptions } from "./placement.js";
 export { ASPECT_PRESETS, fillScale, isFramable, presetFor, refillForAspect, type AspectPreset } from "./framing.js";
+export { isSourceReachable, probeMediaFile, type ProbedMedia } from "./media-probe.js";

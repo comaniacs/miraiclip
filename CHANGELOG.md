@@ -2,6 +2,19 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
+## [renderer-0.8.1] + [editor-0.1.0] + [react-0.1.0] — 2026-10-12
+
+### Added
+
+- `@miraiclip/renderer` **player transport events**: `player.on(type, listener)` with `play`, `pause` (`reason: "pause" | "ended"`), `ended`, `seek`, `ratechange` and `error`, plus `player.rate`. UIs no longer poll `player.playing`.
+- `@miraiclip/renderer` **`createPreviewController`**: the preview half of an editor with no UI framework. It owns the canvas's renderer and player, a clock-only fallback when WebCodecs or WebGL is missing, StrictMode-safe attach/detach, devicePixelRatio output sizing with a per-preview decode cap, monitoring volume and mute, and GPU context loss → `reportMemoryPressure()`. See [Preview & playback](https://docs.miraiclip.com/build-an-editor/preview).
+- `@miraiclip/editor` **first release**: the headless logic of an editor UI. Cached selectors (`clipsByTrack`, `clipsInRange`, `isTrackFree`), timeline geometry (`usToPx`, `visibleRange`, `zoomAtPoint`, playhead follow), clip move and trim with snapping (`beginClipDrag`, one undo step, locked tracks respected), typed command builders (`createCommands`), live edits as one history entry (`beginGesture`), the default key map (`matchEditorShortcut`, `runEditorAction`), asset placement, aspect-ratio framing, and browser helpers for media import (`probeMediaFile`, `isSourceReachable`).
+- `@miraiclip/react` **first release**: `ProjectProvider` / `ProjectSessionProvider`, narrow state hooks (`useProjectState`, `useClips`, `useSelection`, `usePlayheadUs`, `usePlayheadRef`, `useUndoRedo`, …), `useCommands`, `PlaybackProvider` / `usePlayback` on the preview controller, and timeline hooks (`useCompositorPlayhead`, `useVisibleRange`, `usePlayheadFollow`, `useTimelineZoom`, `useEditorShortcuts`, `useGesture`).
+
+### Fixed
+
+- `@miraiclip/renderer` a seek while paused no longer leaves an unhandled promise rejection when a clip's media fails to open (the failure still reaches `onError`).
+
 ## Unreleased
 
 ### Fixed
@@ -290,6 +303,9 @@ First release of `@miraiclip/core`.
 - **Docs site** under `docs/`: Hugo + Hextra with landing page, quickstart, core-concepts pages, Command Catalog reference (generated from the actual Zod schemas), roadmap, and this changelog.
 
 [Unreleased]: https://github.com/comaniacs/miraiclip/compare/v0.1.0...HEAD
+[renderer-0.8.1]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.8.1
+[editor-0.1.0]: https://www.npmjs.com/package/@miraiclip/editor/v/0.1.0
+[react-0.1.0]: https://www.npmjs.com/package/@miraiclip/react/v/0.1.0
 [core-0.5.8]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.8
 [core-0.5.7]: https://www.npmjs.com/package/@miraiclip/core/v/0.5.7
 [renderer-0.7.11]: https://www.npmjs.com/package/@miraiclip/renderer/v/0.7.11

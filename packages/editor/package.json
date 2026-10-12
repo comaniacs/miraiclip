@@ -1,7 +1,7 @@
 {
   "name": "@miraiclip/editor",
   "version": "0.1.0",
-  "description": "Headless editor logic for Miraiclip: timeline scale, clip drag and trim with snapping, selectors, typed commands, gestures, shortcuts. No UI framework, no DOM.",
+  "description": "Headless editor logic for Miraiclip: timeline scale, clip drag and trim with snapping, selectors, typed commands, gestures, shortcuts, media import. No UI framework.",
   "license": "MIT",
   "repository": {
     "type": "git",

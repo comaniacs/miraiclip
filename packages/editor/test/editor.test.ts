@@ -275,3 +275,32 @@ describe("commands, ids, gestures, framing", () => {
     expect(pairs).toEqual([["b", 1]]);
   });
 });
+
+describe("media helpers", () => {
+  it("returns null for files that aren't video, audio or images", async () => {
+    const { probeMediaFile } = await import("../src/index.js");
+    expect(await probeMediaFile(new File(["x"], "notes.txt", { type: "text/plain" }))).toBeNull();
+  });
+
+  it("checks whether a source can still be fetched", async () => {
+    const { isSourceReachable } = await import("../src/index.js");
+    expect(await isSourceReachable("data:text/plain,hi")).toBe(true);
+    const calls: string[] = [];
+    const realFetch = globalThis.fetch;
+    globalThis.fetch = (async (url: string, init?: RequestInit) => {
+      calls.push(`${init?.method} ${url}`);
+      if (url.includes("gone")) return new Response(null, { status: 404 });
+      if (url.includes("down")) throw new TypeError("network");
+      return new Response("ok");
+    }) as typeof fetch;
+    try {
+      expect(await isSourceReachable("/media/a.mp4")).toBe(true);
+      expect(await isSourceReachable("/media/gone.mp4")).toBe(false);
+      expect(await isSourceReachable("https://down.example/a.mp4")).toBe(false);
+      expect(await isSourceReachable("blob:http://x/1")).toBe(true);
+    } finally {
+      globalThis.fetch = realFetch;
+    }
+    expect(calls).toEqual(["HEAD /media/a.mp4", "HEAD /media/gone.mp4", "HEAD https://down.example/a.mp4", "GET blob:http://x/1"]);
+  });
+});

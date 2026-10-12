@@ -1,6 +1,6 @@
 # @miraiclip/editor
 
-The logic of a video editor UI, with no UI framework and no DOM. Framework adapters such as [`@miraiclip/react`](../react) build on it, and vanilla apps can use it directly.
+The logic of a video editor UI, with no UI framework. Everything except the media-import helpers runs without a DOM (Node, workers, tests). Framework adapters such as [`@miraiclip/react`](../react) build on it, and vanilla apps can use it directly.
 
 - **Timeline geometry**: `usToPx` / `pxToUs`, `visibleRange` (virtualisation), `zoomAtPoint`, playhead follow and reveal
 - **Clip drag and trim**: `beginClipDrag` with snapping to clip edges, 0 and the playhead; one undo step per drag; locked tracks respected
@@ -9,6 +9,7 @@ The logic of a video editor UI, with no UI framework and no DOM. Framework adapt
 - **Gestures**: `beginGesture`, a live edit (canvas drag, slider) that lands in history as one entry
 - **Shortcuts**: `matchEditorShortcut` + `runEditorAction` (delete, split, undo, redo)
 - **Placement and framing**: `placeAssetOnTrack`, `placeAssetAtPlayhead`, `ASPECT_PRESETS`, `fillScale`
+- **Media import (browser)**: `probeMediaFile` reads a dropped file's kind, duration, size and a thumbnail; `isSourceReachable` finds missing media
 
 ## Install
 
