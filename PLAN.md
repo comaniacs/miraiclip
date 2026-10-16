@@ -2,6 +2,8 @@
 
 An open source, framework-agnostic library for building video editors in the browser. Command-driven, AI-native, collaboration-ready. Reference point: [OpenVideo](https://docs.openvideo.dev/).
 
+> Active workstream (2026-10-16): Clueso + HyperFrames feature convergence. Start with [plan/TODO.md](plan/TODO.md); background in [plan/clueso-hyperframes.md](plan/clueso-hyperframes.md).
+
 ## Vision
 
 Miraiclip is not a video editor app — it is the engine you build one with. The core is headless: it manages project state, a microsecond-precision timeline, and a full command history, with rendering delivered as a separate layer. Every mutation flows through a descriptive command, which makes the engine equally usable by a human clicking a UI, an LLM generating an edit sequence, or a sync layer replaying a collaborator's changes.
