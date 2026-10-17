@@ -2,6 +2,13 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
+## [editor-0.2.0] + [react-0.2.0] — 2026-10-12
+
+### Added
+
+- `@miraiclip/react` **unstyled components**: `<Timeline.*>` (`Root`, `Viewport`, `Ruler`, `Track`, `TrackHeader`, `Lane`, `Clip`, `TrimHandle`, `Playhead`, `Cuts`, `PlayheadFollow`), `<Preview>`, `<Scrubber.*>`, `<Waveform>` with `useWaveformPeaks`, and `<TransformBox.*>`. They own the behaviour — virtualised lanes, clip drag and trim with snapping, ruler seeking, the compositor-driven playhead, canvas move/scale/rotate with frame snapping — and expose state as data attributes (`data-selected`, `data-dragging`, `data-locked`, `data-drop-target`, …) for your styles. The React template's timeline and stage are built on them.
+- `@miraiclip/editor` **preview transforms and track cuts**: `beginTransformDrag` (move with frame snapping and guides, uniform scale, rotate with right-angle and 15° snapping; one undo step), `writeClipTransform` (keyframes at the playhead for animated properties), `nudgeClip`, `rotateHandlePosition`, `cornerCursor`, `snapOffset`, and `trackCuts` for one track's cuts and transitions.
+
 ## [editor-0.1.1] — 2026-10-12
 
 ### Added
@@ -22,11 +29,6 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 - `@miraiclip/renderer` a seek while paused no longer leaves an unhandled promise rejection when a clip's media fails to open (the failure still reaches `onError`).
 
 ## Unreleased
-
-### Added
-
-- `@miraiclip/react` **unstyled components** (react 0.2.0): `<Timeline.*>` (`Root`, `Viewport`, `Ruler`, `Track`, `TrackHeader`, `Lane`, `Clip`, `TrimHandle`, `Playhead`, `Cuts`, `PlayheadFollow`), `<Preview>`, `<Scrubber.*>`, `<Waveform>` with `useWaveformPeaks`, and `<TransformBox.*>`. They own the behaviour — virtualised lanes, clip drag and trim with snapping, ruler seeking, the compositor-driven playhead, canvas move/scale/rotate with frame snapping — and expose state as data attributes (`data-selected`, `data-dragging`, `data-locked`, `data-drop-target`, …) for your styles. The React template's timeline and stage are built on them.
-- `@miraiclip/editor` **preview transforms and track cuts** (editor 0.2.0): `beginTransformDrag` (move with frame snapping and guides, uniform scale, rotate with right-angle and 15° snapping; one undo step), `writeClipTransform` (keyframes at the playhead for animated properties), `nudgeClip`, `rotateHandlePosition`, `cornerCursor`, `snapOffset`, and `trackCuts` for one track's cuts and transitions.
 
 ### Fixed
 

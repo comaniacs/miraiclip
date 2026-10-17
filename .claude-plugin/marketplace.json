@@ -1,0 +1,15 @@
+{
+  "name": "miraiclip",
+  "description": "Official Miraiclip plugins for Claude Code: make and edit videos with Claude.",
+  "owner": {
+    "name": "Miraiclip",
+    "url": "https://miraiclip.com"
+  },
+  "plugins": [
+    {
+      "name": "miraiclip",
+      "source": "./plugins/miraiclip",
+      "description": "Make and edit videos with Claude on the Miraiclip engine."
+    }
+  ]
+}
