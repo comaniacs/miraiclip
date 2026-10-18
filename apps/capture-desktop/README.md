@@ -9,6 +9,28 @@ pnpm --filter miraiclip-capture-desktop dist:mac   # → release/*.dmg   (run on
 pnpm --filter miraiclip-capture-desktop dist:win   # → release/*.exe   (run on Windows)
 ```
 
+## Releases and downloads
+
+This repo is private, so installers are published to a separate **public, releases-only repo**, [comaniacs/miraiclip-recorder](https://github.com/comaniacs/miraiclip-recorder). It holds only a README (`public-repo/README.md`) and the releases. The docs and the Editor UI kit link to its "latest" downloads, which always point at the newest release:
+
+| Platform | Link |
+|---|---|
+| macOS, Apple silicon | `https://github.com/comaniacs/miraiclip-recorder/releases/latest/download/Miraiclip-Recorder-mac-arm64.dmg` |
+| macOS, Intel | `https://github.com/comaniacs/miraiclip-recorder/releases/latest/download/Miraiclip-Recorder-mac-x64.dmg` |
+| Windows (x64 and arm64 in one installer) | `https://github.com/comaniacs/miraiclip-recorder/releases/latest/download/Miraiclip-Recorder-Setup.exe` |
+
+The file names have no version in them so these links never change. Don't rename them in `build.mac.artifactName` / `build.nsis.artifactName` without updating the docs and the UI kit.
+
+To release (`.github/workflows/recorder-release.yaml`):
+
+1. Bump `version` here and commit.
+2. `git tag recorder-v<version> && git push origin recorder-v<version>`.
+3. macOS and Windows build in CI and upload into a draft release `v<version>` on the public repo, then the workflow publishes it.
+
+One-time setup: create the public repo with a first commit (the README), and add the repo secret `RECORDER_RELEASE_TOKEN` here: a fine-grained token with **Contents: read and write** on `comaniacs/miraiclip-recorder` only. Signing secrets (`MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`, and the Apple notarization ones commented in the workflow) are optional; without them the builds are unsigned.
+
+From your own computer instead of CI (builds only that computer's platform): `GH_TOKEN=<token> pnpm --filter miraiclip-capture-desktop release`.
+
 ## How it works
 
 - **Recorder window** (`src/renderer/recorder.ts`): pick a screen (thumbnails of each display), camera and microphone, the countdown, and the computer's sound (Windows). The recording runs in this window with `startRecording` and is hidden while recording. The main process answers `getDisplayMedia()` with the chosen screen, so no system picker appears.

@@ -1,0 +1,89 @@
+name: Recorder release
+
+# Builds Miraiclip Recorder (apps/capture-desktop) on macOS and Windows and
+# publishes the installers to the PUBLIC releases-only repo
+# comaniacs/miraiclip-recorder. This repo stays private; only the installers
+# (and electron-builder's latest*.yml update files) go public.
+#
+# To release:
+#   1. Bump "version" in apps/capture-desktop/package.json (e.g. 0.2.0) and commit.
+#   2. git tag recorder-v0.2.0 && git push origin recorder-v0.2.0
+# Both builds upload into one draft release "v0.2.0" on the public repo, and the
+# last job publishes it, so the /releases/latest/download/... links move to it.
+#
+# Needs the secret RECORDER_RELEASE_TOKEN: a fine-grained token with
+# Contents: read and write on comaniacs/miraiclip-recorder only.
+
+on:
+  push:
+    tags: ["recorder-v*"]
+  workflow_dispatch:
+
+concurrency: recorder-release-${{ github.ref }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read the app version
+        id: version
+        run: echo "version=$(node -p "require('./apps/capture-desktop/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          if [ "${GITHUB_REF_NAME}" != "recorder-v${{ steps.version.outputs.version }}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} doesn't match apps/capture-desktop version ${{ steps.version.outputs.version }}"
+            exit 1
+          fi
+
+  build:
+    needs: check
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The trailing "..." also builds the workspace packages the app uses (@miraiclip/capture).
+      - name: Build
+        run: pnpm --filter "miraiclip-capture-desktop..." build
+
+      - name: Package and upload to the draft release
+        run: pnpm --filter miraiclip-capture-desktop exec electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.RECORDER_RELEASE_TOKEN }}
+          # Signing: leave these secrets unset for unsigned builds.
+          # macOS: Developer ID certificate (.p12, base64) and its password.
+          CSC_LINK: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_KEY_PASSWORD || secrets.WIN_CSC_KEY_PASSWORD }}
+          # macOS notarization: uncomment once the Apple Developer account exists.
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+  publish:
+    needs: [check, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the draft release
+        run: gh release edit "v${{ needs.check.outputs.version }}" --repo comaniacs/miraiclip-recorder --draft=false --latest
+        env:
+          GH_TOKEN: ${{ secrets.RECORDER_RELEASE_TOKEN }}

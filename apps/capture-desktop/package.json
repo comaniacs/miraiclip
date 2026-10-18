@@ -5,6 +5,7 @@
   "description": "Miraiclip Recorder for macOS and Windows: record a screen with camera and voice and log clicks, shortcuts and scrolls in every app; saves a .mcrec for the editor.",
   "productName": "Miraiclip Recorder",
   "author": "Miraiclip",
+  "repository": { "type": "git", "url": "https://github.com/comaniacs/miraiclip-recorder.git" },
   "type": "module",
   "main": "dist/main.cjs",
   "scripts": {
@@ -14,7 +15,8 @@
     "test": "node build.mjs --test && node --test \"dist-test/*.mjs\"",
     "dist": "node build.mjs && electron-builder",
     "dist:mac": "node build.mjs && electron-builder --mac",
-    "dist:win": "node build.mjs && electron-builder --win"
+    "dist:win": "node build.mjs && electron-builder --win",
+    "release": "node build.mjs && electron-builder --publish always"
   },
   "dependencies": {
     "uiohook-napi": "^1.5.5"
@@ -30,12 +32,12 @@
   "build": {
     "appId": "com.miraiclip.recorder",
     "productName": "Miraiclip Recorder",
-    "artifactName": "Miraiclip-Recorder-${version}-${os}-${arch}.${ext}",
     "directories": { "output": "release" },
     "files": ["dist/**/*", "package.json"],
     "asarUnpack": ["**/node_modules/uiohook-napi/**"],
     "mac": {
       "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "artifactName": "Miraiclip-Recorder-mac-${arch}.${ext}",
       "category": "public.app-category.video",
       "hardenedRuntime": true,
       "entitlements": "build/entitlements.mac.plist",
@@ -51,7 +53,9 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
-    }
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Miraiclip-Recorder-Setup.${ext}"
+    },
+    "publish": [{ "provider": "github", "owner": "comaniacs", "repo": "miraiclip-recorder", "releaseType": "draft" }]
   }
 }
