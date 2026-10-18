@@ -202,7 +202,7 @@ export async function callTool(
       });
       if (!result.ok) return failure(result.error);
       await session.save();
-      return text({ ok: true });
+      return text(session.pluginProblems.length ? { ok: true, pluginProblems: session.pluginProblems } : { ok: true });
     }
 
     case "apply_commands": {
@@ -214,7 +214,7 @@ export async function callTool(
       const result = applyCommands(project, commands, label);
       if (!result.ok) return failure(result);
       await session.save();
-      return text(result);
+      return text(session.pluginProblems.length ? { ...result, pluginProblems: session.pluginProblems } : result);
     }
 
     case "undo": {

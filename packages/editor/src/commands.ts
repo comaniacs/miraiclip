@@ -81,6 +81,8 @@ export function createCommands(project: Project) {
       volume?: number;
       fadeInUs?: Us;
       fadeOutUs?: Us;
+      /** Playback speed (default 1; 0 = freeze frame). */
+      speed?: number;
       transform?: Partial<Transform>;
     }) {
       d({ type: "clip/add", payload: { kind: "video", ...payload } });
@@ -95,6 +97,8 @@ export function createCommands(project: Project) {
       volume?: number;
       fadeInUs?: Us;
       fadeOutUs?: Us;
+      /** Playback speed (default 1). */
+      speed?: number;
     }) {
       d({ type: "clip/add", payload: { kind: "audio", ...payload } });
     },
@@ -160,6 +164,28 @@ export function createCommands(project: Project) {
     splitClip(clipId: string, atUs: Us, newClipId?: string) {
       d({ type: "clip/split", payload: { clipId, atUs, newClipId } });
     },
+    /** Change playback speed; by default the clip keeps its footage and its length changes. */
+    setClipSpeed(clipId: string, speed: number, options?: { keepDuration?: boolean; ripple?: boolean }) {
+      d({ type: "clip/set-speed", payload: { clipId, speed, ...options } });
+    },
+    /** Hold the frame at `atUs` for `durationUs` (splits the clip; ripples the track by default). */
+    freezeFrame(clipId: string, atUs: Us, durationUs: Us, options?: { freezeClipId?: string; rightClipId?: string; ripple?: boolean }) {
+      d({ type: "clip/freeze", payload: { clipId, atUs, durationUs, ...options } });
+    },
+    /* ---- markers ---- */
+    addMarker(payload: { id?: string; timeUs: Us; label: string; durationUs?: Us; data?: Record<string, unknown> }) {
+      d({ type: "marker/add", payload });
+    },
+    updateMarker(
+      markerId: string,
+      patch: { timeUs?: Us; label?: string; durationUs?: Us | null; data?: Record<string, unknown> | null },
+    ) {
+      d({ type: "marker/update", payload: { markerId, ...patch } });
+    },
+    removeMarker(markerId: string) {
+      d({ type: "marker/remove", payload: { markerId } });
+    },
+
     duplicateClip(clipId: string, patch?: { newClipId?: string; startUs?: Us; trackId?: string }) {
       d({ type: "clip/duplicate", payload: { clipId, ...patch } });
     },

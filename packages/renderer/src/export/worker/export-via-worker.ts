@@ -176,6 +176,9 @@ export async function exportViaWorker(
         hasAudio,
         ...(target ? { streamOutput: true } : {}),
         ...(htmlTransfer.length ? { htmlRasters } : {}),
+        ...(doc.plugins?.length
+          ? { pluginBaseUrl: (globalThis as { location?: { href: string } }).location?.href ?? "" }
+          : {}),
       },
       htmlTransfer,
     );

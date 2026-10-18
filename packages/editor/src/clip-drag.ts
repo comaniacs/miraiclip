@@ -1,4 +1,4 @@
-import { TRACK_ACCEPTS, isAudioClip, isVideoClip, type Clip, type Project, type Us } from "@miraiclip/core";
+import { TRACK_ACCEPTS, clipSpeed, isAudioClip, isVideoClip, type Clip, type Project, type Us } from "@miraiclip/core";
 import { clipsByTrack } from "./selectors.js";
 
 /** What a drag changes: the whole clip, its in-point, or its out-point. */
@@ -88,6 +88,7 @@ export function beginClipDrag(
     endUs: clip.startUs + clip.durationUs,
     trackId: clip.trackId,
     trimStartUs: isVideoClip(clip) || isAudioClip(clip) ? clip.trimStartUs : undefined,
+    speed: clipSpeed(clip),
   };
   let preview: ClipDragPreview = {
     clipId,
@@ -156,7 +157,7 @@ export function beginClipDrag(
           durationUs: preview.durationUs,
           // Media clips keep their content in place: the source in-point moves with the edge.
           ...(origin.trimStartUs !== undefined
-            ? { trimStartUs: Math.max(0, origin.trimStartUs + (preview.startUs - origin.startUs)) }
+            ? { trimStartUs: Math.max(0, origin.trimStartUs + Math.round((preview.startUs - origin.startUs) * origin.speed)) }
             : {}),
         },
       });

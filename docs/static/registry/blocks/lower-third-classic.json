@@ -1,0 +1,49 @@
+{
+  "name": "lower-third-classic",
+  "title": "Lower third — classic",
+  "description": "Name and role on a dark card with an accent bar. Slides in and fades out on its own.",
+  "category": "lower-third",
+  "tags": [
+    "name",
+    "interview",
+    "speaker"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "name",
+      "label": "Name",
+      "type": "text",
+      "default": "Ada Lovelace"
+    },
+    {
+      "key": "role",
+      "label": "Role",
+      "type": "text",
+      "default": "Founder, Analytical Co."
+    },
+    {
+      "key": "accent",
+      "label": "Accent",
+      "type": "color",
+      "default": "#8b7bff"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:900px;height:160px;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}\n.lt{display:flex;align-items:center;gap:24px;height:140px;margin-top:10px;padding:0 34px;border-radius:20px;background:#0a0d18e6;border:1px solid #ffffff22;color:#fff;--d:0s;animation:mc-wipe .6s cubic-bezier(.65,0,.35,1) both}</style>\n<div style=\"animation:mc-out 0.4s ease-in both;--d:calc(var(--T) - 0.4s)\"><div class=\"lt\"><div style=\"width:8px;height:80px;border-radius:4px;background:{{accent}}\"></div>\n<div><div style=\"font-weight:800;font-size:46px;line-height:1.1\">{{name}}</div><div style=\"font-weight:500;font-size:30px;color:#c3cbe0;margin-top:4px\">{{role}}</div></div></div></div></div>",
+    "widthPx": 900,
+    "heightPx": 160,
+    "animated": true,
+    "durationUs": 5000000,
+    "transform": {
+      "x": 0.3,
+      "y": 0.84
+    }
+  }
+}

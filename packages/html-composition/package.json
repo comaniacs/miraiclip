@@ -1,0 +1,75 @@
+{
+  "name": "@miraiclip/html-composition",
+  "version": "0.0.0",
+  "description": "Import and export data-attribute HTML compositions (data-start / data-duration / data-track-index timing on plain HTML elements) to and from Miraiclip documents.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/html-composition"
+  },
+  "homepage": "https://docs.miraiclip.com/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "parse5": "^7.3.0"
+  },
+  "peerDependencies": {
+    "@miraiclip/core": "workspace:^"
+  },
+  "devDependencies": {
+    "@miraiclip/core": "workspace:^",
+    "@miraiclip/server-export": "workspace:^",
+    "@types/node": "^22.20.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "video",
+    "html",
+    "composition",
+    "import",
+    "export",
+    "interop",
+    "miraiclip"
+  ]
+}

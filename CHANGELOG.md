@@ -2,6 +2,35 @@
 
 All notable changes to Miraiclip are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [SemVer](https://semver.org/).
 
+## Unreleased (v6)
+
+### Added
+
+- `@miraiclip/core` **clip speed and freeze frames**: `speed` on video and audio clips (1/16× to 16×; `0` is a freeze frame), `clip/set-speed` (`keepDuration`, `ripple`) and `clip/freeze` (hold a frame for a while, rippling later clips). `toSourceUs`, `toTimelineUs`, `clipSpeed`, `isFrozenClip` and friends map time the same way in every renderer. `@miraiclip/renderer` plays, mixes (pitch follows speed) and exports speed changes and freezes identically in preview, worker and server export; `@miraiclip/editor` gains `setClipSpeed` and `freezeFrame` builders and speed-aware trimming.
+- `@miraiclip/core` **markers**: `doc.markers` (`{ id, timeUs, label, durationUs?, data? }`) with `marker/add`, `marker/update`, `marker/remove`, plus `listMarkers`, `markersInRange` and `markerChapters`. Markers are chapters, tutorial steps and guide sections; `describeProject` lists them. See [Markers](https://docs.miraiclip.com/concepts/markers).
+- `@miraiclip/core` + `@miraiclip/renderer` **effect regions**: any effect can be limited to a rectangle or ellipse of the clip's own frame (`region`, with `feather` and `invert` for spotlights), keyframable per coordinate (`effect/set-region-keyframe`). The region follows the content through zooms and moves. Used for redaction and focus.
+- **Self-describing plugins**: `doc.plugins` lists the modules that define a document's custom kinds (`plugin/add`, `plugin/remove`, optional SRI `integrity`). The renderer, worker export, `@miraiclip/server-export` (opt-in `plugins: { allow }`) and `@miraiclip/mcp` (`--allow-plugins`) load them, so custom kinds render everywhere.
+- `@miraiclip/core` **gestures and custom props**: `project.beginGesture(label)` makes any number of edits one undo step; `clip/set-property` edits custom kinds' `props` (re-validated) and `unsetProps`. Kind registration is idempotent, with `{ replace: true }` and `unregister*` for hot reload and warm multi-tenant workers.
+- `@miraiclip/renderer` **scripted html clips** (`scripted: true`): templates animated by their own scripts (GSAP, Lottie, anime.js, Web Animations, or a `__miraiclipSeek` hook) run in a sandboxed frame and are seeked, never played, then snapshotted for each frame. Preview, browser export, worker export and server export draw the same frame for the same time. Tested against direct captures of three GSAP timelines and a Lottie animation. See [HTML Clips](https://docs.miraiclip.com/creative/html-clips#scripted-templates-gsap-lottie-animejs).
+- `@miraiclip/registry` **(new)**: 26 ready-made blocks (lower thirds, callouts, titles, intro and outro, cursors, progress bar, background, caption styles), a static JSON registry format and the `miraiclip` CLI (`catalog`, `show`, `add`, `build`). See [Blocks](https://docs.miraiclip.com/creative/registry).
+- `@miraiclip/player` **(new)**: `<miraiclip-player>`, a framework-free web component that plays a rendered file or a live project, with chapters from markers, WebVTT or JSON. See [Player](https://docs.miraiclip.com/export/player).
+- `@miraiclip/html-composition` **(new)**: import data-attribute HTML compositions (`data-start`, `data-duration`, `data-track-index`) as documents and export documents back. See [HTML Compositions](https://docs.miraiclip.com/creative/html-compositions).
+- `@miraiclip/capture` **(new)**: record screen, microphone and camera in the browser (WebCodecs, streaming to disk) with an interaction log on the same clock: clicks with what was clicked, named keys and shortcuts, scrolls, the cursor path, navigation, and fields flagged as sensitive. It never logs what was typed. `sessionCommands` starts a project from a recording; `cursor: "never"` keeps the system cursor out of the video. `apps/capture-extension` is a reference Chrome extension.
+- `@miraiclip/screencast` **(new)**: planners from a recording's log to ordinary commands: `planZooms` (grouped, chained, never past the frame's edge), `planCursor` (smoothed, simplified, exact on every click, through every zoom), `planClickEffects`, `planRedactions` (pixelate or blur limited to each sensitive field, following scrolls) and `planCallouts`, plus `planScreencast` to run them in order. All respect trims and speed changes.
+- `@miraiclip/transcript` **(new)**: word-level transcripts in source time; an `AsrProvider` contract with OpenAI (Whisper word timestamps, punctuation restored) and Deepgram adapters, `createAsrHandler` + `remoteAsr` to keep keys server-side; `detectFillers` (per language), `detectRepeats`, `detectSilences`; `cutCommands` (ripple cuts across linked clips and markers), `planCleanup`, text-based editing (`editByText`, `removeWords`), `transcriptOnTimeline` and `captionCommands` (karaoke captions for what the timeline says after cuts).
+- `@miraiclip/narration` **(new)**: `scriptFromMarkers` / `scriptFromTranscript`, `rewriteScript` with any chat model (per-line word budgets from step lengths), `synthesizeNarration` with any voice generator (exact lengths, reuse of unchanged lines), and `alignNarration`, a deterministic planner that fits each line to its step with a freeze frame, a slow-down or a speed-up and reports every adjustment in `placements`. Also the `AvatarProvider` contract and `avatarCommands` for an on-camera presenter.
+- `@miraiclip/guides` **(new)**: step-by-step written guides from the same project: steps from markers or clicks, text from the narration or transcript, screenshots from any still renderer with the control outlined, the rest dimmed and the step number shown; output as Markdown, a standalone HTML page or JSON.
+- `@miraiclip/localize` **(new)**: a `Translator` contract with chat-model and DeepL adapters (kept terms and placeholders protected), and `localizeProject` / `localizeMany`: one variant per language for on-screen text, captions (word timing kept when the count matches), html block text, chapter markers, the project name and the narration script.
+- `@miraiclip/brand` **(new)**: brand kits (`parseBrandKit`) applied as commands with `applyBrand`: fonts on text, captions and blocks, colours by role on block fields, caption style, a logo watermark, and intro/outro blocks with the content moved to make room. Idempotent.
+- `@miraiclip/audio-sources` **OpenAI speech** (`openAiSpeechGenerator`, `/v1/audio/speech` with delivery direction on `gpt-4o-mini-tts`) and **audio length from bytes** (`audioDurationUs`, `wavDurationUs`, `mp3DurationUs`, with Xing/LAME headers for exact MP3 lengths). ElevenLabs voice clips now report their duration too.
+- `@miraiclip/server-export` **distributed rendering**: `renderDistributed` splits an export into frame-aligned video chunks rendered in parallel, renders the sound once, and joins everything with an ffmpeg stream copy. Runners: `localRunner` (a pool of warm browsers) and `httpRunner` (workers running `createRenderJobHandler`, e.g. on Cloud Run or Lambda; see `examples/render-worker`). Tested against single-pass exports: same frame count, bit-identical audio, matching picture. See [Distributed rendering](https://docs.miraiclip.com/export/server#distributed-rendering).
+- `@miraiclip/server-export` **`bench:cost`**: CPU-seconds per output minute for a typical product video at any size.
+- Claude Code plugin: a `screen-tutorial` workflow skill that uses the planners when a capture log exists, and command references for speed, freeze frames, regions, markers and plugins.
+
+### Changed
+
+- Clips whose `clip/move` or `clip/trim` changes nothing keep their transitions.
+
 ## [editor-0.2.0] + [react-0.2.0] — 2026-10-12
 
 ### Added
@@ -38,7 +67,7 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ### Added
 
-- `@miraiclip/core` **exact frame rates** — `ProjectSettings.frameRate` holds the rate as a ratio (`{ num: 30000, den: 1001 }` for 29.97). `project/set-settings` and `createProject` store decimal NTSC rates (29.97, 23.976, 59.94…) exactly and keep `fps` in sync; `project/set-settings` also takes `frameRate` directly. New helpers: `toFrameRate`, `projectFrameRate`, `formatFrameRate`, `frameCount`. `usToTimecode` takes `{ dropFrame: true }` for SMPTE drop-frame timecode at 29.97 / 59.94. See [Timeline precision](https://docs.miraiclip.com/fundamentals/project-and-time#time-is-in-microseconds).
+- `@miraiclip/core` **exact frame rates** — `ProjectSettings.frameRate` holds the rate as a ratio (`{ num: 30000, den: 1001 }` for 29.97). `project/set-settings` and `createProject` store decimal NTSC rates (29.97, 23.976, 59.94…) exactly and keep `fps` in sync; `project/set-settings` also takes `frameRate` directly. New helpers: `toFrameRate`, `projectFrameRate`, `formatFrameRate`, `frameCount`. `usToTimecode` takes `{ dropFrame: true }` for SMPTE drop-frame timecode at 29.97 / 59.94. See [Timeline precision](https://docs.miraiclip.com/concepts/project-and-time#time-is-in-microseconds).
 
 ### Fixed
 
@@ -84,7 +113,7 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ### Added
 
-- `@miraiclip/core` + `@miraiclip/renderer` **hidden tracks** — `track/set-property { hidden }` (optional `Track.hidden`; `false` removes it). The compositor skips a hidden track's clips in preview, exports and stills, and `getClipBounds` / `hitTest` ignore them; sound follows `muted` as before. `describeProject` lists track flags (muted, solo, locked, hidden). See [Tracks](https://docs.miraiclip.com/fundamentals/tracks#fields).
+- `@miraiclip/core` + `@miraiclip/renderer` **hidden tracks** — `track/set-property { hidden }` (optional `Track.hidden`; `false` removes it). The compositor skips a hidden track's clips in preview, exports and stills, and `getClipBounds` / `hitTest` ignore them; sound follows `muted` as before. `describeProject` lists track flags (muted, solo, locked, hidden). See [Tracks](https://docs.miraiclip.com/concepts/tracks#fields).
 - `@miraiclip/core` + `@miraiclip/renderer` **end-anchored keyframes** — `keyframe/set` / `keyframe/remove` take `anchor: "end"` (time measured back from the clip's end), so exit animations follow trims. New `resolveKeyframes` / `keyframeTimeUs` helpers; `evaluateKeyframes` takes an optional clip duration. `clip/split` keeps end-anchored keyframes on the right half only. Volume automation honors the anchor. See [Animation](https://docs.miraiclip.com/creative/keyframes#animate-out-from-the-end).
 
 ## [audio-sources-0.2.0] — 2026-10-02
@@ -103,7 +132,7 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 
 ### Added
 
-- `@miraiclip/core` **asset provenance and clip fades** — assets take optional `name`, `source` (`{ provider, id, url? }`), `license` (`{ id, url?, commercial, attributionRequired }`) and `attribution`, editable with the new `asset/set-property` command (`null` clears). Video and audio clips take `fadeInUs` / `fadeOutUs`; `clip/split` keeps the fade-in on the left half and the fade-out on the right. New pure helpers `usedAssets`, `creditsFor` and `licenseReport`; `describeProject` shows names, licenses, volume and fades. See [Clips → Asset provenance and licensing](https://docs.miraiclip.com/fundamentals/assets#provenance-and-licenses).
+- `@miraiclip/core` **asset provenance and clip fades** — assets take optional `name`, `source` (`{ provider, id, url? }`), `license` (`{ id, url?, commercial, attributionRequired }`) and `attribution`, editable with the new `asset/set-property` command (`null` clears). Video and audio clips take `fadeInUs` / `fadeOutUs`; `clip/split` keeps the fade-in on the left half and the fade-out on the right. New pure helpers `usedAssets`, `creditsFor` and `licenseReport`; `describeProject` shows names, licenses, volume and fades. See [Clips → Asset provenance and licensing](https://docs.miraiclip.com/concepts/assets#provenance-and-licenses).
 - `@miraiclip/renderer` **fades and waveforms** — fades apply in live playback and the export mix through the shared gain math, as exact linear ramps. New `computeWaveformPeaks`, `peaksForRange` and `accumulatePeaks` for drawing waveforms, plus `clipFades` / `fadeGainAt` for fade handles. See [Rendering → Audio](https://docs.miraiclip.com/creative/audio).
 
 ## [core-0.5.2] + [renderer-0.7.7] — 2026-10-01

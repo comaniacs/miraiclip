@@ -42,6 +42,63 @@ The command-driven core was designed for this from v1; v5 turns it into working 
 
 Also explored: a programmatic clip kind for code-driven graphics with export parity, and locked brand templates. See PLAN.md for the full exploration.
 
+## v6 — Product videos, agents & cloud (in progress)
+
+Turning one screen recording into a finished product video, a written guide and every language, plus a stronger agent surface and render infrastructure. Every feature is a pure planner, a contract with bring-your-own-key adapters, or both, so it works without a Miraiclip server. ✅ = built and tested, waiting for the next release · 🔜 = pending · ⏸ = waiting on a decision. **Progress: 21 of 26 items built** (Phases 1, 2 and 4 complete; Phase 3 5 of 6; Phase 5 2 of 6).
+
+**Phase 1 — Foundations (core)**
+
+| Item | Status | Where |
+| --- | --- | --- |
+| Clip speed and freeze frames (`speed`, `clip/set-speed`, `clip/freeze`), with audio, export and server parity | ✅ | core, renderer, editor |
+| Timeline markers (`marker/add`/`update`/`remove`): chapters, steps, guide sections | ✅ | core, editor — [Markers](core-concepts/markers) |
+| Effect regions: any effect limited to a keyframable box or ellipse (redaction, spotlight) | ✅ | core, renderer — [Effects](rendering/effects) |
+| Self-describing plugins (`doc.plugins`): custom kinds render in the browser, workers, server export and MCP | ✅ | core, renderer, server-export, mcp — [Extensibility](rendering/extensibility) |
+| Idempotent kind registration (hot reload, warm multi-tenant workers) | ✅ | core, renderer |
+| Engine fixes: custom `props` via `clip/set-property`, gestures as one undo step, transitions surviving no-op moves | ✅ | core |
+
+**Phase 2 — Agent surface**
+
+| Item | Status | Where |
+| --- | --- | --- |
+| Agent skills pack and Claude Code plugin (router + workflows, incl. screen tutorials) | ✅ | `plugins/miraiclip` |
+| Block registry: 21 ready-made blocks, static JSON registry, `miraiclip add`/`catalog`/`build` | ✅ | `@miraiclip/registry` — [Blocks](blocks) |
+| `<miraiclip-player>` web component (file or live project, chapters from markers) | ✅ | `@miraiclip/player` — [Player](player) |
+| HTML composition import and export (data-attribute timing ↔ documents) | ✅ | `@miraiclip/html-composition` — [HTML Compositions](html-compositions) |
+| Scripted html clips: GSAP, Lottie, anime.js and Web Animations, seeked frame-exactly in every renderer | ✅ | renderer — [HTML Clips](rendering/html-clips#scripted-templates-gsap-lottie-animejs) |
+
+**Phase 3 — Screen recordings to product videos**
+
+| Item | Status | Where |
+| --- | --- | --- |
+| Browser recorder (screen + mic + camera, streaming) with a private interaction log; reference Chrome extension | ✅ | `@miraiclip/capture`, `apps/capture-extension` |
+| Planners: auto-zoom, clean cursor, click ripples, redaction of sensitive fields, step callouts | ✅ | `@miraiclip/screencast` |
+| Transcripts: speech-to-text contract (OpenAI, Deepgram), filler/stutter/silence removal, text-based editing, captions after cuts | ✅ | `@miraiclip/transcript` |
+| Narration: scripts per step, rewrite by any chat model, speech (ElevenLabs, OpenAI), `alignNarration` | ✅ | `@miraiclip/narration`, `@miraiclip/audio-sources` |
+| Written guides with annotated screenshots (Markdown, HTML, JSON) | ✅ | `@miraiclip/guides` |
+| Demo: "Record → product video + guide" in the React template | 🔜 | miraiclip-react-template |
+
+See [Screen recordings to product videos](screencasts).
+
+**Phase 4 — Multipliers**
+
+| Item | Status | Where |
+| --- | --- | --- |
+| Localization: translator contract (chat model, DeepL) and one variant per language, re-voiced with narration | ✅ | `@miraiclip/localize` |
+| Brand kits: colours, fonts, logo, caption style, intro and outro | ✅ | `@miraiclip/brand` |
+| Avatar presenter contract (`AvatarProvider`, `avatarCommands`); vendor adapters later | ✅ | `@miraiclip/narration` |
+
+**Phase 5 — Miraiclip Cloud (paid, optional)**
+
+| Item | Status | Where |
+| --- | --- | --- |
+| Render cost measured: CPU-seconds per output minute at 1080p30 and 4K30 (`bench:cost`) | ✅ | server-export |
+| Distributed rendering: frame-aligned chunks + one audio pass, local and HTTP runners, deployable worker | ✅ | server-export — [Distributed rendering](export/server-side#distributed-rendering) |
+| Hosted render API (stateless containers, scale to zero, signed asset URLs) | ⏸ | waiting on the cloud stack decision |
+| AI gateway: speech-to-text, voice, translation and chat behind one key, metered | ⏸ | waiting on the cloud stack decision |
+| Share pages, player CDN and view analytics | ⏸ | waiting on the cloud stack decision |
+| Cloud client package implementing the contracts above | 🔜 | after the hosted API exists |
+
 ## Parallel track — Adapters & ecosystem
 
 `@miraiclip/react` hooks and selectors (Vue and Svelte adapters later), and a collaboration reference implementation syncing commands/patches over WebSocket.

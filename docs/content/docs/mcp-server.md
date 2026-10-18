@@ -11,6 +11,8 @@ npx @miraiclip/mcp --project ./video.miraiclip.json --assets ./media
 
 The project file is created if missing (`--width`/`--height`/`--fps` set the new composition; defaults 1920×1080 @ 30). Previews and exports run in headless Chrome — system Chrome is found automatically, or point `--browser` (or `MIRAICLIP_BROWSER`) at any Chrome/Chromium binary. MP4 export needs real Chrome; WebM works everywhere.
 
+Documents that declare [plugins](../rendering/extensibility#plugins-custom-kinds-everywhere) need `--allow-plugins` (any plugin) or `--allow-plugins https://cdn.acme.dev/,./plugins/` (only those URL prefixes); add `--require-integrity` to refuse plugins without an SRI hash. The server then registers each plugin's kinds in Node, so the agent's `clip/add` / `effect/add` with a custom kind validates, and the preview/export page renders them. Without permission, edits still land and the tool result carries `pluginProblems` explaining why a kind is unknown.
+
 ## Connect a client
 
 **Claude Desktop** (`claude_desktop_config.json`) or any client that takes the standard server config:

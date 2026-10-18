@@ -1,0 +1,50 @@
+{
+  "name": "title-chapter",
+  "title": "Title — chapter card",
+  "description": "A full-frame card announcing the next part: a step number and a title. Use between sections of a tutorial.",
+  "category": "title",
+  "tags": [
+    "chapter",
+    "section",
+    "tutorial",
+    "step"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "kicker",
+      "label": "Kicker",
+      "type": "text",
+      "default": "STEP 2"
+    },
+    {
+      "key": "title",
+      "label": "Title",
+      "type": "text",
+      "default": "Connect your data"
+    },
+    {
+      "key": "accent",
+      "label": "Accent",
+      "type": "color",
+      "default": "#22d3ee"
+    },
+    {
+      "key": "bg",
+      "label": "Background",
+      "type": "color",
+      "default": "#0f172a"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;padding:0 10vmin;box-sizing:border-box;background:{{bg}};color:#fff;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}</style>\n<div style=\"width:9vmin;height:1vmin;border-radius:1vmin;background:{{accent}};transform-origin:left;animation:mc-growx .5s cubic-bezier(.65,0,.35,1) both\"></div>\n<div style=\"margin-top:3vmin;font-weight:700;font-size:3vmin;letter-spacing:.28em;color:{{accent}};animation:mc-fade .5s ease-out both;--d:.2s\">{{kicker}}</div>\n<div style=\"margin-top:1.5vmin;font-weight:800;font-size:8vmin;line-height:1.1;letter-spacing:-.02em;animation:mc-rise .6s cubic-bezier(.2,.8,.2,1) both;--d:.3s\">{{title}}</div></div>",
+    "animated": true,
+    "durationUs": 2500000
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "name": "@miraiclip/player",
+  "version": "0.0.0",
+  "description": "<miraiclip-player>: a framework-free web component that plays a Miraiclip project live or a rendered MP4/WebM, with chapters from timeline markers.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/player"
+  },
+  "homepage": "https://docs.miraiclip.com/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./define": "./src/define.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "./src/define.ts",
+    "./dist/define.js",
+    "./dist/define.cjs"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      },
+      "./define": {
+        "import": {
+          "types": "./dist/define.d.ts",
+          "default": "./dist/define.js"
+        },
+        "require": {
+          "types": "./dist/define.d.cts",
+          "default": "./dist/define.cjs"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@miraiclip/core": "workspace:^",
+    "@miraiclip/renderer": "workspace:^"
+  },
+  "peerDependenciesMeta": {
+    "@miraiclip/core": {
+      "optional": true
+    },
+    "@miraiclip/renderer": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@miraiclip/core": "workspace:^",
+    "@miraiclip/renderer": "workspace:^",
+    "@types/node": "^22.20.1",
+    "esbuild": "^0.27.7",
+    "jsdom": "^25.0.1",
+    "playwright-core": "^1.49.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "video",
+    "player",
+    "web-component",
+    "custom-element",
+    "chapters",
+    "miraiclip"
+  ]
+}

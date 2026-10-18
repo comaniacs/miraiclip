@@ -25,6 +25,16 @@ Miraiclip is a monorepo of focused packages:
 | [`@miraiclip/templates`](https://www.npmjs.com/package/@miraiclip/templates) | ✅ v0.1.3 on npm | Parameterized videos: template + data rows → batch personalized exports — see [Templates](templates) |
 | [`@miraiclip/audio-sources`](https://www.npmjs.com/package/@miraiclip/audio-sources) | ✅ v0.2.1 on npm | Stock and AI-generated audio: Openverse, Freesound, your own catalog or backend, vendor-neutral generators, `importAudio`, LLM tools — see [Audio Sources](audio-sources) |
 | [`@miraiclip/assistant`](https://www.npmjs.com/package/@miraiclip/assistant) | ✅ v0.1.1 on npm | AI editing assistant: vendor-neutral models (OpenAI first), an agent loop that lands each request as one undo step, editing tools, server-side keys — see [Assistant](assistant) |
+| `@miraiclip/registry` | next release | Ready-made blocks (lower thirds, callouts, intros, cursors, caption styles) and the `miraiclip add` CLI — see [Blocks](blocks) |
+| `@miraiclip/player` | next release | `<miraiclip-player>`: a framework-free web component for files or live projects, with chapters — see [Player](player) |
+| `@miraiclip/html-composition` | next release | Import and export data-attribute HTML compositions — see [HTML Compositions](html-compositions) |
+| `@miraiclip/capture` | next release | Screen, mic and camera recording with a private interaction log — see [Screen recordings](screencasts) |
+| `@miraiclip/screencast` | next release | Zooms, cursor, click ripples, redaction and callouts planned from the recording — see [Screen recordings](screencasts) |
+| `@miraiclip/transcript` | next release | Speech to text, filler and silence removal, text-based editing, captions — see [Screen recordings](screencasts) |
+| `@miraiclip/narration` | next release | Voiceover scripts, speech and `alignNarration` — see [Screen recordings](screencasts) |
+| `@miraiclip/guides` | next release | Step-by-step written guides with annotated screenshots — see [Screen recordings](screencasts) |
+| `@miraiclip/localize` | next release | One variant per language through any translator — see [Screen recordings](screencasts) |
+| `@miraiclip/brand` | next release | Brand kits applied as commands — see [Screen recordings](screencasts) |
 | `@miraiclip/react` | planned | React hooks and selectors |
 
 ## Core concepts

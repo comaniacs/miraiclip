@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "playwright-core";
 import { resolveAssetSources } from "./assets.js";
+import { preparePlugins, type ServerPluginOptions } from "./plugins.js";
 import "./harness/protocol.js";
 import { launchBrowser } from "./browser.js";
 import { startHarnessServer, type HarnessServer } from "./server.js";
@@ -14,6 +15,8 @@ export interface CreateRenderSessionOptions {
   /** Base directory for resolving relative asset `src` paths (default: cwd). */
   assetsDir?: string;
   browser?: BrowserOptions;
+  /** Run documents' `doc.plugins` (off by default; see `ServerPluginOptions`). */
+  plugins?: ServerPluginOptions;
 }
 
 export interface RenderStillOptions {
@@ -90,6 +93,7 @@ export async function createRenderSession(
     renderStill(doc, stillOptions) {
       const run = queue.then(async (): Promise<Uint8Array> => {
         if (closed) throw new Error("render session is closed");
+        const plugins = await preparePlugins(doc, options.plugins, options.assetsDir);
         const resolved = resolveAssetSources(doc, {
           assets: options.assets,
           assetsDir: options.assetsDir,
@@ -108,6 +112,7 @@ export async function createRenderSession(
                 timeUs: stillOptions.timeUs,
                 ...(stillOptions.width !== undefined ? { width: stillOptions.width } : {}),
                 ...(stillOptions.height !== undefined ? { height: stillOptions.height } : {}),
+                ...(plugins ? { plugins } : {}),
               },
             ] as const,
           )

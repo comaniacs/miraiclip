@@ -1,0 +1,50 @@
+{
+  "name": "outro-cta",
+  "title": "End card — call to action",
+  "description": "Brand, tagline and a pulsing URL button. Hold it at least 2.5 seconds.",
+  "category": "outro",
+  "tags": [
+    "cta",
+    "end card",
+    "url",
+    "brand"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "brand",
+      "label": "Brand",
+      "type": "text",
+      "default": "Acme"
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "default": "Start free today"
+    },
+    {
+      "key": "url",
+      "label": "URL",
+      "type": "text",
+      "default": "acme.com"
+    },
+    {
+      "key": "bg",
+      "label": "Background",
+      "type": "color",
+      "default": "#0a0d18"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:{{bg}};color:#fff;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}\n@keyframes pulse{0%,100%{box-shadow:0 0 0 0 #22d3ee66}50%{box-shadow:0 0 0 2vmin #22d3ee00}}</style>\n<div style=\"font-weight:800;font-size:15vmin;letter-spacing:-.045em;animation:mc-pop .55s cubic-bezier(.2,.8,.2,1) both;--d:.1s\">{{brand}}</div>\n<div style=\"margin-top:1.5vmin;font-size:3.9vmin;font-weight:500;color:#a8b2cc;animation:mc-fade .6s ease-out both;--d:.5s\">{{tagline}}</div>\n<div style=\"margin-top:6vmin;padding:2.4vmin 5vmin;border-radius:999px;background:#fff;color:#0a0d18;font-weight:700;font-size:3.7vmin;animation:mc-fade .5s ease-out both,pulse 1.6s ease-in-out 3 both;--d:.85s\">{{url}}</div></div>",
+    "animated": true,
+    "durationUs": 4000000
+  }
+}

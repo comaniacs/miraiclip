@@ -1,4 +1,4 @@
-import type { AudioClip, Project, ProjectDocument, VideoClip } from "@miraiclip/core";
+import { toSourceUs, type AudioClip, type Project, type ProjectDocument, type VideoClip } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
 import { gainFor, isAudible, mapChunkToTimeline, volumeAutomation } from "./mapping.js";
 import type { AudioChannel, AudioOutput, AudioSourceFactory, AudioTrackSource } from "./types.js";
@@ -207,7 +207,7 @@ export class AudioEngine {
       lane.source = source;
       if (!source) return; // asset has no audio track
       const fromTimelineUs = Math.max(this.anchorTimelineUs, clip.startUs);
-      const fromMediaUs = clip.trimStartUs + (fromTimelineUs - clip.startUs);
+      const fromMediaUs = toSourceUs(clip, fromTimelineUs);
       lane.generator = source.chunksFrom(fromMediaUs);
       lane.scheduledThroughUs = fromTimelineUs;
       lane.exhausted = false;
@@ -266,8 +266,8 @@ export class AudioEngine {
         chunk.native,
         whenUs,
         mapped.offsetIntoChunkUs,
-        mapped.durationUs,
-        this.rate,
+        mapped.sourceDurationUs,
+        this.rate * mapped.speed,
       );
       lane.scheduledThroughUs = mapped.playFromTimelineUs + mapped.durationUs;
     }

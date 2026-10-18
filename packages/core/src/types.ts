@@ -180,6 +180,35 @@ export interface EffectInstance {
   kind: string;
   enabled: boolean;
   params: Record<string, unknown>;
+  /**
+   * Limit the effect to part of the clip (absent = the whole clip): blur or
+   * pixelate a password field, or darken everything BUT a button (`invert`).
+   */
+  region?: EffectRegion;
+}
+
+export type EffectRegionProperty = "x" | "y" | "width" | "height";
+
+/**
+ * Where an effect applies, as fractions of the clip's own frame (0..1 from
+ * its top-left), so the region stays on the same content when the clip is
+ * moved, zoomed or rotated. Each coordinate can be keyframed.
+ */
+export interface EffectRegion {
+  /** Left edge, 0..1 of the clip's width. */
+  x: number;
+  /** Top edge, 0..1 of the clip's height. */
+  y: number;
+  width: number;
+  height: number;
+  /** Default "rect". */
+  shape?: "rect" | "ellipse";
+  /** Soft edge width as a fraction of the region's shorter side (default 0). */
+  feather?: number;
+  /** Apply the effect everywhere EXCEPT the region (spotlight). */
+  invert?: boolean;
+  /** Keyframes per coordinate, clip-relative like clip keyframes. */
+  animations?: Partial<Record<EffectRegionProperty, Keyframe[]>>;
 }
 
 export type ClipKind = "video" | "audio" | "image" | "text" | "caption" | "html";
@@ -209,6 +238,12 @@ export interface VideoClip extends ClipBase, AudioFades {
   /** Source trim: offset into the asset where playback starts. */
   trimStartUs: Us;
   volume: number;
+  /**
+   * Playback speed (absent = 1): 2 plays twice as fast, 0.5 half speed, and
+   * 0 is a freeze frame showing the source frame at `trimStartUs` (silent).
+   * Map times with `toSourceUs` / `toTimelineUs`.
+   */
+  speed?: number;
 }
 
 export interface AudioClip extends ClipBase, AudioFades {
@@ -216,6 +251,8 @@ export interface AudioClip extends ClipBase, AudioFades {
   assetId: string;
   trimStartUs: Us;
   volume: number;
+  /** Playback speed (absent = 1). Audio clips can't freeze (no 0). Pitch follows speed. */
+  speed?: number;
 }
 
 export interface ImageClip extends ClipBase {
@@ -260,6 +297,13 @@ export interface HtmlClip extends ClipBase {
    * Static (false/absent) clips raster once per param change.
    */
   animated?: boolean;
+  /**
+   * The template's motion comes from its own scripts (GSAP, Lottie, anime.js,
+   * the Web Animations API, …). Renderers run it in a sandboxed frame, seek it
+   * to each frame's time and snapshot the result — frame-exact, never played.
+   * Implies `animated`.
+   */
+  scripted?: boolean;
   /**
    * Animated clips: animation time at the clip's start (default 0). A split
    * advances the right half's offset so the animation continues across the
@@ -387,6 +431,38 @@ export interface Transition {
 }
 
 /**
+ * A plugin the document needs: code that registers custom clip, effect or
+ * transition kinds. Loaders fetch `url`, check `integrity` (an SRI hash like
+ * "sha384-…") when given, and import it — so the document renders the same
+ * in every runtime that loads its plugins.
+ */
+export interface PluginRef {
+  /** Unique within the document, e.g. "@acme/charts". */
+  name: string;
+  version: string;
+  /** Where the plugin's standalone ES module lives (https:, or a path the runtime resolves). */
+  url: string;
+  /** Subresource-integrity hash of the module source, e.g. "sha384-…". */
+  integrity?: string;
+}
+
+/**
+ * A named point (or span) on the timeline: a chapter, a tutorial step, a
+ * guide section, a review note. Markers don't render; players, planners and
+ * exporters read them. `data` is free-form JSON for whoever placed it.
+ */
+export interface Marker {
+  id: string;
+  /** Timeline position. */
+  timeUs: Us;
+  label: string;
+  /** Optional span length (a chapter or step that lasts a while). */
+  durationUs?: Us;
+  /** Free-form JSON payload (e.g. `{ kind: "step", selector: "#save" }`). */
+  data?: Record<string, unknown>;
+}
+
+/**
  * The document: everything that is part of the composition, serialized and
  * covered by undo history.
  */
@@ -400,6 +476,10 @@ export interface ProjectDocument {
   clips: Record<string, Clip>;
   /** Transitions between adjacent clips, keyed by id. */
   transitions: Record<string, Transition>;
+  /** Timeline markers keyed by id (absent until the first marker is added). */
+  markers?: Record<string, Marker>;
+  /** Plugins that define the custom kinds this document uses (absent when none). */
+  plugins?: PluginRef[];
 }
 
 /**

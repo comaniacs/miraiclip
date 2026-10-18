@@ -19,6 +19,36 @@ Every clip has:
 - **Type-specific properties** — e.g. text content and font for text clips, volume and fades for audio, word timing and style for captions.
 - **Fades** — `fadeInUs` / `fadeOutUs` (video/audio): linear gain ramps from the clip start and to its end, multiplied with `volume` and its keyframes. Fades longer than the clip are scaled so they meet. `clip/split` keeps the fade-in on the left half and the fade-out on the right.
 
+## Speed and freeze frames
+
+Video and audio clips play their source at a constant `speed` (absent = 1). `2` shows twice as much footage in the same time, `0.5` plays at half speed, and `0` is a **freeze frame**: every frame shows the source frame at `trimStartUs`, and the clip is silent. Speeds run from 1/16× to 16×; audio pitch follows speed.
+
+```ts
+// Same footage, twice as fast: the clip becomes half as long, and later clips close the gap.
+project.dispatch({ type: "clip/set-speed", payload: { clipId: "intro", speed: 2, ripple: true } });
+
+// Keep the clip's length and play less footage at 0.5×.
+project.dispatch({ type: "clip/set-speed", payload: { clipId: "demo", speed: 0.5, keepDuration: true } });
+
+// Hold the frame at 4 s for 1.5 s: the clip splits there and the rest of the track moves back.
+project.dispatch({
+  type: "clip/freeze",
+  payload: { clipId: "demo", atUs: 4_000_000, durationUs: 1_500_000 },
+});
+```
+
+`clip/freeze` at the clip's exact end holds its last frame without splitting; `ripple: false` lays the freeze over what follows instead of pushing it back. `clip/split`, trims, transitions and their headroom all account for speed — a 2× clip's spare second of footage is half a second of transition.
+
+Map times yourself with the pure helpers every renderer path uses: `toSourceUs(clip, timelineUs)`, `toTimelineUs(clip, sourceUs)` (undefined for a freeze frame), `sourceSpanUs(clip)`, `sourceEndUs(clip)`, `clipSpeed(clip)` and `isFrozenClip(clip)`.
+
+## Custom clip props
+
+A custom kind's payload lives under `props`. Edit it with `clip/set-property`: `props` merges in, `unsetProps` drops keys, and the result is re-validated against the kind's schema (so defaults apply and bad values reject with `invalid-props`).
+
+```ts
+project.dispatch({ type: "clip/set-property", payload: { clipId: "counter-1", props: { to: 250 } } });
+```
+
 ## Asset provenance and licensing
 
 Assets can record where they came from and under what terms — the basis for stock libraries and AI generation:
@@ -54,7 +84,9 @@ The core only records and reports; enforcing a policy (block export, warn, add a
 | `clip/trim` | Adjust in/out points against the source |
 | `clip/split` | Cut one clip into two at a timeline position |
 | `clip/duplicate` | Copy a clip |
-| `clip/set-property` | Update any clip property |
+| `clip/set-property` | Update any clip property (custom kinds: `props`) |
+| `clip/set-speed` | Play a video/audio clip faster or slower |
+| `clip/freeze` | Hold one frame of a video clip |
 
 ```ts
 project.dispatch({

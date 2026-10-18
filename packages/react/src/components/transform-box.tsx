@@ -67,6 +67,8 @@ export interface TransformBoxState {
   height: number;
   /** Start a drag on the selected box (what the handles call). */
   startDrag: (event: ReactPointerEvent, mode: TransformDragMode) => void;
+  /** The topmost selectable clip under a pointer event, or null. */
+  pick: (event: { clientX: number; clientY: number }) => string | null;
 }
 
 const BoxContext = createContext<TransformBoxState | null>(null);
@@ -210,12 +212,21 @@ const Root = forwardRef<HTMLDivElement, TransformBoxRootProps>(function Transfor
     return () => window.removeEventListener("keydown", onKey);
   }, [nudge, selectedId, live, project, getClipBounds]);
 
+  const pick = useCallback(
+    (e: { clientX: number; clientY: number }) => {
+      if (!own.current) return null;
+      const p = toComp(e);
+      return hitTest(p.x, p.y, selectable);
+    },
+    [toComp, hitTest, selectable],
+  );
+
   const selectedClip = selectedId ? project.getState().doc.clips[selectedId] : undefined;
   const editable = !!box && !!selectedClip && canTransformClip(project, selectedClip.id);
 
   const state = useMemo<TransformBoxState>(
-    () => ({ box, hover, guides, editable, dragging, scale, width, height, startDrag }),
-    [box, hover, guides, editable, dragging, scale, width, height, startDrag],
+    () => ({ box, hover, guides, editable, dragging, scale, width, height, startDrag, pick }),
+    [box, hover, guides, editable, dragging, scale, width, height, startDrag, pick],
   );
 
   if (!live) return null;
@@ -327,9 +338,14 @@ function Guides(line: SVGProps<SVGLineElement>) {
   );
 }
 
-/** The selected clip's area as a drag target (move), under the handles. Only while editable. */
+/**
+ * The selected clip's area as a drag target (move), under the handles. Only
+ * while editable. A press where another clip is drawn on top of the selection
+ * (a camera over a full-frame recording, text over a background) falls through
+ * to the Root, which selects that clip: the topmost clip always wins a click.
+ */
 function Body(polygon: SVGProps<SVGPolygonElement>) {
-  const { box, editable, scale, width, height, startDrag, dragging } = useTransformBox();
+  const { box, editable, scale, width, height, startDrag, dragging, pick } = useTransformBox();
   if (!box || !editable) return null;
   return (
     <svg data-transform-body="" style={svgStyle} width={width} height={height}>
@@ -337,7 +353,11 @@ function Body(polygon: SVGProps<SVGPolygonElement>) {
         points={points(box, scale)}
         fill="transparent"
         style={{ pointerEvents: "all", cursor: dragging === "move" ? "grabbing" : "move" }}
-        onPointerDown={(e) => startDrag(e, "move")}
+        onPointerDown={(e) => {
+          const top = pick(e);
+          if (top && top !== box.clipId) return; // something is above the selection here: let the Root select it
+          startDrag(e, "move");
+        }}
         {...polygon}
       />
     </svg>

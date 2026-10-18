@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src 'self' blob: mediastream:; style-src 'self'; script-src 'self'; worker-src 'self' blob:" />
+  <title>Miraiclip Recorder</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app" id="setup">
+    <div class="brand"><span class="logo"></span>Miraiclip Recorder</div>
+
+    <div class="notice" id="noticeScreen" hidden>
+      <strong>Allow screen recording</strong>
+      <p>macOS needs Screen Recording permission for Miraiclip Recorder. Turn it on, then quit and reopen the app.</p>
+      <div class="row"><button class="chip" id="openScreen">Open System Settings</button></div>
+    </div>
+    <div class="notice" id="noticeInput" hidden>
+      <strong>Allow the click log</strong>
+      <p id="noticeInputText">To log clicks and shortcuts in every app, macOS needs Accessibility permission for Miraiclip Recorder. Without it you can still record, without the log.</p>
+      <div class="row"><button class="chip" id="askInput">Allow…</button><button class="chip" id="openInput">Open System Settings</button><button class="chip" id="recheck">Check again</button></div>
+    </div>
+
+    <section>
+      <div class="label">Screen</div>
+      <div class="screens" id="screens"></div>
+    </section>
+
+    <section class="devices">
+      <div class="label">Camera &amp; microphone</div>
+      <label class="device" id="camBox"><span id="camIcon"></span><select id="camSel" aria-label="Camera"></select></label>
+      <label class="device" id="micBox"><span id="micIcon"></span><select id="micSel" aria-label="Microphone"></select></label>
+    </section>
+
+    <section class="options">
+      <div class="toggle" role="switch" tabindex="0" id="optCountdown">3-second countdown<span class="switch"></span></div>
+      <div class="toggle" role="switch" tabindex="0" id="optAudio">Record the computer's sound<span class="switch"></span></div>
+    </section>
+
+    <p class="status" id="status"></p>
+    <button class="start" id="start"><span class="dot"></span>Start recording</button>
+    <div class="foot"><span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>X</kbd> finish</span><span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> step</span><span><kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> pause</span></div>
+  </main>
+
+  <main class="app" id="saving" hidden>
+    <div class="brand"><span class="logo"></span>Miraiclip Recorder</div>
+    <p class="status" id="savingText">Finishing your recording…</p>
+  </main>
+
+  <main class="app done" id="done" hidden>
+    <div class="brand"><span class="logo"></span>Miraiclip Recorder</div>
+    <h2>Recording saved</h2>
+    <p class="path" id="savedPath"></p>
+    <p class="status" id="savedInfo"></p>
+    <ol>
+      <li>Open the Miraiclip editor → <strong>Record</strong> → <strong>Import a recording</strong>.</li>
+      <li>Drop this <code>.mcrec</code> file in. Steps, zooms, cursor and click ripples come from its log.</li>
+    </ol>
+    <div class="row"><button class="btn" id="reveal">Show in folder</button><button class="btn primary" id="again">Record again</button></div>
+  </main>
+
+  <div class="countdown" id="countdown" hidden></div>
+  <script defer src="../recorder.js"></script>
+</body>
+</html>

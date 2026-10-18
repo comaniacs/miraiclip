@@ -1,0 +1,49 @@
+{
+  "name": "intro-logo-reveal",
+  "title": "Intro — brand reveal",
+  "description": "A brand name pops in centre-frame with a tagline underneath.",
+  "category": "intro",
+  "tags": [
+    "brand",
+    "logo",
+    "opener"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "brand",
+      "label": "Brand",
+      "type": "text",
+      "default": "Acme"
+    },
+    {
+      "key": "tagline",
+      "label": "Tagline",
+      "type": "text",
+      "default": "Make it simple."
+    },
+    {
+      "key": "bg",
+      "label": "Background",
+      "type": "color",
+      "default": "#0a0d18"
+    },
+    {
+      "key": "ink",
+      "label": "Text colour",
+      "type": "color",
+      "default": "#ffffff"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:{{bg}};color:{{ink}};font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}</style>\n<div style=\"font-weight:800;font-size:16vmin;letter-spacing:-.045em;animation:mc-pop .6s cubic-bezier(.2,.8,.2,1) both;--d:.1s\">{{brand}}</div>\n<div style=\"margin-top:1.6vmin;font-size:3.8vmin;font-weight:500;opacity:.75;animation:mc-fade .6s ease-out both;--d:.6s\">{{tagline}}</div></div>",
+    "animated": true,
+    "durationUs": 3000000
+  }
+}

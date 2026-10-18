@@ -1,0 +1,71 @@
+{
+  "name": "@miraiclip/narration",
+  "version": "0.0.0",
+  "description": "AI voiceover for Miraiclip videos: a script from your steps or transcript, an optional rewrite by any chat model, speech from any voice generator, and alignNarration \u2014 a deterministic planner that fits each line to its step with freeze frames or speed changes you can see and edit.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/narration"
+  },
+  "homepage": "https://docs.miraiclip.com/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@miraiclip/audio-sources": "workspace:^",
+    "@miraiclip/transcript": "workspace:^"
+  },
+  "devDependencies": {
+    "@miraiclip/core": "workspace:^",
+    "@types/node": "^22.20.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "voiceover",
+    "narration",
+    "text-to-speech",
+    "script",
+    "tutorial",
+    "miraiclip"
+  ],
+  "peerDependencies": {
+    "@miraiclip/core": "workspace:^"
+  }
+}

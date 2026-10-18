@@ -73,11 +73,20 @@ registerTransitionKind("test/mystery", z.object({})); // valid in commands, NO r
 describe("registerTransitionRenderer", () => {
   it("rejects duplicate kinds (built-ins included)", () => {
     expect(() => registerTransitionRenderer("crossDissolve", getTransitionRenderer("wipe")!)).toThrow(
-      /already registered/,
+      /built-in/,
     );
     expect(() => registerTransitionRenderer("test/flash", getTransitionRenderer("wipe")!)).toThrow(
       /already registered/,
     );
+  });
+
+  it("re-registering the same renderer is a no-op; replace swaps it (hot reload)", () => {
+    const flash = getTransitionRenderer("test/flash")!;
+    expect(() => registerTransitionRenderer("test/flash", flash)).not.toThrow();
+    const next = { ...flash };
+    registerTransitionRenderer("test/flash", next, { replace: true });
+    expect(getTransitionRenderer("test/flash")).toBe(next);
+    registerTransitionRenderer("test/flash", flash, { replace: true });
   });
 
   it("rendersBothClips is answered by the registered renderer", () => {
@@ -167,8 +176,13 @@ describe("registerEffectRenderer", () => {
     };
     registerEffectRenderer("test/pixelate", factory);
     expect(getEffectRenderer("test/pixelate")).toBe(factory);
-    expect(() => registerEffectRenderer("test/pixelate", factory)).toThrow(/already registered/);
-    expect(() => registerEffectRenderer("blur", factory)).toThrow(/already registered/);
+    expect(() => registerEffectRenderer("test/pixelate", factory)).not.toThrow(); // same factory: idempotent
+    expect(() => registerEffectRenderer("test/pixelate", (p) => factory(p))).toThrow(/already registered/);
+    expect(() => registerEffectRenderer("blur", factory)).toThrow(/built-in/);
+    expect(() => registerEffectRenderer("blur", factory, { replace: true })).toThrow(/built-in/);
+    const other = (p: Record<string, unknown>) => factory(p);
+    registerEffectRenderer("test/pixelate", other, { replace: true });
+    expect(getEffectRenderer("test/pixelate")).toBe(other);
   });
 
   it("a registered custom kind flows through commands to the clip's node", () => {

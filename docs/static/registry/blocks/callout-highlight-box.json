@@ -1,0 +1,35 @@
+{
+  "name": "callout-highlight-box",
+  "title": "Callout — highlight box",
+  "description": "A rounded outline that draws around a part of the screen. Resize it with the clip's scale or widthPx/heightPx.",
+  "category": "callout",
+  "tags": [
+    "tutorial",
+    "screen",
+    "focus"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "any"
+  ],
+  "fields": [
+    {
+      "key": "color",
+      "label": "Colour",
+      "type": "color",
+      "default": "#facc15"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"520\" height=\"200\" viewBox=\"0 0 520 200\"><style>@keyframes draw{from{stroke-dashoffset:1500}}@keyframes out{to{opacity:0}}\n.b{stroke-dasharray:1500;--d:0s;animation:draw .8s cubic-bezier(.65,0,.35,1) both}\n.g{animation:out .3s ease-in both;--d:calc(var(--T) - .3s)}</style>\n<g class=\"g\"><rect class=\"b\" x=\"8\" y=\"8\" width=\"504\" height=\"184\" rx=\"22\" fill=\"none\" stroke=\"{{color}}\" stroke-width=\"8\"/></g></svg>",
+    "widthPx": 520,
+    "heightPx": 200,
+    "animated": true,
+    "durationUs": 3000000,
+    "transform": {
+      "x": 0.5,
+      "y": 0.5
+    }
+  }
+}

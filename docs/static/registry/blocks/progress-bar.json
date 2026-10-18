@@ -1,0 +1,37 @@
+{
+  "name": "progress-bar",
+  "title": "Progress bar",
+  "description": "A thin bar along the top that fills over the clip's length. Span the whole video for stories and tutorials.",
+  "category": "progress",
+  "tags": [
+    "progress",
+    "stories",
+    "tutorial"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "color",
+      "label": "Bar colour",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "key": "track",
+      "label": "Track colour",
+      "type": "color",
+      "default": "#ffffff33"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:100%;height:100%;position:relative\"><style>@keyframes fill{from{transform:scaleX(0)}}</style>\n<div style=\"position:absolute;left:0;right:0;top:0;height:1.1vmin;background:{{track}}\"><div style=\"height:100%;background:{{color}};transform-origin:left;animation:fill var(--T) linear both\"></div></div></div>",
+    "animated": true,
+    "durationUs": 10000000
+  }
+}

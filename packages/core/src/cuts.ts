@@ -8,6 +8,7 @@
  * Editor panels and AI tools share this, so "every cut" means the same thing
  * everywhere.
  */
+import { clipHeadroomTimelineUs } from "./time-remap.js";
 import type { Clip, ProjectDocument, Transition, Us } from "./types.js";
 
 export interface Cut {
@@ -26,13 +27,13 @@ export interface Cut {
 
 const CUT_KINDS = new Set(["video", "image", "text", "html"]);
 
-/** Source footage past a clip's end ("out") or before its start ("in"). Generated clips are unlimited. */
+/**
+ * Spare footage past a clip's end ("out") or before its start ("in"), in
+ * timeline µs at the clip's speed (a 2× clip's spare second of footage is
+ * half a second of timeline). Generated clips and freeze frames are unlimited.
+ */
 export function clipHeadroomUs(doc: ProjectDocument, clip: Clip, side: "in" | "out"): number {
-  if (!("assetId" in clip) || !("trimStartUs" in clip)) return Number.POSITIVE_INFINITY;
-  if (side === "in") return clip.trimStartUs;
-  const asset = doc.assets[clip.assetId];
-  if (!asset || asset.durationUs === undefined) return Number.POSITIVE_INFINITY;
-  return Math.max(0, asset.durationUs - (clip.trimStartUs + clip.durationUs));
+  return clipHeadroomTimelineUs(doc, clip, side);
 }
 
 /** Every cut on the project's video tracks, top track first, in time order. */

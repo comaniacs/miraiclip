@@ -1,0 +1,73 @@
+{
+  "name": "@miraiclip/guides",
+  "version": "0.0.0",
+  "description": "Step-by-step written guides from a Miraiclip screencast: steps from markers or clicks, text from the narration or transcript, annotated screenshots from any still renderer, out as Markdown, HTML or JSON.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/guides"
+  },
+  "homepage": "https://docs.miraiclip.com/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@miraiclip/capture": "workspace:^",
+    "@miraiclip/screencast": "workspace:^",
+    "@miraiclip/transcript": "workspace:^"
+  },
+  "devDependencies": {
+    "@miraiclip/core": "workspace:^",
+    "@miraiclip/server-export": "workspace:^",
+    "@types/node": "^22.20.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "documentation",
+    "how-to",
+    "guide",
+    "screenshots",
+    "tutorial",
+    "miraiclip"
+  ],
+  "peerDependencies": {
+    "@miraiclip/core": "workspace:^"
+  }
+}

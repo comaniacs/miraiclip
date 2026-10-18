@@ -52,7 +52,8 @@
     "test": "pnpm build && vitest run",
     "typecheck": "tsc --noEmit",
     "stress": "pnpm build && vitest run --config vitest.stress.config.ts",
-    "corpus": "pnpm build && vitest run --config vitest.corpus.config.ts"
+    "corpus": "pnpm build && vitest run --config vitest.corpus.config.ts",
+    "bench:cost": "pnpm build && tsx bench/render-cost.ts"
   },
   "dependencies": {
     "playwright-core": "^1.49.0"
@@ -69,9 +70,12 @@
     "@miraiclip/core": "workspace:*",
     "@miraiclip/renderer": "workspace:*",
     "@types/node": "^22.20.1",
+    "gsap": "^3.15.0",
+    "lottie-web": "^5.13.0",
     "mediabunny": "^1.24.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "tsx": "^4.19.2"
   }
 }

@@ -3,7 +3,7 @@
  * uses (shared via audio/mapping.ts), rendered in one non-realtime pass with
  * an OfflineAudioContext instead of being scheduled against a live clock.
  */
-import type { AudioClip, ProjectDocument, VideoClip } from "@miraiclip/core";
+import { toSourceUs, type AudioClip, type ProjectDocument, type VideoClip } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
 import { gainFor, hasGainEnvelope, isAudible, mapChunkToTimeline, volumeAutomation } from "../audio/mapping.js";
 import type { AudioSourceFactory } from "../audio/types.js";
@@ -41,7 +41,7 @@ export function planAudioJobs(doc: ProjectDocument, range: ExportRange): AudioMi
       clipId: clip.id,
       assetId: clip.assetId,
       src: asset.src,
-      fromMediaUs: clip.trimStartUs + (fromTimelineUs - clip.startUs),
+      fromMediaUs: toSourceUs(clip, fromTimelineUs),
       gain,
       clip,
     });
@@ -140,11 +140,13 @@ export async function mixCompositionAudio(
           );
           const node = context.createBufferSource();
           node.buffer = chunk.native as AudioBuffer;
+          // Clip speed: the buffer plays faster/slower (pitch follows).
+          if (mapped.speed !== 1) node.playbackRate.value = mapped.speed;
           node.connect(gainNode);
           node.start(
             (mapped.playFromTimelineUs - range.startUs) / 1_000_000,
             mapped.offsetIntoChunkUs / 1_000_000,
-            playDurationUs / 1_000_000,
+            (playDurationUs * mapped.speed) / 1_000_000,
           );
           contributed = true;
           reportMixed(mapped.playFromTimelineUs + playDurationUs);

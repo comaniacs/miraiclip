@@ -143,6 +143,25 @@ export const assetLicenseSchema = z.object({
   attributionRequired: z.boolean(),
 });
 const fadeUs = z.number().int().min(0);
+/** Clip playback speed: 0 (freeze frame, video only) or 1/16..16. */
+const speedSchema = z
+  .number()
+  .min(0)
+  .max(16)
+  .refine((s) => s === 0 || s >= 1 / 16, "speed must be 0 (freeze) or between 0.0625 and 16");
+
+export const effectRegionProperty = z.enum(["x", "y", "width", "height"]);
+
+/** An effect region, as fractions of the clip's frame. */
+export const effectRegionSchema = z.object({
+  x: z.number().min(-1).max(2),
+  y: z.number().min(-1).max(2),
+  width: z.number().gt(0).max(3),
+  height: z.number().gt(0).max(3),
+  shape: z.enum(["rect", "ellipse"]).optional(),
+  feather: z.number().min(0).max(1).optional(),
+  invert: z.boolean().optional(),
+});
 
 export const builtinPayloadSchemas = {
   "project/set-settings": z.object({
@@ -226,6 +245,8 @@ export const builtinPayloadSchemas = {
       fadeInUs: fadeUs.optional(),
       /** Linear fade-out to the clip's end. */
       fadeOutUs: fadeUs.optional(),
+      /** Playback speed (default 1); 0 = freeze frame (video only). */
+      speed: speedSchema.optional(),
       transform: transformSchema.partial().optional(),
     }),
     z.object({
@@ -241,6 +262,8 @@ export const builtinPayloadSchemas = {
       fadeInUs: fadeUs.optional(),
       /** Linear fade-out to the clip's end. */
       fadeOutUs: fadeUs.optional(),
+      /** Playback speed (default 1); 0 = freeze frame (video only). */
+      speed: speedSchema.optional(),
       transform: transformSchema.partial().optional(),
     }),
     z.object({
@@ -291,6 +314,8 @@ export const builtinPayloadSchemas = {
       heightPx: z.number().int().positive().optional(),
       /** Re-raster every frame at the clip's time so CSS animations play (see HtmlClip.animated). */
       animated: z.boolean().optional(),
+      /** The template's scripts drive its motion (GSAP, Lottie, WAAPI…): seeked per frame. Implies animated. */
+      scripted: z.boolean().optional(),
       /** Animated clips: animation time at the clip's start. */
       animationOffsetUs: us.optional(),
       transform: transformSchema.partial().optional(),
@@ -334,6 +359,32 @@ export const builtinPayloadSchemas = {
     /** Id for the right-hand clip. Supply one for deterministic replay. */
     newClipId: id.optional(),
   }),
+  "clip/set-speed": z.object({
+    clipId: id,
+    /** New speed: 0 (freeze, video only) or 1/16..16. */
+    speed: speedSchema,
+    /**
+     * Default false: the clip keeps the same footage, so its timeline length
+     * changes (2× halves it). True keeps the timeline length and changes how
+     * much footage plays.
+     */
+    keepDuration: z.boolean().optional(),
+    /** Shift later clips on the same track by the length change (default false). */
+    ripple: z.boolean().optional(),
+  }),
+  "clip/freeze": z.object({
+    clipId: id,
+    /** Timeline position of the frame to hold; inside the clip or exactly at its end. */
+    atUs: positiveUs,
+    /** How long the freeze lasts on the timeline. */
+    durationUs: positiveUs,
+    /** Id for the freeze-frame clip. Supply one for deterministic replay. */
+    freezeClipId: id.optional(),
+    /** Id for the part after the freeze (when atUs is inside the clip). */
+    rightClipId: id.optional(),
+    /** Push later clips on the track back by durationUs (default true). */
+    ripple: z.boolean().optional(),
+  }),
   "clip/duplicate": z.object({
     clipId: id,
     /** Id for the copy. Supply one for deterministic replay. */
@@ -342,10 +393,16 @@ export const builtinPayloadSchemas = {
     trackId: id.optional(),
   }),
   "clip/set-property": z.object({
+    /** Custom clip kinds: merged into the clip's props, then re-validated against the kind's schema. */
+    props: z.record(z.string(), z.unknown()).optional(),
+    /** Custom clip kinds: drop these props (they fall back to the schema's defaults). */
+    unsetProps: z.array(z.string()).optional(),
     /** html clips: merged into the clip's params (re-rasters the template). */
     params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).optional(),
     /** html clips: turn per-frame (CSS-animated) rasterizing on or off. */
     animated: z.boolean().optional(),
+    /** html clips: the template's scripts drive its motion (implies animated; false turns it off). */
+    scripted: z.boolean().optional(),
     /** html clips: replace the markup (code editing); params, keyframes, effects stay. */
     template: z.string().min(1).optional(),
     /** html clips: drop these params (placeholders the new markup no longer uses). */
@@ -407,6 +464,8 @@ export const builtinPayloadSchemas = {
     index: z.number().int().min(0).optional(),
     /** Supply one for deterministic replay. */
     effectId: id.optional(),
+    /** Limit the effect to a region of the clip (fractions of its frame). */
+    region: effectRegionSchema.optional(),
   }),
   "effect/update": z.object({
     clipId: id,
@@ -414,6 +473,24 @@ export const builtinPayloadSchemas = {
     /** Merged onto current params, then re-validated as a whole. */
     params: z.record(z.string(), z.unknown()).optional(),
     enabled: z.boolean().optional(),
+    /** Replace the region (its keyframes are kept); `null` makes the effect whole-clip again. */
+    region: effectRegionSchema.nullable().optional(),
+  }),
+  "effect/set-region-keyframe": z.object({
+    clipId: id,
+    effectId: id,
+    property: effectRegionProperty,
+    /** Clip-relative time (see keyframe/set). */
+    timeUs: us,
+    anchor: keyframeAnchor.optional(),
+    value: z.number(),
+    easing: easingInputSchema.default("linear"),
+  }),
+  "effect/clear-region-keyframes": z.object({
+    clipId: id,
+    effectId: id,
+    /** Omit to clear every coordinate's keyframes. */
+    property: effectRegionProperty.optional(),
   }),
   "effect/remove": z.object({ clipId: id, effectId: id }),
   "effect/reorder": z.object({ clipId: id, effectId: id, index: z.number().int().min(0) }),
@@ -438,6 +515,43 @@ export const builtinPayloadSchemas = {
     params: z.record(z.string(), z.unknown()).optional(),
   }),
   "transition/remove": z.object({ transitionId: id }),
+
+  // --- Markers ---------------------------------------------------------------
+
+  "marker/add": z.object({
+    /** Supply one for deterministic replay. */
+    id: id.optional(),
+    timeUs: us,
+    label: z.string(),
+    /** Optional span (a chapter or step that lasts a while). */
+    durationUs: positiveUs.optional(),
+    /** Free-form JSON payload. */
+    data: z.record(z.string(), z.unknown()).optional(),
+  }),
+  "marker/update": z.object({
+    markerId: id,
+    timeUs: us.optional(),
+    label: z.string().optional(),
+    /** `null` removes the span. */
+    durationUs: positiveUs.nullable().optional(),
+    /** Replaces the payload; `null` removes it. */
+    data: z.record(z.string(), z.unknown()).nullable().optional(),
+  }),
+  "marker/remove": z.object({ markerId: id }),
+
+  // --- Plugins ---------------------------------------------------------------
+
+  "plugin/add": z.object({
+    name: z.string().min(1),
+    version: z.string().min(1),
+    /** URL of the plugin's standalone ES module. */
+    url: z.string().min(1),
+    /** SRI hash of the module source ("sha256-…", "sha384-…" or "sha512-…"). */
+    integrity: z.string().regex(/^sha(256|384|512)-[A-Za-z0-9+/=]+$/).optional(),
+    /** Replace an entry with the same name (upgrade). Default false. */
+    replace: z.boolean().optional(),
+  }),
+  "plugin/remove": z.object({ name: z.string().min(1) }),
 } as const;
 
 export type BuiltinCommandType = keyof typeof builtinPayloadSchemas;

@@ -64,6 +64,16 @@ Writing big templates as JSON strings is error-prone. Write each scene's HTML in
 
 Final export at `quality: "high"` (and `mp4` if Chrome is installed, else `webm` + ffmpeg conversion). Tell the user the length, the scene list in one line, and anything to check: claims on screen, the music licence, screenshot freshness. Offer the 9:16 version (the `reformat` skill).
 
+## Energetic / funky variant
+
+When the brief says funky, playful, hype or "like a launch trailer":
+
+- **Music first.** Get the track and its BPM before anything else (ask; if the user has none, the Miraiclip React template ships CC0 music and sound effects in `public/media/audio`). Lay the scene grid in bars: 1–2 bars per scene, the drop on a scene start.
+- **Story beats** that work (from real launch trailers): a late-night problem (notifications) → the prompt being typed → the drop (mascot or logo slam on colour flashes) → the product doing the work (timeline building, tool-call chips) → "Introducing" + the real product → a montage of real screens, one per beat → "ask for anything" prompt montage → proof → export → end card.
+- Use the beat-synced patterns in `reference/html-recipes.md`: colour flashes, sticker cards, boing/slam entrances, typewriter, sequential prompts, screenshot montage.
+- Hard cuts on bar lines. Sound effects on the big moments only (notification pops, the Enter key, the drop, the export click, the final success), at volume 0.4–0.5.
+- Credit third-party media that requires it (e.g. CC BY footage visible in screenshots) in small text on those scenes.
+
 ## Scene ideas
 
 | Scene type | Recipe(s) |

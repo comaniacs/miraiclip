@@ -1,0 +1,70 @@
+{
+  "name": "@miraiclip/transcript",
+  "version": "0.0.0",
+  "description": "Word-level transcripts for Miraiclip: speech-to-text adapters (OpenAI, Deepgram, or your own), filler-word and silence removal, text-based editing (delete words \u2192 ripple cuts) and captions that follow your cuts.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/transcript"
+  },
+  "homepage": "https://docs.miraiclip.com/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@miraiclip/core": "workspace:^",
+    "@types/node": "^22.20.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "transcript",
+    "speech-to-text",
+    "whisper",
+    "deepgram",
+    "filler-words",
+    "text-based-editing",
+    "captions",
+    "miraiclip"
+  ],
+  "peerDependencies": {
+    "@miraiclip/core": "workspace:^"
+  }
+}

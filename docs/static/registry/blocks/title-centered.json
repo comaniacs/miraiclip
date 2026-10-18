@@ -1,0 +1,37 @@
+{
+  "name": "title-centered",
+  "title": "Title — centred over footage",
+  "description": "A large centred title with a soft shadow, for over footage or images. Transparent background.",
+  "category": "title",
+  "tags": [
+    "title",
+    "overlay",
+    "headline"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "text",
+      "label": "Title",
+      "type": "text",
+      "default": "The Big Idea"
+    },
+    {
+      "key": "color",
+      "label": "Colour",
+      "type": "color",
+      "default": "#ffffff"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}</style>\n<div style=\"animation:mc-out 0.4s ease-in both;--d:calc(var(--T) - 0.4s)\"><div style=\"max-width:80vmax;text-align:center;font-weight:800;font-size:11vmin;line-height:1.05;letter-spacing:-.03em;color:{{color}};text-shadow:0 1vmin 4vmin #000b;--d:0s;animation:mc-rise .7s cubic-bezier(.2,.8,.2,1) both\">{{text}}</div></div></div>",
+    "animated": true,
+    "durationUs": 3000000
+  }
+}

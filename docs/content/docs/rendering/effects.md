@@ -207,6 +207,26 @@ project.dispatch({ type: "effect/reorder", payload: { clipId: "clip-1", effectId
 
 Register your own kind — schema in core, filter in the renderer: [Custom Effects & Transitions](../extensibility). Custom renderers are functions, so they draw in preview, browser export and stills, but not in worker or server export — prefer a built-in when one fits.
 
+## Limit an effect to a region
+
+Give any effect a `region` and it applies only there: blur a password field, pixelate an email address, or — with `invert` — darken everything except the button you're talking about. The region is a rectangle (or ellipse) in **fractions of the clip's own frame**, so it stays on the same content when the clip moves, zooms or rotates.
+
+```ts
+// Blur a field in a screen recording.
+project.dispatch({
+  type: "effect/add",
+  payload: { clipId: "recording", kind: "blur", params: { amount: 0.03 }, region: { x: 0.62, y: 0.18, width: 0.25, height: 0.05, feather: 0.2 } },
+});
+
+// Spotlight: dim everything outside an ellipse.
+project.dispatch({
+  type: "effect/add",
+  payload: { clipId: "recording", kind: "colorAdjust", params: { brightness: -0.5 }, region: { x: 0.3, y: 0.4, width: 0.2, height: 0.12, shape: "ellipse", feather: 0.5, invert: true } },
+});
+```
+
+`feather` softens the edge (a fraction of the region's shorter side). Move a region over time with `effect/set-region-keyframe` (`x`, `y`, `width`, `height`, clip-relative like any keyframe) and clear them with `effect/clear-region-keyframes`. `effect/update` with `region: null` makes the effect whole-clip again. Regions render the same in preview, browser and worker export, stills and server export; `evaluateEffectRegion(region, localUs, durationUs)` gives the rectangle at a time.
+
 ## Good to know
 
 - Effects apply pre-transform, in sRGB; stack order = array order.

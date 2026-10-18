@@ -1,0 +1,42 @@
+{
+  "name": "lower-third-minimal",
+  "title": "Lower third — minimal",
+  "description": "White text with a thin line that draws in. Quiet enough for documentary and interview footage.",
+  "category": "lower-third",
+  "tags": [
+    "name",
+    "minimal",
+    "documentary"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "name",
+      "label": "Name",
+      "type": "text",
+      "default": "Dr. Mei Tanaka"
+    },
+    {
+      "key": "role",
+      "label": "Role",
+      "type": "text",
+      "default": "Climate scientist"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:800px;height:150px;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif;color:#fff;text-shadow:0 2px 12px #000a\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}\n</style>\n<div style=\"animation:mc-out 0.4s ease-in both;--d:calc(var(--T) - 0.4s)\"><div style=\"font-weight:700;font-size:48px;--d:0s;animation:mc-rise .6s cubic-bezier(.2,.8,.2,1) both\">{{name}}</div>\n<div style=\"height:3px;width:420px;margin:14px 0;background:#fff;transform-origin:left;animation:mc-growx .7s cubic-bezier(.65,0,.35,1) both;--d:.15s\"></div>\n<div style=\"font-weight:400;font-size:30px;opacity:.85;animation:mc-fade .6s ease-out both;--d:.35s\">{{role}}</div></div></div>",
+    "widthPx": 800,
+    "heightPx": 150,
+    "animated": true,
+    "durationUs": 5000000,
+    "transform": {
+      "x": 0.27,
+      "y": 0.83
+    }
+  }
+}

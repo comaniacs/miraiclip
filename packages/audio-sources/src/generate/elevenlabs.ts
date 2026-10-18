@@ -17,6 +17,7 @@
 import type { AssetLicense } from "@miraiclip/core";
 import { AudioSourceError, defaultFetch, joinUrl } from "../common.js";
 import type { FetchLike } from "../types.js";
+import { audioDurationUs } from "./duration.js";
 import { defineGenerator } from "./run.js";
 import type { AudioGenerator, GenerateOptions, GeneratedAudio, GeneratorVoice } from "./types.js";
 
@@ -188,7 +189,9 @@ export function elevenLabsGenerator(options: ElevenLabsGeneratorOptions = {}): A
         ...restParams,
       }, opts);
       const requestId = res.headers.get("request-id");
-      return { data: bytes, mimeType: mime(res), model, ...(requestId ? { id: requestId } : {}) };
+      // Voice length matters for timing (narration): read it from the file.
+      const durationUs = audioDurationUs(bytes, mime(res));
+      return { data: bytes, mimeType: mime(res), model, ...(requestId ? { id: requestId } : {}), ...(durationUs ? { durationUs } : {}) };
     },
   });
 }

@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Page } from "playwright-core";
 import { resolveAssetSources } from "./assets.js";
+import { preparePlugins, type ServerPluginOptions } from "./plugins.js";
 import "./harness/protocol.js";
 import { launchBrowser } from "./browser.js";
 import { startHarnessServer, type HarnessServer } from "./server.js";
@@ -22,10 +23,12 @@ export interface CreateExportSessionOptions {
   /** Base directory for resolving relative asset `src` paths (default: cwd). */
   assetsDir?: string;
   browser?: BrowserOptions;
+  /** Run documents' `doc.plugins` (off by default; see `ServerPluginOptions`). */
+  plugins?: ServerPluginOptions;
 }
 
 /** Per-export options: everything `exportProjectFile` takes minus the session-level fields. */
-export type ExportFileOptions = Omit<ExportProjectFileOptions, "assets" | "assetsDir" | "browser">;
+export type ExportFileOptions = Omit<ExportProjectFileOptions, "assets" | "assetsDir" | "browser" | "plugins">;
 
 export interface ExportSession {
   /**
@@ -108,6 +111,7 @@ export async function createExportSession(
       const run = queue.then(async (): Promise<ExportProjectFileResult> => {
         if (closed) throw new Error("export session is closed");
         if (exportOptions.signal?.aborted) throw new ServerExportAbortedError();
+        const plugins = await preparePlugins(doc, options.plugins, options.assetsDir);
 
         const resolved = resolveAssetSources(doc, {
           assets: options.assets,
@@ -159,6 +163,7 @@ export async function createExportSession(
                     ? { audioChunkSeconds: exportOptions.audioChunkSeconds }
                     : {}),
                   ...(filePath ? { stream: true } : {}),
+                  ...(plugins ? { plugins } : {}),
                 },
               ] as const,
             )

@@ -66,7 +66,7 @@ project.redo();
 const mp4 = await exportProject(project, { format: "mp4", quality: "high" });
 ```
 
-Times are in microseconds (1 s = 1,000,000 µs). Next: [playback on a canvas](https://docs.miraiclip.com/build-an-editor/preview), [reading state](https://docs.miraiclip.com/fundamentals/project-and-time), [the command catalog](https://docs.miraiclip.com/fundamentals/commands).
+Times are in microseconds (1 s = 1,000,000 µs). Next: [playback on a canvas](https://docs.miraiclip.com/build-an-editor/preview), [reading state](https://docs.miraiclip.com/concepts/project-and-time), [the command catalog](https://docs.miraiclip.com/concepts/commands).
 
 ## Let an agent edit
 
@@ -92,7 +92,7 @@ npx @miraiclip/mcp --project ./video.miraiclip.json --assets ./media
 
 | Package | Version | What it does |
 | --- | --- | --- |
-| [`@miraiclip/core`](https://docs.miraiclip.com/fundamentals/project-and-time) | 0.5.8 | State, commands, history, events, AI tools |
+| [`@miraiclip/core`](https://docs.miraiclip.com/concepts/project-and-time) | 0.5.8 | State, commands, history, events, AI tools |
 | [`@miraiclip/renderer`](https://docs.miraiclip.com/build-an-editor/preview) | 0.7.12 | Playback, preview, stills and export |
 | [`@miraiclip/server-export`](https://docs.miraiclip.com/export/server) | 0.4.3 | The same export from Node, plus a CLI |
 | [`@miraiclip/templates`](https://docs.miraiclip.com/templates/defining-templates) | 0.1.3 | Parameterized videos and batch rendering |

@@ -197,3 +197,42 @@ An animated clip on the top track spanning the whole video: `"animated": true, "
 ```
 
 `var(--T)` makes the bar exactly as long as the clip.
+
+## Beat-synced, playful style
+
+Tested in the "funky launch" gallery sample. Pick the music's BPM first; then one beat = `60 / BPM` s, one bar = 4 beats. Give every scene a whole number of bars and write every `--d` in beats (`--d: calc(<beats> * <beat>s)`, or compute it when you generate the template). Hard cuts on bar lines feel energetic; save dissolves for calm videos.
+
+| Pattern | CSS |
+| --- | --- |
+| Colour flash per beat | `.flash{position:absolute;inset:0;animation:flash <4 beats>s step-end both}` with `@keyframes flash{0%{background:#2fd3b9}25%{background:#ff6f5e}50%{background:#ffb423}75%{background:#39a7ff}}` |
+| Sticker look | `border:4px solid #0c1010;box-shadow:8px 9px 0 #0c1010;border-radius:22px` (hard offset shadow, no blur) |
+| Boing in (overshoot) | `@keyframes boing{0%{transform:scale(0) rotate(-12deg)}60%{transform:scale(1.12) rotate(3deg)}80%{transform:scale(.96)}100%{transform:scale(1)}}` .6s |
+| Slam a word | `@keyframes slam{0%{transform:scale(2.4);opacity:0;filter:blur(18px)}55%{transform:scale(.94);opacity:1;filter:blur(0)}100%{transform:scale(1)}}` .45s, one word or letter per beat |
+| Retro offset shadow | `text-shadow:10px 10px 0 #ff6f5e,20px 20px 0 #39a7ff` |
+| Bounce on every beat | `animation:bob <beat>s cubic-bezier(.3,0,.3,1) infinite both` with a squash/stretch keyframe |
+| Sunburst | `repeating-conic-gradient(#ffffff22 0 8deg,transparent 8deg 22deg)` on a 2400 px square, slowly rotated |
+| Fly in from the right | `@keyframes fromright{0%{transform:translateX(120%) skewX(-12deg)}70%{transform:translateX(-4%) skewX(3deg)}100%{transform:none}}` |
+
+### Typewriter
+
+```html
+<style>@keyframes type{from{width:0}to{width:calc(var(--n) * 1ch)}}
+.tw{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom}</style>
+<span class="tw" style="--d:.5s;--n:43;animation:type 2.5s steps(43) both">make a funky launch video for miraiclip.com</span>
+```
+
+Monospace font only, `--n` = character count, and **no `letter-spacing`** (it makes the text wider than `n × 1ch` and the end gets cut off).
+
+### One element after another in the same spot
+
+Show item *i* from its start beat and hide it at the next one with two nested wrappers (one animation each, because `--d` sets the delay for every animation on an element):
+
+```html
+<style>@keyframes on{from{opacity:0}to{opacity:1}}@keyframes off{from{opacity:1}to{opacity:0}}
+.show{animation:on .01s step-end both}.hide{animation:off .01s step-end both}</style>
+<div class="hide" style="--d:2.22s;position:absolute;inset:0"><div class="show" style="--d:1.11s;position:absolute;inset:0">…item 2…</div></div>
+```
+
+### Screenshot montage
+
+For one screenshot per beat, use **image clips** on their own track (one clip per beat, hard cuts, a small `scale` keyframe bump 0.8 → 0.74 over 180 ms, `roundedCorners`), not images inside an animated HTML clip: an animated HTML clip re-inlines every image on every frame. Put titles and labels in one HTML overlay clip above them.

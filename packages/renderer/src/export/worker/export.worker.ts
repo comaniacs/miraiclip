@@ -21,6 +21,7 @@ import { createProject } from "@miraiclip/core";
 import type { StreamTargetChunk } from "mediabunny";
 import { provideHtmlRasters, setHtmlRasterSource, type HtmlRasterRequest } from "../../html/rasterize.js";
 import { exportProject } from "../export-project.js";
+import { loadDocumentPlugins } from "../../plugins/loader.js";
 import type { ExportRange, PcmAudioChunk } from "../types.js";
 import type { MainToWorkerMessage, WorkerToMainMessage } from "./protocol.js";
 
@@ -106,6 +107,14 @@ async function run(message: Extract<MainToWorkerMessage, { type: "start" }>): Pr
     provideHtmlRasters(message.htmlRasters ?? {});
     // Animated ones change every frame: ask main for each frame on demand.
     setHtmlRasterSource(requestHtmlRaster);
+    // Custom kinds the document declares: load their plugins into this realm
+    // so they render here exactly as on the page.
+    if (message.doc.plugins?.length) {
+      await loadDocumentPlugins(message.doc, {
+        environment: "worker",
+        ...(message.pluginBaseUrl ? { baseUrl: message.pluginBaseUrl } : {}),
+      });
+    }
     const project = createProject(message.doc);
     const bytes = await exportProject(project, {
       ...message.options,

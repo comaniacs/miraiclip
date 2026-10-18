@@ -58,7 +58,7 @@ importAudio(project, { ...resolved, src }, { atUs: 0, volume: 0.35, fadeInUs: 1_
 
 ## Generation
 
-Generation services are `AudioGenerator`s: one vendor-neutral contract, with each service a small adapter. The package ships `elevenLabsGenerator` and an offline `toneGenerator` for tests. OpenAI, Google, ByteDance, a self-hosted open model or your own service are each a single `defineGenerator({...})`.
+Generation services are `AudioGenerator`s: one vendor-neutral contract, with each service a small adapter. The package ships `elevenLabsGenerator`, `openAiSpeechGenerator` (voice) and an offline `toneGenerator` for tests. Google, ByteDance, a self-hosted open model or your own service are each a single `defineGenerator({...})`.
 
 ```ts
 type GenerateRequest =
@@ -144,6 +144,8 @@ Switching vendors is then a backend change only; the browser code stays the same
 ### ElevenLabs
 
 `elevenLabsGenerator({ apiKey?, baseUrl?, plan?, defaultVoiceId?, outputFormat? })` covers sound effects (`/v1/sound-generation`, 0.5–30 s), music (`/v1/music`, 3–600 s, `instrumental`; lyrics are appended to the prompt) and voice (`/v1/text-to-speech/{voice}`, with `voices()` from `/v2/voices`). Its `paramsSchema` exposes `prompt_influence` and `loop` (sfx) and `stability`, `similarity_boost`, `style` and `speed` (voice, sent as `voice_settings`). Any other ElevenLabs field passes through `params`, for example a music `composition_plan`.
+
+`openAiSpeechGenerator({ apiKey?, baseUrl?, model?, defaultVoice? })` speaks text through `/v1/audio/speech` (`gpt-4o-mini-tts` by default, which takes the request's `style` as delivery direction; `tts-1` and `tts-1-hd` too), with the built-in voices from `voices()` and `speed` in `params`. Voice clips from both adapters carry their exact length, read from the audio (`audioDurationUs` reads WAV and MP3 bytes), which narration timing relies on.
 
 `plan` sets the recorded terms:
 

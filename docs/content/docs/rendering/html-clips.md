@@ -78,6 +78,40 @@ project.dispatch({
 
 Cost: one raster is a few milliseconds, and only visible animated clips re-raster. In preview, one raster runs at a time and the newest requested frame wins (the previous frame stays up meanwhile); exports and stills wait for each frame's raster before drawing it. A split continues the animation across the cut (`animationOffsetUs` on the right half). Toggle with `clip/set-property { animated }`.
 
+## Scripted templates (GSAP, Lottie, anime.js)
+
+Set `scripted: true` when the template's motion comes from its own JavaScript. The template runs in a hidden, sandboxed frame (scripts on, no access to the editor or the page), and for every frame the renderer **seeks** it to the clip's time and snapshots the result. It is never played, so playback, scrubbing and every export path draw exactly the same frame for the same time.
+
+The renderer finds your animation through these hooks, in order:
+
+1. `window.__miraiclipSeek(t)`: your own function (seconds; may return a promise).
+2. `window.__timelines`: an object or array of GSAP-style timelines (`seek`/`pause`, or `progress` + `duration`).
+3. Lottie: every animation `lottie.getRegisteredAnimations()` knows, plus any in `window.__lottie`.
+4. anime.js instances in `window.__anime`.
+5. Every Web Animation and CSS animation in the document.
+
+```ts
+project.dispatch({
+  type: "clip/add",
+  payload: {
+    kind: "html", id: "chart", trackId: "overlay", startUs: 0, durationUs: 5_000_000,
+    scripted: true, widthPx: 1280, heightPx: 720,
+    template: `<div class="bar"></div>
+      <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        tl.from(".bar", { scaleY: 0, duration: 1.2, ease: "power3.out" });
+        window.__timelines = { main: tl };
+      </script>`,
+  },
+});
+```
+
+- Build timelines **paused**; the renderer owns time. Anything driven by `Date.now()`, timers or `requestAnimationFrame` loops won't seek and isn't supported.
+- Canvases (Lottie's canvas renderer, charts) are captured as images in the snapshot; the SVG renderer is the sharper choice for Lottie.
+- Load libraries from a URL the renderer can reach, or inline them. Each distinct template keeps one live frame (up to eight at a time).
+- Cost: a seek plus a DOM snapshot per frame, on top of the raster. Use plain `animated` CSS templates when CSS can do it.
+
 ## Fonts & images
 
 The raster is an isolated document, so resources are inlined automatically:
@@ -103,7 +137,7 @@ project.dispatch({
 
 - **Worker export renders html clips too**: workers have no DOM, so `exportProjectInWorker`/`exportViaWorker` rasterize every html clip on the main thread first (deduplicated, one raster per unique template + params + size) and transfer the bitmaps to the worker with the export. No API change — it just works. Posting to the worker yourself instead? Pre-render with `collectHtmlRasters(doc)` and include the result (transferring its `transfer` list) as `htmlRasters` on the start message. Animated clips change every frame, so they aren't pre-rendered: the worker asks the main thread for each frame's raster (`need-html-raster` → `html-raster`); a custom worker host installs its own source with `setHtmlRasterSource`.
 - Exports and stills **wait for rasters** before the first frame (the same readiness gate now also covers image assets), so an overlay can never be half-missing in an exported file — a template that fails to rasterize fails the export loudly.
-- Scripts and iframes inside templates don't execute; interactivity has no meaning in rendered video. CSS transitions don't run either (nothing changes state) — use `@keyframes` in an animated clip.
+- Scripts and iframes inside templates don't execute unless the clip is `scripted` (then scripts run in a sandboxed frame and are seeked, never played). Interactivity has no meaning in rendered video. CSS transitions don't run either (nothing changes state): use `@keyframes` in an animated clip.
 - **Rasters are density-aware**: templates rasterize at the render density (output ÷ composition size in exports and stills, devicePixelRatio in previews via `createPlayer({ outputSize })`), so upscaled outputs and hi-DPI screens stay sharp — layout is identical at every density.
 - Text antialiasing varies across platforms, so exact pixels of text can differ between machines — Chromium-family browsers are the rendering target, as everywhere in Miraiclip.
 

@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    .title { position: absolute; left: 24px; top: 24px; font: 800 28px sans-serif; color: #fff; animation: rise .5s ease-out both; }
+    .card > span { color: #22d3ee }
+    @keyframes rise { from { opacity: 0; transform: translateY(20px) } }
+  </style>
+</head>
+<body>
+  <div id="stage" data-composition-id="launch" data-start="0" data-duration="4" data-width="320" data-height="180" style="background:#101828">
+    <video id="shot" class="clip" data-start="0" data-duration="3" data-track-index="0" data-media-start="0.5" src="e2e-frames.webm" muted playsinline></video>
+    <img id="bars" class="clip" data-start="2" data-duration="2" data-track-index="1" src="corpus-bars.png" style="position:absolute;right:10px;bottom:10px;width:96px;height:54px">
+    <div id="title" class="clip title" data-start="0.5" data-duration="1.5" data-track-index="2">Ship faster<br>with <b>blocks</b></div>
+    <div id="cta" class="clip card" data-start="title + 0.5" data-duration="1.5" data-track-index="2" style="position:absolute;left:24px;bottom:24px;font:700 20px sans-serif;color:#fff">Try it <span>free</span></div>
+    <audio id="music" class="clip" data-start="0" data-duration="4" data-track-index="3" data-volume="0.4" src="e2e-tone.webm"></audio>
+    <script>window.__timelines = window.__timelines || {};</script>
+  </div>
+</body>
+</html>

@@ -8,7 +8,9 @@ import {
   type BrowserOptions,
   type ExportProjectFileResult,
   type RenderSession,
+  type ServerPluginOptions,
 } from "@miraiclip/server-export";
+import { NodePluginHost } from "./plugins.js";
 
 export interface ProjectSessionOptions {
   /** The project JSON file this session edits. Created if missing. */
@@ -22,6 +24,11 @@ export interface ProjectSessionOptions {
   defaults?: { width: number; height: number; fps: number };
   /** Browser options for previews and exports (executablePath etc.). */
   browser?: BrowserOptions;
+  /**
+   * Run the document's `doc.plugins` (custom kinds) — in Node for command
+   * validation, and in the preview/export page. Off by default.
+   */
+  plugins?: ServerPluginOptions;
 }
 
 export interface SessionExportOptions {
@@ -46,6 +53,10 @@ export class ProjectSession {
   readonly projectPath: string;
   readonly assetsDir: string;
   private readonly browser: BrowserOptions | undefined;
+  private readonly pluginOptions: ServerPluginOptions | undefined;
+  private readonly pluginHost: NodePluginHost;
+  /** Problems from the last plugin sync (refused, unreadable, failed integrity). */
+  pluginProblems: string[] = [];
   private renderer: RenderSession | undefined;
   private rendererStarting: Promise<RenderSession> | undefined;
 
@@ -56,6 +67,8 @@ export class ProjectSession {
       ? path.resolve(options.assetsDir)
       : path.dirname(this.projectPath);
     this.browser = options.browser;
+    this.pluginOptions = options.plugins;
+    this.pluginHost = new NodePluginHost(options.plugins, this.assetsDir);
   }
 
   static async open(options: ProjectSessionOptions): Promise<ProjectSession> {
@@ -68,12 +81,20 @@ export class ProjectSession {
       project = createProject(options.defaults ?? { width: 1920, height: 1080, fps: 30 });
     }
     const session = new ProjectSession(project, options);
+    await session.syncPlugins();
     if (!existsSync(projectPath)) await session.save();
     return session;
   }
 
+  /** Load/unload plugin kinds to match the document's manifest; returns any problems. */
+  async syncPlugins(): Promise<string[]> {
+    this.pluginProblems = await this.pluginHost.sync(this.project.getState().doc);
+    return this.pluginProblems;
+  }
+
   /** Atomic write: tmp + rename, so a crash never leaves a half project file. */
   async save(): Promise<void> {
+    await this.syncPlugins();
     await mkdir(path.dirname(this.projectPath), { recursive: true });
     const tmpPath = `${this.projectPath}.tmp`;
     await writeFile(tmpPath, `${JSON.stringify(this.project.toJSON(), null, 2)}\n`, "utf8");
@@ -108,6 +129,7 @@ export class ProjectSession {
       ...(options.height !== undefined ? { height: options.height } : {}),
       ...(options.range !== undefined ? { range: options.range } : {}),
       ...(this.browser !== undefined ? { browser: this.browser } : {}),
+      ...(this.pluginOptions !== undefined ? { plugins: this.pluginOptions } : {}),
     });
   }
 
@@ -116,6 +138,7 @@ export class ProjectSession {
     this.rendererStarting ??= createRenderSession({
       assetsDir: this.assetsDir,
       ...(this.browser !== undefined ? { browser: this.browser } : {}),
+      ...(this.pluginOptions !== undefined ? { plugins: this.pluginOptions } : {}),
     }).then(
       (renderer) => {
         this.renderer = renderer;
@@ -138,6 +161,7 @@ export class ProjectSession {
   }
 
   async close(): Promise<void> {
+    this.pluginHost.dispose();
     await this.disposeRenderer();
   }
 }

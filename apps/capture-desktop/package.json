@@ -1,0 +1,57 @@
+{
+  "name": "miraiclip-capture-desktop",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Miraiclip Recorder for macOS and Windows: record a screen with camera and voice and log clicks, shortcuts and scrolls in every app; saves a .mcrec for the editor.",
+  "productName": "Miraiclip Recorder",
+  "author": "Miraiclip",
+  "type": "module",
+  "main": "dist/main.cjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node build.mjs && electron .",
+    "typecheck": "tsc --noEmit",
+    "test": "node build.mjs --test && node --test \"dist-test/*.mjs\"",
+    "dist": "node build.mjs && electron-builder",
+    "dist:mac": "node build.mjs && electron-builder --mac",
+    "dist:win": "node build.mjs && electron-builder --win"
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.5"
+  },
+  "devDependencies": {
+    "@miraiclip/capture": "workspace:^",
+    "@types/node": "^22.20.1",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.27.7",
+    "typescript": "^5.9.3"
+  },
+  "build": {
+    "appId": "com.miraiclip.recorder",
+    "productName": "Miraiclip Recorder",
+    "artifactName": "Miraiclip-Recorder-${version}-${os}-${arch}.${ext}",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "package.json"],
+    "asarUnpack": ["**/node_modules/uiohook-napi/**"],
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "category": "public.app-category.video",
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "Miraiclip Recorder records your camera alongside your screen.",
+        "NSMicrophoneUsageDescription": "Miraiclip Recorder records your voice with your screen.",
+        "NSScreenCaptureUsageDescription": "Miraiclip Recorder records your screen."
+      }
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64", "arm64"] }]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

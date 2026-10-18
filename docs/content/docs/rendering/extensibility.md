@@ -90,7 +90,83 @@ The five built-ins are written through this exact contract ([source](https://git
 
 ## Custom clip kinds
 
-Registered with `registerClipKind` (core: props schema + allowed track kinds) and a scene-node factory passed as `factories` to `createPlayer` / `exportProject` / `renderProjectStill`. The factory's node receives `tick(clip, timeUs)` every rendered frame — deterministic code-driven graphics (charts, counters, generative visuals) animate off the clip's own props and time, with export parity by construction.
+Registered with `registerClipKind` (core: props schema + allowed track kinds) and drawn by a **clip renderer**, registered once for the whole bundle:
+
+```ts
+import { Graphics } from "pixi.js";
+import { registerClipRenderer } from "@miraiclip/renderer";
+
+registerClipKind("counter", {
+  propsSchema: z.object({ from: z.number().default(0), to: z.number().default(100) }),
+  trackKinds: ["video"],
+});
+
+registerClipRenderer("counter", {
+  // The container's origin is the clip's center, in composition pixels.
+  create(container, clip, { compositionSize }) {
+    const bar = new Graphics();
+    container.addChild(bar);
+    return {
+      tick(clip, timeUs) {
+        const p = Math.min(1, (timeUs - clip.startUs) / clip.durationUs);
+        const { width } = compositionSize();
+        bar.clear().rect(-width / 4, -10, (width / 2) * p, 20).fill("#5b8cff");
+      },
+    };
+  },
+});
+```
+
+`update(clip)` runs when props change and `tick(clip, timeUs)` every rendered frame — deterministic code-driven graphics (charts, counters, generative visuals) animate off the clip's own props and time, with export parity by construction. The clip's transform, keyframes, effects (regions included) and transitions apply like any built-in. Edit props with `clip/set-property` `props`. Per-call `factories` on `createPlayer` / `exportProject` / `renderProjectStill` still work and take precedence.
+
+## Plugins: custom kinds everywhere
+
+Package your kinds as a **plugin** and list it in the document, and every runtime that renders the document loads it — the page, the export worker, the server-export page and the MCP server.
+
+A plugin is one standalone ES module (no bare imports — bundle your dependencies). Everything it needs arrives through `register(api)`:
+
+```js
+// charts-plugin.mjs
+export default {
+  name: "@acme/charts",
+  version: "1.0.0",
+  register({ z, core, renderer }) {
+    core.registerClipKind("acme/bar", { propsSchema: z.object({ value: z.number().default(0) }), trackKinds: ["video"] });
+    if (!renderer) return; // Node (MCP): validation only
+    const { Graphics } = renderer.pixi;
+    renderer.registerClipRenderer("acme/bar", {
+      create(container) {
+        const g = new Graphics();
+        container.addChild(g);
+        return { update: (clip) => g.clear().rect(-100, -20, clip.props.value * 2, 40).fill("#22c55e") };
+      },
+    });
+  },
+};
+```
+
+Declare it in the document (an SRI hash pins the exact code):
+
+```ts
+project.dispatch({
+  type: "plugin/add",
+  payload: { name: "@acme/charts", version: "1.0.0", url: "https://cdn.acme.dev/charts@1.0.0.mjs", integrity: "sha384-…" },
+});
+```
+
+Then load it wherever the document is opened:
+
+```ts
+import { loadDocumentPlugins } from "@miraiclip/renderer";
+
+const loaded = await loadDocumentPlugins(project.getState().doc);
+// … preview, export (the export worker loads them itself) …
+loaded.unload(); // optional: unregister the kinds again
+```
+
+`api.z` is core's zod (schemas must come from the same instance core validates with), `api.core` registers core kinds, and `api.renderer` (absent in Node) registers effect, transition and clip renderers and hands you the Pixi classes to draw with (`Container`, `Graphics`, `Sprite`, `Text`, `Texture`, `Filter`, `GlProgram`, `ColorMatrixFilter`, `BlurFilter`). Loading is idempotent per realm, a newer version of the same plugin replaces its kinds (hot reload), and a failed load (HTTP error, integrity mismatch, a `register` that throws) undoes that plugin's registrations. Options: `allow(ref)`, `requireIntegrity`, `baseUrl`, `fetchSource`.
+
+**On a server, plugins are code you didn't write**, so server export and the MCP server run them only when you opt in: `plugins: { allow: true }` (or a list of allowed URL prefixes, or a predicate) on `exportProjectFile`, `createExportSession` and `createRenderSession`, and `--allow-plugins [prefixes]` / `--require-integrity` for `miraiclip-mcp`. The server reads and verifies the module, the page registers it for that one job and unloads it afterwards, so a warm session never leaks one document's kinds into the next.
 
 ## Animation
 
@@ -98,6 +174,8 @@ Standard keyframes (`keyframe/set` on x, y, scale, rotation, opacity, volume) ap
 
 ## Boundaries
 
-Renderers and factories are functions, so they cannot cross a process or thread boundary: **server export and worker export support built-in kinds only** (all [79 built-in effects](../effects#built-in-kinds) included) — main-thread preview, `exportProject`, and `renderProjectStill` all support custom kinds. A kind with a schema but no renderer is still valid data: an unknown effect applies no visual, and an unknown transition draws as a hard cut.
+Renderers are functions, so they can't be sent across a process or thread boundary — but [plugins](#plugins-custom-kinds-everywhere) can: worker export and server export render custom kinds that come from a plugin the document declares. Kinds registered directly in your app code (not through a plugin) render on the main thread only: preview, `exportProject` and `renderProjectStill`. A kind with a schema but no renderer is still valid data: an unknown effect applies no visual, and an unknown transition draws as a hard cut.
 
-Registries are module-global and reject duplicate kinds (built-ins included), so two libraries can't silently fight over one name.
+## Registries
+
+Registries are module-global. Registering the **same** schema or renderer again is a no-op (a module evaluated twice under hot reload, a plugin loaded twice). A **different** definition for a taken name throws unless you pass `{ replace: true }`, so two libraries can't silently fight over one name. Built-in kinds can never be replaced or removed. `unregisterEffectKind`, `unregisterTransitionKind`, `unregisterClipKind` (core) and `unregisterEffectRenderer`, `unregisterTransitionRenderer`, `unregisterClipRenderer` (renderer) remove custom kinds — the plugin loader uses them to clean up after a job.

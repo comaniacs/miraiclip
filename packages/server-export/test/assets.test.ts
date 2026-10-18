@@ -18,14 +18,14 @@ function docWith(assets: { id: string; src: string }[]): ProjectDocument {
 }
 
 describe("resolveAssetSources", () => {
-  it("rewrites local assets to /assets/<id> and maps their files", () => {
+  it("rewrites local assets to /assets/<id><ext> and maps their files", () => {
     const doc = docWith([{ id: "a", src: "media/clip.webm" }]);
     const { doc: rewritten, files } = resolveAssetSources(doc, {
       assetsDir: "/proj",
       exists: () => true,
     });
-    expect(rewritten.assets["a"]!.src).toBe("/assets/a");
-    expect(files.get("/assets/a")).toBe(path.resolve("/proj", "media/clip.webm"));
+    expect(rewritten.assets["a"]!.src).toBe("/assets/a.webm");
+    expect(files.get("/assets/a.webm")).toBe(path.resolve("/proj", "media/clip.webm"));
     // The input document is never mutated.
     expect(doc.assets["a"]!.src).toBe("media/clip.webm");
   });
@@ -36,7 +36,7 @@ describe("resolveAssetSources", () => {
       assets: { a: "/elsewhere/real.mp4" },
       exists: (p) => p === path.resolve("/elsewhere/real.mp4"),
     });
-    expect(files.get("/assets/a")).toBe(path.resolve("/elsewhere/real.mp4"));
+    expect(files.get("/assets/a.mp4")).toBe(path.resolve("/elsewhere/real.mp4"));
   });
 
   it("http(s) and data URLs pass through untouched", () => {
@@ -60,7 +60,12 @@ describe("resolveAssetSources", () => {
   it("asset ids are URL-encoded in the served path", () => {
     const doc = docWith([{ id: "my clip", src: "x.webm" }]);
     const { doc: rewritten } = resolveAssetSources(doc, { exists: () => true });
-    expect(rewritten.assets["my clip"]!.src).toBe("/assets/my%20clip");
+    expect(rewritten.assets["my clip"]!.src).toBe("/assets/my%20clip.webm");
+  });
+  it("keeps the file extension so images get a parser (PixiJS picks by extension)", () => {
+    const doc = docWith([{ id: "shot", src: "img/Screen.JPG" }]);
+    const { doc: rewritten } = resolveAssetSources(doc, { exists: () => true });
+    expect(rewritten.assets["shot"]!.src).toBe("/assets/shot.jpg");
   });
 });
 

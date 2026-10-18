@@ -1,6 +1,6 @@
 # Miraiclip for Claude Code
 
-Make and edit videos with Claude. This plugin bundles the Miraiclip MCP server with skills for talking-head recuts, captions, launch videos and reformats, plus a helper CLI the skills use.
+Make and edit videos with Claude. This plugin bundles the Miraiclip MCP server with skills for talking-head recuts, captions, launch videos, reformats and screen tutorials, plus a helper CLI the skills use.
 
 ```bash
 claude plugin marketplace add comaniacs/miraiclip
@@ -21,6 +21,7 @@ skills/talking-head/
 skills/captions/
 skills/launch-video/
 skills/reformat/
+skills/screen-tutorial/
 ```
 
 ## Developing

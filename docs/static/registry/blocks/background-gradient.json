@@ -1,0 +1,40 @@
+{
+  "name": "background-gradient",
+  "title": "Background — soft gradient",
+  "description": "Two soft colour glows on a dark base. Put it on the bottom track under titles and screenshots.",
+  "category": "background",
+  "tags": [
+    "background",
+    "gradient",
+    "brand"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "any"
+  ],
+  "fields": [
+    {
+      "key": "base",
+      "label": "Base",
+      "type": "color",
+      "default": "#0a0d18"
+    },
+    {
+      "key": "glow1",
+      "label": "Glow 1",
+      "type": "color",
+      "default": "#2a1f6b"
+    },
+    {
+      "key": "glow2",
+      "label": "Glow 2",
+      "type": "color",
+      "default": "#0e4a5c"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:100%;height:100%;background:radial-gradient(70vmax 50vmax at 15% 20%,{{glow1}} 0%,transparent 70%),radial-gradient(60vmax 45vmax at 90% 85%,{{glow2}} 0%,transparent 70%),{{base}}\"></div>",
+    "durationUs": 10000000
+  }
+}

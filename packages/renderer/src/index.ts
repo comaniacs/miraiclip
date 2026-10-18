@@ -92,11 +92,26 @@ export type { HtmlRasterRequest, HtmlRasterSource, RasterizeHtmlOptions } from "
 export { renderProjectStill } from "./export/render-still.js";
 export type { RenderProjectStillOptions } from "./export/render-still.js";
 
-export { registerEffectRenderer, getEffectRenderer } from "./effects/pixi-effects.js";
+export { registerEffectRenderer, unregisterEffectRenderer, getEffectRenderer } from "./effects/pixi-effects.js";
 export { renderEffectThumbnails } from "./effects/thumbnails.js";
 export type { EffectThumbnailOptions } from "./effects/thumbnails.js";
 export type { ActiveEffect, EffectContext, EffectRendererFactory } from "./effects/pixi-effects.js";
-export { registerTransitionRenderer, getTransitionRenderer } from "./transitions/registry.js";
+export { registerTransitionRenderer, unregisterTransitionRenderer, getTransitionRenderer } from "./transitions/registry.js";
+export { registerClipRenderer, unregisterClipRenderer, getClipRenderer } from "./compositor/clip-renderers.js";
+export type { ClipRenderer, ClipRenderContext, ClipRendererInstance } from "./compositor/clip-renderers.js";
+export {
+  PLUGIN_PIXI,
+  importModuleSource,
+  loadDocumentPlugins,
+  verifyPluginIntegrity,
+} from "./plugins/loader.js";
+export type {
+  LoadPluginsOptions,
+  LoadedPlugin,
+  LoadedPlugins,
+  RendererPlugin,
+  RendererPluginApi,
+} from "./plugins/loader.js";
 export type {
   TransitionFrameEffects,
   TransitionRenderContext,

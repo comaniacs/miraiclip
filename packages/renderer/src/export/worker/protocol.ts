@@ -48,6 +48,11 @@ export type MainToWorkerMessage =
        * worker asks for each frame (`need-html-raster`).
        */
       htmlRasters?: Record<string, ImageBitmap>;
+      /**
+       * Where relative `doc.plugins` URLs resolve (main's location), so the
+       * worker loads the same plugin modules the page did.
+       */
+      pluginBaseUrl?: string;
     }
   | { type: "abort" }
   | {

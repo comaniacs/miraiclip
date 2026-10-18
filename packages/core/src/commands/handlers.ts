@@ -17,13 +17,23 @@ import {
   type AssetSource,
   type Clip,
   type EffectInstance,
+  type EffectRegion,
   type Keyframe,
+  type Marker,
+  type PluginRef,
   type ProjectDocument,
   type Track,
   type Transition,
   type Us,
 } from "../types.js";
 import { toFrameRate } from "../timeline.js";
+import {
+  clipHeadroomTimelineUs,
+  clipSpeed,
+  durationForSource,
+  sourceSpanUs,
+  toSourceUs,
+} from "../time-remap.js";
 import { builtinPayloadSchemas, type BuiltinCommandType } from "./schemas.js";
 
 const TEXT_TYPOGRAPHY_KEYS = [
@@ -47,6 +57,33 @@ type Parsed<T extends BuiltinCommandType> = z.output<(typeof builtinPayloadSchem
 
 const sameKeyframeSlot = (k: Keyframe, timeUs: number, end: boolean) =>
   k.timeUs === timeUs && (k.anchor === "end") === end;
+
+/**
+ * Insert in stored order: start-anchored ascending, then end-anchored by
+ * descending distance from the end (= ascending clip time while the clip is
+ * long enough). Same (anchor, time) replaces.
+ */
+function insertKeyframe(keyframes: Keyframe[], keyframe: Keyframe): void {
+  const end = keyframe.anchor === "end";
+  const rank = (k: Keyframe) => (k.anchor === "end" ? [1, -k.timeUs] : [0, k.timeUs]) as [number, number];
+  const [r0, r1] = rank(keyframe);
+  const at = keyframes.findIndex((k) => {
+    const [k0, k1] = rank(k);
+    return k0 > r0 || (k0 === r0 && k1 >= r1);
+  });
+  if (at < 0) keyframes.push(keyframe);
+  else if (sameKeyframeSlot(keyframes[at]!, keyframe.timeUs, end)) keyframes[at] = keyframe;
+  else keyframes.splice(at, 0, keyframe);
+}
+
+/** Copy a parsed region, dropping keys left undefined (documents stay minimal). */
+function cleanRegion(input: { x: number; y: number; width: number; height: number; shape?: "rect" | "ellipse" | undefined; feather?: number | undefined; invert?: boolean | undefined }): EffectRegion {
+  const region: EffectRegion = { x: input.x, y: input.y, width: input.width, height: input.height };
+  if (input.shape !== undefined && input.shape !== "rect") region.shape = input.shape;
+  if (input.feather !== undefined && input.feather > 0) region.feather = input.feather;
+  if (input.invert) region.invert = true;
+  return region;
+}
 
 function reject(type: string, code: string, message: string): never {
   throw new CommandRejectedError(type, code, message);
@@ -97,6 +134,12 @@ function dropTransitionsTouching(doc: Draft<ProjectDocument>, clipId: string): v
   }
 }
 
+/** A clip's placement and source timing, as one comparable key. */
+function timingOf(clip: Clip): string {
+  const trim = "trimStartUs" in clip ? (clip as { trimStartUs: number }).trimStartUs : "";
+  return `${clip.trackId}|${clip.startUs}|${clip.durationUs}|${trim}`;
+}
+
 function findEffect(
   doc: Draft<ProjectDocument>,
   type: string,
@@ -128,8 +171,8 @@ function parseParams(
 }
 
 /**
- * Source headroom on one side of a cut: how much media exists beyond the
- * clip's visible range. Infinite for generated clips (text/image/caption);
+ * Spare footage on one side of a cut, in timeline µs at the clip's speed.
+ * Infinite for generated clips (text/image/caption) and freeze frames;
  * unknown asset durations are treated as sufficient (probing may fill them
  * in later — export will surface real gaps).
  */
@@ -138,11 +181,25 @@ function headroomUs(
   clip: Clip,
   side: "out" | "in",
 ): number {
-  if (!("assetId" in clip) || !("trimStartUs" in clip)) return Number.POSITIVE_INFINITY;
-  if (side === "in") return clip.trimStartUs;
-  const asset = doc.assets[clip.assetId];
-  if (!asset || asset.durationUs === undefined) return Number.POSITIVE_INFINITY;
-  return asset.durationUs - (clip.trimStartUs + clip.durationUs);
+  return clipHeadroomTimelineUs(doc as ProjectDocument, clip, side);
+}
+
+/** Shift every clip on `trackId` starting at or after `fromUs` (except `exceptIds`) by `deltaUs`. */
+function rippleTrack(
+  doc: Draft<ProjectDocument>,
+  type: string,
+  trackId: string,
+  fromUs: Us,
+  deltaUs: Us,
+  exceptIds: readonly string[],
+): void {
+  if (deltaUs === 0) return;
+  for (const other of Object.values(doc.clips)) {
+    if (other.trackId !== trackId || exceptIds.includes(other.id) || other.startUs < fromUs) continue;
+    const next = other.startUs + deltaUs;
+    if (next < 0) reject(type, "out-of-range", `ripple would move clip "${other.id}" before 0`);
+    other.startUs = next;
+  }
 }
 
 export const builtinHandlers: {
@@ -301,6 +358,18 @@ export const builtinHandlers: {
       }
     }
     const { transform: _t, ...rest } = p;
+    if (rest.kind === "html") {
+      const html = rest as { scripted?: boolean; animated?: boolean };
+      if (html.scripted) html.animated = true; // scripted motion is per-frame by definition
+      else delete html.scripted;
+    }
+    if ("speed" in rest) {
+      const r = rest as { kind: string; speed?: number };
+      if (r.speed === 0 && r.kind !== "video") {
+        reject("clip/add", "cannot-freeze", "only video clips can freeze (speed 0)");
+      }
+      if (r.speed === 1 || r.speed === undefined) delete r.speed; // documents stay minimal
+    }
     doc.clips[p.id] = { ...rest, transform } as Clip;
   },
   "clip/remove": (doc, p) => {
@@ -310,16 +379,19 @@ export const builtinHandlers: {
   },
   "clip/move": (doc, p) => {
     const clip = getClip(doc, "clip/move", p.clipId);
+    const before = timingOf(clip);
     if (p.trackId !== undefined && p.trackId !== clip.trackId) {
       const track = getTrack(doc, "clip/move", p.trackId);
       assertTrackAccepts("clip/move", track, clip.kind);
       clip.trackId = p.trackId;
     }
     if (p.startUs !== undefined) clip.startUs = p.startUs;
-    dropTransitionsTouching(doc, p.clipId);
+    // A move by 0 (a drag released where it started) keeps the clip's transitions.
+    if (timingOf(clip) !== before) dropTransitionsTouching(doc, p.clipId);
   },
   "clip/trim": (doc, p) => {
     const clip = getClip(doc, "clip/trim", p.clipId);
+    const before = timingOf(clip);
     if (p.startUs !== undefined) clip.startUs = p.startUs;
     if (p.durationUs !== undefined) clip.durationUs = p.durationUs;
     if (p.trimStartUs !== undefined) {
@@ -328,7 +400,7 @@ export const builtinHandlers: {
       }
       clip.trimStartUs = p.trimStartUs;
     }
-    dropTransitionsTouching(doc, p.clipId);
+    if (timingOf(clip) !== before) dropTransitionsTouching(doc, p.clipId);
   },
   "clip/split": (doc, p) => {
     const clip = getClip(doc, "clip/split", p.clipId);
@@ -349,7 +421,7 @@ export const builtinHandlers: {
       startUs: p.atUs,
       durationUs: clip.durationUs - offset,
     };
-    if ("trimStartUs" in right) right.trimStartUs += offset;
+    if ("trimStartUs" in right) right.trimStartUs = toSourceUs(clip as Clip, p.atUs);
     // Animated html continues its animation across the cut.
     if (right.kind === "html" && (right as { animated?: boolean }).animated) {
       const r = right as { animationOffsetUs?: number };
@@ -373,6 +445,90 @@ export const builtinHandlers: {
     doc.clips[newId] = right;
     dropTransitionsTouching(doc, p.clipId);
   },
+  "clip/set-speed": (doc, p) => {
+    const clip = getClip(doc, "clip/set-speed", p.clipId);
+    if (!("trimStartUs" in clip) || !("assetId" in clip)) {
+      reject("clip/set-speed", "no-source", `${clip.kind} clips have no source to speed up or slow down`);
+    }
+    if (p.speed === 0 && clip.kind !== "video") {
+      reject("clip/set-speed", "cannot-freeze", "only video clips can freeze (speed 0)");
+    }
+    const before = clip.durationUs;
+    if (!p.keepDuration) {
+      // Same footage at the new speed. A freeze frame has no footage span, so
+      // leaving a freeze keeps the length; entering one keeps it too.
+      const span = sourceSpanUs(clip as Clip);
+      if (p.speed !== 0 && clipSpeed(clip as Clip) !== 0) clip.durationUs = durationForSource(span, p.speed);
+    }
+    const media = clip as { speed?: number };
+    if (p.speed === 1) delete media.speed;
+    else media.speed = p.speed;
+    if (p.ripple) {
+      rippleTrack(doc, "clip/set-speed", clip.trackId, clip.startUs + before, clip.durationUs - before, [clip.id]);
+    }
+    dropTransitionsTouching(doc, p.clipId);
+  },
+  "clip/freeze": (doc, p) => {
+    const clip = getClip(doc, "clip/freeze", p.clipId);
+    if (clip.kind !== "video" || !("trimStartUs" in clip)) {
+      reject("clip/freeze", "not-video", "only video clips have frames to freeze");
+    }
+    const endUs = clip.startUs + clip.durationUs;
+    if (p.atUs <= clip.startUs || p.atUs > endUs) {
+      reject(
+        "clip/freeze",
+        "out-of-range",
+        `atUs ${p.atUs} is outside clip "${p.clipId}" (${clip.startUs}..${endUs}]`,
+      );
+    }
+    const freezeId = p.freezeClipId ?? nanoid();
+    assertUniqueId("clip/freeze", doc.clips, freezeId, "clip");
+    const atEnd = p.atUs === endUs;
+    const rightId = atEnd ? undefined : (p.rightClipId ?? nanoid());
+    if (rightId !== undefined) {
+      if (rightId === freezeId) reject("clip/freeze", "duplicate-id", "freezeClipId and rightClipId must differ");
+      assertUniqueId("clip/freeze", doc.clips, rightId, "clip");
+    }
+    // The held frame: the source frame shown at atUs (the last frame when atUs is the end).
+    const sourceUs = Math.max(0, toSourceUs(clip as Clip, atEnd ? p.atUs - 1 : p.atUs));
+    if (p.ripple !== false) {
+      rippleTrack(doc, "clip/freeze", clip.trackId, atEnd ? endUs : p.atUs + 1, p.durationUs, [clip.id]);
+    }
+    const snapshot = JSON.parse(JSON.stringify(clip)) as Clip & {
+      trimStartUs: Us;
+      speed?: number;
+      fadeInUs?: Us;
+      fadeOutUs?: Us;
+      animations?: unknown;
+    };
+    const freeze = {
+      ...snapshot,
+      id: freezeId,
+      startUs: p.atUs,
+      durationUs: p.durationUs,
+      trimStartUs: sourceUs,
+      speed: 0,
+    } as typeof snapshot;
+    delete freeze.fadeInUs;
+    delete freeze.fadeOutUs;
+    delete freeze.animations; // the held frame is static; keyframes stay with the moving parts
+    if (rightId !== undefined) {
+      const offset = p.atUs - clip.startUs;
+      const right = {
+        ...snapshot,
+        id: rightId,
+        startUs: p.atUs + (p.ripple !== false ? p.durationUs : 0),
+        durationUs: clip.durationUs - offset,
+        trimStartUs: toSourceUs(clip as Clip, p.atUs),
+      } as typeof snapshot;
+      delete right.fadeInUs;
+      delete (clip as { fadeOutUs?: Us }).fadeOutUs;
+      clip.durationUs = offset;
+      doc.clips[rightId] = right as Clip;
+    }
+    doc.clips[freezeId] = freeze as Clip;
+    dropTransitionsTouching(doc, p.clipId);
+  },
   "clip/duplicate": (doc, p) => {
     const clip = getClip(doc, "clip/duplicate", p.clipId);
     const newId = p.newClipId ?? nanoid();
@@ -391,6 +547,21 @@ export const builtinHandlers: {
   },
   "clip/set-property": (doc, p) => {
     const clip = getClip(doc, "clip/set-property", p.clipId);
+    if (p.props !== undefined || p.unsetProps !== undefined) {
+      if (isBuiltinClipKind(clip.kind) || !("props" in clip)) {
+        reject("clip/set-property", "not-custom", `"props" only applies to custom clip kinds (this is a ${clip.kind} clip)`);
+      }
+      const registration = clipKindRegistration(clip.kind);
+      if (!registration) reject("clip/set-property", "unknown-kind", `no registered clip kind "${clip.kind}"`);
+      const next: Record<string, unknown> = { ...(JSON.parse(JSON.stringify(clip.props)) as Record<string, unknown>) };
+      for (const key of p.unsetProps ?? []) delete next[key];
+      Object.assign(next, p.props ?? {});
+      const parsed = registration.propsSchema.safeParse(next);
+      if (!parsed.success) {
+        reject("clip/set-property", "invalid-props", `invalid ${clip.kind} props: ${parsed.error.message}`);
+      }
+      (clip as { props: Record<string, unknown> }).props = parsed.data as Record<string, unknown>;
+    }
     if (p.transform) Object.assign(clip.transform, p.transform);
     if (p.volume !== undefined) {
       if (!("volume" in clip)) {
@@ -438,14 +609,19 @@ export const builtinHandlers: {
       if (p.widthPx !== undefined) setOrClear(html as unknown as Record<string, unknown>, "widthPx", p.widthPx);
       if (p.heightPx !== undefined) setOrClear(html as unknown as Record<string, unknown>, "heightPx", p.heightPx);
     }
-    if (p.animated !== undefined) {
+    if (p.animated !== undefined || p.scripted !== undefined) {
       if (clip.kind !== "html") {
-        reject("clip/set-property", "not-html", `"animated" only applies to html clips`);
+        reject("clip/set-property", "not-html", `"${p.scripted !== undefined ? "scripted" : "animated"}" only applies to html clips`);
       }
-      const html = clip as Clip & { animated?: boolean; animationOffsetUs?: number };
-      if (p.animated) html.animated = true;
-      else {
+      const html = clip as Clip & { animated?: boolean; scripted?: boolean; animationOffsetUs?: number };
+      if (p.scripted === true) {
+        html.scripted = true;
+        html.animated = true;
+      } else if (p.scripted === false) delete html.scripted;
+      if (p.animated === true) html.animated = true;
+      else if (p.animated === false) {
         delete html.animated;
+        delete html.scripted;
         delete html.animationOffsetUs;
       }
     }
@@ -482,25 +658,12 @@ export const builtinHandlers: {
     }
     clip.animations ??= {};
     const keyframes = (clip.animations[p.property] ??= []);
-    const end = p.anchor === "end";
-    const keyframe: Keyframe = {
+    insertKeyframe(keyframes, {
       timeUs: p.timeUs,
-      ...(end ? { anchor: "end" as const } : {}),
+      ...(p.anchor === "end" ? { anchor: "end" as const } : {}),
       value: p.value,
       easing: resolveEasing(p.easing),
-    };
-    // Stored order: start-anchored ascending, then end-anchored by descending
-    // distance from the end (= ascending clip time while the clip is long
-    // enough). Same (anchor, time) replaces.
-    const rank = (k: Keyframe) => (k.anchor === "end" ? [1, -k.timeUs] : [0, k.timeUs]) as [number, number];
-    const [r0, r1] = rank(keyframe);
-    const at = keyframes.findIndex((k) => {
-      const [k0, k1] = rank(k);
-      return k0 > r0 || (k0 === r0 && k1 >= r1);
     });
-    if (at < 0) keyframes.push(keyframe);
-    else if (sameKeyframeSlot(keyframes[at]!, p.timeUs, end)) keyframes[at] = keyframe;
-    else keyframes.splice(at, 0, keyframe);
   },
   "keyframe/remove": (doc, p) => {
     const clip = getClip(doc, "keyframe/remove", p.clipId);
@@ -534,7 +697,9 @@ export const builtinHandlers: {
       reject("effect/add", "duplicate-id", `effect "${effectId}" already exists on the clip`);
     }
     const index = Math.min(p.index ?? effects.length, effects.length);
-    effects.splice(index, 0, { id: effectId, kind: p.kind, enabled: p.enabled, params });
+    const effect: EffectInstance = { id: effectId, kind: p.kind, enabled: p.enabled, params };
+    if (p.region) effect.region = cleanRegion(p.region);
+    effects.splice(index, 0, effect);
   },
   "effect/update": (doc, p) => {
     const { effects, index } = findEffect(doc, "effect/update", p.clipId, p.effectId);
@@ -547,6 +712,39 @@ export const builtinHandlers: {
       });
     }
     if (p.enabled !== undefined) effect.enabled = p.enabled;
+    if (p.region === null) delete effect.region;
+    else if (p.region !== undefined) {
+      const animations = effect.region?.animations;
+      effect.region = { ...cleanRegion(p.region), ...(animations ? { animations } : {}) };
+    }
+  },
+  "effect/set-region-keyframe": (doc, p) => {
+    const { effects, index } = findEffect(doc, "effect/set-region-keyframe", p.clipId, p.effectId);
+    const effect = effects[index]!;
+    if (!effect.region) {
+      reject("effect/set-region-keyframe", "no-region", `effect "${p.effectId}" has no region; set one with effect/update first`);
+    }
+    if ((p.property === "width" || p.property === "height") && p.value <= 0) {
+      reject("effect/set-region-keyframe", "out-of-range", `${p.property} keyframes must be > 0`);
+    }
+    effect.region.animations ??= {};
+    const keyframes = (effect.region.animations[p.property] ??= []);
+    insertKeyframe(keyframes, {
+      timeUs: p.timeUs,
+      ...(p.anchor === "end" ? { anchor: "end" as const } : {}),
+      value: p.value,
+      easing: resolveEasing(p.easing),
+    });
+  },
+  "effect/clear-region-keyframes": (doc, p) => {
+    const { effects, index } = findEffect(doc, "effect/clear-region-keyframes", p.clipId, p.effectId);
+    const region = effects[index]!.region;
+    if (!region?.animations) return;
+    if (p.property === undefined) delete region.animations;
+    else {
+      delete region.animations[p.property];
+      if (Object.keys(region.animations).length === 0) delete region.animations;
+    }
   },
   "effect/remove": (doc, p) => {
     const { clip, effects, index } = findEffect(doc, "effect/remove", p.clipId, p.effectId);
@@ -640,5 +838,52 @@ export const builtinHandlers: {
       reject("transition/remove", "transition-not-found", `no transition "${p.transitionId}"`);
     }
     delete doc.transitions[p.transitionId];
+  },
+
+  // --- Markers ---------------------------------------------------------------
+
+  "marker/add": (doc, p) => {
+    const markerId = p.id ?? nanoid();
+    doc.markers ??= {};
+    assertUniqueId("marker/add", doc.markers, markerId, "marker");
+    const marker: Marker = { id: markerId, timeUs: p.timeUs, label: p.label };
+    if (p.durationUs !== undefined) marker.durationUs = p.durationUs;
+    if (p.data !== undefined) marker.data = JSON.parse(JSON.stringify(p.data)) as Record<string, unknown>;
+    doc.markers[markerId] = marker;
+  },
+  "marker/update": (doc, p) => {
+    const marker = doc.markers?.[p.markerId];
+    if (!marker) reject("marker/update", "marker-not-found", `no marker "${p.markerId}"`);
+    if (p.timeUs !== undefined) marker.timeUs = p.timeUs;
+    if (p.label !== undefined) marker.label = p.label;
+    if (p.durationUs !== undefined) setOrClear(marker as unknown as Record<string, unknown>, "durationUs", p.durationUs);
+    if (p.data !== undefined) {
+      setOrClear(
+        marker as unknown as Record<string, unknown>,
+        "data",
+        p.data === null ? null : JSON.parse(JSON.stringify(p.data)),
+      );
+    }
+  },
+  "plugin/add": (doc, p) => {
+    const ref: PluginRef = { name: p.name, version: p.version, url: p.url };
+    if (p.integrity !== undefined) ref.integrity = p.integrity;
+    const list = (doc.plugins ??= []);
+    const at = list.findIndex((r) => r.name === p.name);
+    if (at >= 0) {
+      if (!p.replace) reject("plugin/add", "duplicate-plugin", `plugin "${p.name}" is already listed; pass replace: true to upgrade`);
+      list[at] = ref;
+    } else list.push(ref);
+  },
+  "plugin/remove": (doc, p) => {
+    const at = doc.plugins?.findIndex((r) => r.name === p.name) ?? -1;
+    if (at < 0) reject("plugin/remove", "plugin-not-found", `no plugin "${p.name}"`);
+    doc.plugins!.splice(at, 1);
+    if (doc.plugins!.length === 0) delete doc.plugins;
+  },
+  "marker/remove": (doc, p) => {
+    if (!doc.markers?.[p.markerId]) reject("marker/remove", "marker-not-found", `no marker "${p.markerId}"`);
+    delete doc.markers[p.markerId];
+    if (Object.keys(doc.markers).length === 0) delete doc.markers; // documents stay minimal
   },
 };

@@ -17,6 +17,8 @@ export interface Segment {
   timelineEndUs: number;
   /** Media position at timelineStartUs (trimStart + any offset). */
   mediaStartUs: number;
+  /** Clip speed (default 1; 0 = freeze frame at mediaStartUs). */
+  speed?: number;
 }
 
 export interface Dissolve {
@@ -58,7 +60,7 @@ function segmentAt(segments: Segment[], timelineUs: number): Segment | undefined
 }
 
 function sourceFrame(segment: Segment, timelineUs: number): number {
-  const mediaUs = segment.mediaStartUs + (timelineUs - segment.timelineStartUs);
+  const mediaUs = segment.mediaStartUs + (timelineUs - segment.timelineStartUs) * (segment.speed ?? 1);
   return Math.floor((mediaUs * FIXTURE_FPS) / 1_000_000);
 }
 

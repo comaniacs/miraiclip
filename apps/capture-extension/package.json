@@ -1,0 +1,23 @@
+{
+  "name": "miraiclip-capture-extension",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Chrome extension: record your screen, a window or a tab with camera and voice and the Miraiclip interaction log, review it, and download it for the editor.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@miraiclip/capture": "workspace:^"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.287",
+    "esbuild": "^0.27.7",
+    "typescript": "^5.9.3"
+  },
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

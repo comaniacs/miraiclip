@@ -12,7 +12,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import type { Clip, Track, Us } from "@miraiclip/core";
+import { clipSpeed, type Clip, type Track, type Us } from "@miraiclip/core";
 import {
   beginClipDrag,
   clipsInRange,
@@ -491,7 +491,8 @@ const ClipItem = forwardRef<HTMLDivElement, TimelineClipProps>(function Timeline
   const startUs = dragging ? dragging.startUs : clip.startUs;
   const durationUs = dragging ? dragging.durationUs : clip.durationUs;
   const baseTrim = "trimStartUs" in clip ? clip.trimStartUs : 0;
-  const trimStartUs = dragging?.mode === "trim-start" ? Math.max(0, baseTrim + (startUs - clip.startUs)) : baseTrim;
+  const trimStartUs =
+    dragging?.mode === "trim-start" ? Math.max(0, baseTrim + Math.round((startUs - clip.startUs) * clipSpeed(clip))) : baseTrim;
   const locked = !!track?.locked;
 
   const state: TimelineClipState = {

@@ -1,4 +1,5 @@
 import type { ProjectDocument } from "@miraiclip/core";
+import type { ServerPluginOptions } from "./plugins.js";
 
 /** Mirrors the renderer's ExportProgress — re-declared so the Node side has no runtime dependency on the renderer. */
 export interface ServerExportProgress {
@@ -71,6 +72,11 @@ export interface ExportProjectFileOptions {
   signal?: AbortSignal;
   onProgress?: (progress: ServerExportProgress) => void;
   browser?: BrowserOptions;
+  /**
+   * Run the document's `doc.plugins` (custom kinds). Off by default — plugin
+   * code only runs when `allow` admits it. See `ServerPluginOptions`.
+   */
+  plugins?: ServerPluginOptions;
 }
 
 export interface ExportProjectFileResult {

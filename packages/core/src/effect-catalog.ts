@@ -170,6 +170,8 @@ export const EFFECT_CATALOG: readonly EffectInfo[] = [
   { kind: "chromaKey", label: "Green Screen", category: "frame", params: [color("color", "Key color", "#00ff00"), num("similarity", "Similarity", 0, 1, 0.4, 0.01, "percent"), num("smoothness", "Smoothness", 0, 1, 0.1, 0.01, "percent"), num("spill", "Spill", 0, 1, 0.1, 0.01, "percent")] },
   { kind: "letterbox", label: "Letterbox", category: "frame", params: [num("size", "Bar height", 0, 0.3, 0.12, 0.005, "percent")] },
   { kind: "roundedCorners", label: "Rounded Corners", category: "frame", params: [num("radius", "Radius", 0, 0.5, 0.08, 0.005, "percent")] },
+  // A picture-in-picture frame: crop toward a square (circle with radius 0.5), round the corners, add a border.
+  { kind: "frameShape", label: "Shape & Border", category: "frame", params: [num("square", "Square crop", 0, 1, 0, 0.01, "percent"), num("radius", "Corner radius", 0, 0.5, 0.08, 0.005, "percent"), len("border", "Border", 0, 0.02, 0), color("borderColor", "Border color", "#ffffff")] },
 ];
 
 const byKind = new Map(EFFECT_CATALOG.map((e) => [e.kind, e]));

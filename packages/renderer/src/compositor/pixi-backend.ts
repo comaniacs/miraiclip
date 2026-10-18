@@ -10,6 +10,7 @@ import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { LocalBounds, Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
 import { htmlAnimationTiming, htmlRasterKey, rasterizeHtml, substituteParams } from "../html/rasterize.js";
 import { analyzeHtmlAnimations, type HtmlAnimationTimeline } from "../html/animation-timeline.js";
+import type { ClipRenderer, ClipRendererInstance } from "./clip-renderers.js";
 import { captionMetrics, captionWordStyle, textClipStyle } from "../text/typography.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
@@ -32,6 +33,10 @@ abstract class PixiNode<T extends Container> implements SceneNode {
     if (!this.effectContext) return;
     this.effects ??= new NodeEffects(this.display, this.effectContext, this.invalidate);
     this.effects.set(effects);
+  }
+
+  setEffectTime(localUs: number, clipDurationUs: number): void {
+    this.effects?.setTime(localUs, clipDurationUs);
   }
 
   /**
@@ -426,7 +431,8 @@ class PixiHtmlNode extends PixiNode<Sprite> {
    * undefined when every frame differs there (or reuse is off / unknown).
    */
   private constantSince(timeS: number): number | undefined {
-    if (!this.rasterOptions.reuseStaticFrames || !this.clip.animated) return undefined;
+    // Scripted motion can't be analyzed from CSS: every frame is rastered.
+    if (!this.rasterOptions.reuseStaticFrames || !this.clip.animated || this.clip.scripted) return undefined;
     if (this.timeline === undefined) {
       const { widthPx, heightPx } = this.inputs;
       this.timeline = analyzeHtmlAnimations(substituteParams(this.clip.template, this.clip.params), widthPx, heightPx) ?? null;
@@ -480,6 +486,7 @@ class PixiHtmlNode extends PixiNode<Sprite> {
           assets: this.assets,
           density,
           ...(timing ?? {}),
+          ...(clip.scripted ? { scripted: true } : {}),
         });
       } catch (error) {
         // Unmounted mid-raster (residency): the abort is the teardown itself.
@@ -913,6 +920,45 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
   }
 }
 
+/** A custom clip kind's content, drawn by a registered clip renderer into a container. */
+class PixiContainerNode extends PixiNode<Container> {
+  private readonly instance: ClipRendererInstance | undefined;
+
+  constructor(
+    stage: Container,
+    renderer: ClipRenderer,
+    clip: Clip,
+    assets: Readonly<Record<string, Asset>>,
+    invalidate: () => void,
+    effectContext: EffectContext,
+  ) {
+    super(new Container(), invalidate, effectContext);
+    stage.addChild(this.display);
+    this.instance =
+      renderer.create(this.display, clip, {
+        compositionSize: effectContext.compositionSize,
+        assets,
+        invalidate,
+      }) ?? undefined;
+  }
+
+  update(clip: Clip): void {
+    this.instance?.update?.(clip);
+    this.invalidate();
+  }
+
+  tick(clip: Clip, timeUs: number): void {
+    if (!this.instance?.tick) return;
+    this.instance.tick(clip, timeUs);
+    this.invalidate();
+  }
+
+  override destroy(): void {
+    this.instance?.destroy?.();
+    super.destroy();
+  }
+}
+
 class PixiSceneBackend implements SceneBackend {
   /**
    * True when anything visible changed since the last render. The playback
@@ -994,6 +1040,11 @@ class PixiSceneBackend implements SceneBackend {
   createHtml(clip: HtmlClip, assets: Readonly<Record<string, Asset>>): SceneNode {
     this.invalidate();
     return new PixiHtmlNode(this.app.stage, clip, assets, this.invalidate, this.effectContext, this.htmlRaster, this.htmlLoad);
+  }
+
+  createContainer(renderer: ClipRenderer, clip: Clip, assets: Readonly<Record<string, Asset>>): SceneNode {
+    this.invalidate();
+    return new PixiContainerNode(this.app.stage, renderer, clip, assets, this.invalidate, this.effectContext);
   }
 
   createSolid(): SolidSceneNode {

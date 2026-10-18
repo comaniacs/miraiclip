@@ -227,6 +227,16 @@ describe("video in the compositor", () => {
     expect(pipeline.frameAt(8_000_000)?.timestampUs).toBeLessThan(3_000_000);
   });
 
+  it("video clips have bounds and take hits (selecting and dragging them on the preview)", async () => {
+    const { videos, compositor, node } = setup();
+    await videos.renderFrameAt(compositor, 0);
+    node.localBounds = { xPx: -320, yPx: -180, widthPx: 640, heightPx: 360 };
+    const b = compositor.getClipBounds("c1", 0);
+    expect(b).not.toBeNull();
+    expect(b!.widthPx).toBeGreaterThan(0);
+    expect(compositor.hitTest(b!.centerXPx, b!.centerYPx, 0)).toBe("c1");
+  });
+
   it("dispose releases the media manager", async () => {
     const { videos, manager, compositor } = setup();
     await videos.renderFrameAt(compositor, 0);

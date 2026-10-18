@@ -2,7 +2,7 @@
   "name": "miraiclip",
   "displayName": "Miraiclip",
   "version": "0.1.0",
-  "description": "Make and edit videos with Claude: talking-head recuts, captions, product launch videos and reformats, built on the Miraiclip engine with frame previews Claude can see.",
+  "description": "Make and edit videos with Claude: talking-head recuts, captions, product launch videos, reformats and screen tutorials, built on the Miraiclip engine with frame previews Claude can see.",
   "author": { "name": "Miraiclip", "url": "https://miraiclip.com" },
   "homepage": "https://docs.miraiclip.com/ai/claude-code",
   "repository": "https://github.com/comaniacs/miraiclip",

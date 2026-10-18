@@ -125,14 +125,31 @@ for (const [kind, renderer] of Object.entries({
   renderers.set(kind, renderer);
 }
 
+const BUILTIN_TRANSITION_RENDERERS: ReadonlySet<string> = new Set(renderers.keys());
+
 /**
  * Register how a custom transition kind draws. Pair it with core's
  * `registerTransitionKind(kind, paramsSchema)` so commands validate. A kind
  * without a renderer draws as a hard cut at the boundary.
  */
-export function registerTransitionRenderer(kind: string, renderer: TransitionRenderer): void {
-  if (renderers.has(kind)) throw new Error(`transition renderer "${kind}" is already registered`);
+export function registerTransitionRenderer(
+  kind: string,
+  renderer: TransitionRenderer,
+  options?: { replace?: boolean },
+): void {
+  const existing = renderers.get(kind);
+  if (existing === renderer) return; // idempotent (plugin loaded twice, HMR re-evaluation)
+  if (existing && BUILTIN_TRANSITION_RENDERERS.has(kind)) {
+    throw new Error(`"${kind}" is a built-in transition renderer and can't be replaced`);
+  }
+  if (existing && !options?.replace) throw new Error(`transition renderer "${kind}" is already registered`);
   renderers.set(kind, renderer);
+}
+
+/** Remove a custom transition renderer (plugin unload). Returns whether it existed. */
+export function unregisterTransitionRenderer(kind: string): boolean {
+  if (BUILTIN_TRANSITION_RENDERERS.has(kind)) throw new Error(`"${kind}" is a built-in transition renderer`);
+  return renderers.delete(kind);
 }
 
 export function getTransitionRenderer(kind: string): TransitionRenderer | undefined {

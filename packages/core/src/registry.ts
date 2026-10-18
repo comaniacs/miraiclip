@@ -70,11 +70,55 @@ for (const info of EFFECT_CATALOG) {
   );
 }
 
-/** Register a custom effect kind's param schema (renderer registers its filter separately). */
-export function registerEffectKind(kind: string, paramsSchema: z.ZodType): void {
-  if (effectSchemas.has(kind)) throw new Error(`effect kind "${kind}" is already registered`);
-  effectSchemas.set(kind, paramsSchema);
+/**
+ * How a registration treats a kind that is already registered:
+ * - the SAME schema/registration object again is always a no-op (idempotent —
+ *   a plugin loaded twice, a module evaluated twice under HMR);
+ * - `replace: true` swaps in the new one (hot reload of a changed kind);
+ * - otherwise a different definition throws, so two libraries can't silently
+ *   fight over one name. Built-in kinds can never be replaced.
+ */
+export interface RegisterOptions {
+  replace?: boolean;
 }
+
+const builtinEffectKinds = new Set<string>();
+
+function registerInto<T>(
+  map: Map<string, T>,
+  builtins: ReadonlySet<string>,
+  what: string,
+  kind: string,
+  value: T,
+  options: RegisterOptions | undefined,
+): void {
+  const existing = map.get(kind);
+  if (existing === undefined) {
+    map.set(kind, value);
+    return;
+  }
+  if (existing === value) return; // idempotent
+  if (builtins.has(kind)) throw new Error(`"${kind}" is a built-in ${what} kind and can't be replaced`);
+  if (!options?.replace) throw new Error(`${what} kind "${kind}" is already registered`);
+  map.set(kind, value);
+}
+
+function unregisterFrom(map: Map<string, unknown>, builtins: ReadonlySet<string>, what: string, kind: string): boolean {
+  if (builtins.has(kind)) throw new Error(`"${kind}" is a built-in ${what} kind and can't be unregistered`);
+  return map.delete(kind);
+}
+
+/** Register a custom effect kind's param schema (renderer registers its filter separately). */
+export function registerEffectKind(kind: string, paramsSchema: z.ZodType, options?: RegisterOptions): void {
+  registerInto(effectSchemas, builtinEffectKinds, "effect", kind, paramsSchema, options);
+}
+
+/** Remove a custom effect kind (plugin unload, tenant cleanup in a warm worker). Returns whether it existed. */
+export function unregisterEffectKind(kind: string): boolean {
+  return unregisterFrom(effectSchemas, builtinEffectKinds, "effect", kind);
+}
+
+for (const kind of effectSchemas.keys()) builtinEffectKinds.add(kind);
 
 export function effectParamsSchema(kind: string): z.ZodType | undefined {
   return effectSchemas.get(kind);
@@ -100,10 +144,15 @@ for (const [kind, schema] of Object.entries(builtinTransitionParamSchemas)) {
   transitionSchemas.set(kind, schema);
 }
 
-export function registerTransitionKind(kind: string, paramsSchema: z.ZodType): void {
-  if (transitionSchemas.has(kind))
-    throw new Error(`transition kind "${kind}" is already registered`);
-  transitionSchemas.set(kind, paramsSchema);
+const builtinTransitionKinds = new Set<string>(transitionSchemas.keys());
+
+export function registerTransitionKind(kind: string, paramsSchema: z.ZodType, options?: RegisterOptions): void {
+  registerInto(transitionSchemas, builtinTransitionKinds, "transition", kind, paramsSchema, options);
+}
+
+/** Remove a custom transition kind. Returns whether it existed. */
+export function unregisterTransitionKind(kind: string): boolean {
+  return unregisterFrom(transitionSchemas, builtinTransitionKinds, "transition", kind);
 }
 
 export function transitionParamsSchema(kind: string): z.ZodType | undefined {
@@ -129,10 +178,15 @@ const BUILTIN_CLIP_KINDS = new Set(["video", "audio", "image", "text", "caption"
 export function registerClipKind(
   kind: string,
   registration: ClipKindRegistration,
+  options?: RegisterOptions,
 ): void {
   if (BUILTIN_CLIP_KINDS.has(kind)) throw new Error(`"${kind}" is a built-in clip kind`);
-  if (clipKinds.has(kind)) throw new Error(`clip kind "${kind}" is already registered`);
-  clipKinds.set(kind, registration);
+  registerInto(clipKinds, BUILTIN_CLIP_KINDS, "clip", kind, registration, options);
+}
+
+/** Remove a custom clip kind. Clips of that kind stay in documents as data. Returns whether it existed. */
+export function unregisterClipKind(kind: string): boolean {
+  return unregisterFrom(clipKinds, BUILTIN_CLIP_KINDS, "clip", kind);
 }
 
 export function clipKindRegistration(kind: string): ClipKindRegistration | undefined {

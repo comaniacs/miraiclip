@@ -18,9 +18,11 @@ import {
 } from "../transitions/timing.js";
 import { getTransitionRenderer } from "../transitions/registry.js";
 import { computePlacement, placementFromEvaluated, zIndexFor } from "./placement.js";
-import { isHtmlClip } from "@miraiclip/core";
+import { hasAnimatedEffectRegion, isHtmlClip } from "@miraiclip/core";
+import { clipRendererFactory } from "./clip-renderers.js";
 import type {
   ClipBounds,
+  LocalBounds,
   NodeFactory,
   Placement,
   Point,
@@ -267,6 +269,7 @@ export class Compositor {
               placementFromEvaluated(this.scratchEvaluated, doc.settings, this.scratchPlacement),
             );
           }
+          if (hasAnimatedEffectRegion(clip)) node.setEffectTime?.(timeUs - clip.startUs, clip.durationUs);
           node.tick?.(clip, timeUs);
         }
         continue;
@@ -321,6 +324,7 @@ export class Compositor {
         placement.xPx += offsetXPx;
         placement.yPx += offsetYPx;
         node.setPlacement(placement);
+        if (hasAnimatedEffectRegion(clip)) node.setEffectTime?.(timeUs - clip.startUs, clip.durationUs);
         node.tick?.(clip, timeUs);
       }
       node.setReveal?.(reveal, revealDirection);
@@ -369,7 +373,7 @@ export class Compositor {
       xPx: ox + (lx * cos - ly * sin) * scale,
       yPx: oy + (lx * sin + ly * cos) * scale,
     });
-    const { xPx: lx, yPx: ly, widthPx: lw, heightPx: lh } = local;
+    const { xPx: lx, yPx: ly, widthPx: lw, heightPx: lh } = croppedToShape(clip, local);
     const center = toWorld(lx + lw / 2, ly + lh / 2);
     return {
       clipId,
@@ -528,7 +532,7 @@ export class Compositor {
   }
 
   private createNode(clip: Clip): SceneNode | null {
-    const factory = this.factories[clip.kind];
+    const factory = this.factories[clip.kind] ?? clipRendererFactory(clip.kind);
     if (!factory) return null;
     const node = factory(clip, { backend: this.backend, assets: this.doc().assets });
     node?.update(clip);
@@ -622,4 +626,18 @@ function pointInBounds(xPx: number, yPx: number, bounds: ClipBounds): boolean {
   const ly = (dx * sin + dy * cos) / bounds.scale;
   const { local } = bounds;
   return lx >= local.xPx && lx <= local.xPx + local.widthPx && ly >= local.yPx && ly <= local.yPx + local.heightPx;
+}
+
+/**
+ * A frameShape effect's square crop hides the sides (or top and bottom) of the
+ * picture: bounds, hits and the selection box follow what's visible.
+ */
+function croppedToShape(clip: Clip, local: LocalBounds): LocalBounds {
+  const shape = clip.effects?.find((e) => e.kind === "frameShape" && e.enabled !== false && !e.region);
+  const square = Math.min(1, Math.max(0, Number(shape?.params?.["square"] ?? 0)));
+  if (!square) return local;
+  const side = Math.min(local.widthPx, local.heightPx);
+  const widthPx = local.widthPx + (side - local.widthPx) * square;
+  const heightPx = local.heightPx + (side - local.heightPx) * square;
+  return { xPx: local.xPx + (local.widthPx - widthPx) / 2, yPx: local.yPx + (local.heightPx - heightPx) / 2, widthPx, heightPx };
 }

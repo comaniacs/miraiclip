@@ -1,0 +1,34 @@
+{
+  "name": "caption-bold-pop",
+  "title": "Captions — bold pop",
+  "description": "Big uppercase words, the active one enlarged in yellow with a heavy outline. The short-form social look.",
+  "category": "caption-style",
+  "tags": [
+    "captions",
+    "social",
+    "reels",
+    "tiktok"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "fields": [],
+  "content": {
+    "kind": "caption-style",
+    "style": {
+      "preset": "pop",
+      "display": "block",
+      "fontFamily": "Inter, sans-serif",
+      "fontWeight": 900,
+      "fontSizeFrac": 0.075,
+      "textTransform": "uppercase",
+      "color": "#ffffff",
+      "highlightColor": "#ffd400",
+      "strokeColor": "#000000",
+      "strokeWidthFrac": 0.12
+    }
+  }
+}

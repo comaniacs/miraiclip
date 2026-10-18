@@ -71,6 +71,8 @@ export interface SceneNode {
   update(clip: Clip): void;
   /** Apply the clip's effect stack (enabled entries, array order). Optional per backend. */
   setEffects?(effects: readonly EffectInstance[]): void;
+  /** Clip-relative time for time-dependent effect state (keyframed effect regions). Optional per backend. */
+  setEffectTime?(localUs: number, clipDurationUs: number): void;
   /**
    * Wipe transitions: show only part of the node, clipped in COMPOSITION
    * space. The revealed region grows to cover the frame as `fraction` goes
@@ -154,6 +156,12 @@ export interface SceneBackend {
   createSolid?(): SolidSceneNode;
   /** HTML clip: template rasterized to a texture. Optional per backend. */
   createHtml?(clip: HtmlClip, assets: Readonly<Record<string, Asset>>): SceneNode;
+  /** Custom clip kinds drawn by a registered clip renderer. Optional per backend. */
+  createContainer?(
+    renderer: import("./clip-renderers.js").ClipRenderer,
+    clip: Clip,
+    assets: Readonly<Record<string, Asset>>,
+  ): SceneNode;
   render(): void;
   destroy(): void;
 }

@@ -10,5 +10,6 @@ The ideas behind Miraiclip's engine.
   {{< card link="project-state" title="Project State" >}}
   {{< card link="clips" title="Clips" >}}
   {{< card link="tracks" title="Tracks" >}}
+  {{< card link="markers" title="Markers" >}}
   {{< card link="events" title="Events & Patches" >}}
 {{< /cards >}}

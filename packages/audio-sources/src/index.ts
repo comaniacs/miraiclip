@@ -47,6 +47,9 @@ export type { GeneratedResult, GenerationJob, GenerationStatus, StartGenerationO
 export { createGeneratorHandler, remoteGenerator, remoteGenerators } from "./generate/http.js";
 export type { GeneratorHandlerOptions, RemoteGeneratorsOptions } from "./generate/http.js";
 export { elevenLabsGenerator } from "./generate/elevenlabs.js";
+export { openAiSpeechGenerator } from "./generate/openai.js";
+export type { OpenAiSpeechGeneratorOptions } from "./generate/openai.js";
+export { audioDurationUs, mp3DurationUs, wavDurationUs } from "./generate/duration.js";
 export type { ElevenLabsGeneratorOptions } from "./generate/elevenlabs.js";
 export { toneGenerator } from "./generate/tone.js";
 export type { ToneGeneratorOptions } from "./generate/tone.js";

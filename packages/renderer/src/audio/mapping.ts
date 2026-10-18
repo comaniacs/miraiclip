@@ -4,6 +4,7 @@
  * preview and export can never disagree about what a composition sounds like.
  */
 import {
+  clipSpeed,
   evaluateKeyframes,
   resolveKeyframes,
   isAudioClip,
@@ -18,7 +19,8 @@ import { transitionGainAt, transitionRampTimes } from "../transitions/timing.js"
 
 /** Clips that can make sound: audio clips, and video clips (embedded track). */
 export function isAudible(clip: Clip): clip is VideoClip | AudioClip {
-  return isVideoClip(clip) || isAudioClip(clip);
+  // A freeze frame (speed 0) is silent.
+  return (isVideoClip(clip) || isAudioClip(clip)) && clipSpeed(clip) > 0;
 }
 
 /** The track's mute/solo gate: 1 when audible, 0 when muted or soloed out. */
@@ -149,8 +151,12 @@ export interface MappedChunk {
   playFromTimelineUs: Us;
   /** Offset into the chunk's buffer to start from. */
   offsetIntoChunkUs: Us;
-  /** How much of the chunk plays (clipped to the clip's end). */
+  /** How much of the chunk plays (clipped to the clip's end), in timeline µs. */
   durationUs: Us;
+  /** The same span in the chunk's own (source) time: `durationUs × speed`. */
+  sourceDurationUs: Us;
+  /** Clip speed: the buffer's playbackRate relative to the timeline. */
+  speed: number;
 }
 
 /**
@@ -166,14 +172,19 @@ export function mapChunkToTimeline(
   windowStartUs: Us,
 ): MappedChunk | "behind" | "past-end" {
   const clipEndUs = clip.startUs + clip.durationUs;
-  const timelineStartUs = clip.startUs + (chunkTimestampUs - clip.trimStartUs);
-  const timelineEndUs = timelineStartUs + chunkDurationUs;
+  const speed = clipSpeed(clip) || 1;
+  // Media time → timeline time: a 2× clip plays each chunk in half the time.
+  const timelineStartUs = clip.startUs + (chunkTimestampUs - clip.trimStartUs) / speed;
+  const timelineEndUs = timelineStartUs + chunkDurationUs / speed;
   if (timelineEndUs <= windowStartUs) return "behind";
   if (timelineStartUs >= clipEndUs) return "past-end";
   const playFromTimelineUs = Math.max(timelineStartUs, windowStartUs);
+  const durationUs = Math.min(timelineEndUs, clipEndUs) - playFromTimelineUs;
   return {
     playFromTimelineUs,
-    offsetIntoChunkUs: playFromTimelineUs - timelineStartUs,
-    durationUs: Math.min(timelineEndUs, clipEndUs) - playFromTimelineUs,
+    offsetIntoChunkUs: (playFromTimelineUs - timelineStartUs) * speed,
+    durationUs,
+    sourceDurationUs: durationUs * speed,
+    speed,
   };
 }

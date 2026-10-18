@@ -1,0 +1,30 @@
+{
+  "date": "2026-10-17T04:22:34.192Z",
+  "note": "software GL (SwiftShader), software video encode",
+  "results": [
+    {
+      "size": "1920x1080",
+      "fps": 30,
+      "format": "webm",
+      "outputSeconds": 20,
+      "wallSeconds": 168,
+      "realtimeFactor": 0.12,
+      "cpuSeconds": 310.8,
+      "cpuSecondsPerOutputMinute": 932,
+      "machineCpus": 2,
+      "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+    },
+    {
+      "size": "3840x2160",
+      "fps": 30,
+      "format": "webm",
+      "outputSeconds": 6,
+      "wallSeconds": 237.1,
+      "realtimeFactor": 0.03,
+      "cpuSeconds": 437.5,
+      "cpuSecondsPerOutputMinute": 4375,
+      "machineCpus": 2,
+      "cpuModel": "Intel(R) Xeon(R) Processor @ 2.10GHz"
+    }
+  ]
+}

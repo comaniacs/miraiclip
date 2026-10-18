@@ -1,0 +1,375 @@
+{
+  "format": 1,
+  "name": "miraiclip",
+  "blocks": [
+    {
+      "name": "background-gradient",
+      "title": "Background — soft gradient",
+      "description": "Two soft colour glows on a dark base. Put it on the bottom track under titles and screenshots.",
+      "category": "background",
+      "tags": [
+        "background",
+        "gradient",
+        "brand"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "any"
+      ],
+      "path": "blocks/background-gradient.json"
+    },
+    {
+      "name": "callout-arrow-label",
+      "title": "Callout — arrow and label",
+      "description": "A hand-drawn style arrow that sweeps in, with a label at its tail.",
+      "category": "callout",
+      "tags": [
+        "tutorial",
+        "explainer",
+        "pointer"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "1:1"
+      ],
+      "path": "blocks/callout-arrow-label.json"
+    },
+    {
+      "name": "callout-highlight-box",
+      "title": "Callout — highlight box",
+      "description": "A rounded outline that draws around a part of the screen. Resize it with the clip's scale or widthPx/heightPx.",
+      "category": "callout",
+      "tags": [
+        "tutorial",
+        "screen",
+        "focus"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "any"
+      ],
+      "path": "blocks/callout-highlight-box.json"
+    },
+    {
+      "name": "callout-step-badge",
+      "title": "Callout — step badge",
+      "description": "A numbered circle that pops in with a pulse ring. Mark the order of steps on screen.",
+      "category": "callout",
+      "tags": [
+        "tutorial",
+        "step",
+        "number"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "any"
+      ],
+      "path": "blocks/callout-step-badge.json"
+    },
+    {
+      "name": "callout-tooltip",
+      "title": "Callout — tooltip",
+      "description": "A dark tooltip with a pointer arrow. Place it beside the control you're talking about.",
+      "category": "callout",
+      "tags": [
+        "tutorial",
+        "screen",
+        "label",
+        "step"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/callout-tooltip.json"
+    },
+    {
+      "name": "caption-bold-pop",
+      "title": "Captions — bold pop",
+      "description": "Big uppercase words, the active one enlarged in yellow with a heavy outline. The short-form social look.",
+      "category": "caption-style",
+      "tags": [
+        "captions",
+        "social",
+        "reels",
+        "tiktok"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "9:16",
+        "1:1",
+        "16:9"
+      ],
+      "path": "blocks/caption-bold-pop.json"
+    },
+    {
+      "name": "caption-boxed",
+      "title": "Captions — boxed",
+      "description": "Calm sentence-case captions on a dark box, with the active word on a coloured highlight. Readable over any footage.",
+      "category": "caption-style",
+      "tags": [
+        "captions",
+        "accessible",
+        "tutorial",
+        "interview"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "any"
+      ],
+      "path": "blocks/caption-boxed.json"
+    },
+    {
+      "name": "caption-karaoke",
+      "title": "Captions — karaoke",
+      "description": "Every spoken word lights up and stays lit, on a soft shadow. Clear for music and podcasts.",
+      "category": "caption-style",
+      "tags": [
+        "captions",
+        "karaoke",
+        "podcast",
+        "music"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "any"
+      ],
+      "path": "blocks/caption-karaoke.json"
+    },
+    {
+      "name": "caption-minimal",
+      "title": "Captions — minimal",
+      "description": "Plain white sentence-case captions with a light shadow: closest to broadcast subtitles.",
+      "category": "caption-style",
+      "tags": [
+        "captions",
+        "subtitles",
+        "minimal"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "any"
+      ],
+      "path": "blocks/caption-minimal.json"
+    },
+    {
+      "name": "cursor-arrow",
+      "title": "Cursor — arrow",
+      "description": "A crisp pointer cursor. Keyframe its x/y (or let a cursor planner do it) to show where to click.",
+      "category": "cursor",
+      "tags": [
+        "cursor",
+        "pointer",
+        "screen",
+        "tutorial"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "any"
+      ],
+      "path": "blocks/cursor-arrow.json"
+    },
+    {
+      "name": "cursor-click",
+      "title": "Cursor — click ripple",
+      "description": "An expanding ring that marks a click. Drop one at each click position for half a second.",
+      "category": "cursor",
+      "tags": [
+        "click",
+        "ripple",
+        "screen",
+        "tutorial"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "any"
+      ],
+      "path": "blocks/cursor-click.json"
+    },
+    {
+      "name": "intro-kinetic-headline",
+      "title": "Intro — kinetic headline",
+      "description": "An eyebrow line, then a headline that rises in, with a gradient second line. Full frame on a dark background.",
+      "category": "intro",
+      "tags": [
+        "launch",
+        "headline",
+        "title",
+        "opener"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/intro-kinetic-headline.json"
+    },
+    {
+      "name": "intro-logo-reveal",
+      "title": "Intro — brand reveal",
+      "description": "A brand name pops in centre-frame with a tagline underneath.",
+      "category": "intro",
+      "tags": [
+        "brand",
+        "logo",
+        "opener"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/intro-logo-reveal.json"
+    },
+    {
+      "name": "lower-third-classic",
+      "title": "Lower third — classic",
+      "description": "Name and role on a dark card with an accent bar. Slides in and fades out on its own.",
+      "category": "lower-third",
+      "tags": [
+        "name",
+        "interview",
+        "speaker"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/lower-third-classic.json"
+    },
+    {
+      "name": "lower-third-gradient",
+      "title": "Lower third — gradient",
+      "description": "A gradient card with a name, a role and a handle. Good for creators and launch videos.",
+      "category": "lower-third",
+      "tags": [
+        "name",
+        "creator",
+        "brand"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/lower-third-gradient.json"
+    },
+    {
+      "name": "lower-third-minimal",
+      "title": "Lower third — minimal",
+      "description": "White text with a thin line that draws in. Quiet enough for documentary and interview footage.",
+      "category": "lower-third",
+      "tags": [
+        "name",
+        "minimal",
+        "documentary"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "1:1"
+      ],
+      "path": "blocks/lower-third-minimal.json"
+    },
+    {
+      "name": "lower-third-pill",
+      "title": "Lower third — pill",
+      "description": "A bright rounded pill with a name and a short role. Pops in.",
+      "category": "lower-third",
+      "tags": [
+        "name",
+        "social",
+        "playful"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/lower-third-pill.json"
+    },
+    {
+      "name": "outro-cta",
+      "title": "End card — call to action",
+      "description": "Brand, tagline and a pulsing URL button. Hold it at least 2.5 seconds.",
+      "category": "outro",
+      "tags": [
+        "cta",
+        "end card",
+        "url",
+        "brand"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/outro-cta.json"
+    },
+    {
+      "name": "progress-bar",
+      "title": "Progress bar",
+      "description": "A thin bar along the top that fills over the clip's length. Span the whole video for stories and tutorials.",
+      "category": "progress",
+      "tags": [
+        "progress",
+        "stories",
+        "tutorial"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/progress-bar.json"
+    },
+    {
+      "name": "title-centered",
+      "title": "Title — centred over footage",
+      "description": "A large centred title with a soft shadow, for over footage or images. Transparent background.",
+      "category": "title",
+      "tags": [
+        "title",
+        "overlay",
+        "headline"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/title-centered.json"
+    },
+    {
+      "name": "title-chapter",
+      "title": "Title — chapter card",
+      "description": "A full-frame card announcing the next part: a step number and a title. Use between sections of a tutorial.",
+      "category": "title",
+      "tags": [
+        "chapter",
+        "section",
+        "tutorial",
+        "step"
+      ],
+      "version": "1.0.0",
+      "aspects": [
+        "16:9",
+        "9:16",
+        "1:1"
+      ],
+      "path": "blocks/title-chapter.json"
+    }
+  ]
+}

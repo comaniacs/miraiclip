@@ -31,6 +31,19 @@ project.transaction(() => {
 });
 ```
 
+## Gestures
+
+A gesture turns a continuous edit — a slider drag, a scrub, an async AI edit that dispatches over several events — into ONE undo step. Everything dispatched between `beginGesture` and `end` (transactions included) lands as a single history entry; `cancel` reverts it instead.
+
+```ts
+const gesture = project.beginGesture("Adjust opacity");
+slider.oninput = () =>
+  project.dispatch({ type: "clip/set-property", payload: { clipId, transform: { opacity: slider.valueAsNumber } } });
+slider.onchange = () => gesture.end();
+```
+
+`project.inGesture()` tells whether one is open. Undo or redo while a gesture is open ends it first, a nested `beginGesture` joins the open gesture, and a gesture that changed nothing leaves no entry.
+
 ## Custom commands
 
 Consumers can register their own command types alongside the built-in catalog, with the same validation, history, and patch semantics.

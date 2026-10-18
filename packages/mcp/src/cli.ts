@@ -22,6 +22,12 @@ usage: miraiclip-mcp [options]
   --fps <n>          new-project frame rate         (default 30)
   --browser <path>   Chrome/Chromium executable for previews and exports
                      (default: MIRAICLIP_BROWSER env, then system Chrome)
+  --allow-plugins [prefixes]
+                     run the project's doc.plugins (custom kinds). Without a
+                     value any plugin runs; with a comma-separated list only
+                     URLs starting with one of the prefixes. Off by default.
+  --require-integrity
+                     refuse plugins that have no SRI integrity hash
   --help
 `;
 
@@ -60,6 +66,17 @@ async function main(): Promise<void> {
     },
     ...(typeof args["browser"] === "string"
       ? { browser: { executablePath: args["browser"] } }
+      : {}),
+    ...(args["allow-plugins"] !== undefined
+      ? {
+          plugins: {
+            allow:
+              typeof args["allow-plugins"] === "string"
+                ? args["allow-plugins"].split(",").map((p) => p.trim()).filter(Boolean)
+                : true,
+            ...(args["require-integrity"] === true ? { requireIntegrity: true } : {}),
+          },
+        }
       : {}),
   });
 

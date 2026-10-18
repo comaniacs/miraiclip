@@ -1,0 +1,77 @@
+{
+  "name": "@miraiclip/registry",
+  "version": "0.0.0",
+  "description": "Ready-made blocks for Miraiclip videos — lower thirds, callouts, intros, end cards, cursors and caption styles — plus a static JSON registry format and the `miraiclip` CLI (`add`, `catalog`, `build`).",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/comaniacs/miraiclip.git",
+    "directory": "packages/registry"
+  },
+  "homepage": "https://docs.miraiclip.com/",
+  "bugs": {
+    "url": "https://github.com/comaniacs/miraiclip/issues"
+  },
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "miraiclip": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "./dist/index.js",
+    "module": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "import": {
+          "types": "./dist/index.d.ts",
+          "default": "./dist/index.js"
+        },
+        "require": {
+          "types": "./dist/index.d.cts",
+          "default": "./dist/index.cjs"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.1.12"
+  },
+  "peerDependencies": {
+    "@miraiclip/core": "workspace:^"
+  },
+  "devDependencies": {
+    "@miraiclip/core": "workspace:^",
+    "@miraiclip/server-export": "workspace:^",
+    "@types/node": "^22.20.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "video",
+    "motion-graphics",
+    "lower-third",
+    "templates",
+    "registry",
+    "miraiclip"
+  ]
+}

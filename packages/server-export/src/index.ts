@@ -22,3 +22,7 @@ export {
   type ProjectDocument,
   type ServerExportProgress,
 } from "./types.js";
+export { checkIntegrity, preparePlugins } from "./plugins.js";
+export type { PreparedPlugins, ServerPluginOptions } from "./plugins.js";
+export { createRenderJobHandler, hasAudibleClips, httpRunner, localRunner, planChunks, renderDistributed } from "./distributed.js";
+export type { HttpRunnerOptions, LocalRunnerOptions, RenderDistributedOptions, RenderDistributedResult, RenderJob, RenderJobHandlerOptions, RenderJobResult, RenderRunner } from "./distributed.js";

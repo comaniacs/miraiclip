@@ -17,6 +17,7 @@
  * Everything here is pure plumbing over the existing engine — same commands,
  * same validation, same history.
  */
+import { listMarkers } from "./markers.js";
 import type { Command } from "./commands/schemas.js";
 import {
   CommandRejectedError,
@@ -57,16 +58,25 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "clip/duplicate": "Duplicate an existing clip to a new id, optionally at a new position.",
   "clip/move": "Move a clip to a new timeline start (and optionally another track).",
   "clip/remove": "Remove a clip. Transitions attached to it are dropped.",
-  "clip/set-property": "Set a clip property (transform fields, volume, audio fades, text content, …) as a static value.",
+  "clip/set-property": "Set a clip property (transform fields, volume, audio fades, text content, custom-kind props, …) as a static value.",
+  "clip/set-speed": "Change a video/audio clip's playback speed (0.0625–16; 0 freezes a video clip). By default the clip keeps the same footage, so its length changes; keepDuration keeps the length; ripple shifts later clips on the track.",
+  "clip/freeze": "Hold one frame of a video clip for durationUs at a timeline position (freeze frame). Splits the clip there and, by default, pushes the rest of the track back.",
   "clip/split": "Split a clip in two at a timeline position; the right half gets newClipId.",
   "clip/trim": "Change a clip's in-point (trimStartUs) and/or duration without moving other clips.",
-  "effect/add": `Add an effect to a clip's effect stack (omitted params take defaults). Built-in kinds: ${EFFECT_CATALOG.map((e) => e.kind).join(", ")}; or a registered custom kind.`,
+  "effect/add": `Add an effect to a clip's effect stack (omitted params take defaults; optional region limits it to part of the clip, invert applies it outside). Built-in kinds: ${EFFECT_CATALOG.map((e) => e.kind).join(", ")}; or a registered custom kind.`,
   "effect/remove": "Remove one effect from a clip by index.",
   "effect/reorder": "Move an effect to a new index in the clip's stack (stack order = application order).",
-  "effect/update": "Update an effect's params (and/or enabled flag) in place.",
+  "effect/update": "Update an effect's params, enabled flag, or region in place (region null = whole clip again).",
+  "effect/set-region-keyframe": "Keyframe one coordinate (x, y, width, height — fractions of the clip's frame) of an effect's region, e.g. to make a blur follow a moving field.",
+  "effect/clear-region-keyframes": "Remove an effect region's keyframes (one coordinate, or all).",
   "keyframe/clear": "Remove ALL keyframes for one property of a clip.",
   "keyframe/remove": "Remove the keyframe at an exact time (and anchor) for one property of a clip.",
   "keyframe/set": "Set a keyframe for an animatable property, with optional easing. Time is relative to the clip's visible start, or with anchor \"end\" measured back from its end (use that for exit animations so they follow trims).",
+  "marker/add": "Add a timeline marker (a chapter, tutorial step or note) at timeUs with a label, optional durationUs span and free-form data.",
+  "marker/update": "Move, rename or change a marker's span/data (`null` clears durationUs or data).",
+  "marker/remove": "Remove a marker.",
+  "plugin/add": "Declare a plugin (name, version, module url, optional SRI integrity) whose custom clip/effect/transition kinds this document uses, so every renderer loads it.",
+  "plugin/remove": "Remove a plugin from the document's manifest.",
   "project/set-settings": "Change composition settings (width, height, fps; NTSC rates like 29.97 are stored exactly as 30000/1001, or pass frameRate {num, den}).",
   "track/add": "Add a track. Track order defines layering: later tracks render on top.",
   "track/remove": "Remove a track and every clip on it.",
@@ -283,6 +293,9 @@ function clipLine(clip: Clip): string {
     if (c.volume !== 1) extra += ` vol ${c.volume}`;
     if (c.fadeInUs) extra += ` fade-in ${formatUs(c.fadeInUs)}`;
     if (c.fadeOutUs) extra += ` fade-out ${formatUs(c.fadeOutUs)}`;
+    const speed = (clip as { speed?: number }).speed;
+    if (speed === 0) extra += " freeze";
+    else if (speed !== undefined && speed !== 1) extra += ` speed ${speed}x`;
   }
   const typography =
     clip.kind === "text" ? typographySummary(clip as TextClip)
@@ -354,6 +367,15 @@ export function describeProject(
       lines.push(
         `- ${transition.id}: ${transition.kind} between ${transition.fromClipId} -> ${transition.toClipId}, ${formatUs(transition.durationUs)}`,
       );
+    }
+  }
+
+  const markers = listMarkers(doc);
+  if (markers.length > 0) {
+    lines.push("markers:");
+    for (const marker of markers) {
+      const span = marker.durationUs ? `..${formatUs(marker.timeUs + marker.durationUs)}` : "";
+      lines.push(`- ${marker.id}: ${JSON.stringify(marker.label)} at ${formatUs(marker.timeUs)}${span}`);
     }
   }
 

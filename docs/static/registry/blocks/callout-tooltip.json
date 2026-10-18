@@ -1,0 +1,44 @@
+{
+  "name": "callout-tooltip",
+  "title": "Callout — tooltip",
+  "description": "A dark tooltip with a pointer arrow. Place it beside the control you're talking about.",
+  "category": "callout",
+  "tags": [
+    "tutorial",
+    "screen",
+    "label",
+    "step"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "text",
+      "label": "Text",
+      "type": "text",
+      "default": "Click Save to publish"
+    },
+    {
+      "key": "side",
+      "label": "Arrow side (left/right/top/bottom)",
+      "type": "text",
+      "default": "left"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:640px;height:140px;display:flex;align-items:center;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}\n.tip{position:relative;margin:0 30px;padding:22px 32px;border-radius:18px;background:#111827f2;color:#fff;font-weight:600;font-size:34px;box-shadow:0 16px 40px #0008;--d:0s;animation:mc-pop .45s cubic-bezier(.2,.8,.2,1) both}\n.tip::before{content:'';position:absolute;width:26px;height:26px;background:#111827f2;transform:rotate(45deg)}\n.left::before{left:-12px;top:calc(50% - 13px)}.right::before{right:-12px;top:calc(50% - 13px)}\n.top::before{top:-12px;left:40px}.bottom::before{bottom:-12px;left:40px}</style>\n<div style=\"animation:mc-out 0.3s ease-in both;--d:calc(var(--T) - 0.3s)\"><div class=\"tip {{side}}\">{{text}}</div></div></div>",
+    "widthPx": 640,
+    "heightPx": 140,
+    "animated": true,
+    "durationUs": 3000000,
+    "transform": {
+      "x": 0.6,
+      "y": 0.4
+    }
+  }
+}

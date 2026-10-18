@@ -7,6 +7,7 @@ export {
   toToolDefinitions,
   tryDispatch,
 } from "./ai.js";
+export type { EffectRegion, EffectRegionProperty, Marker, PluginRef } from "./types.js";
 export type {
   ApplyCommandsResult,
   CommandFailure,
@@ -17,6 +18,7 @@ export type {
 export type {
   CommandDefinition,
   CreateProjectOptions,
+  GestureHandle,
   PatchSource,
   Project,
   ProjectEvents,
@@ -125,6 +127,32 @@ export type {
   ReadAnimation,
 } from "./animation-presets.js";
 export { clipHeadroomUs, findCuts } from "./cuts.js";
+export {
+  definePlugin,
+  documentPlugins,
+  pluginFromModule,
+  pluginZod,
+  trackedCorePluginApi,
+  unregisterPluginKinds,
+} from "./plugins.js";
+export type { CorePluginApi, MiraiclipPlugin, PluginApi, PluginEnvironment, PluginRegistrations } from "./plugins.js";
+export { evaluateEffectRegion, hasAnimatedEffectRegion } from "./effect-region.js";
+export type { EvaluatedRegion } from "./effect-region.js";
+export { listMarkers, markerChapters, markersInRange } from "./markers.js";
+export type { Chapter } from "./markers.js";
+export {
+  MAX_CLIP_SPEED,
+  MIN_CLIP_SPEED,
+  clipHeadroomTimelineUs,
+  clipSpeed,
+  durationForSource,
+  isFrozenClip,
+  isValidClipSpeed,
+  sourceEndUs,
+  sourceSpanUs,
+  toSourceUs,
+  toTimelineUs,
+} from "./time-remap.js";
 export type { Cut } from "./cuts.js";
 
 export {
@@ -137,8 +165,11 @@ export {
   registerEffectKind,
   registerTransitionKind,
   transitionParamsSchema,
+  unregisterClipKind,
+  unregisterEffectKind,
+  unregisterTransitionKind,
 } from "./registry.js";
-export type { ClipKindRegistration } from "./registry.js";
+export type { ClipKindRegistration, RegisterOptions } from "./registry.js";
 
 export { EFFECT_CATALOG, EFFECT_CATEGORIES, defaultEffectParams, getEffectInfo } from "./effect-catalog.js";
 export type { EffectCategory, EffectInfo, EffectParamFormat, EffectParamInfo } from "./effect-catalog.js";

@@ -9,7 +9,6 @@ import {
   EFFECT_CATALOG,
   findCuts,
   fitAnimation,
-  readAnimation,
   toToolDefinitions,
   tryDispatch,
   type AnimationEasing,

@@ -1,0 +1,42 @@
+{
+  "name": "callout-arrow-label",
+  "title": "Callout — arrow and label",
+  "description": "A hand-drawn style arrow that sweeps in, with a label at its tail.",
+  "category": "callout",
+  "tags": [
+    "tutorial",
+    "explainer",
+    "pointer"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "text",
+      "label": "Label",
+      "type": "text",
+      "default": "New in v2"
+    },
+    {
+      "key": "color",
+      "label": "Colour",
+      "type": "color",
+      "default": "#ffffff"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:560px;height:260px;position:relative;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}\n@keyframes draw{from{stroke-dashoffset:600}}.a{stroke-dasharray:600;animation:draw .7s ease-out both}</style>\n<div style=\"position:absolute;inset:0;animation:mc-out 0.3s ease-in both;--d:calc(var(--T) - 0.3s)\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"560\" height=\"260\" style=\"position:absolute;left:0;top:0;--d:0s\">\n<path class=\"a\" d=\"M520 210 C 420 220, 300 170, 120 60\" fill=\"none\" stroke=\"{{color}}\" stroke-width=\"8\" stroke-linecap=\"round\"/>\n<path class=\"a\" d=\"M120 60 L 150 110 M120 60 L 180 50\" fill=\"none\" stroke=\"{{color}}\" stroke-width=\"8\" stroke-linecap=\"round\" style=\"--d:.5s\"/></svg>\n<div style=\"position:absolute;right:0;bottom:0;color:{{color}};font-weight:800;font-size:40px;text-shadow:0 3px 14px #000a;animation:mc-fade .4s ease-out both;--d:.4s\">{{text}}</div></div></div>",
+    "widthPx": 560,
+    "heightPx": 260,
+    "animated": true,
+    "durationUs": 3000000,
+    "transform": {
+      "x": 0.65,
+      "y": 0.35
+    }
+  }
+}

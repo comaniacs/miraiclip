@@ -1,0 +1,30 @@
+{
+  "name": "caption-boxed",
+  "title": "Captions — boxed",
+  "description": "Calm sentence-case captions on a dark box, with the active word on a coloured highlight. Readable over any footage.",
+  "category": "caption-style",
+  "tags": [
+    "captions",
+    "accessible",
+    "tutorial",
+    "interview"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "any"
+  ],
+  "fields": [],
+  "content": {
+    "kind": "caption-style",
+    "style": {
+      "preset": "highlight",
+      "fontFamily": "Inter, sans-serif",
+      "fontWeight": 700,
+      "fontSizeFrac": 0.052,
+      "color": "#ffffff",
+      "highlightColor": "#0a0d18",
+      "backgroundColor": "#000000b3",
+      "activeBackgroundColor": "#22d3ee"
+    }
+  }
+}

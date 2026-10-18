@@ -466,6 +466,24 @@ rgb = 1.0 - (1.0 - rgb) * (1.0 - u_color * clamp(g, 0.0, 1.0));`,
   return texture(uTexture, uv);
 }`,
   },
+  // The visible box shrinks toward a centred square as u_square goes 0 → 1 (the picture is cropped,
+  // not squashed); corners round by u_radius of its short side; the border is drawn inside the edge.
+  frameShape: {
+    mode: "full",
+    glsl: /* glsl */ `vec4 effect(vec2 uv) {
+  vec2 sz = uOutputFrame.zw; vec2 p = toFrame(uv) * sz;
+  float side = min(sz.x, sz.y);
+  vec2 box = mix(sz, vec2(side), u_square);
+  float r = u_radius * min(box.x, box.y);
+  vec2 q = abs(p - sz * 0.5) - (box * 0.5 - r);
+  float d = length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - r;
+  float inside = 1.0 - smoothstep(-1.0, 1.0, d);
+  vec4 col = texture(uTexture, uv);
+  float edge = u_border > 0.0 ? smoothstep(-u_border - 1.0, -u_border + 1.0, d) : 0.0;
+  col = mix(col, vec4(u_borderColor, 1.0), edge);
+  return col * inside;
+}`,
+  },
   roundedCorners: {
     mode: "full",
     glsl: /* glsl */ `vec4 effect(vec2 uv) {

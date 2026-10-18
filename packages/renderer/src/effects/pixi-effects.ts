@@ -11,7 +11,8 @@ import {
   GlProgram,
   type Container,
 } from "pixi.js";
-import type { EffectInstance } from "@miraiclip/core";
+import { evaluateEffectRegion, type EffectInstance, type EffectRegion } from "@miraiclip/core";
+import { RegionFilter } from "./region-filter.js";
 import { blurStrengthPx, chromaKeyUniforms, colorAdjustSteps } from "./params.js";
 import { FILTER_VERTEX } from "./library/glsl.js";
 import { libraryEffectFactories } from "./library/library.js";
@@ -147,6 +148,8 @@ const factories = new Map<string, EffectRendererFactory>([
   ...libraryEffectFactories(),
 ]);
 
+const BUILTIN_EFFECT_RENDERERS: ReadonlySet<string> = new Set(factories.keys());
+
 /**
  * Register how a custom effect kind draws: a factory building a Pixi filter
  * from validated params, updated in place on `effect/update`. Pair it with
@@ -157,9 +160,24 @@ const factories = new Map<string, EffectRendererFactory>([
  * boundary: server export and worker export support built-in kinds only —
  * the same rule as custom clip-kind factories.
  */
-export function registerEffectRenderer(kind: string, factory: EffectRendererFactory): void {
-  if (factories.has(kind)) throw new Error(`effect renderer "${kind}" is already registered`);
+export function registerEffectRenderer(
+  kind: string,
+  factory: EffectRendererFactory,
+  options?: { replace?: boolean },
+): void {
+  const existing = factories.get(kind);
+  if (existing === factory) return; // idempotent (plugin loaded twice, HMR re-evaluation)
+  if (existing && BUILTIN_EFFECT_RENDERERS.has(kind)) {
+    throw new Error(`"${kind}" is a built-in effect renderer and can't be replaced`);
+  }
+  if (existing && !options?.replace) throw new Error(`effect renderer "${kind}" is already registered`);
   factories.set(kind, factory);
+}
+
+/** Remove a custom effect renderer (plugin unload). Returns whether it existed. */
+export function unregisterEffectRenderer(kind: string): boolean {
+  if (BUILTIN_EFFECT_RENDERERS.has(kind)) throw new Error(`"${kind}" is a built-in effect renderer`);
+  return factories.delete(kind);
 }
 
 export function getEffectRenderer(kind: string): EffectRendererFactory | undefined {
@@ -173,6 +191,10 @@ export function getEffectRenderer(kind: string): EffectRendererFactory | undefin
  */
 export class NodeEffects {
   private active = new Map<string, ActiveEffect>();
+  /** Region wrappers, by effect id (only for effects that have a region). */
+  private regions = new Map<string, { filter: RegionFilter; region: EffectRegion }>();
+  private localUs = 0;
+  private durationUs: number | undefined;
 
   constructor(
     private readonly display: Container,
@@ -189,6 +211,7 @@ export class NodeEffects {
       if (!factory) continue; // unknown kind: core validated, renderer has no visual — skip
       let entry = this.active.get(effect.id);
       if (!entry || entry.kind !== effect.kind) {
+        this.dropRegion(effect.id);
         entry?.filter.destroy();
         entry = factory(effect.params, this.context);
         this.active.set(effect.id, entry);
@@ -196,10 +219,11 @@ export class NodeEffects {
         entry.update(effect.params);
       }
       seen.add(effect.id);
-      filters.push(entry.filter);
+      filters.push(this.withRegion(effect, entry));
     }
     for (const [id, entry] of this.active) {
       if (!seen.has(id)) {
+        this.dropRegion(id);
         entry.filter.destroy();
         this.active.delete(id);
       }
@@ -209,8 +233,50 @@ export class NodeEffects {
     this.invalidate();
   }
 
+  /**
+   * Clip-relative time for keyframed regions. Called every render while the
+   * clip is visible (and once per stack change); a no-op without regions.
+   */
+  setTime(localUs: number, clipDurationUs?: number): void {
+    this.localUs = localUs;
+    this.durationUs = clipDurationUs;
+    if (this.regions.size === 0) return;
+    for (const { filter, region } of this.regions.values()) {
+      if (region.animations) filter.setRegion(evaluateEffectRegion(region, localUs, clipDurationUs));
+    }
+    this.invalidate();
+  }
+
+  private withRegion(effect: EffectInstance, entry: ActiveEffect): Filter {
+    if (!effect.region) {
+      this.dropRegion(effect.id);
+      return entry.filter;
+    }
+    const evaluated = evaluateEffectRegion(effect.region, this.localUs, this.durationUs);
+    let wrapped = this.regions.get(effect.id);
+    if (!wrapped || wrapped.filter.inner !== entry.filter) {
+      this.dropRegion(effect.id);
+      wrapped = { filter: new RegionFilter(entry.filter, this.display, evaluated), region: effect.region };
+      this.regions.set(effect.id, wrapped);
+    } else {
+      wrapped.region = effect.region;
+      wrapped.filter.setRegion(evaluated);
+    }
+    return wrapped.filter;
+  }
+
+  /** Forget an effect's region wrapper (its inner filter stays owned by `active`). */
+  private dropRegion(effectId: string): void {
+    const wrapped = this.regions.get(effectId);
+    if (!wrapped) return;
+    this.regions.delete(effectId);
+    wrapped.filter.destroy();
+  }
+
   destroy(): void {
+    for (const id of [...this.regions.keys()]) this.dropRegion(id);
     for (const entry of this.active.values()) entry.filter.destroy();
     this.active.clear();
   }
 }
+

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'" />
+  <title>Recording</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="pill-body">
+  <div class="pill" id="pill">
+    <span class="time"><i></i><span id="time">0:00</span></span>
+    <span class="log" id="log" title="Clicks, shortcuts and scrolls are being logged">click log</span>
+    <button id="step" title="Mark a step (Alt+Shift+S)"></button>
+    <button id="pause" title="Pause (Alt+Shift+P)"></button>
+    <button id="discard" title="Discard"></button>
+    <button id="stop" class="stop" title="Finish (Alt+Shift+X)"></button>
+  </div>
+  <script defer src="../pill.js"></script>
+</body>
+</html>

@@ -17,6 +17,7 @@
  * re-raster. This module is the seam for future backends (the native
  * HTML-in-Canvas API once it ships; a user-supplied deterministic renderer).
  */
+import { snapshotScriptedHtml } from "./scripted.js";
 import { isHtmlClip, type Asset, type HtmlClip, type HtmlParamValue, type ProjectDocument } from "@miraiclip/core";
 import { fontFaceDescriptors } from "../text/typography.js";
 
@@ -167,6 +168,12 @@ export interface RasterizeHtmlOptions {
   /** Animated templates: the animation's total length in seconds (`--T`). */
   durationS?: number;
   /**
+   * The template's motion comes from scripts (GSAP, Lottie, WAAPI, …): it runs
+   * in a sandboxed frame that is seeked to `timeS` and snapshotted (see
+   * html/scripted.ts). Needs a DOM, like every html raster.
+   */
+  scripted?: boolean;
+  /**
    * Draw into this canvas (resized if needed) instead of a new one. Animated
    * clips re-raster every frame; a fresh full-size canvas per frame was the
    * largest source of preview memory churn. DOM path only.
@@ -211,6 +218,7 @@ const cssSeconds = (s: number): string => `${Math.round(s * 1e4) / 1e4}s`;
 function rasterKeyOf(options: Omit<RasterizeHtmlOptions, "assets">): string {
   const base: unknown[] = [options.template, options.params, options.widthPx, options.heightPx, options.density ?? 1];
   if (options.timeS !== undefined) base.push(cssSeconds(options.timeS), cssSeconds(options.durationS ?? 0));
+  if (options.scripted) base.push("scripted");
   return JSON.stringify(base);
 }
 
@@ -237,6 +245,21 @@ export async function rasterizeHtml(
         "export with exportProjectInWorker/exportViaWorker (they pre-rasterize on the main thread), " +
         "exportProject on the main thread, or @miraiclip/server-export",
     );
+  }
+  if (options.scripted) {
+    // Seek the template's scripts in their frame, then raster the snapshot
+    // like any static template (assets and fonts already inlined).
+    const assets = options.assets ?? {};
+    const markup = await inlineAssetRefs(substituteParams(options.template, options.params), assets);
+    const fonts = await fontFaceCss(markup, assets);
+    const snapshot = await snapshotScriptedHtml({
+      markup: (fonts ? `<style>${fonts}</style>` : "") + markup,
+      widthPx,
+      heightPx,
+      timeS: options.timeS ?? 0,
+    });
+    const { scripted: _scripted, timeS: _t, durationS: _d, ...rest } = options;
+    return rasterizeHtml({ ...rest, template: snapshot, params: {} });
   }
   // Supersampling: the SVG (and canvas) are PHYSICAL size, while the markup
   // lays out at the LOGICAL size inside a scale transform — same layout at
@@ -280,27 +303,22 @@ export async function rasterizeHtml(
   return canvas;
 }
 
-/** The SVG document around the time variables, URL-encoded (see `encodedShells`). */
-async function buildShell(
-  options: RasterizeHtmlOptions,
-  physicalW: number,
-  physicalH: number,
-  density: number,
-  animated: boolean,
-): Promise<{ before: string; after: string }> {
-  let markup = substituteParams(options.template, options.params);
-
-  // Inline `asset:<id>` references (images inside the template).
-  const assets = options.assets ?? {};
+/** Inline `asset:<id>` references (images inside the template) as data: URIs. */
+async function inlineAssetRefs(markup: string, assets: Readonly<Record<string, Asset>>): Promise<string> {
   const assetRefs = [...markup.matchAll(/asset:([\w-]+)/g)].map((m) => m[1]!);
   for (const id of new Set(assetRefs)) {
     const asset = assets[id];
     if (!asset) throw new Error(`html clip references unknown asset "${id}"`);
     markup = markup.replaceAll(`asset:${id}`, await toDataUri(asset.src));
   }
+  return markup;
+}
 
-  // Inline font assets whose family the markup references — SVG-as-image
-  // documents see no document fonts, so each raster carries its own.
+/**
+ * @font-face rules for the font assets whose family the markup references —
+ * SVG-as-image documents see no document fonts, so each raster carries its own.
+ */
+async function fontFaceCss(markup: string, assets: Readonly<Record<string, Asset>>): Promise<string> {
   let fontCss = "";
   for (const asset of Object.values(assets)) {
     if (asset.kind !== "font" || !asset.family) continue;
@@ -310,6 +328,20 @@ async function buildShell(
     const descriptors = (d.weight ? `;font-weight:${d.weight}` : "") + (d.style ? `;font-style:${d.style}` : "");
     fontCss += `@font-face{font-family:${JSON.stringify(asset.family)};src:url(${JSON.stringify(uri)})${descriptors}}`;
   }
+  return fontCss;
+}
+
+/** The SVG document around the time variables, URL-encoded (see `encodedShells`). */
+async function buildShell(
+  options: RasterizeHtmlOptions,
+  physicalW: number,
+  physicalH: number,
+  density: number,
+  animated: boolean,
+): Promise<{ before: string; after: string }> {
+  const assets = options.assets ?? {};
+  const markup = await inlineAssetRefs(substituteParams(options.template, options.params), assets);
+  const fontCss = await fontFaceCss(markup, assets);
 
   const before =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${physicalW}" height="${physicalH}">` +
@@ -340,6 +372,7 @@ export function htmlRasterKey(
     heightPx,
     density,
     ...(timing ?? {}),
+    ...(clip.scripted ? { scripted: true } : {}),
   });
 }
 

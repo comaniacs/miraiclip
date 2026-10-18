@@ -40,6 +40,16 @@ describe("clip bounds", () => {
     close(b.corners[2].yPx, 270);
   });
 
+  it("a frameShape square crop narrows the bounds to what shows", () => {
+    const { project, compositor } = setup();
+    // The fake node's content is 100×20 around the origin.
+    project.dispatch({ type: "effect/add", payload: { clipId: "a", kind: "frameShape", params: { square: 1, radius: 0.5 } } });
+    const b = compositor.getClipBounds("a", 1_000_000)!;
+    close(b.widthPx, 20);
+    close(b.heightPx, 20);
+    close(b.centerXPx, 500);
+  });
+
   it("rotates corners and an off-center content box around the origin", () => {
     const { project, compositor, node } = setup();
     node(0).localBounds = { xPx: 0, yPx: 0, widthPx: 100, heightPx: 20 }; // drawn right/down of the origin

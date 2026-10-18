@@ -1,0 +1,55 @@
+{
+  "name": "lower-third-pill",
+  "title": "Lower third — pill",
+  "description": "A bright rounded pill with a name and a short role. Pops in.",
+  "category": "lower-third",
+  "tags": [
+    "name",
+    "social",
+    "playful"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "name",
+      "label": "Name",
+      "type": "text",
+      "default": "Sam Rivera"
+    },
+    {
+      "key": "role",
+      "label": "Role",
+      "type": "text",
+      "default": "Product designer"
+    },
+    {
+      "key": "color",
+      "label": "Pill colour",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "key": "ink",
+      "label": "Text colour",
+      "type": "color",
+      "default": "#0a0d18"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:760px;height:130px;display:flex;align-items:center;justify-content:center;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}</style>\n<div style=\"animation:mc-out 0.35s ease-in both;--d:calc(var(--T) - 0.35s)\"><div style=\"display:flex;align-items:baseline;gap:18px;padding:22px 44px;border-radius:999px;background:{{color}};color:{{ink}};box-shadow:0 18px 50px #0006;--d:0s;animation:mc-pop .5s cubic-bezier(.2,.8,.2,1) both\">\n<span style=\"font-weight:800;font-size:44px\">{{name}}</span><span style=\"font-weight:500;font-size:30px;opacity:.7\">{{role}}</span></div></div></div>",
+    "widthPx": 760,
+    "heightPx": 130,
+    "animated": true,
+    "durationUs": 4000000,
+    "transform": {
+      "x": 0.5,
+      "y": 0.82
+    }
+  }
+}

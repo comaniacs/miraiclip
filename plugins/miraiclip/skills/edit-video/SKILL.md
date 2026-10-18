@@ -15,6 +15,7 @@ You edit a video by sending **commands** to the `miraiclip` MCP server. The serv
 | Captions or subtitles on an existing video | `captions` skill |
 | A product launch, feature promo, explainer or announcement made from a brief, screenshots or a URL | `launch-video` skill |
 | The same video in another shape (9:16 Reels/TikTok/Shorts, 1:1, 16:9) | `reformat` skill |
+| A screen recording turned into a tutorial or product walkthrough (zoom in on the action, hold frames, blur private data, chapters) | `screen-tutorial` skill |
 | Anything else (a single change, a title, music, a transition, an export) | This skill: follow the loop below |
 
 Read the matching skill's SKILL.md before starting. Every workflow uses the loop and rules in this file.
@@ -56,6 +57,7 @@ Never claim an edit looks right without having looked at a frame of it.
 This is what separates a usable edit from one people share. Read `reference/craft.md` before building anything with titles, graphics or captions. It has formats, safe zones, type sizes, pacing, motion timing, colour and audio levels.
 
 - Titles and graphics: **HTML clips** (`kind: "html"`), built from the tested patterns in `reference/html-recipes.md`. They give you real CSS layout, web fonts, gradients, shadows and `@keyframes` animation, frame-exact in export.
+- Ready-made pieces: **blocks** (lower thirds, callouts, chapter cards, intros, end cards, cursors, progress bar, caption styles). List them with `npx -y @miraiclip/registry catalog`, then get the commands with `npx -y @miraiclip/registry add <block> --project video.miraiclip.json --at <seconds> --set key=value --print` and pass them to `apply_commands`. Start from a block, then adjust its `params` or template, instead of writing a lower third from scratch.
 - Moving existing clips (photos, footage, logos): **animation presets**, which produce the same keyframes as the Miraiclip editor's animation panel:
   ```bash
   node "${CLAUDE_PLUGIN_ROOT}/scripts/mc.mjs" presets
@@ -83,6 +85,10 @@ For a 9:16 project use `"width": 360, "height": 640`. Read `sheet.png` and go th
 - `export` with `format: "mp4"` needs Google Chrome installed on the machine. If it fails, export `webm` and, if the user needs MP4 and ffmpeg is present, convert: `ffmpeg -i out.webm -c:v libx264 -pix_fmt yuv420p -crf 18 -movflags +faststart out.mp4`.
 - Use `quality: "high"` for the final. Name the file after the project (`launch-16x9.mp4`), not `out.mp4`.
 - Exports with many animated HTML clips render every frame in a browser and take a while. Tell the user roughly how long to expect and don't export the final more than once.
+
+## Known issues
+
+- `@miraiclip/server-export` ≤ 0.4.3 (used by the MCP server for previews and exports): **image clips render black** when their `src` is a local file, and **animated HTML clips render blank**. If a `preview_frame` shows either, the server is too old: say so, and as a workaround put images inside a static HTML clip (`<img src="asset:<id>"/>`). Fixed in 0.4.4.
 
 ## Hand-off
 

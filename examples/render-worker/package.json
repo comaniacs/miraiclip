@@ -1,0 +1,9 @@
+{
+  "name": "miraiclip-render-worker",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@miraiclip/core": "^0.5.8",
+    "@miraiclip/server-export": "^0.5.0"
+  }
+}

@@ -3,7 +3,15 @@
  * Playwright) and the harness bundle (runs in the page). Type-only — both
  * sides import it so the two halves cannot drift.
  */
+/** Plugins prepared on the Node side: refs keyed by content hash, plus their sources. */
+export interface HarnessPlugins {
+  refs: { name: string; version: string; url: string; integrity?: string }[];
+  sources: Record<string, string>;
+}
+
 export interface HarnessExportOptions {
+  /** The document's plugins, already gated and read by the Node side. */
+  plugins?: HarnessPlugins;
   format: "mp4" | "webm";
   quality?: "draft" | "standard" | "high" | { videoBitrate: number };
   fps?: number;
@@ -21,6 +29,7 @@ export interface HarnessExportOptions {
 }
 
 export interface HarnessStillOptions {
+  plugins?: HarnessPlugins;
   /** Composition time to render, in microseconds. */
   timeUs: number;
   /** Output size (default: the project's composition size). */

@@ -36,6 +36,8 @@ describe("audio mapping (shared preview/export math)", () => {
       playFromTimelineUs: 1_000_000,
       offsetIntoChunkUs: 0,
       durationUs: 200_000,
+      sourceDurationUs: 200_000,
+      speed: 1,
     });
   });
 
@@ -45,6 +47,8 @@ describe("audio mapping (shared preview/export math)", () => {
       playFromTimelineUs: 1_100_000,
       offsetIntoChunkUs: 100_000,
       durationUs: 100_000,
+      sourceDurationUs: 100_000,
+      speed: 1,
     });
   });
 
@@ -55,9 +59,44 @@ describe("audio mapping (shared preview/export math)", () => {
       playFromTimelineUs: 4_900_000,
       offsetIntoChunkUs: 0,
       durationUs: 100_000,
+      sourceDurationUs: 100_000,
+      speed: 1,
     });
     expect(mapChunkToTimeline(clip(), 4_600_000, 200_000, 0)).toBe("past-end");
     expect(mapChunkToTimeline(clip(), 0, 200_000, 1_000_000)).toBe("behind");
+  });
+});
+
+describe("audio mapping at clip speed", () => {
+  const at = (speed: number) => ({ ...(docWith().clips["c1"] as object), speed }) as never;
+  it("a 2× clip plays each media chunk in half the timeline time", () => {
+    // trim 0.5 s, start 1 s: media 0.7 s is 0.1 s of timeline after the start.
+    const mapped = mapChunkToTimeline(at(2), 700_000, 200_000, 0);
+    expect(mapped).toEqual({
+      playFromTimelineUs: 1_100_000,
+      offsetIntoChunkUs: 0,
+      durationUs: 100_000,
+      sourceDurationUs: 200_000,
+      speed: 2,
+    });
+  });
+  it("a 0.5× clip stretches chunks and offsets in source time", () => {
+    const mapped = mapChunkToTimeline(at(0.5), 500_000, 200_000, 1_200_000);
+    expect(mapped).toEqual({
+      playFromTimelineUs: 1_200_000,
+      offsetIntoChunkUs: 100_000,
+      durationUs: 200_000,
+      sourceDurationUs: 100_000,
+      speed: 0.5,
+    });
+  });
+  it("freeze frames are silent; planAudioJobs reads from the speed-mapped source point", () => {
+    expect(isAudible(at(0))).toBe(false);
+    const doc = docWith((p) => {
+      p.dispatch({ type: "clip/set-speed", payload: { clipId: "c1", speed: 2, keepDuration: true } });
+    });
+    const [job] = planAudioJobs(doc, { startUs: 2_000_000, endUs: 10_000_000 });
+    expect(job!.fromMediaUs).toBe(2_500_000);
   });
 });
 

@@ -67,6 +67,16 @@ export interface Project {
   dispatch: (command: BuiltinCommand | Command) => void;
   /** Run several dispatches as one undoable history entry (atomic: all or nothing). */
   transaction: (fn: () => void, label?: string) => void;
+  /**
+   * Open a gesture: every edit until `end()` — dispatches and transactions,
+   * synchronous or spread over many events (a slider drag, a scrub of a
+   * keyframe, an async AI edit) — lands as ONE undo step. `cancel()` reverts
+   * the gesture's edits instead. Undo/redo while a gesture is open ends it
+   * first. A nested `beginGesture` joins the open gesture.
+   */
+  beginGesture: (label?: string) => GestureHandle;
+  /** True while a gesture is open. */
+  inGesture: () => boolean;
   /** Register a custom command type. */
   registerCommand: <S extends z.ZodType>(definition: CommandDefinition<S>) => void;
   /** JSON Schema per command type — hand this to an LLM as its tool catalog. */
@@ -84,6 +94,13 @@ export interface Project {
 
   /** Serialize the document. Feed the result back to createProject to restore. */
   toJSON: () => ProjectDocument;
+}
+
+export interface GestureHandle {
+  /** Commit the gesture's edits as one history entry (no entry if nothing changed). Idempotent. */
+  end: () => void;
+  /** Revert every edit the gesture made and discard it. Idempotent. */
+  cancel: () => void;
 }
 
 const DEFAULT_HISTORY_LIMIT = 500;
@@ -157,6 +174,7 @@ export function createProject(
   const undoStack: HistoryEntry[] = [];
   const redoStack: HistoryEntry[] = [];
   let txn: HistoryEntry | null = null;
+  let gesture: (HistoryEntry & { depth: number }) | null = null;
 
   function applyCommand(command: Command): void {
     const definition = registry.get(command.type);
@@ -177,6 +195,10 @@ export function createProject(
       txn.commands.push(command);
       txn.patches.push(...patches);
       txn.inversePatches.unshift(...inversePatches);
+    } else if (gesture) {
+      gesture.commands.push(command);
+      gesture.patches.push(...patches);
+      gesture.inversePatches.unshift(...inversePatches);
     } else {
       pushHistory({ commands: [command], patches, inversePatches: [...inversePatches] });
       events.emit("history", { kind: "commit" });
@@ -187,6 +209,18 @@ export function createProject(
       inverse: toJsonPatches(inversePatches),
       source: "dispatch",
     });
+  }
+
+  /** Close the open gesture, committing its edits as one entry. */
+  function finishGesture(): void {
+    const finished = gesture;
+    gesture = null;
+    if (!finished || finished.patches.length === 0) return;
+    const { depth: _depth, ...entry } = finished;
+    pushHistory(entry);
+    const historyEvent: ProjectEvents["history"] = { kind: "commit" };
+    if (entry.label !== undefined) historyEvent.label = entry.label;
+    events.emit("history", historyEvent);
   }
 
   function pushHistory(entry: HistoryEntry): void {
@@ -233,11 +267,63 @@ export function createProject(
       const finished = txn;
       txn = null;
       if (finished.patches.length === 0) return;
+      if (gesture) {
+        // Inside a gesture: the transaction folds into the gesture's entry.
+        gesture.commands.push(...finished.commands);
+        gesture.patches.push(...finished.patches);
+        gesture.inversePatches.unshift(...finished.inversePatches);
+        return;
+      }
       pushHistory(finished);
       const historyEvent: ProjectEvents["history"] = { kind: "commit" };
       if (finished.label !== undefined) historyEvent.label = finished.label;
       events.emit("history", historyEvent);
     },
+
+    beginGesture(label) {
+      if (gesture) {
+        gesture.depth++;
+        let done = false;
+        return {
+          end: () => {
+            if (done) return;
+            done = true;
+            if (gesture) gesture.depth--;
+          },
+          cancel: () => {
+            if (done) return;
+            done = true;
+            if (gesture) gesture.depth--;
+          },
+        };
+      }
+      const own: HistoryEntry & { depth: number } = { commands: [], patches: [], inversePatches: [], depth: 0 };
+      if (label !== undefined) own.label = label;
+      gesture = own;
+      let done = false;
+      return {
+        end: () => {
+          if (done || gesture !== own) return;
+          done = true;
+          finishGesture();
+        },
+        cancel: () => {
+          if (done || gesture !== own) return;
+          done = true;
+          gesture = null;
+          if (own.patches.length === 0) return;
+          const doc = applyPatches(store.getState().doc, own.inversePatches);
+          store.setState({ doc });
+          events.emit("patches", {
+            patches: toJsonPatches(own.inversePatches),
+            inverse: toJsonPatches(own.patches),
+            source: "transaction-rollback",
+          });
+        },
+      };
+    },
+
+    inGesture: () => gesture !== null,
 
     registerCommand(definition) {
       if (registry.has(definition.type)) {
@@ -250,6 +336,7 @@ export function createProject(
     commandCatalog: () => commandCatalog(customSchemas),
 
     undo() {
+      if (gesture) finishGesture();
       const entry = undoStack.pop();
       if (!entry) return false;
       const doc = applyPatches(store.getState().doc, entry.inversePatches);
@@ -267,6 +354,7 @@ export function createProject(
     },
 
     redo() {
+      if (gesture) finishGesture();
       const entry = redoStack.pop();
       if (!entry) return false;
       const doc = applyPatches(store.getState().doc, entry.patches);
@@ -283,7 +371,7 @@ export function createProject(
       return true;
     },
 
-    canUndo: () => undoStack.length > 0,
+    canUndo: () => undoStack.length > 0 || (gesture !== null && gesture.patches.length > 0),
     canRedo: () => redoStack.length > 0,
     clearHistory() {
       undoStack.length = 0;

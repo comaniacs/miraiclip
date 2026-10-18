@@ -3,6 +3,7 @@ import { mkdir, open, unlink } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveAssetSources } from "./assets.js";
+import { preparePlugins } from "./plugins.js";
 import "./harness/protocol.js";
 import { launchBrowser } from "./browser.js";
 import { startHarnessServer } from "./server.js";
@@ -27,6 +28,7 @@ export async function exportProjectFile(
   options: ExportProjectFileOptions,
 ): Promise<ExportProjectFileResult> {
   throwIfAborted(options.signal);
+  const plugins = await preparePlugins(doc, options.plugins, options.assetsDir);
   const { doc: rewrittenDoc, files } = resolveAssetSources(doc, {
     assets: options.assets,
     assetsDir: options.assetsDir,
@@ -124,6 +126,7 @@ export async function exportProjectFile(
             ...(options.range !== undefined ? { range: options.range } : {}),
             ...(options.audioChunkSeconds !== undefined ? { audioChunkSeconds: options.audioChunkSeconds } : {}),
             ...(filePath ? { stream: true } : {}),
+            ...(plugins ? { plugins } : {}),
           },
         ] as const,
       )

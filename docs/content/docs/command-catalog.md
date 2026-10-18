@@ -173,6 +173,8 @@ Discriminated on `kind`: `video`/`audio` (assetId, trimStartUs, volume, optional
 | `fontSizePx` | number | no | > 0 |
 | `color` | string | no |  |
 | `fontWeight` `fontStyle` `lineHeight` `letterSpacing` `textAlign` | see [typography](#typography) | no | text clips; `null` clears to default |
+| `props` | object | no | custom clip kinds: merged into the clip's props, then re-validated against the kind's schema |
+| `unsetProps` | string[] | no | custom clip kinds: props to drop (they fall back to schema defaults) |
 | `style` | object | no | caption clips: partial style merge; typography keys accept `null` |
 
 ### Typography
@@ -196,6 +198,26 @@ project.dispatch({
 });
 project.dispatch({ type: "clip/set-property", payload: { clipId: "t1", letterSpacing: null } }); // back to 0
 ```
+
+## `clip/set-speed`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `clipId` | string | yes | a video or audio clip |
+| `speed` | number | yes | `0` (freeze frame, video only) or 0.0625–16 |
+| `keepDuration` | boolean | no | default false: keep the same footage, so the clip's length changes; true keeps the length |
+| `ripple` | boolean | no | shift later clips on the track by the length change (default false) |
+
+## `clip/freeze`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `clipId` | string | yes | a video clip |
+| `atUs` | integer | yes | inside the clip, or exactly its end (holds the last frame) |
+| `durationUs` | integer | yes | > 0: how long the frame holds |
+| `freezeClipId` | string | no | id for the freeze-frame clip |
+| `rightClipId` | string | no | id for the part after the freeze |
+| `ripple` | boolean | no | push later clips on the track back by `durationUs` (default true) |
 
 ## `keyframe/set`
 
@@ -234,6 +256,7 @@ project.dispatch({ type: "clip/set-property", payload: { clipId: "t1", letterSpa
 | `enabled` | boolean | no | default true |
 | `index` | integer | no | stack insertion index (default: end) |
 | `effectId` | string | no | supply for deterministic replay |
+| `region` | object | no | limit the effect to part of the clip: `{ x, y, width, height }` as fractions of the clip's frame, plus optional `shape` (`"rect"` \| `"ellipse"`), `feather` (0–1) and `invert` |
 
 ## `effect/update`
 
@@ -243,6 +266,25 @@ project.dispatch({ type: "clip/set-property", payload: { clipId: "t1", letterSpa
 | `effectId` | string | yes | non-empty |
 | `params` | object | no | merged onto current params, then re-validated whole |
 | `enabled` | boolean | no |  |
+| `region` | object \| null | no | limit the effect to part of the clip: `{ x, y, width, height }` as fractions of the clip's frame, plus optional `shape` (`"rect"` \| `"ellipse"`), `feather` (0–1) and `invert`; `null` = whole clip again (keyframes are kept on update) |
+
+## `effect/set-region-keyframe`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `clipId` / `effectId` | string | yes | the effect must have a `region` |
+| `property` | `"x"` \| `"y"` \| `"width"` \| `"height"` | yes | fractions of the clip's frame |
+| `timeUs` | integer | yes | clip-relative (see `keyframe/set`) |
+| `anchor` | `"start"` \| `"end"` | no |  |
+| `value` | number | yes | `width`/`height` > 0 |
+| `easing` | preset or bézier | no | default `"linear"` |
+
+## `effect/clear-region-keyframes`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `clipId` / `effectId` | string | yes |  |
+| `property` | `"x"` \| `"y"` \| `"width"` \| `"height"` | no | omit to clear all |
 
 ## `effect/remove`
 
@@ -285,3 +327,45 @@ Rejections: `not-adjacent`, `different-tracks`, `duplicate-boundary` (one transi
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `transitionId` | string | yes | non-empty |
+
+## `marker/add`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `id` | string | no | generated when omitted |
+| `timeUs` | integer | yes | ≥ 0 |
+| `label` | string | yes |  |
+| `durationUs` | integer | no | > 0: the marker spans a range (a chapter or step) |
+| `data` | object | no | free-form JSON |
+
+## `marker/update`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `markerId` | string | yes |  |
+| `timeUs` | integer | no |  |
+| `label` | string | no |  |
+| `durationUs` | integer \| null | no | `null` removes the span |
+| `data` | object \| null | no | replaces the payload; `null` removes it |
+
+## `marker/remove`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `markerId` | string | yes |  |
+
+## `plugin/add`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `name` | string | yes | unique in the document |
+| `version` | string | yes |  |
+| `url` | string | yes | the plugin's standalone ES module |
+| `integrity` | string | no | SRI hash: `sha256-…`, `sha384-…` or `sha512-…` |
+| `replace` | boolean | no | replace an entry with the same name (upgrade) |
+
+## `plugin/remove`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `name` | string | yes |  |

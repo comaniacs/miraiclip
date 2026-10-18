@@ -1,8 +1,9 @@
-import { isVideoClip, type Clip, type EffectInstance, type Project, type ProjectDocument, type VideoClip } from "@miraiclip/core";
+import { isVideoClip, toSourceUs, type Clip, type EffectInstance, type Project, type ProjectDocument, type VideoClip } from "@miraiclip/core";
 import type { MediaManager } from "../media/media-manager.js";
 import type { Us } from "../media/types.js";
 import type { VideoPipeline } from "../media/video-pipeline.js";
 import type {
+  LocalBounds,
   NodeFactory,
   Placement,
   RevealDirection,
@@ -71,7 +72,8 @@ export function assignVideoLanes(
 
 /** Timeline position → position on the clip's source media. */
 export function toMediaUs(clip: VideoClip, timelineUs: Us): Us {
-  return clip.trimStartUs + (timelineUs - clip.startUs);
+  // Speed-aware (a freeze frame always returns its held frame).
+  return toSourceUs(clip, timelineUs);
 }
 
 class VideoClipAdapter implements SceneNode {
@@ -209,6 +211,14 @@ class VideoClipAdapter implements SceneNode {
   }
   setReveal(fraction: number, direction: RevealDirection): void {
     this.inner.setReveal?.(fraction, direction);
+  }
+  // Forwarded so video clips take part in selection and hit testing (getLocalBounds)
+  // and their animated effect regions follow the clock (setEffectTime).
+  setEffectTime(localUs: number, clipDurationUs: number): void {
+    this.inner.setEffectTime?.(localUs, clipDurationUs);
+  }
+  getLocalBounds(): LocalBounds | null {
+    return this.inner.getLocalBounds?.() ?? null;
   }
   setVisible(visible: boolean): void {
     this.inner.setVisible(visible);

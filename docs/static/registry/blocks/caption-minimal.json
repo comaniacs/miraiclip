@@ -1,0 +1,29 @@
+{
+  "name": "caption-minimal",
+  "title": "Captions — minimal",
+  "description": "Plain white sentence-case captions with a light shadow: closest to broadcast subtitles.",
+  "category": "caption-style",
+  "tags": [
+    "captions",
+    "subtitles",
+    "minimal"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "any"
+  ],
+  "fields": [],
+  "content": {
+    "kind": "caption-style",
+    "style": {
+      "preset": "plain",
+      "fontFamily": "Inter, sans-serif",
+      "fontWeight": 600,
+      "fontSizeFrac": 0.048,
+      "color": "#ffffff",
+      "shadowColor": "#000000e6",
+      "shadowBlurFrac": 0.12,
+      "shadowOffsetFrac": 0.04
+    }
+  }
+}

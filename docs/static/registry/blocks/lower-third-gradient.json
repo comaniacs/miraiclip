@@ -1,0 +1,61 @@
+{
+  "name": "lower-third-gradient",
+  "title": "Lower third — gradient",
+  "description": "A gradient card with a name, a role and a handle. Good for creators and launch videos.",
+  "category": "lower-third",
+  "tags": [
+    "name",
+    "creator",
+    "brand"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "fields": [
+    {
+      "key": "name",
+      "label": "Name",
+      "type": "text",
+      "default": "Jordan Lee"
+    },
+    {
+      "key": "role",
+      "label": "Role",
+      "type": "text",
+      "default": "Developer advocate"
+    },
+    {
+      "key": "handle",
+      "label": "Handle",
+      "type": "text",
+      "default": "@jordanbuilds"
+    },
+    {
+      "key": "from",
+      "label": "Gradient start",
+      "type": "color",
+      "default": "#8b7bff"
+    },
+    {
+      "key": "to",
+      "label": "Gradient end",
+      "type": "color",
+      "default": "#22d3ee"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<div style=\"width:940px;height:180px;font-family:Inter,system-ui,'Segoe UI',Roboto,sans-serif\"><style>@keyframes mc-rise{from{transform:translateY(40%);opacity:0}}\n@keyframes mc-fade{from{opacity:0}}\n@keyframes mc-out{to{opacity:0}}\n@keyframes mc-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}\n@keyframes mc-wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}\n@keyframes mc-growx{from{transform:scaleX(0)}}</style>\n<div style=\"animation:mc-out 0.4s ease-in both;--d:calc(var(--T) - 0.4s)\"><div style=\"height:160px;margin-top:10px;padding:26px 40px;border-radius:24px;background:linear-gradient(110deg,{{from}},{{to}});color:#fff;box-shadow:0 24px 60px #0007;--d:0s;animation:mc-rise .6s cubic-bezier(.2,.8,.2,1) both\">\n<div style=\"font-weight:800;font-size:46px;line-height:1.1\">{{name}}</div>\n<div style=\"display:flex;gap:18px;margin-top:8px;font-size:28px;font-weight:500\"><span>{{role}}</span><span style=\"opacity:.75\">{{handle}}</span></div></div></div></div>",
+    "widthPx": 940,
+    "heightPx": 180,
+    "animated": true,
+    "durationUs": 5000000,
+    "transform": {
+      "x": 0.3,
+      "y": 0.83
+    }
+  }
+}

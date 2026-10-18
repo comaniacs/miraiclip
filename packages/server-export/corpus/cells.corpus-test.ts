@@ -72,7 +72,7 @@ function videoTrack(project: ReturnType<typeof createProject>, id = "v1"): void 
 
 function videoClip(
   project: ReturnType<typeof createProject>,
-  payload: { id: string; assetId?: string; startUs: number; durationUs: number; trimStartUs?: number; trackId?: string },
+  payload: { id: string; assetId?: string; startUs: number; durationUs: number; trimStartUs?: number; trackId?: string; speed?: number },
 ): void {
   project.dispatch({
     type: "clip/add",
@@ -215,6 +215,29 @@ describe.skipIf(browserPath === undefined)("export validation corpus", () => {
     record("dissolve", { pass: true });
   });
 
+  it("speed: 2× and 0.5× clips and a freeze frame select the speed-mapped source frame", async () => {
+    const doc = buildDoc((p) => {
+      videoAsset(p, "media", "e2e-frames.webm", 4_000_000);
+      videoTrack(p);
+      videoClip(p, { id: "fast", startUs: 0, durationUs: 1_000_000, speed: 2 }); // source 0..2 s
+      videoClip(p, { id: "slow", startUs: 1_000_000, durationUs: 2_000_000, trimStartUs: 2_000_000, speed: 0.5 }); // source 2..3 s
+      p.dispatch({
+        type: "clip/freeze",
+        payload: { clipId: "slow", atUs: 2_000_000, durationUs: 500_000, freezeClipId: "hold", rightClipId: "rest" },
+      });
+    });
+    const file = await exportCell("speed", doc);
+    await assertPtsIntegrity(file, 30, 3_500_000);
+    const segments: Segment[] = [
+      { timelineStartUs: 0, timelineEndUs: 1_000_000, mediaStartUs: 0, speed: 2 },
+      { timelineStartUs: 1_000_000, timelineEndUs: 2_000_000, mediaStartUs: 2_000_000, speed: 0.5 },
+      { timelineStartUs: 2_000_000, timelineEndUs: 2_500_000, mediaStartUs: 2_500_000, speed: 0 },
+      { timelineStartUs: 2_500_000, timelineEndUs: 3_500_000, mediaStartUs: 2_500_000, speed: 0.5 },
+    ];
+    await assertFrameSelection(file, expectedFrames({ segments, rangeStartUs: 0, rangeEndUs: 3_500_000, fps: 30 }));
+    record("speed", { pass: true });
+  });
+
   it("range: output rebases to the range start with exact selection", async () => {
     const doc = buildDoc((p) => {
       videoAsset(p, "media", "e2e-frames.webm", 4_000_000);
@@ -280,6 +303,31 @@ describe.skipIf(browserPath === undefined)("export validation corpus", () => {
     const samples = await audioMono(file);
     expect(Math.abs(rms(samples, 48_000, 1, 3) - TONE_RMS)).toBeLessThan(0.02);
     record("audio-unity", { pass: true });
+  });
+
+  it("audio-speed: 2× raises the tone an octave, 0.5× lowers it, a freeze is silent", async () => {
+    const doc = buildDoc((p) => {
+      videoAsset(p, "media", "e2e-tone.webm", 4_000_000);
+      videoTrack(p);
+      videoClip(p, { id: "fast", startUs: 0, durationUs: 1_000_000, speed: 2 });
+      p.dispatch({ type: "clip/freeze", payload: { clipId: "fast", atUs: 1_000_000, durationUs: 1_000_000, freezeClipId: "hold" } });
+      videoClip(p, { id: "slow", startUs: 2_000_000, durationUs: 2_000_000, trimStartUs: 2_000_000, speed: 0.5 });
+    });
+    const file = await exportCell("audio-speed", doc);
+    const samples = await audioMono(file);
+    const zeroCrossHz = (fromS: number, toS: number): number => {
+      const from = Math.floor(fromS * 48_000);
+      const to = Math.floor(toS * 48_000);
+      let crossings = 0;
+      for (let i = from + 1; i < to; i++) if ((samples[i - 1]! < 0) !== (samples[i]! < 0)) crossings++;
+      return crossings / 2 / (toS - fromS);
+    };
+    expect(Math.abs(rms(samples, 48_000, 0.1, 0.9) - TONE_RMS), "2× tone level").toBeLessThan(0.02);
+    expect(rms(samples, 48_000, 1.1, 1.9), "freeze is silent").toBeLessThan(0.005);
+    expect(Math.abs(rms(samples, 48_000, 2.1, 3.9) - TONE_RMS), "0.5× tone level").toBeLessThan(0.02);
+    expect(Math.abs(zeroCrossHz(0.1, 0.9) - 880), "2× pitch").toBeLessThan(20);
+    expect(Math.abs(zeroCrossHz(2.1, 3.9) - 220), "0.5× pitch").toBeLessThan(10);
+    record("audio-speed", { pass: true });
   });
 
   it("audio-mid-start: leading silence is real samples, then unity tone", async () => {

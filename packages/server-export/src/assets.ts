@@ -2,9 +2,9 @@ import path from "node:path";
 import type { ProjectDocument } from "@miraiclip/core";
 
 export interface ResolvedAssets {
-  /** The document with every local asset's `src` rewritten to `/assets/<id>`. */
+  /** The document with every local asset's `src` rewritten to `/assets/<id><ext>`. */
   doc: ProjectDocument;
-  /** URL path (`/assets/<id>`) → absolute local file path, for the static server. */
+  /** URL path (`/assets/<id><ext>`) → absolute local file path, for the static server. */
   files: Map<string, string>;
 }
 
@@ -15,7 +15,7 @@ const isRemote = (src: string): boolean =>
  * Decide where each asset's bytes come from. Pure given `exists`, so the
  * mapping rules are unit-testable: an explicit `assets` entry wins, remote
  * URLs pass through untouched, and anything else is treated as a local path
- * resolved against `assetsDir`. Local assets are rewritten to `/assets/<id>`
+ * resolved against `assetsDir`. Local assets are rewritten to `/assets/<id><ext>`
  * so the in-page pipeline fetches them from the harness's own origin (media
  * fetches are range requests — the static server must answer them).
  */
@@ -44,7 +44,9 @@ export function resolveAssetSources(
             : ""),
       );
     }
-    const urlPath = `/assets/${encodeURIComponent(asset.id)}`;
+    // Keep the file extension: the renderer loads images through PixiJS Assets,
+    // which picks a parser by extension and silently skips `/assets/<id>`.
+    const urlPath = `/assets/${encodeURIComponent(asset.id)}${path.extname(localPath).toLowerCase()}`;
     files.set(urlPath, localPath);
     asset.src = urlPath;
   }

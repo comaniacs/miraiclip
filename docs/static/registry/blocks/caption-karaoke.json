@@ -1,0 +1,31 @@
+{
+  "name": "caption-karaoke",
+  "title": "Captions — karaoke",
+  "description": "Every spoken word lights up and stays lit, on a soft shadow. Clear for music and podcasts.",
+  "category": "caption-style",
+  "tags": [
+    "captions",
+    "karaoke",
+    "podcast",
+    "music"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "any"
+  ],
+  "fields": [],
+  "content": {
+    "kind": "caption-style",
+    "style": {
+      "preset": "karaoke",
+      "fontFamily": "Inter, sans-serif",
+      "fontWeight": 800,
+      "fontSizeFrac": 0.06,
+      "color": "#ffffff99",
+      "highlightColor": "#ffffff",
+      "shadowColor": "#000000cc",
+      "shadowBlurFrac": 0.2,
+      "shadowOffsetFrac": 0.05
+    }
+  }
+}

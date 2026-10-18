@@ -1,0 +1,41 @@
+{
+  "name": "cursor-arrow",
+  "title": "Cursor — arrow",
+  "description": "A crisp pointer cursor. Keyframe its x/y (or let a cursor planner do it) to show where to click.",
+  "category": "cursor",
+  "tags": [
+    "cursor",
+    "pointer",
+    "screen",
+    "tutorial"
+  ],
+  "version": "1.0.0",
+  "aspects": [
+    "any"
+  ],
+  "fields": [
+    {
+      "key": "fill",
+      "label": "Fill",
+      "type": "color",
+      "default": "#ffffff"
+    },
+    {
+      "key": "stroke",
+      "label": "Outline",
+      "type": "color",
+      "default": "#111111"
+    }
+  ],
+  "content": {
+    "kind": "html",
+    "template": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"64\" height=\"64\" viewBox=\"0 0 64 64\"><g transform=\"translate(32 32)\"><path d=\"M0 0 L0 26 L7 19 L12 30 L17 28 L12 17 L22 17 Z\" fill=\"{{fill}}\" stroke=\"{{stroke}}\" stroke-width=\"2.5\" stroke-linejoin=\"round\"/></g></svg>",
+    "widthPx": 64,
+    "heightPx": 64,
+    "durationUs": 5000000,
+    "transform": {
+      "x": 0.5,
+      "y": 0.5
+    }
+  }
+}
