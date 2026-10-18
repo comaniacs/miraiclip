@@ -39,7 +39,7 @@ export async function packRecording({ screen, camera, session }: RecordingFiles)
   const { time, date } = dosDateTime(new Date(Date.parse(session.startedAt) || Date.now()));
   const utf8 = new TextEncoder();
   const parts: BlobPart[] = [];
-  const central: Uint8Array[] = [];
+  const central: Uint8Array<ArrayBuffer>[] = [];
   let offset = 0;
 
   for (const entry of entries) {
