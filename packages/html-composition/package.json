@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/html-composition",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Import and export data-attribute HTML compositions (data-start / data-duration / data-track-index timing on plain HTML elements) to and from Miraiclip documents.",
   "license": "MIT",
   "repository": {

@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/screencast",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Turn a screen recording's interaction log into edits: zooms on clicks, a smooth cursor, click ripples, blurred secrets and step callouts. Pure planners that return Miraiclip commands.",
   "license": "MIT",
   "repository": {

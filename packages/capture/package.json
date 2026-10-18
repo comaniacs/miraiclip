@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/capture",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Record screen, microphone and camera in the browser with an interaction log (clicks, keys, scrolls, cursor path, sensitive fields) on the same clock — the input for Miraiclip's screencast planners.",
   "license": "MIT",
   "repository": {

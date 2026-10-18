@@ -1,5 +1,18 @@
 # @miraiclip/editor
 
+## 0.3.0
+
+### Minor Changes
+
+- fd07ee1: Clip speed and freeze frames, timeline markers, effect regions, gestures, custom-kind props editing and idempotent kind registration.
+
+### Patch Changes
+
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+  - @miraiclip/core@0.6.0
+
 ## 0.2.0
 
 ### Minor Changes

@@ -1,5 +1,18 @@
 # @miraiclip/audio-sources
 
+## 0.3.0
+
+### Minor Changes
+
+- fd07ee1: OpenAI speech generator and audio length from WAV/MP3 bytes; ElevenLabs voice clips report their duration.
+
+### Patch Changes
+
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+  - @miraiclip/core@0.6.0
+
 ## 0.2.1
 
 ### Patch Changes
