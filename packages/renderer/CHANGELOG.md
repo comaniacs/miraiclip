@@ -1,5 +1,20 @@
 # @miraiclip/renderer
 
+## 0.9.0
+
+### Minor Changes
+
+- fd07ee1: Clip speed and freeze frames, timeline markers, effect regions, gestures, custom-kind props editing and idempotent kind registration.
+- fd07ee1: Self-describing plugins (`doc.plugins`): custom kinds load and render in the browser, worker export, server export and MCP.
+- fd07ee1: Scripted html clips (`scripted: true`): GSAP, Lottie, anime.js and Web Animations templates seeked frame-exactly in every renderer.
+
+### Patch Changes
+
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+  - @miraiclip/core@0.6.0
+
 ## 0.8.1
 
 ### Patch Changes

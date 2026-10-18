@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/editor",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Headless editor logic for Miraiclip: timeline scale, clip drag and trim with snapping, selectors, typed commands, gestures, shortcuts, media import. No UI framework.",
   "license": "MIT",
   "repository": {
@@ -32,7 +32,7 @@
     "nanoid": "^5.1.6"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.5.8"
+    "@miraiclip/core": "^0.6.0"
   },
   "devDependencies": {
     "@miraiclip/core": "workspace:*",

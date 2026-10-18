@@ -1,5 +1,19 @@
 # @miraiclip/server-export
 
+## 0.5.0
+
+### Minor Changes
+
+- fd07ee1: Distributed rendering (`renderDistributed`, `localRunner`, `httpRunner`, `createRenderJobHandler`) and the `bench:cost` render-cost benchmark.
+- fd07ee1: Self-describing plugins (`doc.plugins`): custom kinds load and render in the browser, worker export, server export and MCP.
+
+### Patch Changes
+
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+  - @miraiclip/core@0.6.0
+
 ## 0.4.3
 
 ### Patch Changes

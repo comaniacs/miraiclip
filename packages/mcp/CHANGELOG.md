@@ -1,5 +1,20 @@
 # @miraiclip/mcp
 
+## 0.2.0
+
+### Minor Changes
+
+- fd07ee1: Self-describing plugins (`doc.plugins`): custom kinds load and render in the browser, worker export, server export and MCP.
+
+### Patch Changes
+
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+- Updated dependencies [fd07ee1]
+  - @miraiclip/core@0.6.0
+  - @miraiclip/server-export@0.5.0
+
 ## 0.1.3
 
 ### Patch Changes

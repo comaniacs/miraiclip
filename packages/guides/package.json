@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/guides",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Step-by-step written guides from a Miraiclip screencast: steps from markers or clicks, text from the narration or transcript, annotated screenshots from any still renderer, out as Markdown, HTML or JSON.",
   "license": "MIT",
   "repository": {

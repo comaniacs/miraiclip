@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/brand",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Brand kits for Miraiclip: colours, fonts, logo, caption style, intro and outro in one JSON object, applied to any project as ordinary commands.",
   "license": "MIT",
   "repository": {
