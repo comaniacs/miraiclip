@@ -1,5 +1,13 @@
 # @miraiclip/brand
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [7477fe6]
+  - @miraiclip/core@0.7.0
+  - @miraiclip/registry@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes

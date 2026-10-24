@@ -1,5 +1,12 @@
 # @miraiclip/server-export
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [7477fe6]
+  - @miraiclip/core@0.7.0
+
 ## 0.5.0
 
 ### Minor Changes
