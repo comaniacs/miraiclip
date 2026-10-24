@@ -10,9 +10,10 @@ import type { Template, TemplateField } from "./types.js";
 export interface ToFieldToolDefinitionOptions {
   /**
    * Wire shape: "anthropic" (default) → `{ name, description, input_schema }`;
-   * "openai" → `{ type: "function", function: { name, description, parameters } }`.
+   * "openai" → `{ type: "function", function: { name, description, parameters } }`;
+   * "gemini" → `{ name, description, parametersJsonSchema }` (a function declaration).
    */
-  style?: "anthropic" | "openai";
+  style?: "anthropic" | "openai" | "gemini";
   /** Tool name (default: "render_" + the template name, sanitized). */
   name?: string;
 }
@@ -103,9 +104,9 @@ export function toFieldToolDefinition(
     additionalProperties: false,
   };
 
-  return style === "openai"
-    ? { type: "function", function: { name, description, parameters: schema } }
-    : { name, description, input_schema: schema };
+  if (style === "openai") return { type: "function", function: { name, description, parameters: schema } };
+  if (style === "gemini") return { name, description, parametersJsonSchema: schema };
+  return { name, description, input_schema: schema };
 }
 
 /** A compact, deterministic template summary for prompts. */

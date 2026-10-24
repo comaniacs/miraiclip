@@ -3,6 +3,7 @@ export {
   applyCommands,
   commandTypeForTool,
   describeProject,
+  toolDefinition,
   toolNameForCommand,
   toToolDefinitions,
   tryDispatch,
@@ -13,6 +14,7 @@ export type {
   CommandFailure,
   CommandResult,
   DescribeProjectOptions,
+  ToolStyle,
   ToToolDefinitionsOptions,
 } from "./ai.js";
 export type {

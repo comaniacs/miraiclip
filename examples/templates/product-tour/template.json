@@ -1,0 +1,41 @@
+{
+  "id": "product-tour",
+  "title": "Product tour",
+  "goal": "show-how-it-works",
+  "type": "walkthrough",
+  "formats": [
+    "16:9",
+    "9:16"
+  ],
+  "themes": [
+    "pop",
+    "midnight",
+    "paper",
+    "terminal"
+  ],
+  "defaultTheme": "pop",
+  "durationSec": 21.6,
+  "style": [
+    "ui-mockup",
+    "screen-recording"
+  ],
+  "pace": "steady",
+  "industry": [
+    "saas"
+  ],
+  "startFrom": [
+    "screenshots"
+  ],
+  "fields": 36,
+  "assets": [
+    {
+      "url": "https://assets.miraiclip.com/templates/miraiclip-launch/product.jpg",
+      "license": "CC BY 3.0 (frame of Big Buck Bunny)"
+    },
+    {
+      "url": "https://assets.miraiclip.com/templates/_shared/",
+      "license": "SIL OFL 1.1"
+    }
+  ],
+  "source": "studio built-ins demo-spotlight-tour, demo-hotspots, demo-workflow, demo-phone-taps"
+}

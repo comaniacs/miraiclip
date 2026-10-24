@@ -208,6 +208,10 @@ describe("parseTemplate / extractFields / AI surface", () => {
     };
     expect(openai.type).toBe("function");
     expect(openai.function.name).toBe("render_outreach");
+
+    const gemini = toFieldToolDefinition(template, { style: "gemini" }) as { name: string; parametersJsonSchema: { required: string[] } };
+    expect(gemini.name).toBe("render_outreach");
+    expect(gemini.parametersJsonSchema.required).toEqual(["name", "fontSize"]);
   });
 
   it("describeTemplate is compact and deterministic", () => {

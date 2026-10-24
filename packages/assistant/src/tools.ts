@@ -45,7 +45,8 @@ export function defineTool(tool: AssistantTool): AssistantTool {
 /**
  * Adopt tools that come as definitions plus one runner — e.g.
  * `@miraiclip/audio-sources`' `audioToolDefinitions` + `runAudioTool`.
- * Accepts `{ name, description, input_schema }` or OpenAI function tools.
+ * Accepts `{ name, description, input_schema }`, OpenAI function tools or
+ * Gemini function declarations.
  */
 export function toolsFromDefinitions(
   definitions: readonly unknown[],
@@ -53,12 +54,12 @@ export function toolsFromDefinitions(
   options: { changes?: (name: string, input: Record<string, unknown>, result: unknown) => string[] | undefined } = {},
 ): AssistantTool[] {
   return definitions.map((d) => {
-    const def = d as { name?: string; description?: string; input_schema?: Record<string, unknown>; function?: { name: string; description?: string; parameters?: Record<string, unknown> } };
+    const def = d as { name?: string; description?: string; input_schema?: Record<string, unknown>; parametersJsonSchema?: Record<string, unknown>; function?: { name: string; description?: string; parameters?: Record<string, unknown> } };
     const name = def.function?.name ?? def.name!;
     return defineTool({
       name,
       description: def.function?.description ?? def.description ?? "",
-      inputSchema: def.function?.parameters ?? def.input_schema ?? { type: "object", properties: {} },
+      inputSchema: def.function?.parameters ?? def.input_schema ?? def.parametersJsonSchema ?? { type: "object", properties: {} },
       async run(input, ctx) {
         const out = await run(name, input, ctx);
         if (!out.ok) return { ok: false, error: out.error ?? "failed" };

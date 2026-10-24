@@ -9,6 +9,12 @@ export interface ToolCall {
   id: string;
   name: string;
   arguments: Record<string, unknown>;
+  /**
+   * Opaque data the adapter that produced the call needs back when the
+   * conversation is replayed (Gemini thought signatures, Anthropic thinking
+   * blocks). Keep it with the call; other adapters ignore it.
+   */
+  meta?: Record<string, unknown>;
 }
 
 export type ChatMessage =
@@ -54,16 +60,25 @@ export interface ChatOptions {
   onText?: (delta: string) => void;
 }
 
+export interface ModelEntry {
+  id: string;
+  label?: string;
+}
+
 export interface ChatModelInfo {
   /** Adapter id, e.g. "openai". Alphanumeric with - or _. */
   id: string;
   label: string;
   /** Models this adapter serves; the first is the default. */
-  models?: { id: string; label?: string }[];
+  models?: ModelEntry[];
+  /** For a model that routes to several providers (`routedChatModel`): which ones. */
+  providers?: { id: string; label: string }[];
 }
 
 export interface ChatModel extends ChatModelInfo {
   complete(request: ChatRequest, options?: ChatOptions): Promise<ChatResponse>;
+  /** Every model the account behind this adapter can use, live from the vendor (for model pickers). */
+  listModels?(options?: { signal?: AbortSignal }): Promise<ModelEntry[]>;
 }
 
 /** An error from a model vendor, carrying its HTTP status when there was one. */

@@ -6,7 +6,6 @@
  * this one adapter at any of them.
  */
 import {
-  ChatModelError,
   defaultFetch,
   defineChatModel,
   type ChatMessage,
@@ -16,6 +15,9 @@ import {
   type FetchLike,
   type ToolCall,
 } from "./types.js";
+import { getJson, isEventStream, modelList, parseToolArguments, readSse, sendWithRetry, trimSlash } from "./wire.js";
+
+export { parseToolArguments, retryDelayMs } from "./wire.js";
 
 export interface OpenAIChatModelOptions {
   /** Model id, e.g. "gpt-5.4-mini". Required: model names change faster than this package. */
@@ -23,7 +25,7 @@ export interface OpenAIChatModelOptions {
   /** Other models the app may pick per request (`ChatRequest.model`). */
   models?: { id: string; label?: string }[];
   /** API key. Omit for local servers that don't need one. Keep it server-side (see `createChatHandler`). */
-  apiKey?: string;
+  apiKey?: string | undefined;
   /** Default https://api.openai.com/v1. Any OpenAI-compatible base URL works. */
   baseUrl?: string;
   organization?: string;
@@ -39,6 +41,13 @@ export interface OpenAIChatModelOptions {
    * backing off 1 s, 2 s, 4 s… (capped at 30 s). Default 4; 0 disables.
    */
   maxRetries?: number;
+  /**
+   * The request field for the output cap: "max_completion_tokens" (default;
+   * OpenAI) or "max_tokens" (what most other compatible servers read).
+   */
+  maxTokensField?: "max_completion_tokens" | "max_tokens";
+  /** Ask for token usage at the end of a stream (default true; turn off for servers that reject `stream_options`). */
+  streamUsage?: boolean;
   /** Adapter id / label (default "openai" / "OpenAI"), e.g. "ollama" when pointing elsewhere. */
   id?: string;
   label?: string;
@@ -65,37 +74,6 @@ export function toOpenAIMessages(messages: readonly ChatMessage[]): OpenAIMessag
   });
 }
 
-/** Parse a tool call's JSON arguments; unparseable JSON is reported to the model as a tool error. */
-export function parseToolArguments(raw: string): Record<string, unknown> {
-  if (!raw.trim()) return {};
-  try {
-    const value = JSON.parse(raw) as unknown;
-    return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : { __invalidArguments: raw };
-  } catch {
-    return { __invalidArguments: raw };
-  }
-}
-
-const RETRYABLE = new Set([429, 500, 502, 503, 504]);
-
-/** How long the server asked us to wait (Retry-After header, or "try again in 1.2s / 350ms"), else exponential backoff. */
-export function retryDelayMs(res: Pick<Response, "headers">, message: string, attempt: number): number {
-  const header = Number(res.headers.get("retry-after-ms") ?? NaN) || Number(res.headers.get("retry-after") ?? NaN) * 1000;
-  const m = /try again in ([\d.]+)\s*(ms|s)/i.exec(message);
-  const asked = header || (m ? Number(m[1]) * (m[2]!.toLowerCase() === "ms" ? 1 : 1000) : 0);
-  const backoff = Math.min(30_000, 1000 * 2 ** attempt);
-  // A little extra and some jitter, so parallel callers don't all retry at the same instant.
-  return Math.round(Math.min(60_000, Math.max(asked + 250, asked ? 0 : backoff)) * (1 + Math.random() * 0.25));
-}
-
-function sleep(ms: number, signal?: AbortSignal): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (signal?.aborted) return reject(signal.reason ?? new Error("aborted"));
-    const t = setTimeout(resolve, ms);
-    signal?.addEventListener("abort", () => (clearTimeout(t), reject(signal.reason ?? new Error("aborted"))), { once: true });
-  });
-}
-
 const FINISH: Record<string, ChatResponse["finish"]> = {
   stop: "stop",
   tool_calls: "tool_calls",
@@ -105,16 +83,29 @@ const FINISH: Record<string, ChatResponse["finish"]> = {
 };
 
 export function openAIChatModel(options: OpenAIChatModelOptions): ChatModel {
-  const base = (options.baseUrl ?? "https://api.openai.com/v1").replace(/\/+$/, "");
+  const base = trimSlash(options.baseUrl ?? "https://api.openai.com/v1");
   const id = options.id ?? "openai";
   const doFetch = options.fetch ?? defaultFetch();
   const stream = options.stream ?? true;
-  const models = [{ id: options.model }, ...(options.models ?? []).filter((m) => m.id !== options.model)];
+  const models = modelList(options.model, options.models);
+  const maxTokensField = options.maxTokensField ?? "max_completion_tokens";
+
+  const headers = (): Record<string, string> => {
+    const h: Record<string, string> = { "Content-Type": "application/json", ...options.headers };
+    if (options.apiKey) h["Authorization"] = `Bearer ${options.apiKey}`;
+    if (options.organization) h["OpenAI-Organization"] = options.organization;
+    if (options.project) h["OpenAI-Project"] = options.project;
+    return h;
+  };
 
   return defineChatModel({
     id,
     label: options.label ?? "OpenAI",
     models,
+    async listModels(opts = {}) {
+      const json = (await getJson(id, doFetch, `${base}/models`, headers(), opts.signal)) as { data?: { id: string }[] };
+      return (json.data ?? []).map((m) => ({ id: m.id })).sort((a, b) => a.id.localeCompare(b.id));
+    },
     async complete(request: ChatRequest, opts = {}): Promise<ChatResponse> {
       const body: Record<string, unknown> = {
         model: request.model ?? options.model,
@@ -122,37 +113,20 @@ export function openAIChatModel(options: OpenAIChatModelOptions): ChatModel {
         ...(request.tools?.length
           ? { tools: request.tools.map((t) => ({ type: "function", function: { name: t.name, description: t.description, parameters: t.inputSchema } })) }
           : {}),
-        ...(request.maxOutputTokens ? { max_completion_tokens: request.maxOutputTokens } : {}),
-        ...(stream ? { stream: true, stream_options: { include_usage: true } } : {}),
+        ...(request.maxOutputTokens ? { [maxTokensField]: request.maxOutputTokens } : {}),
+        ...(stream ? { stream: true, ...(options.streamUsage === false ? {} : { stream_options: { include_usage: true } }) } : {}),
         ...options.params,
         ...request.params,
       };
-      const headers: Record<string, string> = { "Content-Type": "application/json", ...options.headers };
-      if (options.apiKey) headers["Authorization"] = `Bearer ${options.apiKey}`;
-      if (options.organization) headers["OpenAI-Organization"] = options.organization;
-      if (options.project) headers["OpenAI-Project"] = options.project;
-
-      const maxRetries = options.maxRetries ?? 4;
-      let res: Response;
-      for (let attempt = 0; ; attempt++) {
-        res = await doFetch(`${base}/chat/completions`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(body),
-          ...(opts.signal ? { signal: opts.signal } : {}),
-        });
-        if (res.ok) break;
-        const err = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
-        const message = err?.error?.message ?? `HTTP ${res.status}`;
-        // A 429 for an exhausted quota or no credits won't clear by waiting.
-        const permanent = /quota|credits|billing/i.test(message);
-        if (attempt >= maxRetries || !RETRYABLE.has(res.status) || permanent) throw new ChatModelError(id, message, res.status);
-        await sleep(retryDelayMs(res, message, attempt), opts.signal);
-      }
-      if (!stream || !res.body || !(res.headers.get("content-type") ?? "").includes("event-stream")) {
-        return fromCompletion(await res!.json(), opts.onText);
-      }
-      return readStream(res!.body!, opts.onText);
+      const res = await sendWithRetry(
+        id,
+        doFetch,
+        `${base}/chat/completions`,
+        { method: "POST", headers: headers(), body: JSON.stringify(body) },
+        { ...(options.maxRetries !== undefined ? { maxRetries: options.maxRetries } : {}), ...(opts.signal ? { signal: opts.signal } : {}) },
+      );
+      if (!stream || !isEventStream(res)) return fromCompletion(await res.json(), opts.onText);
+      return readStream(res.body!, opts.onText);
     },
   });
 }
@@ -193,9 +167,6 @@ interface ChunkJson {
 
 /** Server-sent events → one response; text deltas stream to `onText`, tool-call fragments are joined by index. */
 async function readStream(body: ReadableStream<Uint8Array>, onText?: (delta: string) => void): Promise<ChatResponse> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
   let content = "";
   let finish: ChatResponse["finish"] = "other";
   let model: string | undefined;
@@ -229,18 +200,7 @@ async function readStream(body: ReadableStream<Uint8Array>, onText?: (delta: str
     }
   };
 
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (value) buffer += decoder.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buffer.indexOf("\n")) >= 0) {
-      const line = buffer.slice(0, nl).replace(/\r$/, "");
-      buffer = buffer.slice(nl + 1);
-      if (line.startsWith("data:")) handle(line.slice(5).trim());
-    }
-    if (done) break;
-  }
-  if (buffer.startsWith("data:")) handle(buffer.slice(5).trim());
+  await readSse(body, handle);
 
   const toolCalls: ToolCall[] = [...calls.entries()]
     .sort(([a], [b]) => a - b)

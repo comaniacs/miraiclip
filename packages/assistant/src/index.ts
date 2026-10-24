@@ -7,6 +7,7 @@ export type {
   ChatResponse,
   ChatUsage,
   FetchLike,
+  ModelEntry,
   ToolCall,
   ToolSpec,
 } from "./types.js";
@@ -14,11 +15,18 @@ export { ChatModelError, defineChatModel } from "./types.js";
 
 export { openAIChatModel, toOpenAIMessages, parseToolArguments, retryDelayMs } from "./openai.js";
 export type { OpenAIChatModelOptions } from "./openai.js";
+export { anthropicChatModel, toAnthropicMessages } from "./anthropic.js";
+export type { AnthropicChatModelOptions } from "./anthropic.js";
+export { geminiChatModel, toGeminiContents } from "./gemini.js";
+export type { GeminiChatModelOptions } from "./gemini.js";
 
-export { createChatHandler, remoteChatModel } from "./http.js";
+export { AI_PROVIDERS, aiProvider, chatModelsFromEnv, createChatModel, routedChatModel, splitModelRef } from "./providers.js";
+export type { AiProviderInfo, ChatModelsFromEnvOptions, CreateChatModelOptions, ProviderApi, RoutedChatModelOptions } from "./providers.js";
+
+export { createChatHandler, remoteChatModel, USER_KEY_HEADERS, userKeyHeaders } from "./http.js";
 export { rateLimitedChatModel } from "./limits.js";
 export type { RateLimitOptions } from "./limits.js";
-export type { ChatHandlerOptions, RemoteChatModelOptions } from "./http.js";
+export type { ChatHandlerOptions, RemoteChatModelOptions, RemoteModelInfo, UserCredentials, UserKeyInfo, UserKeyOptions } from "./http.js";
 
 export { describeForAssistant } from "./state.js";
 export { unknownFields } from "./strict.js";

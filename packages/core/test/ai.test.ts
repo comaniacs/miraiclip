@@ -78,6 +78,13 @@ describe("toToolDefinitions", () => {
     expect(clipAdd!.function.parameters).toEqual(catalog["clip/add"]);
   });
 
+  it("emits Gemini function declarations on request", () => {
+    const tools = toToolDefinitions(catalog, { style: "gemini" }) as { name: string; parametersJsonSchema: unknown }[];
+    const clipAdd = tools.find((tool) => tool.name === "clip_add");
+    expect(clipAdd!.parametersJsonSchema).toEqual(catalog["clip/add"]);
+    expect(clipAdd).not.toHaveProperty("input_schema");
+  });
+
   it("dispatch mode collapses the catalog into a single tool with a type enum", () => {
     const tools = toToolDefinitions(catalog, { mode: "dispatch" }) as {
       name: string;

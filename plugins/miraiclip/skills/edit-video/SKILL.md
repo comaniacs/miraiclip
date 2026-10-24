@@ -16,6 +16,7 @@ You edit a video by sending **commands** to the `miraiclip` MCP server. The serv
 | A product launch, feature promo, explainer or announcement made from a brief, screenshots or a URL | `launch-video` skill |
 | The same video in another shape (9:16 Reels/TikTok/Shorts, 1:1, 16:9) | `reformat` skill |
 | A screen recording turned into a tutorial or product walkthrough (zoom in on the action, hold frames, blur private data, chapters) | `screen-tutorial` skill |
+| A reusable template (a form of fields that makes many videos), a theme or format variant of one, or a new example for the template library | `make-template` skill |
 | Anything else (a single change, a title, music, a transition, an export) | This skill: follow the loop below |
 
 Read the matching skill's SKILL.md before starting. Every workflow uses the loop and rules in this file.

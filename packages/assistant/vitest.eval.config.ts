@@ -5,14 +5,14 @@ import { defineConfig } from "vitest/config";
 /**
  * Live evals: real model calls (pnpm eval). Not part of `pnpm test`.
  *
- * Reads OPENAI_* / EVAL_* from the shell, or from .env / .env.local in this
+ * Reads provider settings (OPENAI_*, ANTHROPIC_*, GEMINI_*, …) and EVAL_* from the shell, or from .env / .env.local in this
  * package or the repo root (shell wins). Keep keys in .env.local: it's
  * gitignored.
  */
 const here = fileURLToPath(new URL(".", import.meta.url));
-const WANTED = /^(OPENAI_|EVAL_)/;
+const WANTED = /^(OPENAI_|OPENAI_COMPATIBLE_|ANTHROPIC_|GEMINI_|GOOGLE_API_KEY|OPENROUTER_|GROQ_|MISTRAL_|DEEPSEEK_|XAI_|TOGETHER_|OLLAMA_|LMSTUDIO_|EVAL_)/;
 
-/** KEY=value lines of a dotenv file (quotes stripped, # comments skipped), OPENAI_* / EVAL_* only. */
+/** KEY=value lines of a dotenv file (quotes stripped, # comments skipped), provider and EVAL_* settings only. */
 function readEnvFile(path: string): Record<string, string> {
   if (!existsSync(path)) return {};
   const out: Record<string, string> = {};

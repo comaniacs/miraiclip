@@ -3,11 +3,15 @@
  * the scripted suite judge the resulting project.
  *
  *   OPENAI_API_KEY=sk-… pnpm --filter @miraiclip/assistant eval
- *   (or put OPENAI_API_KEY in .env.local at the repo root or in this package)
+ *   ANTHROPIC_API_KEY=… / GEMINI_API_KEY=… / OPENROUTER_API_KEY=… work the same
+ *   (or put the key in .env.local at the repo root or in this package)
  *
  * Env:
- *   OPENAI_MODEL       model id (default gpt-5.4-mini)
- *   OPENAI_BASE_URL    any OpenAI-compatible server (no key needed for local ones)
+ *   {PROVIDER}_API_KEY / _MODEL / _BASE_URL   any provider `chatModelsFromEnv` knows
+ *                      (OPENAI, ANTHROPIC, GEMINI, OPENROUTER, GROQ, MISTRAL,
+ *                      DEEPSEEK, XAI, TOGETHER, OLLAMA, LMSTUDIO); OPENAI_BASE_URL
+ *                      alone = an OpenAI-compatible server
+ *   EVAL_PROVIDER      which configured provider to evaluate (default: the first)
  *   EVAL_FILTER        only cases whose id or category contains this (comma-separated)
  *   EVAL_CONCURRENCY   cases in flight (default 2)
  *   EVAL_TPM           stay under this many tokens per minute (default 150000;
@@ -19,7 +23,7 @@
  *   EVAL_MIN_PASS      fail the run below this pass rate (default 0.85)
  *
  * Rate limits: model calls wait for room under EVAL_TPM / EVAL_RPM, and the
- * OpenAI adapter retries 429s as the server asks. A case that still can't
+ * adapters retry 429s as the server asks. A case that still can't
  * reach the model counts as ERRORED, not failed, and is left out of the pass
  * rate — rerun them with EVAL_RERUN=errored.
  *
@@ -30,13 +34,13 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
-import { ChatModelError, openAIChatModel, rateLimitedChatModel } from "../src/index.js";
+import { ChatModelError, chatModelsFromEnv, rateLimitedChatModel } from "../src/index.js";
 import { LIVE_CASES, type EvalCase } from "./cases.js";
 import { runCase } from "./harness.js";
 
-const key = process.env.OPENAI_API_KEY;
-const baseUrl = process.env.OPENAI_BASE_URL;
-const modelId = process.env.OPENAI_MODEL || "gpt-5.4-mini";
+const configured = chatModelsFromEnv(process.env);
+const base = configured.find((m) => m.id === process.env.EVAL_PROVIDER) ?? configured[0] ?? null;
+const modelId = base ? `${base.id}/${base.models?.[0]?.id ?? "default"}` : "none";
 const minPass = Number(process.env.EVAL_MIN_PASS ?? 0.85);
 const filters = (process.env.EVAL_FILTER ?? "").split(",").map((f) => f.trim()).filter(Boolean);
 const resultsDir = join(dirname(fileURLToPath(import.meta.url)), "results");
@@ -46,7 +50,7 @@ const previous: Result[] = rerun && existsSync(lastPath) ? (JSON.parse(readFileS
 const rerunIds = new Set(previous.filter((r) => (rerun === "errored" ? r.errored : !r.pass)).map((r) => r.id));
 let cases = filters.length ? LIVE_CASES.filter((c) => filters.some((f) => c.id.includes(f) || c.category === f)) : LIVE_CASES;
 if (rerun) cases = cases.filter((c) => rerunIds.has(c.id));
-const enabled = !!(key || baseUrl);
+const enabled = !!base;
 const tpm = Number(process.env.EVAL_TPM ?? 150_000);
 const rpm = Number(process.env.EVAL_RPM ?? 0);
 
@@ -68,7 +72,6 @@ interface Result {
 }
 const results: Result[] = [];
 
-const base = enabled ? openAIChatModel({ model: modelId, ...(key ? { apiKey: key } : {}), ...(baseUrl ? { baseUrl } : {}) }) : null;
 const model =
   base && (tpm > 0 || rpm > 0)
     ? rateLimitedChatModel(base, { ...(tpm > 0 ? { tokensPerMinute: tpm } : {}), ...(rpm > 0 ? { requestsPerMinute: rpm } : {}) })
@@ -128,9 +131,9 @@ describe.runIf(enabled).concurrent(`assistant live evals · ${modelId} · ${case
   });
 });
 
-it.runIf(!enabled)("live evals need OPENAI_API_KEY (or OPENAI_BASE_URL)", () => {
+it.runIf(!enabled)("live evals need a provider key (OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY, …)", () => {
   throw new Error(
-    "No OPENAI_API_KEY found, so the live cases were skipped. Set it in the shell (OPENAI_API_KEY=sk-… pnpm --filter @miraiclip/assistant eval) or in .env.local at the repo root or in packages/assistant.",
+    "No provider key found, so the live cases were skipped. Set one in the shell (OPENAI_API_KEY=sk-… pnpm --filter @miraiclip/assistant eval; ANTHROPIC_API_KEY, GEMINI_API_KEY and the rest work too) or in .env.local at the repo root or in packages/assistant.",
   );
 });
 
@@ -159,7 +162,7 @@ afterAll(() => {
   const lines = [
     `# Assistant live evals`,
     ``,
-    `Model **${modelId}**${baseUrl ? ` at ${baseUrl}` : ""} · ${new Date().toISOString()}${rerun ? ` · rerun of ${rerun} cases (${results.length}), merged with the previous run` : ""}`,
+    `Model **${modelId}** · ${new Date().toISOString()}${rerun ? ` · rerun of ${rerun} cases (${results.length}), merged with the previous run` : ""}`,
     ``,
     `**${passed} / ${scored.length} passed (${(rate * 100).toFixed(1)}%)**${errored.length ? ` · ${errored.length} errored (couldn't reach the model; not counted — rerun with \`EVAL_RERUN=errored\`)` : ""}`,
     ``,
@@ -189,7 +192,7 @@ afterAll(() => {
   ];
   if (passed === scored.length) lines.push("None. 🎉");
   if (errored.length) lines.push("", "## Errored", "", ...errored.map((r) => `- ${r.id}: ${(r.error ?? "").split("\n")[0]!.slice(0, 160)}`));
-  const json = JSON.stringify({ model: modelId, baseUrl, rate, results: all }, null, 2);
+  const json = JSON.stringify({ model: modelId, rate, results: all }, null, 2);
   writeFileSync(join(resultsDir, "latest.md"), lines.join("\n"));
   writeFileSync(join(resultsDir, "last.json"), json);
   writeFileSync(join(resultsDir, `${stamp}.json`), json);

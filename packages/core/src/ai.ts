@@ -3,7 +3,8 @@
  * working LLM integration.
  *
  * - `toToolDefinitions` — the catalog's JSON Schemas as ready-to-send tool
- *   definitions (Anthropic tool_use or OpenAI function-calling shapes; one
+ *   definitions (Anthropic tool_use, OpenAI function-calling or Gemini
+ *   function-declaration shapes; one
  *   tool per command, or a single dispatch tool for tool-count-constrained
  *   hosts such as MCP servers).
  * - `tryDispatch` / `applyCommands` — dispatch with MACHINE-READABLE failures
@@ -88,12 +89,24 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "transition/update": "Update a transition's duration, kind, or params.",
 };
 
+/** The tool-definition shapes the three big vendor APIs take. */
+export type ToolStyle = "anthropic" | "openai" | "gemini";
+
+/** One tool definition in a vendor's shape. */
+export function toolDefinition(style: ToolStyle, name: string, description: string, schema: unknown): unknown {
+  if (style === "openai") return { type: "function", function: { name, description, parameters: schema } };
+  if (style === "gemini") return { name, description, parametersJsonSchema: schema };
+  return { name, description, input_schema: schema };
+}
+
 export interface ToToolDefinitionsOptions {
   /**
    * Wire shape: "anthropic" (default) → `{ name, description, input_schema }`;
-   * "openai" → `{ type: "function", function: { name, description, parameters } }`.
+   * "openai" → `{ type: "function", function: { name, description, parameters } }`;
+   * "gemini" → `{ name, description, parametersJsonSchema }` (a function
+   * declaration: wrap the list in `[{ functionDeclarations }]`).
    */
-  style?: "anthropic" | "openai";
+  style?: ToolStyle;
   /**
    * "per-command" (default): one tool per command type — best when the host
    * allows ~25+ tools. "dispatch": ONE `miraiclip_dispatch` tool taking
@@ -114,10 +127,7 @@ export function toToolDefinitions(
   options: ToToolDefinitionsOptions = {},
 ): unknown[] {
   const style = options.style ?? "anthropic";
-  const wrap = (name: string, description: string, schema: unknown): unknown =>
-    style === "openai"
-      ? { type: "function", function: { name, description, parameters: schema } }
-      : { name, description, input_schema: schema };
+  const wrap = (name: string, description: string, schema: unknown): unknown => toolDefinition(style, name, description, schema);
   const describe = (type: string): string =>
     options.descriptions?.[type] ??
     BUILTIN_DESCRIPTIONS[type] ??

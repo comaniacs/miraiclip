@@ -1,0 +1,45 @@
+{
+  "id": "ai-agent-demo",
+  "title": "AI agent demo",
+  "goal": "show-how-it-works",
+  "type": "agent-demo",
+  "formats": [
+    "16:9",
+    "9:16"
+  ],
+  "durationSec": 21.4,
+  "style": [
+    "ui-mockup",
+    "kinetic-type"
+  ],
+  "pace": "steady",
+  "industry": [
+    "saas",
+    "ai"
+  ],
+  "startFrom": [
+    "text"
+  ],
+  "fields": 38,
+  "files": {
+    "template": "miraiclip-react-template/public/templates/ai-agent-demo.miraiclip-template.json",
+    "templateVertical": "miraiclip-react-template/public/templates/ai-agent-demo-vertical.miraiclip-template.json",
+    "project": "examples/templates/ai-agent-demo/ai-agent-demo.miraiclip.json",
+    "projectVertical": "examples/templates/ai-agent-demo/ai-agent-demo-vertical.miraiclip.json"
+  },
+  "assets": [
+    {
+      "file": "../_shared/assets/",
+      "url": "https://assets.miraiclip.com/templates/_shared/",
+      "license": "SIL OFL 1.1 (Inter, Instrument Serif, JetBrains Mono, Bricolage Grotesque)"
+    }
+  ],
+  "source": "studio built-ins demo-ai-assistant, demo-command-palette",
+  "themes": [
+    "midnight",
+    "paper",
+    "terminal",
+    "pop"
+  ],
+  "defaultTheme": "paper"
+}

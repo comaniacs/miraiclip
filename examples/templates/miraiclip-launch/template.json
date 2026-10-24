@@ -1,0 +1,46 @@
+{
+  "id": "miraiclip-launch",
+  "title": "Launch film",
+  "goal": "launch",
+  "type": "product-launch",
+  "formats": [
+    "16:9",
+    "9:16"
+  ],
+  "durationSec": 24.4,
+  "style": [
+    "kinetic-type",
+    "ui-mockup"
+  ],
+  "pace": "energetic",
+  "industry": [
+    "saas",
+    "dev-tools"
+  ],
+  "startFrom": [
+    "text",
+    "screenshots"
+  ],
+  "fields": 44,
+  "files": {
+    "template": "miraiclip-react-template/public/templates/miraiclip-launch.miraiclip-template.json",
+    "templateVertical": "miraiclip-react-template/public/templates/miraiclip-launch-vertical.miraiclip-template.json",
+    "project": "examples/templates/miraiclip-launch/miraiclip-launch.miraiclip.json",
+    "projectVertical": "examples/templates/miraiclip-launch/miraiclip-launch-vertical.miraiclip.json"
+  },
+  "assets": [
+    {
+      "file": "assets/InterVariable.woff2",
+      "url": "https://assets.miraiclip.com/templates/miraiclip-launch/InterVariable.woff2",
+      "license": "SIL OFL 1.1",
+      "credit": "Inter by Rasmus Andersson"
+    },
+    {
+      "file": "assets/product.jpg",
+      "url": "https://assets.miraiclip.com/templates/miraiclip-launch/product.jpg",
+      "license": "CC BY 3.0 (frame of Big Buck Bunny)",
+      "credit": "Miraiclip editor showing Big Buck Bunny \u00a9 Blender Foundation"
+    }
+  ],
+  "source": "examples/gallery/miraiclip-launch"
+}

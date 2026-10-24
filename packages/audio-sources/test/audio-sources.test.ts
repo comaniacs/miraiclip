@@ -173,6 +173,7 @@ describe("AI tools", () => {
     expect(defs.map((d) => d.name)).toEqual(["search_audio", "add_audio"]);
     expect(defs[0]!.input_schema.properties.provider!.enum).toEqual(["demo"]);
     expect((audioToolDefinitions(lib, { style: "openai" })[0] as { type: string }).type).toBe("function");
+    expect(audioToolDefinitions(lib, { style: "gemini" })[0]).toHaveProperty("parametersJsonSchema");
 
     const p = project();
     const search = await runAudioTool("search_audio", { query: "transition", kind: "sfx" }, { library: lib, project: p });

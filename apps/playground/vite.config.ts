@@ -8,7 +8,7 @@ import { elevenLabsGenerator } from "../../packages/audio-sources/src/generate/e
 import { toneGenerator } from "../../packages/audio-sources/src/generate/tone";
 import type { AudioGenerator } from "../../packages/audio-sources/src/generate/types";
 import { createChatHandler } from "../../packages/assistant/src/http";
-import { openAIChatModel } from "../../packages/assistant/src/openai";
+import { chatModelsFromEnv, routedChatModel } from "../../packages/assistant/src/providers";
 
 /**
  * Audio-sources testing helpers (dev + preview):
@@ -99,25 +99,17 @@ function generation(env: Record<string, string | undefined>): Plugin {
 }
 
 /**
- * The assistant's model on the dev/preview server: /api/assistant/* runs
- * OpenAI here when OPENAI_API_KEY is set (OPENAI_MODEL, default gpt-5.4-mini;
- * OPENAI_BASE_URL for any OpenAI-compatible server). Without a key the route
- * isn't mounted and the page falls back to its offline scripted model.
- * Responses stream (NDJSON) straight through.
+ * The assistant's model on the dev/preview server: /api/assistant/* serves
+ * every provider whose key is set — OPENAI_API_KEY, ANTHROPIC_API_KEY,
+ * GEMINI_API_KEY, OPENROUTER_API_KEY, GROQ_API_KEY, … (with {PROVIDER}_MODEL
+ * to pick a model; OPENAI_BASE_URL or OLLAMA_MODEL for local servers). The
+ * first one is the default; requests pick another as "provider/model".
+ * Without any, the route isn't mounted and the page falls back to its
+ * offline scripted model. Responses stream (NDJSON) straight through.
  */
 function assistant(env: Record<string, string | undefined>): Plugin {
-  const key = env.OPENAI_API_KEY;
-  const handle =
-    key || env.OPENAI_BASE_URL
-      ? createChatHandler(
-          openAIChatModel({
-            ...(key ? { apiKey: key } : {}),
-            model: env.OPENAI_MODEL || "gpt-5.4-mini",
-            ...(env.OPENAI_BASE_URL ? { baseUrl: env.OPENAI_BASE_URL } : {}),
-          }),
-          { basePath: "/api/assistant" },
-        )
-      : null;
+  const models = chatModelsFromEnv(env, { onSkip: (id, reason) => console.warn(`[assistant] ${id}: ${reason}`) });
+  const handle = models.length ? createChatHandler(routedChatModel(models), { basePath: "/api/assistant" }) : null;
   const handler: Connect.NextHandleFunction = (req, res, next) => {
     if (!handle || !req.url?.startsWith("/api/assistant")) return next();
     void (async () => {

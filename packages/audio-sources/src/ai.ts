@@ -13,8 +13,11 @@ import type { GenerationJob } from "./generate/run.js";
 import type { GenerateRequest } from "./generate/types.js";
 
 export interface AudioToolDefinitionsOptions {
-  /** "anthropic" (default) → `{ name, description, input_schema }`; "openai" → function tools. */
-  style?: "anthropic" | "openai";
+  /**
+   * "anthropic" (default) → `{ name, description, input_schema }`; "openai" →
+   * function tools; "gemini" → function declarations (`parametersJsonSchema`).
+   */
+  style?: "anthropic" | "openai" | "gemini";
 }
 
 export const AUDIO_TOOL_NAMES = ["search_audio", "add_audio", "generate_audio", "list_voices"] as const;
@@ -129,7 +132,9 @@ export function audioToolDefinitions(library: AudioLibrary, options: AudioToolDe
   return tools.map((t) =>
     options.style === "openai"
       ? { type: "function", function: { name: t.name, description: t.description, parameters: t.schema } }
-      : { name: t.name, description: t.description, input_schema: t.schema },
+      : options.style === "gemini"
+        ? { name: t.name, description: t.description, parametersJsonSchema: t.schema }
+        : { name: t.name, description: t.description, input_schema: t.schema },
   );
 }
 

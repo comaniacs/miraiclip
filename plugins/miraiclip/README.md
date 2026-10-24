@@ -1,6 +1,6 @@
 # Miraiclip for Claude Code
 
-Make and edit videos with Claude. This plugin bundles the Miraiclip MCP server with skills for talking-head recuts, captions, launch videos, reformats and screen tutorials, plus a helper CLI the skills use.
+Make and edit videos with Claude. This plugin bundles the Miraiclip MCP server with skills for talking-head recuts, captions, launch videos, reformats, screen tutorials and reusable templates, plus a helper CLI the skills use.
 
 ```bash
 claude plugin marketplace add comaniacs/miraiclip
@@ -22,6 +22,7 @@ skills/captions/
 skills/launch-video/
 skills/reformat/
 skills/screen-tutorial/
+skills/make-template/        template loop, kit/ (shared kit + starter), scripts/frames.mjs (studio frame capture), reference/ (patterns, scorecard)
 ```
 
 ## Developing
@@ -33,3 +34,9 @@ MIRAICLIP_MCP=D:/miraiclip/packages/mcp/dist/cli.js claude --plugin-dir ./plugin
 ```
 
 Every HTML pattern in `skills/edit-video/reference/html-recipes.md` has been rendered through the MCP server's preview and export. Re-check them when the renderer changes.
+
+`skills/make-template/kit/_kit.mjs` is a copy of `examples/templates/_kit.mjs` in the main repo, which is the source of truth. After changing the kit there, copy it here:
+
+```bash
+cp examples/templates/_kit.mjs plugins/miraiclip/skills/make-template/kit/_kit.mjs
+```

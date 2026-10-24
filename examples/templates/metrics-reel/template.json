@@ -1,0 +1,19 @@
+{
+  "id": "metrics-reel",
+  "title": "Metrics reel",
+  "goal": "report-and-present",
+  "type": "results",
+  "formats": ["16:9", "9:16"],
+  "themes": ["terminal", "midnight", "paper", "pop"],
+  "defaultTheme": "terminal",
+  "durationSec": 24,
+  "style": ["data-viz", "kinetic-type"],
+  "pace": "steady",
+  "industry": ["saas", "any"],
+  "startFrom": ["numbers"],
+  "fields": 61,
+  "assets": [
+    { "url": "https://assets.miraiclip.com/templates/_shared/", "license": "SIL OFL 1.1" }
+  ],
+  "source": "new; counters after the studio's built-in stat scenes"
+}

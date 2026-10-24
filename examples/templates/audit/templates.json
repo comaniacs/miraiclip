@@ -1,0 +1,4961 @@
+[
+ {
+  "id": "show-kinetic-launch",
+  "posterUs": 3400000,
+  "name": "Kinetic launch",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "launch",
+   "hero",
+   "kinetic",
+   "saas"
+  ],
+  "description": "Headline lines rise out of masks, the highlight sweeps a gradient, the CTA shines — beside your product in a browser.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "line1",
+    "label": "Line 1",
+    "type": "text"
+   },
+   {
+    "name": "line2",
+    "label": "Line 2",
+    "type": "text"
+   },
+   {
+    "name": "highlight",
+    "label": "Highlight",
+    "type": "text"
+   },
+   {
+    "name": "sub",
+    "label": "Subline",
+    "type": "text"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   },
+   {
+    "name": "from",
+    "label": "Highlight start",
+    "type": "color"
+   },
+   {
+    "name": "to",
+    "label": "Highlight end",
+    "type": "color"
+   },
+   {
+    "name": "product",
+    "label": "Product video",
+    "type": "asset"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 8,
+  "clips": 6,
+  "html": 4,
+  "animatedHtml": 1,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "show-kinetic-vertical",
+  "posterUs": 3000000,
+  "name": "Kinetic headline",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "headline",
+   "kinetic",
+   "intro",
+   "vertical"
+  ],
+  "description": "A big centered kinetic headline with a gradient highlight and a shining button — a reel or story opener.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "line1",
+    "label": "Line 1",
+    "type": "text"
+   },
+   {
+    "name": "line2",
+    "label": "Line 2",
+    "type": "text"
+   },
+   {
+    "name": "highlight",
+    "label": "Highlight",
+    "type": "text"
+   },
+   {
+    "name": "sub",
+    "label": "Subline",
+    "type": "text"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   },
+   {
+    "name": "from",
+    "label": "Highlight start",
+    "type": "color"
+   },
+   {
+    "name": "to",
+    "label": "Highlight end",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 5.5,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "show-bento",
+  "posterUs": 3000000,
+  "name": "Bento features",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "features",
+   "bento",
+   "grid",
+   "saas"
+  ],
+  "description": "Six feature cards cascade into a bento grid, each with its own micro-interaction: toggles, a goal ring, avatars, bars, a check, a counter.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "t1",
+    "label": "Card 1 label",
+    "type": "text"
+   },
+   {
+    "name": "d1",
+    "label": "Card 1 title",
+    "type": "text"
+   },
+   {
+    "name": "t2",
+    "label": "Card 2 label",
+    "type": "text"
+   },
+   {
+    "name": "d2",
+    "label": "Card 2 text",
+    "type": "text"
+   },
+   {
+    "name": "progress",
+    "label": "Card 2 percent",
+    "type": "number"
+   },
+   {
+    "name": "t3",
+    "label": "Card 3 label",
+    "type": "text"
+   },
+   {
+    "name": "d3",
+    "label": "Card 3 text",
+    "type": "text"
+   },
+   {
+    "name": "t4",
+    "label": "Card 4 label",
+    "type": "text"
+   },
+   {
+    "name": "d4",
+    "label": "Card 4 text",
+    "type": "text"
+   },
+   {
+    "name": "t5",
+    "label": "Card 5 label",
+    "type": "text"
+   },
+   {
+    "name": "d5",
+    "label": "Card 5 text",
+    "type": "text"
+   },
+   {
+    "name": "t6",
+    "label": "Card 6 label",
+    "type": "text"
+   },
+   {
+    "name": "speedup",
+    "label": "Card 6 number",
+    "type": "number"
+   },
+   {
+    "name": "d6",
+    "label": "Card 6 text",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "accent2",
+    "label": "Accent 2",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6.5,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "show-pricing-toggle",
+  "posterUs": 3600000,
+  "name": "Pricing toggle",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "pricing",
+   "plans",
+   "offer",
+   "saas"
+  ],
+  "description": "Plans rise in, the popular one lifts, the billing switch flips to yearly and every price counts down.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "n1",
+    "label": "Plan 1",
+    "type": "text"
+   },
+   {
+    "name": "p1m",
+    "label": "Plan 1 monthly",
+    "type": "number"
+   },
+   {
+    "name": "p1y",
+    "label": "Plan 1 yearly",
+    "type": "number"
+   },
+   {
+    "name": "n2",
+    "label": "Plan 2",
+    "type": "text"
+   },
+   {
+    "name": "p2m",
+    "label": "Plan 2 monthly",
+    "type": "number"
+   },
+   {
+    "name": "p2y",
+    "label": "Plan 2 yearly",
+    "type": "number"
+   },
+   {
+    "name": "n3",
+    "label": "Plan 3",
+    "type": "text"
+   },
+   {
+    "name": "p3m",
+    "label": "Plan 3 monthly",
+    "type": "number"
+   },
+   {
+    "name": "p3y",
+    "label": "Plan 3 yearly",
+    "type": "number"
+   },
+   {
+    "name": "tag",
+    "label": "Badge",
+    "type": "text"
+   },
+   {
+    "name": "save",
+    "label": "Yearly saving",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6.5,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "show-stats",
+  "posterUs": 3000000,
+  "name": "Stats that count",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "stats",
+   "metrics",
+   "proof",
+   "numbers"
+  ],
+  "description": "Three big numbers count up under drawing arcs, with an animated heading.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "v1",
+    "label": "Stat 1",
+    "type": "number"
+   },
+   {
+    "name": "s1",
+    "label": "Stat 1 suffix",
+    "type": "text"
+   },
+   {
+    "name": "l1",
+    "label": "Stat 1 label",
+    "type": "text"
+   },
+   {
+    "name": "v2",
+    "label": "Stat 2",
+    "type": "number"
+   },
+   {
+    "name": "s2",
+    "label": "Stat 2 suffix",
+    "type": "text"
+   },
+   {
+    "name": "l2",
+    "label": "Stat 2 label",
+    "type": "text"
+   },
+   {
+    "name": "v3",
+    "label": "Stat 3",
+    "type": "number"
+   },
+   {
+    "name": "s3",
+    "label": "Stat 3 suffix",
+    "type": "text"
+   },
+   {
+    "name": "l3",
+    "label": "Stat 3 label",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 2,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "show-review-wall",
+  "posterUs": 2500000,
+  "name": "Review wall",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "reviews",
+   "testimonials",
+   "proof",
+   "saas"
+  ],
+  "description": "A tilted wall of five-star reviews drifts in three columns behind a big social-proof headline.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "title",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 7,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "show-logo-marquee",
+  "posterUs": 2500000,
+  "name": "Trusted by",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "logos",
+   "customers",
+   "proof",
+   "marquee"
+  ],
+  "description": "Two rows of customer wordmarks glide in opposite directions under a “trusted by” line.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "trusted",
+    "label": "Trusted line",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 2,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "show-countdown",
+  "posterUs": 2400000,
+  "name": "Launch countdown",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "countdown",
+   "launch",
+   "drop",
+   "vertical"
+  ],
+  "description": "Big digits tick down from 5 as a ring drains, then a burst and “Now live”. For drops and launches.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "live",
+    "label": "Reveal",
+    "type": "text"
+   },
+   {
+    "name": "sub",
+    "label": "Subline",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "accent2",
+    "label": "Accent 2",
+    "type": "color"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 7.2,
+  "clips": 3,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "show-app-card",
+  "posterUs": 2500000,
+  "name": "App showcase",
+  "category": "showcases",
+  "tags": [
+   "showcase",
+   "app",
+   "mobile",
+   "features",
+   "square"
+  ],
+  "description": "Your app screenshot rises in a phone while feature badges pop in and float around it.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "screenshot",
+    "label": "App screenshot",
+    "type": "asset"
+   },
+   {
+    "name": "name",
+    "label": "App name",
+    "type": "text"
+   },
+   {
+    "name": "tagline",
+    "label": "Tagline",
+    "type": "text"
+   },
+   {
+    "name": "rating",
+    "label": "Rating",
+    "type": "text"
+   },
+   {
+    "name": "reviews",
+    "label": "Ratings",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1080,
+  "durS": 6,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "demo-spotlight-tour",
+  "posterUs": 2200000,
+  "name": "Spotlight tour",
+  "category": "product-demos",
+  "tags": [
+   "demo",
+   "walkthrough",
+   "tour",
+   "product",
+   "saas"
+  ],
+  "description": "A spotlight walks across your product recording — the rest dims, and a numbered caption explains each area.",
+  "fields": [
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "product",
+    "label": "Product video",
+    "type": "asset"
+   },
+   {
+    "name": "step1",
+    "label": "Step 1",
+    "type": "text"
+   },
+   {
+    "name": "step2",
+    "label": "Step 2",
+    "type": "text"
+   },
+   {
+    "name": "step3",
+    "label": "Step 3",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 8,
+  "clips": 5,
+  "html": 4,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "demo-hotspots",
+  "posterUs": 4400000,
+  "name": "Feature hotspots",
+  "category": "product-demos",
+  "tags": [
+   "demo",
+   "callouts",
+   "features",
+   "product",
+   "saas"
+  ],
+  "description": "Pulsing hotspots with callout labels appear one by one over your product recording.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "product",
+    "label": "Product video",
+    "type": "asset"
+   },
+   {
+    "name": "c1",
+    "label": "Callout 1",
+    "type": "text"
+   },
+   {
+    "name": "c2",
+    "label": "Callout 2",
+    "type": "text"
+   },
+   {
+    "name": "c3",
+    "label": "Callout 3",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6.5,
+  "clips": 5,
+  "html": 4,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "demo-ai-assistant",
+  "posterUs": 6400000,
+  "name": "AI assistant demo",
+  "category": "product-demos",
+  "tags": [
+   "demo",
+   "ai",
+   "assistant",
+   "chat",
+   "product"
+  ],
+  "description": "An assistant app in action: the question types itself, a thinking shimmer, then the answer streams in with a chart.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "app",
+    "label": "App name",
+    "type": "text"
+   },
+   {
+    "name": "prompt",
+    "label": "Question",
+    "type": "text"
+   },
+   {
+    "name": "a1",
+    "label": "Answer line 1",
+    "type": "text"
+   },
+   {
+    "name": "a2",
+    "label": "Answer line 2",
+    "type": "text"
+   },
+   {
+    "name": "a3",
+    "label": "Answer line 3",
+    "type": "text"
+   },
+   {
+    "name": "chip",
+    "label": "Follow-up",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "accent2",
+    "label": "Accent 2",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 8,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "demo-command-palette",
+  "posterUs": 3000000,
+  "name": "Command palette",
+  "category": "product-demos",
+  "tags": [
+   "demo",
+   "search",
+   "shortcut",
+   "power user",
+   "product"
+  ],
+  "description": "Over your product, a command palette opens, a search types, the selection moves, Enter — and a toast confirms.",
+  "fields": [
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "product",
+    "label": "Product video",
+    "type": "asset"
+   },
+   {
+    "name": "query",
+    "label": "Search",
+    "type": "text"
+   },
+   {
+    "name": "r1",
+    "label": "Result 1",
+    "type": "text"
+   },
+   {
+    "name": "r2",
+    "label": "Result 2",
+    "type": "text"
+   },
+   {
+    "name": "r3",
+    "label": "Result 3",
+    "type": "text"
+   },
+   {
+    "name": "r4",
+    "label": "Result 4",
+    "type": "text"
+   },
+   {
+    "name": "toast",
+    "label": "Confirmation",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 5,
+  "html": 4,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "demo-dashboard-build",
+  "posterUs": 3600000,
+  "name": "Live dashboard",
+  "category": "product-demos",
+  "tags": [
+   "demo",
+   "analytics",
+   "dashboard",
+   "metrics",
+   "kpi"
+  ],
+  "description": "An analytics dashboard builds itself: KPIs count up, the line draws, bars grow and a goal ring fills.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "l1",
+    "label": "Metric 1",
+    "type": "text"
+   },
+   {
+    "name": "kpi1",
+    "label": "Metric 1 value ($)",
+    "type": "number"
+   },
+   {
+    "name": "d1",
+    "label": "Change 1",
+    "type": "text"
+   },
+   {
+    "name": "l2",
+    "label": "Metric 2",
+    "type": "text"
+   },
+   {
+    "name": "kpi2",
+    "label": "Metric 2 value",
+    "type": "number"
+   },
+   {
+    "name": "d2",
+    "label": "Change 2",
+    "type": "text"
+   },
+   {
+    "name": "l3",
+    "label": "Metric 3",
+    "type": "text"
+   },
+   {
+    "name": "kpi3",
+    "label": "Metric 3 value (%)",
+    "type": "number"
+   },
+   {
+    "name": "d3",
+    "label": "Change 3",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "accent2",
+    "label": "Accent 2",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6.5,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "demo-workflow",
+  "posterUs": 4800000,
+  "name": "Automation run",
+  "category": "product-demos",
+  "tags": [
+   "demo",
+   "automation",
+   "workflow",
+   "integration",
+   "no-code"
+  ],
+  "description": "Workflow nodes appear and connect, then a pulse runs the flow and every step checks off.",
+  "fields": [
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "n1",
+    "label": "Step 1",
+    "type": "text"
+   },
+   {
+    "name": "n2",
+    "label": "Step 2",
+    "type": "text"
+   },
+   {
+    "name": "n3",
+    "label": "Step 3",
+    "type": "text"
+   },
+   {
+    "name": "n4",
+    "label": "Step 4",
+    "type": "text"
+   },
+   {
+    "name": "done",
+    "label": "Result",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6.5,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 2,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "demo-code-deploy",
+  "posterUs": 6000000,
+  "name": "Code to deploy",
+  "category": "product-demos",
+  "tags": [
+   "demo",
+   "developer",
+   "code",
+   "api",
+   "deploy"
+  ],
+  "description": "An editor types your snippet, a terminal builds and deploys it, and the live URL pops up. For developer tools.",
+  "fields": [
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "file",
+    "label": "File name",
+    "type": "text"
+   },
+   {
+    "name": "package",
+    "label": "Package",
+    "type": "text"
+   },
+   {
+    "name": "template",
+    "label": "Template",
+    "type": "text"
+   },
+   {
+    "name": "headline",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "command",
+    "label": "Command",
+    "type": "text"
+   },
+   {
+    "name": "url",
+    "label": "Live URL",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 7.5,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 1,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "demo-phone-taps",
+  "posterUs": 3000000,
+  "name": "App walkthrough (taps)",
+  "category": "product-demos",
+  "tags": [
+   "demo",
+   "mobile",
+   "app",
+   "walkthrough",
+   "vertical"
+  ],
+  "description": "Your app recording in a phone, with tap ripples and feature badges popping in beside it.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "app",
+    "label": "App recording",
+    "type": "asset"
+   },
+   {
+    "name": "f1",
+    "label": "Feature 1",
+    "type": "text"
+   },
+   {
+    "name": "f2",
+    "label": "Feature 2",
+    "type": "text"
+   },
+   {
+    "name": "f3",
+    "label": "Feature 3",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 7,
+  "clips": 6,
+  "html": 5,
+  "animatedHtml": 2,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "overlay-follow-card",
+  "posterUs": 1600000,
+  "name": "Follow card",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "follow",
+   "social",
+   "creator",
+   "vertical"
+  ],
+  "description": "A photo-app style follow card slides up over your video; the Follow button presses and turns into Following.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "avatar",
+    "label": "Profile photo",
+    "type": "asset"
+   },
+   {
+    "name": "name",
+    "label": "Name",
+    "type": "text"
+   },
+   {
+    "name": "handle",
+    "label": "Handle",
+    "type": "text"
+   },
+   {
+    "name": "meta",
+    "label": "Followers",
+    "type": "text"
+   },
+   {
+    "name": "button",
+    "label": "Button",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 4.5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-short-follow",
+  "posterUs": 2400000,
+  "name": "Follow prompt",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "follow",
+   "short video",
+   "vertical"
+  ],
+  "description": "Short-video style: avatar pops in, the plus flips to a check, followers tick up and Follow becomes Following.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "avatar",
+    "label": "Profile photo",
+    "type": "asset"
+   },
+   {
+    "name": "handle",
+    "label": "Handle",
+    "type": "text"
+   },
+   {
+    "name": "name",
+    "label": "Name",
+    "type": "text"
+   },
+   {
+    "name": "followers_from",
+    "label": "Followers before",
+    "type": "number"
+   },
+   {
+    "name": "followers",
+    "label": "Followers after",
+    "type": "number"
+   },
+   {
+    "name": "accent",
+    "label": "Button",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-post-card",
+  "posterUs": 2600000,
+  "name": "Post card",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "post",
+   "quote",
+   "like",
+   "vertical"
+  ],
+  "description": "A microblog-style post pops up over your video, then the heart fills and the like count ticks up.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "avatar",
+    "label": "Profile photo",
+    "type": "asset"
+   },
+   {
+    "name": "name",
+    "label": "Name",
+    "type": "text"
+   },
+   {
+    "name": "handle",
+    "label": "Handle",
+    "type": "text"
+   },
+   {
+    "name": "time",
+    "label": "Posted",
+    "type": "text"
+   },
+   {
+    "name": "text",
+    "label": "Post",
+    "type": "text"
+   },
+   {
+    "name": "replies",
+    "label": "Replies",
+    "type": "text"
+   },
+   {
+    "name": "reposts",
+    "label": "Reposts",
+    "type": "text"
+   },
+   {
+    "name": "likes",
+    "label": "Likes",
+    "type": "number"
+   },
+   {
+    "name": "views",
+    "label": "Views",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 5.5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-post-card-dark",
+  "posterUs": 2600000,
+  "name": "Post card (dark)",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "post",
+   "quote",
+   "dark",
+   "landscape"
+  ],
+  "description": "The dark post card beside your landscape video — reactions, quotes and announcements.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "avatar",
+    "label": "Profile photo",
+    "type": "asset"
+   },
+   {
+    "name": "name",
+    "label": "Name",
+    "type": "text"
+   },
+   {
+    "name": "handle",
+    "label": "Handle",
+    "type": "text"
+   },
+   {
+    "name": "time",
+    "label": "Posted",
+    "type": "text"
+   },
+   {
+    "name": "text",
+    "label": "Post",
+    "type": "text"
+   },
+   {
+    "name": "replies",
+    "label": "Replies",
+    "type": "text"
+   },
+   {
+    "name": "reposts",
+    "label": "Reposts",
+    "type": "text"
+   },
+   {
+    "name": "likes",
+    "label": "Likes",
+    "type": "number"
+   },
+   {
+    "name": "views",
+    "label": "Views",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 5.5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-forum-post",
+  "posterUs": 2800000,
+  "name": "Forum post",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "forum",
+   "community",
+   "upvote",
+   "story",
+   "vertical"
+  ],
+  "description": "A community-forum style post: the upvote fills and the score climbs. Great for story-time and AMA clips.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "community",
+    "label": "Community",
+    "type": "text"
+   },
+   {
+    "name": "author",
+    "label": "Author",
+    "type": "text"
+   },
+   {
+    "name": "time",
+    "label": "Posted",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "body",
+    "label": "Body",
+    "type": "text"
+   },
+   {
+    "name": "score",
+    "label": "Score before",
+    "type": "number"
+   },
+   {
+    "name": "score_to",
+    "label": "Score after",
+    "type": "number"
+   },
+   {
+    "name": "comments",
+    "label": "Comments",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Upvote",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 6,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-now-playing",
+  "posterUs": 2000000,
+  "name": "Now playing",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "music",
+   "song",
+   "player",
+   "vertical"
+  ],
+  "description": "A music-player card with your cover art; levels bounce and the progress bar and clock run with the clip.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "cover",
+    "label": "Cover art",
+    "type": "asset"
+   },
+   {
+    "name": "title",
+    "label": "Track",
+    "type": "text"
+   },
+   {
+    "name": "artist",
+    "label": "Artist",
+    "type": "text"
+   },
+   {
+    "name": "start_s",
+    "label": "Starts at (seconds)",
+    "type": "number"
+   },
+   {
+    "name": "length",
+    "label": "Track length",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 6,
+  "clips": 3,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 3,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-chat-thread",
+  "posterUs": 4600000,
+  "name": "Message thread",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "chat",
+   "messages",
+   "conversation",
+   "story",
+   "vertical"
+  ],
+  "description": "A text conversation plays out: bubbles arrive one by one, with a typing indicator before each reply.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "name",
+    "label": "Contact",
+    "type": "text"
+   },
+   {
+    "name": "m1",
+    "label": "Message 1 (them)",
+    "type": "text"
+   },
+   {
+    "name": "m2",
+    "label": "Message 2 (you)",
+    "type": "text"
+   },
+   {
+    "name": "m3",
+    "label": "Message 3 (them)",
+    "type": "text"
+   },
+   {
+    "name": "m4",
+    "label": "Message 4 (you)",
+    "type": "text"
+   },
+   {
+    "name": "me",
+    "label": "Your bubbles",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 6.5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-desktop-notification",
+  "posterUs": 1500000,
+  "name": "Desktop notification",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "notification",
+   "alert",
+   "desktop",
+   "landscape"
+  ],
+  "description": "A desktop-style notification banner slides in at the top right of your video and back out.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "icon",
+    "label": "App icon",
+    "type": "asset"
+   },
+   {
+    "name": "app",
+    "label": "App",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "body",
+    "label": "Body",
+    "type": "text"
+   },
+   {
+    "name": "time",
+    "label": "Time",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 4.5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-channel-lower-third",
+  "posterUs": 3000000,
+  "name": "Subscribe lower third",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "subscribe",
+   "lower third",
+   "channel",
+   "landscape"
+  ],
+  "description": "Video-channel style: your channel slides in, a cursor clicks Subscribe and the bell rings.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "avatar",
+    "label": "Channel avatar",
+    "type": "asset"
+   },
+   {
+    "name": "channel",
+    "label": "Channel",
+    "type": "text"
+   },
+   {
+    "name": "subs",
+    "label": "Subscribers",
+    "type": "text"
+   },
+   {
+    "name": "button",
+    "label": "Button",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 5.5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-comment-stack",
+  "posterUs": 3000000,
+  "name": "Comment stack",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "comments",
+   "reactions",
+   "community",
+   "vertical"
+  ],
+  "description": "Three viewer comments pop in one after another and each gets a like.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "avatar_1",
+    "label": "Commenter 1",
+    "type": "asset"
+   },
+   {
+    "name": "avatar_2",
+    "label": "Commenter 2",
+    "type": "asset"
+   },
+   {
+    "name": "avatar_3",
+    "label": "Commenter 3",
+    "type": "asset"
+   },
+   {
+    "name": "n1",
+    "label": "Name 1",
+    "type": "text"
+   },
+   {
+    "name": "c1",
+    "label": "Comment 1",
+    "type": "text"
+   },
+   {
+    "name": "l1",
+    "label": "Likes 1",
+    "type": "text"
+   },
+   {
+    "name": "n2",
+    "label": "Name 2",
+    "type": "text"
+   },
+   {
+    "name": "c2",
+    "label": "Comment 2",
+    "type": "text"
+   },
+   {
+    "name": "l2",
+    "label": "Likes 2",
+    "type": "text"
+   },
+   {
+    "name": "n3",
+    "label": "Name 3",
+    "type": "text"
+   },
+   {
+    "name": "c3",
+    "label": "Comment 3",
+    "type": "text"
+   },
+   {
+    "name": "l3",
+    "label": "Likes 3",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 5.5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 4,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-editorial-flash",
+  "posterUs": 2000000,
+  "name": "Editorial flash",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "headline",
+   "news",
+   "breaking",
+   "kinetic",
+   "landscape"
+  ],
+  "description": "Color bars sweep across your video and a condensed headline slams in — for news, drops and hot takes.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "line1",
+    "label": "Line 1",
+    "type": "text"
+   },
+   {
+    "name": "line2",
+    "label": "Line 2",
+    "type": "text"
+   },
+   {
+    "name": "stamp",
+    "label": "Stamp",
+    "type": "text"
+   },
+   {
+    "name": "c1",
+    "label": "Color 1",
+    "type": "color"
+   },
+   {
+    "name": "c2",
+    "label": "Color 2",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 5,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "overlay-live",
+  "posterUs": 4400000,
+  "name": "Live stream",
+  "category": "social-overlays",
+  "tags": [
+   "overlay",
+   "live",
+   "stream",
+   "chat",
+   "vertical"
+  ],
+  "description": "A pulsing LIVE badge, a viewer count that climbs and chat messages scrolling in over your video.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Your video",
+    "type": "asset"
+   },
+   {
+    "name": "viewers_from",
+    "label": "Viewers at start",
+    "type": "number"
+   },
+   {
+    "name": "viewers",
+    "label": "Viewers at end",
+    "type": "number"
+   },
+   {
+    "name": "chat1",
+    "label": "Chat 1",
+    "type": "text"
+   },
+   {
+    "name": "chat2",
+    "label": "Chat 2",
+    "type": "text"
+   },
+   {
+    "name": "chat3",
+    "label": "Chat 3",
+    "type": "text"
+   },
+   {
+    "name": "chat4",
+    "label": "Chat 4",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 8,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 1,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 0
+ },
+ {
+  "id": "saas-product-launch",
+  "posterUs": 3000000,
+  "name": "Product launch",
+  "category": "launch",
+  "tags": [
+   "saas",
+   "launch",
+   "announcement",
+   "product"
+  ],
+  "description": "A bold launch headline beside your product in a browser window, over a glowing mesh.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "headline",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "highlight",
+    "label": "Highlighted words",
+    "type": "text"
+   },
+   {
+    "name": "subline",
+    "label": "Subline",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   },
+   {
+    "name": "cta_note",
+    "label": "Button note",
+    "type": "text"
+   },
+   {
+    "name": "product",
+    "label": "Product video",
+    "type": "asset"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 8,
+  "clips": 7,
+  "html": 5,
+  "animatedHtml": 0,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 5
+ },
+ {
+  "id": "saas-feature-spotlight",
+  "posterUs": 2500000,
+  "name": "Feature spotlight",
+  "category": "features",
+  "tags": [
+   "saas",
+   "feature",
+   "product",
+   "explainer"
+  ],
+  "description": "One feature explained in a card, with the product in action next to it.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "body",
+    "label": "Body",
+    "type": "text"
+   },
+   {
+    "name": "point_1",
+    "label": "Point 1",
+    "type": "text"
+   },
+   {
+    "name": "point_2",
+    "label": "Point 2",
+    "type": "text"
+   },
+   {
+    "name": "point_3",
+    "label": "Point 3",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "card",
+    "label": "Card",
+    "type": "color"
+   },
+   {
+    "name": "product",
+    "label": "Product video",
+    "type": "asset"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 7,
+  "clips": 5,
+  "html": 4,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 4
+ },
+ {
+  "id": "saas-feature-trio",
+  "posterUs": 2000000,
+  "name": "Feature trio",
+  "category": "features",
+  "tags": [
+   "saas",
+   "features",
+   "benefits"
+  ],
+  "description": "Three features as icon cards under a section title, on a dark grid.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "f1_title",
+    "label": "Feature 1",
+    "type": "text"
+   },
+   {
+    "name": "f1_text",
+    "label": "Feature 1 text",
+    "type": "text"
+   },
+   {
+    "name": "f2_title",
+    "label": "Feature 2",
+    "type": "text"
+   },
+   {
+    "name": "f2_text",
+    "label": "Feature 2 text",
+    "type": "text"
+   },
+   {
+    "name": "f3_title",
+    "label": "Feature 3",
+    "type": "text"
+   },
+   {
+    "name": "f3_text",
+    "label": "Feature 3 text",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-how-it-works",
+  "posterUs": 2000000,
+  "name": "How it works",
+  "category": "features",
+  "tags": [
+   "steps",
+   "onboarding",
+   "explainer",
+   "process"
+  ],
+  "description": "Three numbered steps joined by a line, for onboarding and explainers.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "s1",
+    "label": "Step 1",
+    "type": "text"
+   },
+   {
+    "name": "s1_text",
+    "label": "Step 1 text",
+    "type": "text"
+   },
+   {
+    "name": "s2",
+    "label": "Step 2",
+    "type": "text"
+   },
+   {
+    "name": "s2_text",
+    "label": "Step 2 text",
+    "type": "text"
+   },
+   {
+    "name": "s3",
+    "label": "Step 3",
+    "type": "text"
+   },
+   {
+    "name": "s3_text",
+    "label": "Step 3 text",
+    "type": "text"
+   },
+   {
+    "name": "step_color",
+    "label": "Step color",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-integrations",
+  "posterUs": 2000000,
+  "name": "Integrations",
+  "category": "features",
+  "tags": [
+   "integrations",
+   "apps",
+   "ecosystem"
+  ],
+  "description": "Your product at the center of the tools it connects to.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "headline",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "highlight",
+    "label": "Highlighted words",
+    "type": "text"
+   },
+   {
+    "name": "subline",
+    "label": "Subline",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "mark",
+    "label": "Center letter",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-pricing-tiers",
+  "posterUs": 2000000,
+  "name": "Pricing tiers",
+  "category": "pricing",
+  "tags": [
+   "pricing",
+   "plans",
+   "saas"
+  ],
+  "description": "Three plans side by side with the recommended one raised.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "plan_1",
+    "label": "Plan 1",
+    "type": "text"
+   },
+   {
+    "name": "price_1",
+    "label": "Price 1",
+    "type": "text"
+   },
+   {
+    "name": "plan_2",
+    "label": "Plan 2",
+    "type": "text"
+   },
+   {
+    "name": "price_2",
+    "label": "Price 2",
+    "type": "text"
+   },
+   {
+    "name": "plan_3",
+    "label": "Plan 3",
+    "type": "text"
+   },
+   {
+    "name": "price_3",
+    "label": "Price 3",
+    "type": "text"
+   },
+   {
+    "name": "period",
+    "label": "Period",
+    "type": "text"
+   },
+   {
+    "name": "tag",
+    "label": "Highlight tag",
+    "type": "text"
+   },
+   {
+    "name": "plan_color",
+    "label": "Highlight color",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-pricing-card",
+  "posterUs": 2000000,
+  "name": "Plan spotlight",
+  "category": "pricing",
+  "tags": [
+   "pricing",
+   "plan",
+   "vertical",
+   "story"
+  ],
+  "description": "One plan, its price and what's included, for Reels and Stories.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "badge",
+    "label": "Badge",
+    "type": "text"
+   },
+   {
+    "name": "plan",
+    "label": "Plan",
+    "type": "text"
+   },
+   {
+    "name": "price",
+    "label": "Price",
+    "type": "text"
+   },
+   {
+    "name": "period",
+    "label": "Period",
+    "type": "text"
+   },
+   {
+    "name": "f1",
+    "label": "Feature 1",
+    "type": "text"
+   },
+   {
+    "name": "f2",
+    "label": "Feature 2",
+    "type": "text"
+   },
+   {
+    "name": "f3",
+    "label": "Feature 3",
+    "type": "text"
+   },
+   {
+    "name": "f4",
+    "label": "Feature 4",
+    "type": "text"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   },
+   {
+    "name": "plan_color",
+    "label": "Plan color",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-promo-code",
+  "posterUs": 1800000,
+  "name": "Promo code",
+  "category": "pricing",
+  "tags": [
+   "sale",
+   "discount",
+   "coupon",
+   "offer"
+  ],
+  "description": "A big discount and a code to copy, square for feeds.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background start",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background end",
+    "type": "color"
+   },
+   {
+    "name": "tag",
+    "label": "Tag",
+    "type": "text"
+   },
+   {
+    "name": "pill",
+    "label": "Pill text",
+    "type": "text"
+   },
+   {
+    "name": "pill_color",
+    "label": "Pill color",
+    "type": "color"
+   },
+   {
+    "name": "discount",
+    "label": "Discount",
+    "type": "text"
+   },
+   {
+    "name": "label",
+    "label": "Label",
+    "type": "text"
+   },
+   {
+    "name": "code",
+    "label": "Code",
+    "type": "text"
+   },
+   {
+    "name": "note",
+    "label": "Note",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1080,
+  "durS": 5,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-metrics",
+  "posterUs": 2000000,
+  "name": "KPI highlights",
+  "category": "metrics",
+  "tags": [
+   "kpi",
+   "results",
+   "numbers",
+   "report"
+  ],
+  "description": "Three headline numbers on cards, for updates and investor recaps.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "v1",
+    "label": "Number 1",
+    "type": "text"
+   },
+   {
+    "name": "l1",
+    "label": "Label 1",
+    "type": "text"
+   },
+   {
+    "name": "g1",
+    "label": "Change 1",
+    "type": "text"
+   },
+   {
+    "name": "v2",
+    "label": "Number 2",
+    "type": "text"
+   },
+   {
+    "name": "l2",
+    "label": "Label 2",
+    "type": "text"
+   },
+   {
+    "name": "g2",
+    "label": "Change 2",
+    "type": "text"
+   },
+   {
+    "name": "v3",
+    "label": "Number 3",
+    "type": "text"
+   },
+   {
+    "name": "l3",
+    "label": "Label 3",
+    "type": "text"
+   },
+   {
+    "name": "g3",
+    "label": "Change 3",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-growth-chart",
+  "posterUs": 2000000,
+  "name": "Growth chart",
+  "category": "metrics",
+  "tags": [
+   "chart",
+   "growth",
+   "data",
+   "users"
+  ],
+  "description": "A headline beside a gradient bar chart of your growth.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "headline",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "highlight",
+    "label": "Highlighted words",
+    "type": "text"
+   },
+   {
+    "name": "subline",
+    "label": "Subline",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "chart_title",
+    "label": "Chart title",
+    "type": "text"
+   },
+   {
+    "name": "chart_sub",
+    "label": "Chart note",
+    "type": "text"
+   },
+   {
+    "name": "bar_1",
+    "label": "Bar 1 (%)",
+    "type": "text"
+   },
+   {
+    "name": "bar_2",
+    "label": "Bar 2 (%)",
+    "type": "text"
+   },
+   {
+    "name": "bar_3",
+    "label": "Bar 3 (%)",
+    "type": "text"
+   },
+   {
+    "name": "bar_4",
+    "label": "Bar 4 (%)",
+    "type": "text"
+   },
+   {
+    "name": "bar_5",
+    "label": "Bar 5 (%)",
+    "type": "text"
+   },
+   {
+    "name": "bar_6",
+    "label": "Bar 6 (%)",
+    "type": "text"
+   },
+   {
+    "name": "bar_from",
+    "label": "Bar bottom",
+    "type": "color"
+   },
+   {
+    "name": "bar_to",
+    "label": "Bar top",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-testimonial",
+  "posterUs": 2000000,
+  "name": "Customer story",
+  "category": "proof",
+  "tags": [
+   "testimonial",
+   "review",
+   "customer",
+   "quote"
+  ],
+  "description": "A five-star quote with the customer's headshot, on a light canvas.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "quote",
+    "label": "Quote",
+    "type": "text"
+   },
+   {
+    "name": "name",
+    "label": "Name",
+    "type": "text"
+   },
+   {
+    "name": "role",
+    "label": "Role",
+    "type": "text"
+   },
+   {
+    "name": "stars",
+    "label": "Stars",
+    "type": "color"
+   },
+   {
+    "name": "headshot",
+    "label": "Headshot",
+    "type": "asset"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 7,
+  "clips": 3,
+  "html": 2,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-logo-wall",
+  "posterUs": 2000000,
+  "name": "Trusted by",
+  "category": "proof",
+  "tags": [
+   "logos",
+   "customers",
+   "social proof",
+   "brands"
+  ],
+  "description": "A wall of customer wordmarks under a social-proof headline.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "headline",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "highlight",
+    "label": "Highlighted words",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "logos_title",
+    "label": "Logos title",
+    "type": "text"
+   },
+   {
+    "name": "brand_1",
+    "label": "Brand 1",
+    "type": "text"
+   },
+   {
+    "name": "brand_2",
+    "label": "Brand 2",
+    "type": "text"
+   },
+   {
+    "name": "brand_3",
+    "label": "Brand 3",
+    "type": "text"
+   },
+   {
+    "name": "brand_4",
+    "label": "Brand 4",
+    "type": "text"
+   },
+   {
+    "name": "brand_5",
+    "label": "Brand 5",
+    "type": "text"
+   },
+   {
+    "name": "brand_6",
+    "label": "Brand 6",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 5,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-comparison",
+  "posterUs": 2000000,
+  "name": "Us vs them",
+  "category": "proof",
+  "tags": [
+   "comparison",
+   "versus",
+   "competitor",
+   "why us"
+  ],
+  "description": "A feature checklist comparing your product with the alternatives.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "us",
+    "label": "Your product",
+    "type": "text"
+   },
+   {
+    "name": "them",
+    "label": "Others",
+    "type": "text"
+   },
+   {
+    "name": "row_1",
+    "label": "Row 1",
+    "type": "text"
+   },
+   {
+    "name": "row_2",
+    "label": "Row 2",
+    "type": "text"
+   },
+   {
+    "name": "row_3",
+    "label": "Row 3",
+    "type": "text"
+   },
+   {
+    "name": "row_4",
+    "label": "Row 4",
+    "type": "text"
+   },
+   {
+    "name": "check_color",
+    "label": "Check color",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-case-study",
+  "posterUs": 2000000,
+  "name": "Case study",
+  "category": "proof",
+  "tags": [
+   "case study",
+   "result",
+   "customer",
+   "stat"
+  ],
+  "description": "A customer's logo, their big result and a one-line quote — square.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "logo",
+    "label": "Logo",
+    "type": "asset"
+   },
+   {
+    "name": "result",
+    "label": "Result",
+    "type": "text"
+   },
+   {
+    "name": "result_label",
+    "label": "Result label",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "quote",
+    "label": "Quote",
+    "type": "text"
+   },
+   {
+    "name": "author",
+    "label": "Author",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1080,
+  "durS": 6,
+  "clips": 4,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "saas-webinar",
+  "posterUs": 2000000,
+  "name": "Webinar promo",
+  "category": "events",
+  "tags": [
+   "webinar",
+   "event",
+   "live",
+   "workshop"
+  ],
+  "description": "Date, title and details of a live session, with the host below.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "month",
+    "label": "Month",
+    "type": "text"
+   },
+   {
+    "name": "day",
+    "label": "Day",
+    "type": "text"
+   },
+   {
+    "name": "kind",
+    "label": "Event type",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "details",
+    "label": "Details",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "host_initials",
+    "label": "Host initials",
+    "type": "text"
+   },
+   {
+    "name": "host",
+    "label": "Host",
+    "type": "text"
+   },
+   {
+    "name": "host_role",
+    "label": "Host role",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 7,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "saas-event-square",
+  "posterUs": 2000000,
+  "name": "Event announcement",
+  "category": "events",
+  "tags": [
+   "event",
+   "conference",
+   "meetup",
+   "register"
+  ],
+  "description": "A square event card with a register button, for LinkedIn and X.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background start",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background end",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "headline",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "month",
+    "label": "Month",
+    "type": "text"
+   },
+   {
+    "name": "day",
+    "label": "Day",
+    "type": "text"
+   },
+   {
+    "name": "kind",
+    "label": "Event type",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "details",
+    "label": "Details",
+    "type": "text"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   },
+   {
+    "name": "cta_note",
+    "label": "Button note",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1080,
+  "durS": 6,
+  "clips": 4,
+  "html": 4,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "saas-launch-countdown",
+  "posterUs": 2000000,
+  "name": "Launch countdown",
+  "category": "launch",
+  "tags": [
+   "countdown",
+   "teaser",
+   "coming soon",
+   "vertical"
+  ],
+  "description": "A teaser with a big countdown and an early-access button — vertical.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "headline",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "highlight",
+    "label": "Highlighted words",
+    "type": "text"
+   },
+   {
+    "name": "subline",
+    "label": "Subline",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "days",
+    "label": "Days",
+    "type": "text"
+   },
+   {
+    "name": "hours",
+    "label": "Hours",
+    "type": "text"
+   },
+   {
+    "name": "minutes",
+    "label": "Minutes",
+    "type": "text"
+   },
+   {
+    "name": "seconds",
+    "label": "Seconds",
+    "type": "text"
+   },
+   {
+    "name": "count_accent",
+    "label": "Separator color",
+    "type": "color"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   },
+   {
+    "name": "cta_note",
+    "label": "Button note",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 6,
+  "clips": 4,
+  "html": 4,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "saas-app-promo",
+  "posterUs": 2500000,
+  "name": "App promo",
+  "category": "launch",
+  "tags": [
+   "mobile",
+   "app",
+   "download",
+   "ios",
+   "android",
+   "vertical"
+  ],
+  "description": "Your app on a phone with a headline and download button — vertical.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background start",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background end",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "app",
+    "label": "App recording",
+    "type": "asset"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 7,
+  "clips": 6,
+  "html": 5,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 5
+ },
+ {
+  "id": "saas-changelog",
+  "posterUs": 2000000,
+  "name": "What's new",
+  "category": "launch",
+  "tags": [
+   "changelog",
+   "release",
+   "update",
+   "product"
+  ],
+  "description": "A release card with what's new, improved and fixed.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow",
+    "label": "Glow",
+    "type": "color"
+   },
+   {
+    "name": "version",
+    "label": "Version",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "new",
+    "label": "New",
+    "type": "text"
+   },
+   {
+    "name": "improved",
+    "label": "Improved",
+    "type": "text"
+   },
+   {
+    "name": "fixed",
+    "label": "Fixed",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 1
+ },
+ {
+  "id": "saas-notifications",
+  "posterUs": 3000000,
+  "name": "Sales notifications",
+  "category": "social",
+  "tags": [
+   "notifications",
+   "growth",
+   "sales",
+   "vertical",
+   "ugc"
+  ],
+  "description": "App notifications stacking up — new signups, upgrades, payments. Vertical.",
+  "fields": [
+   {
+    "name": "tint_1",
+    "label": "Tint 1",
+    "type": "color"
+   },
+   {
+    "name": "tint_2",
+    "label": "Tint 2",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "n1_title",
+    "label": "Notification 1",
+    "type": "text"
+   },
+   {
+    "name": "n1_text",
+    "label": "Notification 1 text",
+    "type": "text"
+   },
+   {
+    "name": "n2_title",
+    "label": "Notification 2",
+    "type": "text"
+   },
+   {
+    "name": "n2_text",
+    "label": "Notification 2 text",
+    "type": "text"
+   },
+   {
+    "name": "n3_title",
+    "label": "Notification 3",
+    "type": "text"
+   },
+   {
+    "name": "n3_text",
+    "label": "Notification 3 text",
+    "type": "text"
+   },
+   {
+    "name": "n4_title",
+    "label": "Notification 4",
+    "type": "text"
+   },
+   {
+    "name": "n4_text",
+    "label": "Notification 4 text",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 6,
+  "clips": 6,
+  "html": 6,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 5
+ },
+ {
+  "id": "saas-hiring",
+  "posterUs": 2000000,
+  "name": "We're hiring",
+  "category": "social",
+  "tags": [
+   "hiring",
+   "jobs",
+   "careers",
+   "recruiting"
+  ],
+  "description": "Open roles as chips with a careers link — square for LinkedIn.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "role_1",
+    "label": "Role 1",
+    "type": "text"
+   },
+   {
+    "name": "role_2",
+    "label": "Role 2",
+    "type": "text"
+   },
+   {
+    "name": "role_3",
+    "label": "Role 3",
+    "type": "text"
+   },
+   {
+    "name": "link",
+    "label": "Link",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1080,
+  "durS": 6,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 1
+ },
+ {
+  "id": "saas-social-ad",
+  "posterUs": 2000000,
+  "name": "Product ad",
+  "category": "social",
+  "tags": [
+   "ad",
+   "paid social",
+   "product",
+   "square"
+  ],
+  "description": "A square ad: announcement, your product screenshot and a button.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "screenshot",
+    "label": "Product screenshot",
+    "type": "asset"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1080,
+  "durS": 7,
+  "clips": 6,
+  "html": 5,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 5
+ },
+ {
+  "id": "saas-explainer",
+  "posterUs": 5500000,
+  "name": "Product explainer",
+  "category": "features",
+  "tags": [
+   "explainer",
+   "story",
+   "demo",
+   "product"
+  ],
+  "description": "Three scenes — the problem, your product, the call to action — with slides between.",
+  "fields": [
+   {
+    "name": "scene1_from",
+    "label": "Background start",
+    "type": "color"
+   },
+   {
+    "name": "scene1_to",
+    "label": "Background end",
+    "type": "color"
+   },
+   {
+    "name": "scene3_from",
+    "label": "Background start",
+    "type": "color"
+   },
+   {
+    "name": "scene3_to",
+    "label": "Background end",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "problem",
+    "label": "Problem",
+    "type": "text"
+   },
+   {
+    "name": "problem_highlight",
+    "label": "Problem highlight",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "product_kicker",
+    "label": "Scene 2 kicker",
+    "type": "text"
+   },
+   {
+    "name": "product_title",
+    "label": "Scene 2 title",
+    "type": "text"
+   },
+   {
+    "name": "product",
+    "label": "Product video",
+    "type": "asset"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   },
+   {
+    "name": "cta_note",
+    "label": "Button note",
+    "type": "text"
+   },
+   {
+    "name": "closing",
+    "label": "Closing line",
+    "type": "text"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 12,
+  "clips": 11,
+  "html": 9,
+  "animatedHtml": 0,
+  "media": 2,
+  "transitions": 2,
+  "keyframed": 7
+ },
+ {
+  "id": "saas-feature-reel",
+  "posterUs": 1500000,
+  "name": "Feature reel",
+  "category": "social",
+  "tags": [
+   "reel",
+   "features",
+   "app",
+   "vertical"
+  ],
+  "description": "Your app on a phone while three feature headlines slide by — vertical.",
+  "fields": [
+   {
+    "name": "scene1_from",
+    "label": "Scene 1 start",
+    "type": "color"
+   },
+   {
+    "name": "scene1_to",
+    "label": "Scene 1 end",
+    "type": "color"
+   },
+   {
+    "name": "scene2_from",
+    "label": "Scene 2 start",
+    "type": "color"
+   },
+   {
+    "name": "scene2_to",
+    "label": "Scene 2 end",
+    "type": "color"
+   },
+   {
+    "name": "scene3_from",
+    "label": "Scene 3 start",
+    "type": "color"
+   },
+   {
+    "name": "scene3_to",
+    "label": "Scene 3 end",
+    "type": "color"
+   },
+   {
+    "name": "f1_kicker",
+    "label": "Feature 1 kicker",
+    "type": "text"
+   },
+   {
+    "name": "f1_title",
+    "label": "Feature 1",
+    "type": "text"
+   },
+   {
+    "name": "f2_kicker",
+    "label": "Feature 2 kicker",
+    "type": "text"
+   },
+   {
+    "name": "f2_title",
+    "label": "Feature 2",
+    "type": "text"
+   },
+   {
+    "name": "f3_kicker",
+    "label": "Feature 3 kicker",
+    "type": "text"
+   },
+   {
+    "name": "f3_title",
+    "label": "Feature 3",
+    "type": "text"
+   },
+   {
+    "name": "app",
+    "label": "App recording",
+    "type": "asset"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 12,
+  "clips": 13,
+  "html": 10,
+  "animatedHtml": 0,
+  "media": 2,
+  "transitions": 2,
+  "keyframed": 6
+ },
+ {
+  "id": "saas-free-trial",
+  "posterUs": 2000000,
+  "name": "Free trial end card",
+  "category": "ending",
+  "tags": [
+   "cta",
+   "outro",
+   "trial",
+   "end card"
+  ],
+  "description": "Your logo, a closing line and a big trial button.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "logo",
+    "label": "Logo",
+    "type": "asset"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "cta",
+    "label": "Button",
+    "type": "text"
+   },
+   {
+    "name": "cta_note",
+    "label": "Button note",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 5,
+  "clips": 4,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "brand-intro",
+  "posterUs": 2400000,
+  "name": "Brand intro",
+  "category": "intro",
+  "tags": [
+   "logo",
+   "intro",
+   "brand",
+   "youtube"
+  ],
+  "description": "Your logo pops in over a flowing gradient, then your title.",
+  "fields": [
+   {
+    "name": "background",
+    "label": "Background video",
+    "type": "asset"
+   },
+   {
+    "name": "logo",
+    "label": "Logo",
+    "type": "asset"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "subtitle",
+    "label": "Subtitle",
+    "type": "text"
+   },
+   {
+    "name": "ink",
+    "label": "Text color",
+    "type": "color"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 4,
+  "html": 1,
+  "animatedHtml": 0,
+  "media": 3,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "chapter-card",
+  "posterUs": 1500000,
+  "name": "Chapter card",
+  "category": "intro",
+  "tags": [
+   "chapter",
+   "section",
+   "tutorial"
+  ],
+  "description": "A chapter label and title on a dark gradient — drop between sections.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background top",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background bottom",
+    "type": "color"
+   },
+   {
+    "name": "label",
+    "label": "Label",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 4,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 1
+ },
+ {
+  "id": "interview-lower-third",
+  "posterUs": 2500000,
+  "name": "Interview lower third",
+  "category": "lower-third",
+  "tags": [
+   "interview",
+   "speaker",
+   "name"
+  ],
+  "description": "A name and role that slide in over the speaker, then fade away.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Interview clip",
+    "type": "asset"
+   },
+   {
+    "name": "name",
+    "label": "Name",
+    "type": "text"
+   },
+   {
+    "name": "role",
+    "label": "Role",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 2,
+  "html": 1,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 1
+ },
+ {
+  "id": "webinar-lower-third",
+  "posterUs": 2000000,
+  "name": "Speaker card",
+  "category": "lower-third",
+  "tags": [
+   "speaker",
+   "webinar",
+   "podcast",
+   "headshot"
+  ],
+  "description": "A headshot and name card for webinar and podcast speakers.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Speaker video",
+    "type": "asset"
+   },
+   {
+    "name": "headshot",
+    "label": "Headshot",
+    "type": "asset"
+   },
+   {
+    "name": "name",
+    "label": "Name",
+    "type": "text"
+   },
+   {
+    "name": "role",
+    "label": "Role",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 1,
+  "animatedHtml": 0,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "news-bulletin",
+  "posterUs": 2000000,
+  "name": "News bulletin",
+  "category": "intro",
+  "tags": [
+   "breaking",
+   "update",
+   "ticker",
+   "news"
+  ],
+  "description": "A LIVE badge and a news bar over footage, ready for a headline.",
+  "fields": [
+   {
+    "name": "footage",
+    "label": "Footage",
+    "type": "asset"
+   },
+   {
+    "name": "badge",
+    "label": "Badge",
+    "type": "text"
+   },
+   {
+    "name": "tag",
+    "label": "Tag",
+    "type": "text"
+   },
+   {
+    "name": "headline",
+    "label": "Headline",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 2,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "product-promo",
+  "posterUs": 2200000,
+  "name": "Product promo",
+  "category": "pricing",
+  "tags": [
+   "sale",
+   "ad",
+   "price",
+   "promo"
+  ],
+  "description": "Your product in a browser, a bold sale headline, a price tag and a call to action.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background start",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background end",
+    "type": "color"
+   },
+   {
+    "name": "product",
+    "label": "Product video",
+    "type": "asset"
+   },
+   {
+    "name": "line1",
+    "label": "Headline line 1",
+    "type": "text"
+   },
+   {
+    "name": "line2",
+    "label": "Headline line 2",
+    "type": "text"
+   },
+   {
+    "name": "line3",
+    "label": "Headline line 3",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "old_price",
+    "label": "Old price",
+    "type": "text"
+   },
+   {
+    "name": "price",
+    "label": "Price",
+    "type": "text"
+   },
+   {
+    "name": "price_note",
+    "label": "Price note",
+    "type": "text"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 8,
+  "clips": 7,
+  "html": 5,
+  "animatedHtml": 0,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 5
+ },
+ {
+  "id": "end-screen",
+  "posterUs": 2500000,
+  "name": "End screen",
+  "category": "ending",
+  "tags": [
+   "outro",
+   "subscribe",
+   "youtube"
+  ],
+  "description": "Thanks for watching, with a subscribe button over a gradient.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background top",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background bottom",
+    "type": "color"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "subtitle",
+    "label": "Subtitle",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "button",
+    "label": "Button",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 6,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "quote-card",
+  "posterUs": 2000000,
+  "name": "Quote card",
+  "category": "proof",
+  "tags": [
+   "quote",
+   "inspiration"
+  ],
+  "description": "A serif quote and its author on a warm card — 1:1 for feeds.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "quote",
+    "label": "Quote",
+    "type": "text"
+   },
+   {
+    "name": "author",
+    "label": "Author",
+    "type": "text"
+   },
+   {
+    "name": "mark",
+    "label": "Quote mark",
+    "type": "color"
+   }
+  ],
+  "w": 1080,
+  "h": 1080,
+  "durS": 6,
+  "clips": 2,
+  "html": 2,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 1
+ },
+ {
+  "id": "stat-highlight",
+  "posterUs": 1500000,
+  "name": "Stat highlight",
+  "category": "metrics",
+  "tags": [
+   "data",
+   "growth",
+   "number"
+  ],
+  "description": "One big number with a label, popping in over a dark background.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "value",
+    "label": "Number",
+    "type": "text"
+   },
+   {
+    "name": "label",
+    "label": "Label",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "period",
+    "label": "Period",
+    "type": "text"
+   }
+  ],
+  "w": 1920,
+  "h": 1080,
+  "durS": 5,
+  "clips": 3,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 2
+ },
+ {
+  "id": "reel-hook",
+  "posterUs": 1600000,
+  "name": "Reel hook",
+  "category": "social",
+  "tags": [
+   "reel",
+   "tiktok",
+   "shorts",
+   "vertical",
+   "hook"
+  ],
+  "description": "A bold hook over your clip on a phone, ending on a follow button — vertical.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background start",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background end",
+    "type": "color"
+   },
+   {
+    "name": "hook",
+    "label": "Hook",
+    "type": "text"
+   },
+   {
+    "name": "clip",
+    "label": "Your clip",
+    "type": "asset"
+   },
+   {
+    "name": "follow",
+    "label": "Follow text",
+    "type": "text"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 6,
+  "clips": 7,
+  "html": 5,
+  "animatedHtml": 0,
+  "media": 2,
+  "transitions": 0,
+  "keyframed": 5
+ },
+ {
+  "id": "outfit-showcase",
+  "posterUs": 1500000,
+  "name": "App walkthrough",
+  "category": "social",
+  "tags": [
+   "reel",
+   "product",
+   "walkthrough",
+   "vertical"
+  ],
+  "description": "Two app clips on a phone, one after the other, with a kicker title and hashtags — vertical.",
+  "fields": [
+   {
+    "name": "bg",
+    "label": "Background",
+    "type": "color"
+   },
+   {
+    "name": "glow_1",
+    "label": "Glow 1",
+    "type": "color"
+   },
+   {
+    "name": "glow_2",
+    "label": "Glow 2",
+    "type": "color"
+   },
+   {
+    "name": "glow_3",
+    "label": "Glow 3",
+    "type": "color"
+   },
+   {
+    "name": "kicker",
+    "label": "Kicker",
+    "type": "text"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Accent",
+    "type": "color"
+   },
+   {
+    "name": "clip_1",
+    "label": "Clip 1",
+    "type": "asset"
+   },
+   {
+    "name": "clip_2",
+    "label": "Clip 2",
+    "type": "asset"
+   },
+   {
+    "name": "tag1",
+    "label": "Hashtag 1",
+    "type": "text"
+   },
+   {
+    "name": "tag2",
+    "label": "Hashtag 2",
+    "type": "text"
+   },
+   {
+    "name": "tag3",
+    "label": "Hashtag 3",
+    "type": "text"
+   },
+   {
+    "name": "music",
+    "label": "Music",
+    "type": "asset"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 10,
+  "clips": 10,
+  "html": 7,
+  "animatedHtml": 0,
+  "media": 3,
+  "transitions": 0,
+  "keyframed": 8
+ },
+ {
+  "id": "tips-list",
+  "posterUs": 2500000,
+  "name": "3 tips",
+  "category": "social",
+  "tags": [
+   "tips",
+   "list",
+   "how-to",
+   "vertical"
+  ],
+  "description": "A vertical list of three tips with a badge, ending on a comment prompt.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background top",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background bottom",
+    "type": "color"
+   },
+   {
+    "name": "title",
+    "label": "Title",
+    "type": "text"
+   },
+   {
+    "name": "count",
+    "label": "Badge",
+    "type": "text"
+   },
+   {
+    "name": "tip1",
+    "label": "Tip 1",
+    "type": "text"
+   },
+   {
+    "name": "tip2",
+    "label": "Tip 2",
+    "type": "text"
+   },
+   {
+    "name": "tip3",
+    "label": "Tip 3",
+    "type": "text"
+   },
+   {
+    "name": "accent",
+    "label": "Check color",
+    "type": "color"
+   },
+   {
+    "name": "prompt",
+    "label": "Comment prompt",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1920,
+  "durS": 8,
+  "clips": 4,
+  "html": 4,
+  "animatedHtml": 0,
+  "media": 0,
+  "transitions": 0,
+  "keyframed": 3
+ },
+ {
+  "id": "testimonial",
+  "posterUs": 2000000,
+  "name": "Review card",
+  "category": "proof",
+  "tags": [
+   "review",
+   "customer",
+   "quote",
+   "rating"
+  ],
+  "description": "A customer quote card with a star rating and their headshot — 1:1.",
+  "fields": [
+   {
+    "name": "bg_from",
+    "label": "Background start",
+    "type": "color"
+   },
+   {
+    "name": "bg_to",
+    "label": "Background end",
+    "type": "color"
+   },
+   {
+    "name": "headshot",
+    "label": "Headshot",
+    "type": "asset"
+   },
+   {
+    "name": "score",
+    "label": "Score",
+    "type": "text"
+   },
+   {
+    "name": "reviews",
+    "label": "Reviews",
+    "type": "text"
+   },
+   {
+    "name": "quote",
+    "label": "Quote",
+    "type": "text"
+   },
+   {
+    "name": "name",
+    "label": "Name",
+    "type": "text"
+   },
+   {
+    "name": "role",
+    "label": "Role",
+    "type": "text"
+   }
+  ],
+  "w": 1080,
+  "h": 1080,
+  "durS": 6,
+  "clips": 4,
+  "html": 3,
+  "animatedHtml": 0,
+  "media": 1,
+  "transitions": 0,
+  "keyframed": 3
+ }
+]

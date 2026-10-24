@@ -9,7 +9,10 @@ import { createRenderJobHandler } from "@miraiclip/server-export";
 const handler = createRenderJobHandler({
   token: process.env.RENDER_TOKEN, // set it: workers on a public URL must not render for strangers
   // No GPU on most serverless platforms: software GL (set GPU=1 on GPU machines).
-  browser: { swiftshader: !process.env.GPU },
+  browser: {
+    swiftshader: !process.env.GPU,
+    args: ["--disable-dev-shm-usage"], // containers often have a tiny /dev/shm
+  },
 });
 
 const port = Number(process.env.PORT ?? 8080);

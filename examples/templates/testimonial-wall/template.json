@@ -1,0 +1,19 @@
+{
+  "id": "testimonial-wall",
+  "title": "Testimonial wall",
+  "goal": "build-trust",
+  "type": "testimonials",
+  "formats": ["16:9", "9:16"],
+  "themes": ["paper", "midnight", "terminal", "pop"],
+  "defaultTheme": "paper",
+  "durationSec": 23.8,
+  "style": ["kinetic-type", "cards"],
+  "pace": "steady",
+  "industry": ["saas", "any"],
+  "startFrom": ["text"],
+  "fields": 54,
+  "assets": [
+    { "url": "https://assets.miraiclip.com/templates/_shared/", "license": "SIL OFL 1.1" }
+  ],
+  "source": "new"
+}

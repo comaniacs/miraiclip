@@ -1,9 +1,9 @@
 /**
  * Assistant tab: @miraiclip/assistant before publishing.
  *
- * The model runs on the dev server (vite.config.ts → /api/assistant) when
- * OPENAI_API_KEY is set; the browser talks to it through remoteChatModel, so
- * the key never reaches the page. Without a key, an offline scripted model
+ * The model runs on the dev server (vite.config.ts → /api/assistant) when a
+ * provider key is set (OpenAI, Anthropic, Gemini, OpenRouter, …); the browser
+ * talks to it through remoteChatModel, so the key never reaches the page. Without a key, an offline scripted model
  * exercises the same loop (dissolves on every cut, a pop-in on the first text).
  * The agent loop and its tools run here, against a copy of the project; each
  * request lands as one undo step (or waits for Apply in review mode).
@@ -38,7 +38,7 @@ function offlineModel(): ChatModel {
       const text = /(\S+): text/.exec(state)?.[1];
       return text ? { toolCalls: [{ name: "animate_clip", arguments: { clipId: text, in: "pop", out: "fade" } }] } : "Added dissolves on every cut I could.";
     },
-    "Added dissolves on the cuts and a pop-in on the first title. (Offline demo: set OPENAI_API_KEY for a real model.)",
+    "Added dissolves on the cuts and a pop-in on the first title. (Offline demo: set OPENAI_API_KEY, ANTHROPIC_API_KEY or GEMINI_API_KEY for a real model.)",
   ], { id: "offline" });
 }
 
@@ -77,7 +77,7 @@ export function renderAssistantPanel(body: HTMLElement, getProject: () => Projec
   const clear = el("button", { textContent: "New chat" });
 
   void modelReady.then((m) => {
-    status.textContent = m.id === "offline" ? "Offline demo model (set OPENAI_API_KEY and restart for OpenAI)" : `${m.label} · ${m.models?.[0]?.id ?? ""}`;
+    status.textContent = m.id === "offline" ? "Offline demo model (set OPENAI_API_KEY, ANTHROPIC_API_KEY or GEMINI_API_KEY and restart)" : `${m.label} · ${m.models?.[0]?.id ?? ""}`;
   });
 
   const ask = async () => {
