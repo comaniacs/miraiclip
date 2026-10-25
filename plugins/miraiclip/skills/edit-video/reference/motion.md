@@ -9,6 +9,8 @@ Two ways to move things:
 
 ## Animation presets
 
+In a Miraiclip editor, the `animate_clip` tool takes these same presets (`in`, `loop`, `out`, `easing`), on the clip as it is now; the `mc` commands below are for Claude Code.
+
 The same presets as the Miraiclip editor's animation panel. A recipe has up to three slots: **in** (from the clip's start), **loop** (between in and out), **out** (into the end, end-anchored so it follows trims).
 
 ```bash

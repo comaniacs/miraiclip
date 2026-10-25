@@ -38,6 +38,13 @@ export function substituteParams(
 /** Fetched resources as data: URIs, cached per source (fonts, inlined assets). */
 const resourceCache = new Map<string, Promise<string>>();
 
+const warned = new Set<string>();
+function warnOnce(key: string, message: string): void {
+  if (warned.has(key)) return;
+  warned.add(key);
+  console.warn(message);
+}
+
 async function toDataUri(src: string): Promise<string> {
   if (src.startsWith("data:")) return src;
   let cached = resourceCache.get(src);
@@ -174,6 +181,14 @@ export interface RasterizeHtmlOptions {
    */
   scripted?: boolean;
   /**
+   * Raster on the CPU (a `willReadFrequently` 2D canvas) instead of the GPU.
+   * Slower — fine at small sizes, too slow for full-size playback — but
+   * exact: some GPU rasterizers draw large `filter: blur()` layers under a 3D
+   * transform (a sequence camera's tilt) with tile-shaped artifacts. For
+   * analysis and previews (motion sampling, filmstrips). Ignores `target`.
+   */
+  software?: boolean;
+  /**
    * Draw into this canvas (resized if needed) instead of a new one. Animated
    * clips re-raster every frame; a fresh full-size canvas per frame was the
    * largest source of preview memory churn. DOM path only.
@@ -289,10 +304,10 @@ export async function rasterizeHtml(
   });
 
   // The launder: via a 2D canvas the pixels are WebGL-safe (see header).
-  const canvas = options.target ?? document.createElement("canvas");
+  const canvas = (options.software ? undefined : options.target) ?? document.createElement("canvas");
   if (canvas.width !== physicalW) canvas.width = physicalW;
   if (canvas.height !== physicalH) canvas.height = physicalH;
-  const context = canvas.getContext("2d");
+  const context = canvas.getContext("2d", options.software ? { willReadFrequently: true } : undefined);
   if (!context) throw new Error("could not create a 2D context for html rasterization");
   context.clearRect(0, 0, physicalW, physicalH);
   context.drawImage(image, 0, 0);
@@ -323,7 +338,15 @@ async function fontFaceCss(markup: string, assets: Readonly<Record<string, Asset
   for (const asset of Object.values(assets)) {
     if (asset.kind !== "font" || !asset.family) continue;
     if (!markup.includes(asset.family)) continue;
-    const uri = await toDataUri(asset.src);
+    // A font that can't be fetched falls back to the CSS's next family; it
+    // never blanks the whole clip.
+    let uri: string;
+    try {
+      uri = await toDataUri(asset.src);
+    } catch (err) {
+      warnOnce(`font:${asset.src}`, `[miraiclip] html clip: font "${asset.family}" couldn't be loaded, using the fallback font (${(err as Error)?.message ?? err})`);
+      continue;
+    }
     const d = fontFaceDescriptors(asset);
     const descriptors = (d.weight ? `;font-weight:${d.weight}` : "") + (d.style ? `;font-style:${d.style}` : "");
     fontCss += `@font-face{font-family:${JSON.stringify(asset.family)};src:url(${JSON.stringify(uri)})${descriptors}}`;

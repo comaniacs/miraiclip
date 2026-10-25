@@ -20,7 +20,8 @@ import {
 } from "@miraiclip/core";
 import { describeForAssistant, describeKeyframes, htmlPlaceholders, readClipAnimation } from "./state.js";
 import { unknownFields } from "./strict.js";
-import type { ToolSpec } from "./types.js";
+import { assetRefs, markupProblem } from "./markup.js";
+import type { ChatImage, ToolSpec } from "./types.js";
 
 /** What a tool's `run` gets. `project` is the turn's working copy. */
 export interface ToolContext {
@@ -28,9 +29,13 @@ export interface ToolContext {
   signal?: AbortSignal;
 }
 
-/** A tool's answer. `changes` are human-readable lines for the app's "what changed" list. */
+/**
+ * A tool's answer. `changes` are human-readable lines for the app's "what
+ * changed" list. `images` go to the model with the result, so it can look at
+ * what it made (rendered frames); models that can't see get the text only.
+ */
 export type ToolOutput =
-  | { ok: true; result?: unknown; changes?: string[] }
+  | { ok: true; result?: unknown; changes?: string[]; images?: ChatImage[] }
   | { ok: false; error: unknown };
 
 export interface AssistantTool extends ToolSpec {
@@ -636,6 +641,7 @@ export function applyChecked(project: Project, commands: Command[]): ToolOutput 
   const catalog = project.commandCatalog();
   const nothing = commands.length > 1 ? "Nothing in this batch was applied (not even the commands before it): resend the whole corrected batch." : "Nothing was applied.";
   const templates = new Map<string, string>();
+  const batchAssets = new Set(commands.flatMap((c) => (c?.type === "asset/add" && typeof (c.payload as { id?: unknown })?.id === "string" ? [(c.payload as { id: string }).id] : [])));
   for (const [index, command] of commands.entries()) {
     if (!catalog[command?.type]) {
       const looksLikeTool = /^[a-z]+(_[a-z]+)+$/.test(String(command?.type));
@@ -650,7 +656,7 @@ export function applyChecked(project: Project, commands: Command[]): ToolOutput 
         },
       };
     }
-    const htmlError = checkHtmlParams(project, command, templates);
+    const htmlError = checkHtmlMarkup(project, command, batchAssets) ?? checkHtmlParams(project, command, templates);
     if (htmlError) return { ok: false, error: { failedIndex: index, commandType: command.type, error: `${htmlError} ${nothing}` } };
     const extra = unknownFields(catalog[command?.type], command?.payload);
     if (extra) {
@@ -698,6 +704,24 @@ export function applyChecked(project: Project, commands: Command[]): ToolOutput 
 }
 
 /** html clips substitute `{{name}}` placeholders: params with any other name change nothing on screen. */
+/** A new or replaced html template must parse as XML and use only assets that exist. */
+function checkHtmlMarkup(project: Project, command: Command, batchAssets: ReadonlySet<string>): string | undefined {
+  const p = (command.payload ?? {}) as Record<string, unknown>;
+  const isHtmlAdd = command.type === "clip/add" && p.kind === "html";
+  const isTemplateSet = command.type === "clip/set-property" && "template" in p;
+  if ((!isHtmlAdd && !isTemplateSet) || typeof p.template !== "string") return undefined;
+  const label = isHtmlAdd ? `html clip "${p.id ?? "(new)"}"` : `the template for "${p.clipId}"`;
+  const problem = markupProblem(p.template);
+  if (problem) return `${label} won't render: its markup is parsed as XML and ${problem}.`;
+  const assets = project.getState().doc.assets;
+  const missing = assetRefs(p.template).filter((id) => !assets[id] && !batchAssets.has(id));
+  if (missing.length) {
+    const images = Object.values(assets).filter((a) => a.kind === "image").map((a) => a.id);
+    return `${label} uses ${missing.map((id) => `"asset:${id}"`).join(", ")}, but there is no such asset. Use an asset in the project (images: ${images.join(", ") || "none"}), add it in this batch with asset/add, or leave the image out.`;
+  }
+  return undefined;
+}
+
 function checkHtmlParams(project: Project, command: Command, templates: Map<string, string>): string | undefined {
   const p = (command.payload ?? {}) as Record<string, unknown>;
   let template: string | undefined;

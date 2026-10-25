@@ -15,6 +15,8 @@ export const BLOCK_CATEGORIES = [
   "progress",
   "background",
   "caption-style",
+  "scene",
+  "overlay",
 ] as const;
 
 export type BlockCategory = (typeof BLOCK_CATEGORIES)[number];

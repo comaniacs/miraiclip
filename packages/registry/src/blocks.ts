@@ -10,6 +10,9 @@
  * length in seconds).
  */
 import type { BlockInput } from "./types.js";
+import { LAUNCH_SCENES } from "./scenes.js";
+import { DOC_SCENES, FILM_OVERLAY } from "./docScenes.js";
+import { COURSE_SCENES } from "./courseScenes.js";
 
 const FONT = "Inter,system-ui,'Segoe UI',Roboto,sans-serif";
 const S = 1_000_000;
@@ -503,4 +506,9 @@ ${exit(`<div style="max-width:80vmax;text-align:center;font-weight:800;font-size
       style: { preset: "plain", fontFamily: "Inter, sans-serif", fontWeight: 600, fontSizeFrac: 0.048, color: "#ffffff", shadowColor: "#000000e6", shadowBlurFrac: 0.12, shadowOffsetFrac: 0.04 },
     },
   },
+  // ---------------------------------------------------------------- launch scenes (scenes.ts)
+  ...LAUNCH_SCENES,
+  ...DOC_SCENES,
+  ...COURSE_SCENES,
+  FILM_OVERLAY,
 ];

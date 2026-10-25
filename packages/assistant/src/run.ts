@@ -2,7 +2,8 @@ import type { Command, Project, ProjectDocument } from "@miraiclip/core";
 import { describeForAssistant } from "./state.js";
 import { commitFork, forkProject, type CommitResult, type ForkOptions } from "./fork.js";
 import { editorTools, type AssistantTool } from "./tools.js";
-import type { ChatMessage, ChatModel, ChatUsage, ToolCall } from "./types.js";
+import { describeSkills, skillTools, type AssistantSkill } from "./skills.js";
+import { ChatModelError, type ChatMessage, type ChatImage, type ChatModel, type ChatRequest, type ChatResponse, type ChatUsage, type ToolCall } from "./types.js";
 
 export interface AssistantOptions {
   model: ChatModel;
@@ -10,6 +11,12 @@ export interface AssistantOptions {
   tools?: AssistantTool[];
   /** Extra system instructions (brand voice, house rules). */
   instructions?: string;
+  /**
+   * Playbooks the model can load when a request needs one (e.g.
+   * `MIRAICLIP_SKILLS`). Adds `load_skill` and `read_skill_file` to the tools
+   * and lists each skill's name and description in the system prompt.
+   */
+  skills?: readonly AssistantSkill[];
   /** Model round-trips per request (default 12). */
   maxSteps?: number;
   /** Model id when the adapter serves several. */
@@ -23,7 +30,15 @@ export interface AssistantOptions {
 export type AssistantEvent =
   | { type: "text"; delta: string }
   | { type: "tool-start"; call: ToolCall }
-  | { type: "tool-end"; call: ToolCall; ok: boolean; changes?: string[]; error?: string }
+  | {
+      type: "tool-end";
+      call: ToolCall;
+      ok: boolean;
+      changes?: string[];
+      error?: string;
+      /** Images the tool returned (previews, storyboards) — the model sees them too; apps may show them. */
+      images?: ChatImage[];
+    }
   | { type: "step"; index: number };
 
 export interface TurnOptions {
@@ -37,6 +52,13 @@ export interface TurnOptions {
   onEvent?: (event: AssistantEvent) => void;
   /** History label for the undo step (default "Assistant: <request>"). */
   label?: string;
+  /**
+   * Skills to load up front for this request, by name (e.g. the user picked
+   * "Captions" in the app). Their playbooks go into the system prompt, so the
+   * model starts on them without a `load_skill` call. Unknown names are
+   * ignored.
+   */
+  skills?: readonly string[];
 }
 
 export interface AssistantTurn {
@@ -68,6 +90,9 @@ export interface Assistant {
 }
 
 const MAX_TOOL_RESULT = 20_000;
+/** Pictures per tool result, and how many recent results keep theirs (see recentImagesOnly). */
+const MAX_IMAGES_PER_RESULT = 4;
+const KEEP_IMAGE_RESULTS = 2;
 const MAX_OLD_TOOL_RESULT = 2_000;
 
 export const DEFAULT_INSTRUCTIONS = `You are the editing assistant inside a video editor. You change the user's project by calling tools; every change you make lands as ONE undo step when you finish, so act confidently.
@@ -97,7 +122,9 @@ How to work:
 When you're done, reply in one to three short sentences: what you changed, in plain words (times in seconds, names over ids). Describe only edits your tools reported as applied; if a tool says something changed nothing or failed, fix it or say so. No markdown headings.`;
 
 export function createAssistant(options: AssistantOptions): Assistant {
-  const tools = options.tools ?? editorTools();
+  const skills = options.skills ?? [];
+  const tools = [...(options.tools ?? editorTools()), ...skillTools(skills)];
+  const skillByName = new Map(skills.map((s) => [s.name, s]));
   const byName = new Map(tools.map((t) => [t.name, t]));
   const specs = tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
   const maxSteps = options.maxSteps ?? 12;
@@ -114,6 +141,15 @@ export function createAssistant(options: AssistantOptions): Assistant {
       const system = [
         DEFAULT_INSTRUCTIONS,
         options.instructions?.trim(),
+        describeSkills(skills),
+        ...(turn.skills ?? []).flatMap((name) => {
+          const skill = skillByName.get(name);
+          if (!skill) return [];
+          const files = Object.keys(skill.files ?? {});
+          return [
+            `The user started this request with the "${skill.name}" skill. It's loaded; follow it:\n\n${skill.instructions}${files.length ? `\n\n(Its files, for read_skill_file: ${files.join(", ")}.)` : ""}`,
+          ];
+        }),
         `Current project:\n${describeForAssistant(fork.toJSON())}`,
         turn.context?.trim() ? `What the user is looking at: ${turn.context.trim()}` : undefined,
         selectionNote(fork.toJSON(), fork.getState().selection),
@@ -125,6 +161,7 @@ export function createAssistant(options: AssistantOptions): Assistant {
       let status: AssistantTurn["status"] = "no-changes";
       let error: string | undefined;
 
+      let seesImages = true;
       try {
         for (let step = 0; ; step++) {
           if (step >= maxSteps) {
@@ -132,16 +169,25 @@ export function createAssistant(options: AssistantOptions): Assistant {
             break;
           }
           emit({ type: "step", index: step });
-          const response = await options.model.complete(
-            {
-              messages: [{ role: "system", content: system }, ...history, ...added],
-              tools: specs,
-              ...(options.modelId ? { model: options.modelId } : {}),
-              ...(options.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
-              ...(options.params ? { params: options.params } : {}),
-            },
-            { ...(turn.signal ? { signal: turn.signal } : {}), onText: (delta) => emit({ type: "text", delta }) },
-          );
+          const request: ChatRequest = {
+            messages: recentImagesOnly([{ role: "system", content: system }, ...history, ...added], seesImages ? KEEP_IMAGE_RESULTS : 0),
+            tools: specs,
+            ...(options.modelId ? { model: options.modelId } : {}),
+            ...(options.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
+            ...(options.params ? { params: options.params } : {}),
+          };
+          const callOptions = { ...(turn.signal ? { signal: turn.signal } : {}), onText: (delta: string) => emit({ type: "text", delta }) };
+          let response: ChatResponse;
+          try {
+            response = await options.model.complete(request, callOptions);
+          } catch (err) {
+            // A model that can't take images (or a provider that refuses them here) gets the text only, for the rest of the turn.
+            const hasImages = request.messages.some((m) => m.role === "tool" && m.images?.length);
+            const refused = err instanceof ChatModelError && (err.status === 400 || err.status === 415 || /image|inline|multimodal|vision|content type/i.test(err.message));
+            if (!hasImages || !refused || turn.signal?.aborted) throw err;
+            seesImages = false;
+            response = await options.model.complete({ ...request, messages: recentImagesOnly(request.messages, 0) }, callOptions);
+          }
           usage.inputTokens += response.usage?.inputTokens ?? 0;
           usage.outputTokens += response.usage?.outputTokens ?? 0;
           added.push({ role: "assistant", content: response.content, ...(response.toolCalls.length ? { toolCalls: response.toolCalls } : {}) });
@@ -160,8 +206,15 @@ export function createAssistant(options: AssistantOptions): Assistant {
               ok: out.ok,
               ...(out.ok && out.changes?.length ? { changes: out.changes } : {}),
               ...(!out.ok ? { error: short(out.error) } : {}),
+              ...(out.ok && out.images?.length ? { images: out.images.slice(0, MAX_IMAGES_PER_RESULT) } : {}),
             });
-            added.push({ role: "tool", toolCallId: call.id, name: call.name, content: cap(out.ok ? out.result ?? { ok: true } : { ok: false, error: out.error }, MAX_TOOL_RESULT) });
+            added.push({
+              role: "tool",
+              toolCallId: call.id,
+              name: call.name,
+              content: cap(out.ok ? out.result ?? { ok: true } : { ok: false, error: out.error }, MAX_TOOL_RESULT),
+              ...(out.ok && out.images?.length ? { images: out.images.slice(0, MAX_IMAGES_PER_RESULT) } : {}),
+            });
           }
         }
         status = fork.recorded.length === 0 ? "no-changes" : turn.apply === "review" ? "review" : "applied";
@@ -216,6 +269,24 @@ async function runTool(tool: AssistantTool | undefined, call: ToolCall, project:
     if ((err as Error)?.name === "AbortError") throw err;
     return { ok: false as const, error: (err as Error)?.message ?? String(err) };
   }
+}
+
+/**
+ * Pictures cost a lot of input: keep them only on the latest few tool results
+ * that have any (the model has already looked at the older ones and said what
+ * it saw), and drop them from the rest.
+ */
+export function recentImagesOnly(messages: ChatMessage[], keep: number): ChatMessage[] {
+  let seen = 0;
+  const out = [...messages];
+  for (let i = out.length - 1; i >= 0; i--) {
+    const m = out[i]!;
+    if (m.role !== "tool" || !m.images?.length) continue;
+    if (seen++ < keep) continue;
+    const { images: _dropped, ...rest } = m;
+    out[i] = { ...rest, content: `${rest.content} [${_dropped.length} image${_dropped.length > 1 ? "s" : ""} shown earlier]` };
+  }
+  return out;
 }
 
 function cap(value: unknown, max: number): string {

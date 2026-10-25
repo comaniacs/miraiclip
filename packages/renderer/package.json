@@ -18,7 +18,8 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./export-worker": "./src/export/worker/export.worker.ts"
+    "./export-worker": "./src/export/worker/export.worker.ts",
+    "./stage": "./src/stage/index.ts"
   },
   "files": [
     "dist"
@@ -48,13 +49,24 @@
           "types": "./dist/export.worker.d.ts",
           "default": "./dist/export.worker.js"
         }
+      },
+      "./stage": {
+        "import": {
+          "types": "./dist/stage.d.ts",
+          "default": "./dist/stage.js"
+        },
+        "require": {
+          "types": "./dist/stage.d.cts",
+          "default": "./dist/stage.cjs"
+        }
       }
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "node scripts/bundle-stage.mjs --check && tsup",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "stage": "node scripts/bundle-stage.mjs"
   },
   "dependencies": {
     "mediabunny": "^1.24.0",
@@ -68,6 +80,7 @@
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
-    "zod": "^4.5.4"
+    "zod": "^4.5.4",
+    "animejs": "4.5.0"
   }
 }

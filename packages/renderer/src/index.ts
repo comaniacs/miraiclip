@@ -89,6 +89,15 @@ export { analyzeHtmlAnimations, buildAnimationTimeline } from "./html/animation-
 export type { AnimationDescriptor, ConstantSpan, HtmlAnimationTimeline } from "./html/animation-timeline.js";
 export { collectHtmlRasters, htmlAnimationTiming, htmlRasterKey, provideHtmlRasters, rasterizeHtml, setHtmlRasterSource, substituteParams } from "./html/rasterize.js";
 export type { HtmlRasterRequest, HtmlRasterSource, RasterizeHtmlOptions } from "./html/rasterize.js";
+export { disposeScriptedHtmlFrames, registerScriptedLibraries, requestedLibraries, resolveLibraries, scriptedLibraryNames, snapshotScriptedHtml } from "./html/scripted.js";
+export type { ScriptedLibrary } from "./html/scripted.js";
+export { lintSequence } from "./stage/lint.js";
+// The stage kit for scripted sequences (anime.js inside; tree-shaken away when unused).
+export { registerStageKit, ANIME_VERSION } from "./stage/index.js";
+export type { SequenceLintFinding, SequenceLintResult } from "./stage/lint.js";
+// Motion metrics: how much rendered frames move (holds, jumps, density), for checking motion graphics.
+export { changeSeries, frameChange, lumaFrame, motionFindings, motionMetrics, MOTION_SAMPLE, MOTION_TARGETS } from "./metrics/motion.js";
+export type { LumaFrame, MotionFinding, MotionOptions, MotionReport, MotionTargets } from "./metrics/motion.js";
 export { renderProjectStill } from "./export/render-still.js";
 export type { RenderProjectStillOptions } from "./export/render-still.js";
 

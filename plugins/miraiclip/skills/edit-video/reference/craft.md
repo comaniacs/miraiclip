@@ -25,7 +25,7 @@ Keep text and faces inside these margins (fractions of the frame):
 
 ## Type
 
-- One font family per video, two weights (e.g. 800 for headlines, 500 for body). With no brand font, use **Inter** (OFL): download `InterVariable.woff2` from https://github.com/rsms/inter/releases into the folder and register it once: `{ "type": "asset/add", "payload": { "id": "inter", "kind": "font", "src": "InterVariable.woff2", "family": "Inter", "weightRange": [100, 900] } }`. System fonts differ between the machine you preview on and the one that exports, so a registered font also keeps the look stable.
+- One font family per video, two weights (e.g. 800 for headlines, 500 for body). With no brand font, use **Inter** (OFL): download `InterVariable.woff2` from https://github.com/rsms/inter/releases into the folder and register it once: `{ "type": "asset/add", "payload": { "id": "inter", "kind": "font", "src": "InterVariable.woff2", "family": "Inter", "weightRange": [100, 900] } }`. System fonts differ between the machine you preview on and the one that exports, so a registered font also keeps the look stable. In an editor, register the font by URL (`src` an https URL) or use one the project already has.
 - Sizes for a 1920×1080 frame (scale by frame width for other shapes; on 1080×1920 use roughly the same pixel sizes, since the width is about the same):
 
 | Role | Size | Weight | Letter spacing |
@@ -90,7 +90,7 @@ Keep text and faces inside these margins (fractions of the frame):
 
 ## Review checklist
 
-Go through it on the contact sheet and on full-size `preview_frame`s:
+Go through it on the contact sheet and on full-size `preview_frame`s (in an editor without previews: against the project state, in numbers):
 
 1. **First frame and first 2 s**: is there something to look at immediately, and does it say what the video is?
 2. **Legibility**: every piece of text readable at phone size, on screen long enough (reading-time rule above), contrast OK over its background.

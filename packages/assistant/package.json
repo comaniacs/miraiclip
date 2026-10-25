@@ -42,7 +42,8 @@
     }
   },
   "scripts": {
-    "build": "tsup",
+    "skills": "node scripts/bundle-skills.mjs",
+    "build": "node scripts/bundle-skills.mjs --check && tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "eval": "vitest run -c vitest.eval.config.ts"

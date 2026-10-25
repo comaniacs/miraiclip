@@ -47,6 +47,7 @@ type Part = {
   thoughtSignature?: string;
   functionCall?: { id?: string; name: string; args?: Record<string, unknown> };
   functionResponse?: { id?: string; name: string; response: Record<string, unknown> };
+  inlineData?: { mimeType: string; data: string };
 };
 export type GeminiContent = { role: "user" | "model"; parts: Part[] };
 
@@ -83,12 +84,20 @@ export function toGeminiContents(messages: readonly ChatMessage[]): { system: st
     if (last && last.role === role) last.parts.push(...parts);
     else contents.push({ role, parts });
   };
+  // Pictures from a run of tool results go after all its function responses, in the same turn.
+  let pending: Part[] = [];
+  const flush = () => {
+    if (pending.length) push("user", [{ text: "Images returned by the tool calls above:" }, ...pending]);
+    pending = [];
+  };
   for (const m of messages) {
+    if (m.role !== "tool") flush();
     if (m.role === "system") system.push(m.content);
     else if (m.role === "user") push("user", m.content ? [{ text: m.content }] : []);
     else if (m.role === "tool") {
       const id = callIds.get(m.toolCallId);
       push("user", [{ functionResponse: { ...(id ? { id } : {}), name: m.name, response: responseObject(m.content) } }]);
+      if (m.images?.length) pending.push({ text: `From ${m.name}:` }, ...m.images.map((i): Part => ({ inlineData: { mimeType: i.mimeType, data: i.data } })));
     } else {
       const calls = m.toolCalls ?? [];
       const signed = calls.some((c) => metaOf(c).signature);
@@ -103,6 +112,7 @@ export function toGeminiContents(messages: readonly ChatMessage[]): { system: st
       ]);
     }
   }
+  flush();
   return { system: system.join("\n\n"), contents };
 }
 

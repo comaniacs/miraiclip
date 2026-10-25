@@ -53,10 +53,11 @@ export interface AnthropicChatModelOptions {
   fetch?: FetchLike;
 }
 
+type ImageBlock = { type: "image"; source: { type: "base64"; media_type: string; data: string } };
 type Block =
   | { type: "text"; text: string }
   | { type: "tool_use"; id: string; name: string; input: Record<string, unknown> }
-  | { type: "tool_result"; tool_use_id: string; content: string }
+  | { type: "tool_result"; tool_use_id: string; content: string | ({ type: "text"; text: string } | ImageBlock)[] }
   | { type: "thinking"; thinking: string; signature: string }
   | { type: "redacted_thinking"; data: string };
 
@@ -76,7 +77,12 @@ export function toAnthropicMessages(messages: readonly ChatMessage[]): { system:
   for (const m of messages) {
     if (m.role === "system") system.push(m.content);
     else if (m.role === "user") push("user", m.content.trim() ? [{ type: "text", text: m.content }] : []);
-    else if (m.role === "tool") push("user", [{ type: "tool_result", tool_use_id: m.toolCallId, content: m.content }]);
+    else if (m.role === "tool") {
+      const content = m.images?.length
+        ? [{ type: "text" as const, text: m.content }, ...m.images.map((i): ImageBlock => ({ type: "image", source: { type: "base64", media_type: i.mimeType, data: i.data } }))]
+        : m.content;
+      push("user", [{ type: "tool_result", tool_use_id: m.toolCallId, content }]);
+    }
     else {
       const thinking = (m.toolCalls?.[0]?.meta?.anthropicThinking as Block[] | undefined) ?? [];
       push("assistant", [

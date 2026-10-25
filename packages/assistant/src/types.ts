@@ -17,11 +17,19 @@ export interface ToolCall {
   meta?: Record<string, unknown>;
 }
 
+/** An image the model looks at (a rendered preview a tool returns): base64 bytes and their type. */
+export interface ChatImage {
+  mimeType: string;
+  /** Base64, no `data:` prefix. */
+  data: string;
+}
+
 export type ChatMessage =
   | { role: "system"; content: string }
   | { role: "user"; content: string }
   | { role: "assistant"; content: string; toolCalls?: ToolCall[] }
-  | { role: "tool"; toolCallId: string; name: string; content: string };
+  /** `images`: pictures that come with the result (e.g. rendered frames), for models that can see. */
+  | { role: "tool"; toolCallId: string; name: string; content: string; images?: ChatImage[] };
 
 /** A tool as the model sees it: name, description and a JSON Schema for its input. */
 export interface ToolSpec {

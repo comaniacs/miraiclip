@@ -54,14 +54,37 @@ export interface OpenAIChatModelOptions {
   fetch?: FetchLike;
 }
 
+type OpenAIPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 type OpenAIMessage =
   | { role: "system" | "user"; content: string }
+  | { role: "user"; content: OpenAIPart[] }
   | { role: "assistant"; content: string | null; tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[] }
   | { role: "tool"; tool_call_id: string; content: string };
 
 /** Neutral messages → Chat Completions messages. */
 export function toOpenAIMessages(messages: readonly ChatMessage[]): OpenAIMessage[] {
-  return messages.map((m): OpenAIMessage => {
+  // Tool messages can't carry images in Chat Completions: the pictures from a
+  // run of tool results follow it as one user message.
+  const out: OpenAIMessage[] = [];
+  let pending: OpenAIPart[] = [];
+  const flush = () => {
+    if (!pending.length) return;
+    out.push({ role: "user", content: [{ type: "text", text: "Images returned by the tool calls above:" }, ...pending] });
+    pending = [];
+  };
+  for (const m of messages) {
+    if (m.role !== "tool") flush();
+    out.push(one(m));
+    if (m.role === "tool" && m.images?.length) {
+      pending.push({ type: "text", text: `From ${m.name} (${m.toolCallId}):` }, ...m.images.map((i): OpenAIPart => ({ type: "image_url", image_url: { url: `data:${i.mimeType};base64,${i.data}` } })));
+    }
+  }
+  flush();
+  return out;
+}
+
+function one(m: ChatMessage): OpenAIMessage {
+  {
     if (m.role === "assistant") {
       const out: OpenAIMessage = { role: "assistant", content: m.content || null };
       if (m.toolCalls?.length) {
@@ -71,7 +94,7 @@ export function toOpenAIMessages(messages: readonly ChatMessage[]): OpenAIMessag
     }
     if (m.role === "tool") return { role: "tool", tool_call_id: m.toolCallId, content: m.content };
     return { role: m.role, content: m.content };
-  });
+  }
 }
 
 const FINISH: Record<string, ChatResponse["finish"]> = {

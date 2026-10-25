@@ -9,6 +9,7 @@
  */
 import { createProject, type ProjectDocument } from "@miraiclip/core";
 import { exportProject, isWebCodecsSupported, loadDocumentPlugins, renderProjectStill, type LoadedPlugins } from "@miraiclip/renderer";
+import { registerStageKit } from "@miraiclip/renderer/stage";
 import type { HarnessPlugins } from "./protocol.js";
 import "./protocol.js";
 
@@ -34,6 +35,9 @@ async function withPlugins<T>(plugins: HarnessPlugins | undefined, run: () => Pr
     loaded?.unload();
   }
 }
+
+// Scripted sequences name their libraries (data-libs="stage"); register the same ones the editor does.
+registerStageKit();
 
 let controller: AbortController | undefined;
 

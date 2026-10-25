@@ -25,6 +25,16 @@ skills/screen-tutorial/
 skills/make-template/        template loop, kit/ (shared kit + starter), scripts/frames.mjs (studio frame capture), reference/ (patterns, scorecard)
 ```
 
+## Editor versions (EDITOR.md)
+
+Each skill folder can also hold an `EDITOR.md`: the same job written for the assistant inside a Miraiclip editor (`@miraiclip/assistant`), which has editing tools but no shell, MCP server or frame previews. Claude Code never reads it; the `reference/` files are shared. After changing an `EDITOR.md` or a reference file, rebundle them into the package:
+
+```bash
+pnpm --filter @miraiclip/assistant skills    # writes packages/assistant/src/skills.generated.ts
+```
+
+The package's build and tests fail while the bundle is out of date.
+
 ## Developing
 
 ```bash

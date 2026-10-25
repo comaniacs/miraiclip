@@ -53,3 +53,7 @@ export { audioDurationUs, mp3DurationUs, wavDurationUs } from "./generate/durati
 export type { ElevenLabsGeneratorOptions } from "./generate/elevenlabs.js";
 export { toneGenerator } from "./generate/tone.js";
 export type { ToneGeneratorOptions } from "./generate/tone.js";
+
+// Beat analysis: tempo, beat times and downbeats, so motion can land on the beat.
+export { analyzeBeats, beatAlignment, decodeAndAnalyzeBeats, snapToBeat } from "./beats.js";
+export type { AnalyzeBeatsOptions, BeatAnalysis, BeatInput } from "./beats.js";

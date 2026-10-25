@@ -1,4 +1,10 @@
 export { BUILTIN_BLOCKS } from "./blocks.js";
+export { BRAND_FIELD_KEYS, BRAND_FIELDS, LAUNCH_SCENES } from "./scenes.js";
+export { DISPLAY_FIELD, DOC_SCENES, FILM_OVERLAY, FILM_SCENES } from "./docScenes.js";
+export { COURSE_SCENES } from "./courseScenes.js";
+export { FILM_FORMATS, FILM_STYLES, FORMAT_INFO, sceneFormats } from "./film.js";
+export type { FilmFormat, FilmFormatInfo, FilmStyle, FilmStyleTokens } from "./film.js";
+
 export {
   blockCommands,
   captionStyleCommands,

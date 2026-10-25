@@ -102,15 +102,86 @@ const BRIDGE = String.raw`(() => {
       }
     });
   });
-  const ready = () => (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => parent.postMessage({ __miraiclip: "ready" }, "*"));
+  // A runtime that builds its timeline asynchronously (the stage kit, after fonts load) sets
+  // window.__miraiclipReady to a promise; the frame reports ready only once it settles.
+  const ready = () => (document.fonts ? document.fonts.ready : Promise.resolve())
+    .then(() => window.__miraiclipReady)
+    .catch(() => undefined)
+    .then(() => parent.postMessage({ __miraiclip: "ready" }, "*"));
   if (document.readyState === "complete") ready(); else window.addEventListener("load", ready);
 })();`;
 
-/** Build the frame document: the template at its logical size, plus the seek bridge. */
+/**
+ * Libraries a scripted template can ask for by name instead of loading them
+ * from the network: `data-libs="anime stage"` on any element of the template.
+ * The host registers each library's code once (`registerScriptedLibraries`),
+ * in every place that renders (the editor, export workers' main thread, the
+ * server-export harness), and the frame document gets the code inline, in
+ * dependency order, before the template's own scripts. Nothing is fetched at
+ * render time, and nothing is stored in the project.
+ */
+export interface ScriptedLibrary {
+  /** The library's JavaScript, run as a classic script. */
+  code: string;
+  /** Libraries this one needs first. */
+  requires?: string[];
+}
+
+const libraries = new Map<string, ScriptedLibrary>();
+/** Bumped on every registration, so frames built with older code are rebuilt. */
+let librariesVersion = 0;
+
+/** Register (or replace) libraries scripted templates can name in `data-libs`. */
+export function registerScriptedLibraries(libs: Readonly<Record<string, string | ScriptedLibrary>>): void {
+  for (const [name, lib] of Object.entries(libs)) {
+    if (!/^[a-z0-9][a-z0-9_-]*$/i.test(name)) throw new Error(`scripted library name must be alphanumeric with - or _ (got "${name}")`);
+    libraries.set(name, typeof lib === "string" ? { code: lib } : lib);
+  }
+  librariesVersion++;
+}
+
+/** Names of the registered libraries. */
+export function scriptedLibraryNames(): string[] {
+  return [...libraries.keys()];
+}
+
+/** The libraries a template names in `data-libs` (space- or comma-separated, across all elements). */
+export function requestedLibraries(markup: string): string[] {
+  const names = new Set<string>();
+  for (const m of markup.matchAll(/data-libs\s*=\s*["']([^"']*)["']/gi)) for (const n of m[1]!.split(/[\s,]+/)) if (n) names.add(n);
+  return [...names];
+}
+
+/** The requested libraries and their dependencies, dependencies first. Throws on an unknown name or a cycle. */
+export function resolveLibraries(names: readonly string[]): { name: string; code: string }[] {
+  const out: { name: string; code: string }[] = [];
+  const done = new Set<string>();
+  const visiting = new Set<string>();
+  const visit = (name: string) => {
+    if (done.has(name)) return;
+    if (visiting.has(name)) throw new Error(`scripted libraries require each other in a cycle at "${name}"`);
+    const lib = libraries.get(name);
+    if (!lib) throw new Error(`scripted html clip needs library "${name}", which isn't registered (registered: ${scriptedLibraryNames().join(", ") || "none"})`);
+    visiting.add(name);
+    for (const dep of lib.requires ?? []) visit(dep);
+    visiting.delete(name);
+    done.add(name);
+    out.push({ name, code: lib.code });
+  };
+  for (const n of names) visit(n);
+  return out;
+}
+
+/** A script's text made safe inside an inline <script> element. */
+const inlineScript = (code: string) => code.replace(/<\/script/gi, "<\\/script");
+
+/** Build the frame document: the template at its logical size, the libraries it names, plus the seek bridge. */
 export function scriptedFrameDocument(markup: string, widthPx: number, heightPx: number): string {
+  const libs = resolveLibraries(requestedLibraries(markup));
   return (
     `<!doctype html><html><head><meta charset="utf-8"/>` +
     `<style>html,body{margin:0;padding:0;width:${widthPx}px;height:${heightPx}px;overflow:hidden;background:transparent}</style>` +
+    libs.map((l) => `<script data-lib="${l.name}">${inlineScript(l.code)}</script>`).join("") +
     `</head><body>${markup}<script>${BRIDGE}</script></body></html>`
   );
 }
@@ -206,7 +277,7 @@ export async function snapshotScriptedHtml(options: {
   /** How long the frame may take to load (default 15 s). */
   loadTimeoutMs?: number;
 }): Promise<string> {
-  const key = JSON.stringify([options.markup, options.widthPx, options.heightPx]);
+  const key = JSON.stringify([options.markup, options.widthPx, options.heightPx, librariesVersion]);
   const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, options.loadTimeoutMs ?? 15_000);
   const run = frame.queue.then(async () => {
     await frame.ready;
