@@ -19,6 +19,17 @@ What v3 adds over v2:
 
 How it is built: `.world` carries the perspective and the camera; `.table` is rotated with `preserve-3d` and tilts per beat; `.spin` swings the plane. Depth of field is a CSS blur on the faces of out-of-focus slabs, driven by three variables, because a blur on a 3D container would flatten it. Anchors and follow measure projected positions, so the camera stays correct over the swinging plane, and the camera itself is never tilted.
 
+Measured frame to frame at 12 fps on low-res renders, against the reference film:
+
+| | reference | v1 | v2 | v3 |
+| --- | --- | --- | --- | --- |
+| Average change per frame | 7.8 | 1.2 | 5.2 | 8.6 |
+| Frames where nothing moves | 0% | 39% | 6% | 1% |
+| Longest stretch with nothing moving | 0 s | 1.7 s | 0.7 s | 0.25 s |
+| Share of the frame changing (median) | 16.7% | 0.9% | 7.8% | 14.8% |
+
+Cost: this is the heaviest example in the gallery. The blurred faces, the shadows and the many stacked layers made a 480×270 still take about 4 s here, with software rendering in a headless browser. Expect a slow export, and try it on your GPU machine first. If it is too slow, drop the three `--b…` blur variables to 0.
+
 Export with shutter motion blur on (the exporter's `motionBlur` option or the playground checkbox) for the fast moves: the leap onto the button and the shake are meant to be soft. The film records a hit on every landing, press and whoosh for sound, but nothing turns those into foley yet.
 
 Checked with the shot check and by eye on stills. Build it with `node build.mjs` (needs `@miraiclip/core` built), then open `video.miraiclip.json` in an editor, or export with `npx -p @miraiclip/server-export miraiclip-export video.miraiclip.json --out nudge3.mp4`.
