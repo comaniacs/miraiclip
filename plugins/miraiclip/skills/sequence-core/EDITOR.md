@@ -110,7 +110,7 @@ Put `data-stage-version="2"` on the stage root to turn on the operated camera an
 | `tl.zoomThrough(target, { fit: "cover" \| "contain", into, duration, ease }, position)` | Pushes the camera into `target` until it fills the frame. With `into` (an element outside `.world`), that scene takes over on the last frame and the camera resets |
 | `tl.hop(target, { to, height, duration, squash, shadow }, position)` | An arc to another element's slot, landing with a squash. Hop the same element again and it starts where it landed (a hop may not start before the last one ends). `shadow: true` (or its options) adds a contact shadow |
 | `tl.shadow(target, { width, height, opacity, spread, offset, lift, color })` | A soft contact shadow on the ground under the element: it follows hops along the ground, grows faint and wide as the element lifts, and fades with the element's opacity. `lift` sets a fixed hover height. The element's parent must be positioned |
-| `tl.frame(fn)` | Calls `fn(t)` with the time in seconds on every seek, after the timeline. Paint a `<canvas>` here when a scene is too dense for DOM elements (thousands of tiles): draw the whole frame from `t` alone, with no state from earlier frames |
+| `tl.frame(fn)` | Calls `fn(t)` with the time in seconds on every seek, after the timeline. Paint a `<canvas>` here when a scene is too dense for DOM elements (thousands of tiles): draw the whole frame from `t` alone, with no state from earlier frames. For a 3D scene, add `three` to `data-libs` (`data-libs="stage three"`): it defines a global `THREE` (three.js with `RoundedBoxGeometry`, `RoomEnvironment` and `mergeGeometries`). Create the renderer with `preserveDrawingBuffer: true` and call `renderer.render(scene, camera)` inside `tl.frame`. Pass `{ motion: (from, to) => px }` as the second argument so the exporter's motion blur knows how far the picture moves (it can't measure a canvas), and put `data-frame-timeout="<seconds>"` on the root when one frame is slow to draw (a large WebGL scene on a software renderer) |
 | `tl.focus(target \| depth \| null, { blur, max, duration, ease }, position)` | Depth of field. Elements marked `data-dof="<depth>"` blur by `blur` px for each depth unit away from the focus depth (capped at `max`). Call it again to rack the focus; `null` puts everything back in focus. Put `data-dof` on leaf elements, never on a `preserve-3d` container, because a filter flattens it |
 | `tl.gather(targets, { into, arc, stagger, spin, duration }, position)` | Many elements fly on fanned arcs into one box |
 | `tl.impact(target, position, { squash, duration })` | A squash and spring-back, and a hit |
@@ -172,6 +172,7 @@ Each rule protects one of two things: every frame must be the same however often
 | `infinite`: no `repeat: -1`, `loop: true` | Repeat a finite number of times within the act |
 | `owned-hooks`: no `__timelines`, `__miraiclipSeek`… | `stage.build` only |
 | `gsap`: GSAP isn't available | The `tl` API above |
+| `three-clock`: no `setAnimationLoop`, `THREE.Clock` or `getDelta` | Render inside `tl.frame((t) => …)` |
 | `units`: no `vw`, `vh`, `vmin` | `cqw`, `cqh`, `cqmin` in CSS; `S.w/h/min` in the script |
 | `fixed`: no `position: fixed` | `position: absolute` inside the stage |
 | `external-script`: no `<script src>` | Everything inline |

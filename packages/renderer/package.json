@@ -63,10 +63,10 @@
     }
   },
   "scripts": {
-    "build": "node scripts/bundle-stage.mjs --check && tsup",
+    "build": "node scripts/bundle-stage.mjs --check && node scripts/bundle-three.mjs --check && tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "stage": "node scripts/bundle-stage.mjs",
+    "stage": "node scripts/bundle-stage.mjs && node scripts/bundle-three.mjs",
     "test:browser": "vitest run -c vitest.browser.config.ts"
   },
   "dependencies": {
@@ -79,7 +79,9 @@
   "devDependencies": {
     "@miraiclip/core": "workspace:*",
     "animejs": "4.5.0",
+    "esbuild": "0.27.7",
     "playwright-core": "^1.63.0",
+    "three": "0.170.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",

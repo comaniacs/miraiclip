@@ -33,6 +33,7 @@ const FORBIDDEN: { rule: string; re: RegExp; message: string }[] = [
   { rule: "network", re: /\b(fetch|XMLHttpRequest|WebSocket|EventSource)\b|\bimport\s*\(/, message: "no network in a sequence: images are asset:<id> references, libraries come from data-libs" },
   { rule: "infinite", re: /\brepeat\s*:\s*-1\b|\bloop\s*:\s*true\b|\biterations\s*:\s*Infinity\b/, message: "no infinite loops: repeat a finite number of times inside the sequence's length" },
   { rule: "owned-hooks", re: /\b(__timelines|__anime|__lottie|__miraiclipSeek|__miraiclipReady)\b/, message: "the stage kit owns the seek hooks: build the timeline with stage.build((tl, S) => …) only" },
+  { rule: "three-clock", re: /\bsetAnimationLoop\s*\(|\bnew\s+THREE\s*\.\s*Clock\b|\.getDelta\s*\(/, message: "three.js scenes are drawn per frame from the time: render inside tl.frame((t) => { … renderer.render(scene, camera) }), never with setAnimationLoop or a Clock" },
   { rule: "gsap", re: /\b(gsap|TweenMax|TweenLite|TimelineMax|ScrollTrigger)\b/, message: "GSAP isn't available here: use the stage kit's tl.to / tl.from / tl.fromTo / tl.set / tl.label / tl.camera" },
 ];
 

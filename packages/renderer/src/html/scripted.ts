@@ -295,6 +295,16 @@ export function disposeScriptedHtmlFrames(): void {
 }
 
 /**
+ * How long one frame may take: `data-frame-timeout="<seconds>"` on the template raises the default (never lowers
+ * it), for frames that are slow by nature, such as a large WebGL scene on a software renderer. Capped at 10 minutes.
+ */
+export function frameTimeoutMs(markup: string, fallbackMs: number): number {
+  const m = /data-frame-timeout\s*=\s*["']?(\d+(?:\.\d+)?)/i.exec(markup);
+  const asked = m ? Math.min(600, Number(m[1])) * 1000 : 0;
+  return Math.max(fallbackMs, asked);
+}
+
+/**
  * The static markup of a scripted template at `timeS`: seek, wait a frame,
  * snapshot. Requests for one template are serialized (one frame document,
  * one time at a time). Needs a DOM.
@@ -308,7 +318,8 @@ export async function snapshotScriptedHtml(options: {
   loadTimeoutMs?: number;
 }): Promise<string> {
   const key = JSON.stringify([options.markup, options.widthPx, options.heightPx, librariesVersion]);
-  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, options.loadTimeoutMs ?? 15_000);
+  const seekMs = frameTimeoutMs(options.markup, 10_000);
+  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, Math.max(options.loadTimeoutMs ?? 15_000, frameTimeoutMs(options.markup, 0) * 2));
   const run = frame.queue.then(async () => {
     await frame.ready;
     const id = nextId++;
@@ -317,8 +328,8 @@ export async function snapshotScriptedHtml(options: {
       setTimeout(() => {
         if (!waiting.has(id)) return;
         waiting.delete(id);
-        reject(new Error("scripted html clip didn't answer a seek in time"));
-      }, 10_000);
+        reject(new Error(`scripted html clip didn't answer a seek in ${Math.round(seekMs / 1000)} s (a slow frame, such as a WebGL scene on a software renderer, can ask for longer with data-frame-timeout="<seconds>" on its root)`));
+      }, seekMs);
     });
     frame.iframe.contentWindow?.postMessage({ __miraiclip: "seek", id, t: options.timeS }, "*");
     return result;
@@ -341,7 +352,7 @@ export async function probeScriptedHtml(options: {
   loadTimeoutMs?: number;
 }): Promise<{ report?: unknown }> {
   const key = JSON.stringify([options.markup, options.widthPx, options.heightPx, librariesVersion]);
-  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, options.loadTimeoutMs ?? 15_000);
+  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, Math.max(options.loadTimeoutMs ?? 15_000, frameTimeoutMs(options.markup, 0) * 2));
   const run = frame.queue.then(async () => {
     await frame.ready;
     const id = nextId++;
@@ -351,7 +362,7 @@ export async function probeScriptedHtml(options: {
         if (!probing.has(id)) return;
         probing.delete(id);
         reject(new Error("scripted html clip didn't answer a shot check in time"));
-      }, 30_000);
+      }, frameTimeoutMs(options.markup, 30_000) * 4);
     });
     frame.iframe.contentWindow?.postMessage({ __miraiclip: "probe", id, options: options.window !== undefined ? { window: options.window } : {} }, "*");
     return result;
@@ -373,7 +384,7 @@ export async function motionScriptedHtml(options: {
   loadTimeoutMs?: number;
 }): Promise<number | null> {
   const key = JSON.stringify([options.markup, options.widthPx, options.heightPx, librariesVersion]);
-  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, options.loadTimeoutMs ?? 15_000);
+  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, Math.max(options.loadTimeoutMs ?? 15_000, frameTimeoutMs(options.markup, 0) * 2));
   const run = frame.queue.then(async () => {
     await frame.ready;
     const id = nextId++;
@@ -383,7 +394,7 @@ export async function motionScriptedHtml(options: {
         if (!probing.has(id)) return;
         probing.delete(id);
         reject(new Error("scripted html clip didn't answer a motion query in time"));
-      }, 30_000);
+      }, frameTimeoutMs(options.markup, 30_000) * 4);
     });
     frame.iframe.contentWindow?.postMessage({ __miraiclip: "probe", id, options: { motion: { from: options.fromS, to: options.toS } } }, "*");
     return result;
