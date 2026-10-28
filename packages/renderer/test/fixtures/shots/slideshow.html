@@ -1,0 +1,14 @@
+<div class="stage" data-libs="stage" data-duration="12" data-stage-version="2">
+  <div class="world" style="position:absolute;inset:0">
+    <div id="s1" style="position:absolute;inset:10%;background:#e63946"><p style="margin:0;color:#fff">One</p></div>
+    <div id="s2" style="position:absolute;inset:10%;background:#264653;opacity:0"><p style="margin:0;color:#fff">Two</p></div>
+    <div id="s3" style="position:absolute;inset:10%;background:#2a9d8f;opacity:0"><p style="margin:0;color:#fff">Three</p></div>
+  </div>
+</div>
+<script>
+  stage.build((tl) => {
+    tl.label("one", 0).label("two", 4).label("three", 8);
+    tl.to("#s1", { opacity: 0, duration: 0.2 }, 3.9).to("#s2", { opacity: 1, duration: 0.2 }, 3.9);
+    tl.to("#s2", { opacity: 0, duration: 0.2 }, 7.9).to("#s3", { opacity: 1, duration: 0.2 }, 7.9);
+  });
+</script>

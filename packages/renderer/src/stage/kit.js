@@ -837,6 +837,205 @@
     r.setAttribute("data-stage-cuts", JSON.stringify(v2.cuts));
   }
 
+
+  // ---- the shot check: the kit owns the timeline, so it can measure its own boundaries.
+  // Labels are the beats; boxes come from getBoundingClientRect at the same seek the renderer uses.
+  var PROBE_SKIP = /^(SCRIPT|STYLE|HEAD|META|LINK|BR|TITLE|NOSCRIPT)$/;
+  function effectiveOpacity(el, stop) {
+    var o = 1;
+    for (var n = el; n && n !== stop.parentNode && n.nodeType === 1; n = n.parentNode) {
+      var cs = getComputedStyle(n);
+      if (cs.display === "none" || cs.visibility === "hidden") return 0;
+      o *= parseFloat(cs.opacity);
+    }
+    return o;
+  }
+  function paints(el, cs) {
+    if (/^(IMG|SVG|CANVAS|VIDEO)$/i.test(el.nodeName)) return true;
+    var bg = parseColor(cs.backgroundColor);
+    if ((bg && bg.a > 0.05) || (cs.backgroundImage && cs.backgroundImage !== "none")) return true;
+    if (parseFloat(cs.borderTopWidth) > 0 && cs.borderTopStyle !== "none" && (parseColor(cs.borderTopColor) || { a: 1 }).a > 0.05) return true;
+    for (var i = 0; i < el.childNodes.length; i++) if (el.childNodes[i].nodeType === 3 && /\S/.test(el.childNodes[i].data)) return true;
+    return false;
+  }
+  var probeIds = null;
+  function idOf(el) {
+    if (!probeIds) probeIds = new Map();
+    if (!probeIds.has(el)) probeIds.set(el, probeIds.size);
+    return probeIds.get(el);
+  }
+  /** Every visible painted element's screen box (effective opacity above 0.05, at least partly on stage), keyed by identity. */
+  function visibleBoxes(rootEl) {
+    var r0 = rootEl.getBoundingClientRect();
+    var out = [];
+    var all = rootEl.querySelectorAll("*");
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (PROBE_SKIP.test(el.nodeName) || el.classList.contains("stage-grid") || el.classList.contains("stage-pointer")) continue;
+      var cs = getComputedStyle(el);
+      if (!paints(el, cs)) continue;
+      var op = effectiveOpacity(el, rootEl);
+      if (op <= 0.05) continue;
+      var rc = el.getBoundingClientRect();
+      var x = rc.left - r0.left, y = rc.top - r0.top;
+      if (rc.width <= 0 || rc.height <= 0) continue;
+      if (x + rc.width <= 0 || y + rc.height <= 0 || x >= r0.width || y >= r0.height) continue;
+      out.push({ id: idOf(el), el: el, name: describe(el), x: x, y: y, w: rc.width, h: rc.height, opacity: Math.round(op * 1000) / 1000 });
+    }
+    return out;
+  }
+  function seekPublic(t) { return window.__miraiclipSeek(t); }
+  function cameraAt(world) {
+    if (!world) return { x: 0, y: 0, z: 1 };
+    var m = new DOMMatrix(getComputedStyle(world).transform);
+    return { x: m.m41, y: m.m42, z: Math.hypot(m.m11, m.m12) };
+  }
+  function boundaryTimes(labels, duration, cuts) {
+    var ts = [];
+    Object.keys(labels).forEach(function (k) { if (labels[k] > 0.3 && labels[k] < duration) ts.push({ name: k, t: labels[k] }); });
+    ts.sort(function (a, b) { return a.t - b.t; });
+    var out = [];
+    ts.forEach(function (b) { if (!out.length || b.t - out[out.length - 1].t > 0.05) out.push(b); });
+    return out;
+  }
+  function probe(tl, r, opts) {
+    opts = opts || {};
+    var world = document.querySelector(".world");
+    var res = {};
+    if (opts.times) {
+      res.frames = opts.times.map(function (t) {
+        seekPublic(t);
+        return { t: t, camera: cameraAt(world), items: visibleBoxes(r).map(function (b) { return { id: b.id, name: b.name, x: b.x, y: b.y, w: b.w, h: b.h, opacity: b.opacity }; }) };
+      });
+    }
+    if (opts.report !== false && !opts.times) res.report = shotReport(tl, r, opts);
+    return res;
+  }
+  function shotReport(tl, r, opts) {
+    var W = r.clientWidth || window.innerWidth, H = r.clientHeight || window.innerHeight;
+    var diag = Math.hypot(W, H), area = W * H, dur = tl.duration;
+    var declared = parseFloat(r.getAttribute("data-duration") || "0") || dur;
+    var world = document.querySelector(".world");
+    var cuts = v2 ? v2.cuts : [], rests = v2 ? v2.rests : [], carries = v2 ? v2.carries : [];
+    var B = boundaryTimes(tl.labels, declared, cuts);
+    var WIN = opts.window != null ? opts.window : 0.2;
+    var findings = [];
+    function add(rule, severity, message, hint, t) { findings.push({ rule: rule, severity: severity, t: t === undefined ? null : round3(t), message: message, hint: hint || "" }); }
+
+    // burst: three or more boundaries inside 1.5 s
+    var inBurst = B.map(function (b, i) {
+      for (var s = 0; s < B.length; s++) {
+        var n = 0;
+        for (var j = s; j < B.length && B[j].t - B[s].t <= 1.5; j++) { n++; }
+        if (n >= 3 && i >= s && i < s + n) return true;
+      }
+      return false;
+    });
+
+    var boundaries = B.map(function (b, i) {
+      var line = { label: b.name, t: round3(b.t), kind: "", survivor: null, note: "" };
+      var cut = cuts.some(function (c) { return Math.abs(c - b.t) <= WIN; });
+      if (cut) { line.kind = "exempt"; line.note = "cut"; return line; }
+      if (inBurst[i]) { line.kind = "exempt"; line.note = "burst"; return line; }
+      if (b.t > declared - 1.2) { line.kind = "exempt"; line.note = "end"; return line; }
+      var tA = Math.max(0, b.t - WIN), tB = Math.min(declared, b.t + WIN);
+      seekPublic(tA);
+      var A = visibleBoxes(r), camA = cameraAt(world);
+      seekPublic(tB);
+      var Bx = visibleBoxes(r), camB = cameraAt(world);
+      var byId = {};
+      A.forEach(function (x) { byId[x.id] = x; });
+      var survivors = [];
+      Bx.forEach(function (x) {
+        var a0 = byId[x.id];
+        if (!a0) return;
+        var move = Math.hypot(x.x + x.w / 2 - (a0.x + a0.w / 2), x.y + x.h / 2 - (a0.y + a0.h / 2));
+        var ratio = Math.max(x.w / a0.w, a0.w / x.w, x.h / a0.h, a0.h / x.h);
+        var cover = Math.max(x.w * x.h, a0.w * a0.h) / area;
+        survivors.push({ name: x.name, moves: move >= 0.02 * diag || ratio >= 1.1, big: cover >= 0.03 && cover < 0.85, cover: cover });
+      });
+      // a carry verb that hands one element over to another inside the window
+      var pair = carries.filter(function (c) { return c.start <= tB && c.end >= tA; })[0];
+      var camMoves = Math.hypot(camB.x - camA.x, camB.y - camA.y) >= 0.02 * diag || Math.max(camB.z / camA.z, camA.z / camB.z) >= 1.02;
+      var real = survivors.filter(function (x) { return x.cover < 0.85; });
+      var mover = real.filter(function (x) { return x.moves; })[0];
+      var still = real.filter(function (x) { return !x.moves && x.big; })[0];
+      if (pair) { line.kind = "carried"; line.survivor = pair.from + " → " + pair.to; }
+      else if (mover) { line.kind = "carried"; line.survivor = mover.name; }
+      else if (camMoves && real.length) { line.kind = "carried"; line.survivor = "the camera carries " + real[0].name; }
+      else if (still) { line.kind = "anchored"; line.survivor = still.name; }
+      else {
+        line.kind = "bare";
+        var gone = A.filter(function (x) { return !Bx.some(function (y) { return y.id === x.id; }); }).sort(function (p, q) { return q.w * q.h - p.w * p.h; })[0];
+        var came = Bx.filter(function (x) { return !byId[x.id]; }).sort(function (p, q) { return q.w * q.h - p.w * p.h; })[0];
+        line.gone = gone ? gone.name : null;
+        line.came = came ? came.name : null;
+        line.hint = gone && came ? 'carry it over: tl.morph("' + gone.name + '", "' + came.name + '") or tl.hop("' + gone.name + '", { to: "' + came.name + '" })' : came ? "something must survive into this beat: keep an element from the last beat on screen and move or scale it into " + came.name : "nothing survives into this beat";
+      }
+      return line;
+    });
+
+    var scored = boundaries.filter(function (x) { return x.kind !== "exempt"; });
+    var carried = scored.filter(function (x) { return x.kind === "carried"; }).length;
+    var anchored = scored.filter(function (x) { return x.kind === "anchored"; }).length;
+    var score = scored.length ? round3((carried + anchored / 2) / scored.length) : null;
+    boundaries.forEach(function (x) {
+      if (x.kind === "bare") add("bare-boundary", "warning", "nothing survives the beat at " + x.t.toFixed(2) + " s (" + x.label + "): " + (x.gone || "the last beat") + " is replaced by " + (x.came || "a new one"), x.hint, x.t);
+    });
+    if (score !== null && score < 0.5) add("carry-score", "warning", "carry score " + score.toFixed(2) + " is under 0.50: most beats start from nothing", "make something from each beat become the next (tl.morph, tl.hop, tl.zoomThrough, tl.gather)");
+
+    // coverage
+    var coverage = { labels: B.length, boundaries: scored.length, enough: true };
+    if (!Object.keys(tl.labels).length) { coverage.enough = false; add("coverage", "warning", "no labels: the check has no beats to look at", "mark each beat with tl.label(name, time)"); }
+    else if (B.length < declared / 4) { coverage.enough = false; add("coverage", "warning", "only " + B.length + " beat boundaries in " + declared.toFixed(1) + " s: too few for the score to mean anything", "label every beat; aim for one every 4 s or less"); }
+
+    // framing
+    var framing = [];
+    var subjects = r.querySelectorAll("[data-keep-in-frame]");
+    if (subjects.length) {
+      var step = 1 / 60;
+      Array.prototype.forEach.call(subjects, function (el) {
+        var parts = (el.getAttribute("data-keep-in-frame") || "").split(",").map(function (x) { return x.trim(); });
+        var t0 = parseFloat(parts[0]) || 0, t1 = parts[1] !== undefined && parts[1] !== "" ? parseFloat(parts[1]) : declared, whole = parts[2] === "whole";
+        var first = null, last = null, count = 0;
+        for (var t = t0; t <= t1 + 1e-9; t += step) {
+          seekPublic(t);
+          var rc = el.getBoundingClientRect(), r0 = r.getBoundingClientRect();
+          var x = rc.left - r0.left, y = rc.top - r0.top;
+          var op = effectiveOpacity(el, r);
+          var off = op <= 0.05 || x + rc.width <= 0 || y + rc.height <= 0 || x >= W || y >= H;
+          var cut = whole && !off && (x < -0.5 || y < -0.5 || x + rc.width > W + 0.5 || y + rc.height > H + 0.5);
+          if (off || cut) { if (first === null) first = t; last = t; count++; }
+        }
+        if (first !== null) {
+          var item = { subject: describe(el), from: round3(first), to: round3(last), kind: whole ? "cut off" : "out of frame" };
+          framing.push(item);
+          add("framing", "warning", item.subject + " is " + item.kind + " from " + item.from.toFixed(2) + " s" + (last > first + step ? " to " + item.to.toFixed(2) + " s" : ""), whole ? "keep the whole subject inside the frame, or loosen data-keep-in-frame" : "keep the subject in frame, or follow it with the camera (tl.follow)", first);
+        }
+      });
+    }
+
+    // rhythm
+    var marks = [0].concat(B.map(function (b) { return b.t; }), [declared]);
+    var shots = [];
+    for (var k = 1; k < marks.length; k++) shots.push(round3(marks[k] - marks[k - 1]));
+    var mean = shots.reduce(function (a, b) { return a + b; }, 0) / (shots.length || 1);
+    var sd = Math.sqrt(shots.reduce(function (a, b) { return a + (b - mean) * (b - mean); }, 0) / (shots.length || 1));
+    var cv = mean ? round3(sd / mean) : 0;
+    var restTotal = rests.reduce(function (a, x) { return a + (x.to - x.from); }, 0);
+    var burstCount = 0;
+    for (var q = 0; q < B.length; q++) if (inBurst[q] && (q === 0 || !inBurst[q - 1])) burstCount++;
+    var lone = cuts.filter(function (c) {
+      var nearBurst = B.some(function (b, i) { return inBurst[i] && Math.abs(b.t - c) <= 1.5; });
+      return !nearBurst && c < declared - 1.2;
+    });
+    var rhythm = { shots: shots, cv: cv, restShare: round3(restTotal / declared), rests: rests.length, bursts: burstCount, hardCuts: cuts.length, cutsOutsideBursts: lone };
+    if (shots.length >= 4 && cv < 0.25) add("cadence", "warning", "the beats are evenly spaced (variation " + cv.toFixed(2) + ", under 0.25): it reads as a metronome", "vary the shot lengths: hold some beats, rush others");
+    lone.forEach(function (c) { add("hard-cut", "warning", "a hard cut at " + c.toFixed(2) + " s outside a burst", "hide the cut inside a move (tl.zoomThrough, tl.whip) or take it out", c); });
+
+    return { version: v2 ? 2 : 1, duration: round3(declared), labels: tl.labels, score: score, carried: carried, anchored: anchored, bare: scored.length - carried - anchored, exempt: boundaries.length - scored.length, boundaries: boundaries, coverage: coverage, framing: framing, rhythm: rhythm, findings: findings };
+  }
+
   var built = false;
   window.stage = {
     build: function (fn) {
@@ -874,6 +1073,7 @@
           a.seek(Math.max(0, t) * 1000);
           if (v2) seekAll(Math.max(0, t), true);
         };
+        window.__miraiclipProbe = function (opts) { return probe(tl, r, opts); };
         readyResolve();
       });
     },

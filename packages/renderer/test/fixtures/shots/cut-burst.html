@@ -1,0 +1,18 @@
+<div class="stage" data-libs="stage" data-duration="10" data-stage-version="2">
+  <div class="world" style="position:absolute;inset:0">
+    <div class="k" id="k1" style="position:absolute;inset:0;background:#e63946"></div>
+    <div class="k" id="k2" style="position:absolute;inset:0;background:#264653;opacity:0"></div>
+    <div class="k" id="k3" style="position:absolute;inset:0;background:#2a9d8f;opacity:0"></div>
+    <div class="k" id="k4" style="position:absolute;inset:0;background:#e9c46a;opacity:0"></div>
+  </div>
+</div>
+<script>
+  stage.build((tl) => {
+    tl.label("a", 3).label("b", 3.5).label("c", 4).label("d", 6.5);
+    tl.cut(3).cut(3.5).cut(4).cut(6.5);
+    tl.set("#k1", { opacity: 0 }, 3).set("#k2", { opacity: 1 }, 3);
+    tl.set("#k2", { opacity: 0 }, 3.5).set("#k3", { opacity: 1 }, 3.5);
+    tl.set("#k3", { opacity: 0 }, 4).set("#k4", { opacity: 1 }, 4);
+    tl.set("#k4", { opacity: 0 }, 6.5).set("#k1", { opacity: 1 }, 6.5);
+  });
+</script>
