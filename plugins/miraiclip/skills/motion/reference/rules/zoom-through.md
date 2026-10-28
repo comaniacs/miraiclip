@@ -24,3 +24,26 @@ tl.label("show", 0)
   .from(".next p", { scale: 1.3, blur: 14, opacity: 0, duration: 0.6, ease: "expo.out" }, "inside")
   .camera({ zoom: 1.06, duration: 2, ease: "sine.inOut" }, "inside+=0.05");
 ```
+
+## With `tl.zoomThrough` (version 2)
+
+`tl.zoomThrough(target, { into, … })` pushes the camera into the target until it fills the frame, brings the inner scene in over the last 12 % of the push, and resets the camera on the frame where only the target's surface is visible. The inner scene (`into`) sits outside `.world`, and the target and `into` should share a colour so the hand-over doesn't flash.
+
+```html v2
+<div class="world"><div class="card"><span>Automations</span></div></div><div class="next"><p>Every reply, <em>on time</em></p></div>
+```
+
+```css v2
+.card{position:absolute;left:50%;top:50%;width:30cqmin;height:18cqmin;margin:-9cqmin 0 0 -15cqmin;border-radius:2cqmin;background:var(--card);display:grid;place-items:center;font-size:3.6cqmin;font-weight:600}.next{position:absolute;inset:0;display:grid;place-items:center;background:var(--card)}.next p{margin:0;font-size:9cqmin;font-weight:800}.next em{font-style:normal;color:var(--p)}
+```
+
+```js v2
+tl.label("show", 0)
+  .from(".card", { scale: 0.6, opacity: 0, blur: 10, duration: 0.5, ease: "expo.out" }, "show")
+  .zoomThrough(".card", { fit: "cover", into: ".next", duration: 0.7, ease: "expo.in" }, 1.2)
+  .label("inside", 1.9)
+  .from(".next p", { scale: 1.3, blur: 14, opacity: 0, duration: 0.6, ease: "expo.out" }, "inside")
+  .camera({ zoom: 1.06, duration: 2, ease: "sine.inOut" }, "inside+=0.05");
+```
+
+For a dive that goes much deeper (tens or hundreds of times), key the zoom in screen space with `tl.camera({ anchor, at: [50, 50], zoom })` instead, and give each level `data-lod` so it fades in as it grows.

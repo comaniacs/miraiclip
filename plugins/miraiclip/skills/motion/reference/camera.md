@@ -36,3 +36,19 @@ Give each beat one camera move that lasts the beat, or longer, overlapping the n
 - Pair tilt with `transform-style: preserve-3d` on `.world` and on any wrapper when children use `z` (depth-stack).
 - Keep the subject inside the safe area during moves (about 5% in from each edge, more in 9:16). Check the filmstrip.
 - Don't reset the camera to neutral between beats. Carry the motion on.
+
+## The operated camera (version 2)
+
+Add `data-stage-version="2"` to the stage root and the camera becomes a track you can operate, not just keyframe. Everything below sums on the one `.world` layer, so moves never fight each other.
+
+| Call | Use it to |
+|---|---|
+| `tl.camera({ zoom })` | Zoom in log space: 1 to 100 reads 10 halfway, so a long dive feels even |
+| `tl.camera({ anchor, at: [x%, y%], zoom })` | Hold a subject at a screen position while the zoom changes. Use it for every zoom above 50× |
+| `tl.follow(target, { lead: 0.1 })` | Chase a moving subject, keyed slightly ahead of it |
+| `tl.whip(target, { duration })` | Snap to the next subject and land with it centred |
+| `tl.zoomThrough(target, { into })` | Push into a surface and hand over to the scene inside it |
+| `tl.handheld({ amount }, from, to)` | A slow float so a held shot still breathes |
+| `tl.shake(position, { amp, decay, seed })` | A hit shake that reads the same at any zoom |
+
+Keep the subject inside the safe area while the camera moves, and put hits on the beat with `tl.hit` so sound can follow them.
