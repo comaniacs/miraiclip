@@ -20,4 +20,18 @@ describe.runIf(browserPath)("checkShot", () => {
     expect(res.clips.find((c) => c.clipId === "b")!.skipped).toMatch(/not a stage/);
     expect(res.findings.length).toBeGreaterThan(0);
   }, 60_000);
+
+  it("flags a hard join between consecutive sequence clips, and none when there is a gap", async () => {
+    const doc: any = { schemaVersion: 1, settings: { width: 320, height: 180 }, assets: {}, tracks: {}, trackOrder: [], transitions: {}, clips: {} };
+    doc.clips = {
+      a: { id: "a", kind: "html", trackId: "t", startUs: 0, durationUs: 12_000_000, template: slideshow, params: {} },
+      b: { id: "b", kind: "html", trackId: "t", startUs: 12_000_000, durationUs: 12_000_000, template: slideshow, params: {} },
+    };
+    const joined = await checkShot(doc, { browser: { executablePath: browserPath } });
+    expect(joined.across.map((f) => f.rule)).toEqual(["act-join"]);
+    expect(joined.across[0]!.t).toBe(12);
+    doc.clips.b.startUs = 20_000_000;
+    const gap = await checkShot(doc, { browser: { executablePath: browserPath } });
+    expect(gap.across).toEqual([]);
+  }, 60_000);
 });

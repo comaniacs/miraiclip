@@ -89,7 +89,7 @@ export { analyzeHtmlAnimations, buildAnimationTimeline } from "./html/animation-
 export type { AnimationDescriptor, ConstantSpan, HtmlAnimationTimeline } from "./html/animation-timeline.js";
 export { collectHtmlRasters, htmlAnimationTiming, htmlRasterKey, provideHtmlRasters, rasterizeHtml, setHtmlRasterSource, substituteParams } from "./html/rasterize.js";
 export type { HtmlRasterRequest, HtmlRasterSource, RasterizeHtmlOptions } from "./html/rasterize.js";
-export { disposeScriptedHtmlFrames, registerScriptedLibraries, scriptedFrameDocument, requestedLibraries, resolveLibraries, scriptedLibraryNames, snapshotScriptedHtml } from "./html/scripted.js";
+export { disposeScriptedHtmlFrames, probeScriptedHtml, registerScriptedLibraries, scriptedFrameDocument, requestedLibraries, resolveLibraries, scriptedLibraryNames, snapshotScriptedHtml } from "./html/scripted.js";
 export type { ScriptedLibrary } from "./html/scripted.js";
 export { lintSequence } from "./stage/lint.js";
 // The stage kit for scripted sequences (anime.js inside; tree-shaken away when unused).

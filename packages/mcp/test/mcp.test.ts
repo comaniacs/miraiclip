@@ -274,6 +274,9 @@ describe.skipIf(browserPath === undefined)("miraiclip MCP server (rendering tool
     const report = JSON.parse(textOf(result)) as { clips: { clipId: string; report: { bare: number } | null }[]; findings: { rule: string }[] };
     expect(report.clips[0]!.report!.bare).toBe(1);
     expect(report.findings.some((f) => f.rule === "bare-boundary")).toBe(true);
+    const withFrames = await client.callTool({ name: "check_sequence", arguments: { clipId: "seq1", frames: true } });
+    expect((withFrames.content as ContentItem[]).filter((c) => c.type === "image")).toHaveLength(2);
+    expect(textOf(withFrames)).toContain("before");
   }, 120_000);
 
   it("export streams a WebM next to the project file", async () => {

@@ -74,3 +74,35 @@ describe("shot report", () => {
     await shot.close();
   });
 });
+
+describe("probe through the frame bridge", () => {
+  it("a sandboxed frame answers a probe message with the same report", async (ctx) => {
+    const b = await browser();
+    if (!b) return ctx.skip();
+    const { registerStageKit } = await import("../../src/stage/index.js");
+    const { scriptedFrameDocument } = await import("../../src/html/scripted.js");
+    registerStageKit();
+    const markup = fixture("slideshow.html");
+    const doc = scriptedFrameDocument(markup, 1280, 720);
+    const page = await b.newPage({ viewport: { width: 1280, height: 720 } });
+    await page.setContent("<body></body>");
+    const reply = await page.evaluate(async (srcdoc) => {
+      return await new Promise<any>((resolve) => {
+        const f = document.createElement("iframe");
+        f.setAttribute("sandbox", "allow-scripts");
+        f.style.cssText = "width:1280px;height:720px;border:0";
+        window.addEventListener("message", (e) => {
+          const m = e.data;
+          if (m?.__miraiclip === "ready") f.contentWindow!.postMessage({ __miraiclip: "probe", id: 1, options: {} }, "*");
+          if (m?.__miraiclip === "probed") resolve(m);
+        });
+        f.srcdoc = srcdoc;
+        document.body.append(f);
+      });
+    }, doc);
+    await page.close();
+    expect(reply.error).toBeUndefined();
+    expect(reply.result.report.bare).toBe(2);
+    expect(reply.result.report.boundaries.length).toBe(2);
+  });
+});

@@ -134,7 +134,10 @@ export function listTools(session: ProjectSession): ToolDefinition[] {
         "Check a stage sequence (data-libs=\"stage\") as one continuous shot. Seeks it around every label and reports, per beat, what survives into the next one (carried / anchored / bare), subjects that leave the frame (data-keep-in-frame), beat spacing and stray hard cuts, as warnings with times and a hint for each. Nothing is rendered or exported; warnings never block an export. Run it after composing a sequence and fix the bare boundaries.",
       inputSchema: {
         type: "object",
-        properties: { clipId: { type: "string", description: "Check only this html clip (default: every html clip)." } },
+        properties: {
+          clipId: { type: "string", description: "Check only this html clip (default: every html clip)." },
+          frames: { type: "boolean", description: "Also return a before/after frame pair (0.2 s either side) for up to 3 bare boundaries, so you can see what is replaced." },
+        },
         additionalProperties: false,
       },
     },
@@ -262,7 +265,24 @@ export async function callTool(
 
     case "check_sequence": {
       const result = await session.checkSequence(args["clipId"] !== undefined ? { clipId: String(args["clipId"]) } : {});
-      return text(result);
+      const out: ToolResult = text(result);
+      if (args["frames"] === true) {
+        const settings = project.toJSON().settings;
+        const scale = Math.min(1, 512 / Math.max(settings.width, settings.height));
+        const width = Math.round(settings.width * scale);
+        const height = Math.round(settings.height * scale);
+        const pairs = result.clips
+          .flatMap((c) => (c.report?.boundaries ?? []).filter((b) => b.kind === "bare").map((b) => ({ label: b.label, at: c.startSec + b.t })))
+          .slice(0, 3);
+        for (const p of pairs) {
+          for (const [name, dt] of [["before", -0.2], ["after", 0.2]] as const) {
+            const png = await session.preview({ timeUs: Math.max(0, Math.round((p.at + dt) * 1_000_000)), width, height });
+            out.content.push({ type: "image", data: Buffer.from(png).toString("base64"), mimeType: "image/png" });
+            out.content.push({ type: "text", text: `${p.label} (${p.at.toFixed(2)} s), ${name}` });
+          }
+        }
+      }
+      return out;
     }
 
     case "export": {
