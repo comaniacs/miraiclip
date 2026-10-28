@@ -160,6 +160,7 @@ export type { Cut } from "./cuts.js";
 export {
   builtinEffectParamSchemas,
   builtinTransitionParamSchemas,
+  transitionHoldsFrames,
   effectParamsSchema,
   isBuiltinClipKind,
   clipKindRegistration,

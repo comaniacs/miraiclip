@@ -7,6 +7,7 @@ import {
   planSoundFromEvents,
   commandCatalog,
   builtinTransitionParamSchemas,
+  transitionHoldsFrames,
   describeAnimation,
   EFFECT_CATALOG,
   findCuts,
@@ -326,6 +327,7 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
       description:
         "Add (or replace, or remove) a transition on cuts — where one clip ends exactly where the next starts on the same video track. Pick the cut by its two clip ids, by a time near it, or all cuts. " +
         "A transition overlaps both clips around the cut, so its length is capped by the spare footage there; cuts with none are skipped and reported. " +
+        "zoomThrough is the exception: it dives into a region of the outgoing clip and arrives in the next one, holding the first/last frames, so it needs no spare footage (length capped by the shorter clip). " +
         'When a video clip directly follows another on its track, "fade into / dissolve to / slide in / wipe to" that clip means a transition on the cut before it, not an animation. ' +
         'Slide / wipe direction is the direction of motion: "from the left" = right.',
       inputSchema: {
@@ -338,6 +340,14 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
           allCuts: { type: "boolean", description: "Apply to every cut." },
           durationSeconds: { type: "number", minimum: 0.1, maximum: 3, description: "Default 0.6." },
           direction: { type: "string", enum: ["left", "right", "up", "down"], description: "wipe / slide only." },
+          rect: {
+            type: "object",
+            description: "zoomThrough only: the region to dive into, as fractions of the frame (default the centre quarter).",
+            properties: { x: { type: "number" }, y: { type: "number" }, w: { type: "number" }, h: { type: "number" } },
+            required: ["x", "y", "w", "h"],
+            additionalProperties: false,
+          },
+          ease: { type: "string", enum: ["linear", "in", "out", "inOut"], description: "zoomThrough only (default inOut)." },
         },
         required: ["kind"],
         additionalProperties: false,
@@ -373,13 +383,18 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
             if (cut.transition) changes.push(`Removed the transition at ${seconds(cut.atUs)}`);
             continue;
           }
-          const durationUs = Math.min(wanted, cut.maxTransitionUs);
+          const durationUs = Math.min(wanted, transitionHoldsFrames(kind) ? cut.maxHoldTransitionUs : cut.maxTransitionUs);
           if (durationUs < 100_000) {
             skipped.push({ ...cutInfo(cut), reason: `no spare footage (${cut.short === "from" ? "the first clip ends where its media ends" : cut.short === "to" ? "the second clip starts at its media's start" : "both clips use all their media"})` });
             if (cut.transition) commands.pop();
             continue;
           }
-          const params = input.direction && (kind === "wipe" || kind === "slide") ? { direction: input.direction } : undefined;
+          const params =
+            input.direction && (kind === "wipe" || kind === "slide")
+              ? { direction: input.direction }
+              : kind === "zoomThrough" && (input.rect || input.ease)
+                ? { ...(input.rect ? { rect: input.rect } : {}), ...(input.ease ? { ease: input.ease } : {}) }
+                : undefined;
           commands.push({ type: "transition/add", payload: { kind, fromClipId: cut.fromClipId, toClipId: cut.toClipId, durationUs, ...(params ? { params } : {}) } });
           changes.push(`${cut.transition ? "Replaced the transition with" : "Added"} ${kind} at ${seconds(cut.atUs)} (${seconds(durationUs)})`);
         }
@@ -895,7 +910,7 @@ function noCutReason(project: Project, fromId: unknown, toId: unknown): string {
 }
 
 function cutInfo(c: Cut) {
-  return { fromClipId: c.fromClipId, toClipId: c.toClipId, atSeconds: c.atUs / S, maxSeconds: c.maxTransitionUs / S, ...(c.transition ? { transition: c.transition.kind } : {}) };
+  return { fromClipId: c.fromClipId, toClipId: c.toClipId, atSeconds: c.atUs / S, maxSeconds: c.maxTransitionUs / S, maxZoomThroughSeconds: c.maxHoldTransitionUs / S, ...(c.transition ? { transition: c.transition.kind } : {}) };
 }
 
 /** apply_commands' input schema: `type` is an enum of the catalog's commands. */

@@ -422,7 +422,7 @@ export interface Transition {
   fromClipId: string;
   /** The clip starting at the cut. */
   toClipId: string;
-  /** Registry-resolved kind (built-ins: crossDissolve, dipToBlack, dipToWhite, wipe, slide). */
+  /** Registry-resolved kind (built-ins: crossDissolve, dipToBlack, dipToWhite, wipe, slide, zoomThrough). */
   kind: string;
   durationUs: Us;
   /** Reserved: only "centered" in v4. */

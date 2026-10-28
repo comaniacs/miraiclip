@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createProject, isVideoClip, type Project } from "@miraiclip/core";
+import { createProject, isVideoClip, transitionHoldsFrames, type Project } from "@miraiclip/core";
+import { getTransitionRenderer } from "../src/transitions/registry.js";
 import { Compositor } from "../src/compositor/compositor.js";
 import { MediaManager } from "../src/media/media-manager.js";
 import { gainFor, volumeAutomation } from "../src/audio/mapping.js";
@@ -350,5 +351,59 @@ describe("transition rendering", () => {
     project.dispatch({ type: "keyframe/set", payload: { clipId: "b", property: "opacity", timeUs: 0, value: 0.8 } });
     compositor.renderAt(2_250_000); // p = 0.75
     expect(b.placement!.opacity).toBeCloseTo(0.8 * 0.75, 6);
+  });
+  it("zoomThrough: dives into the rect, the incoming clip arrives full-frame at the end", () => {
+    // 1000×500 composition, rect = centre quarter (250×125 px) → Z = 4.
+    const { compositor, a, b } = setup("zoomThrough", { ease: "linear" });
+    compositor.renderAt(1_500_000); // p = 0 — untouched
+    expect(a.placement!.scale).toBeCloseTo(1, 6);
+    expect(a.placement!.xPx).toBeCloseTo(500, 6);
+    // p = 0.5 (the cut, linear): camera z = 2; the rect centre is the screen centre, so A stays centred.
+    compositor.renderAt(2 * SEC);
+    expect(a.visible).toBe(true); // outgoing keeps showing past its end, from a held frame
+    expect(a.placement!.scale).toBeCloseTo(2, 6);
+    expect(a.placement!.xPx).toBeCloseTo(500, 6);
+    expect(a.placement!.yPx).toBeCloseTo(250, 6);
+    expect(b.placement!.scale).toBeCloseTo(0.5, 6); // z/Z
+    expect(b.placement!.xPx).toBeCloseTo(500, 6);
+    expect(b.placement!.opacity).toBeCloseTo(1, 6); // fade = min(1, 2p)
+    // Late in the window the camera has nearly reached Z and the incoming is almost full-frame.
+    compositor.renderAt(2_490_000);
+    expect(b.placement!.scale).toBeCloseTo(1, 1);
+    compositor.renderAt(2_600_000); // after
+    expect(a.visible).toBe(false);
+    expect(b.placement!.scale).toBe(1);
+  });
+
+  it("zoomThrough: an off-centre rect pans the camera so the rect ends up centred", () => {
+    // Rect centred at (0.25, 0.25) of the frame, 0.25 × 0.25 → Z = 4.
+    const { compositor, a } = setup("zoomThrough", { ease: "linear", rect: { x: 0.125, y: 0.125, w: 0.25, h: 0.25 } });
+    // Just before the window ends z → 4; the rect centre (250,125) should map to ~screen centre (500,250).
+    compositor.renderAt(2_499_000);
+    const z = a.placement!.scale;
+    expect(z).toBeGreaterThan(3.9);
+    // Clip centre is (500,250); rect centre in clip space is (250,125) → drawn at c' = a.pos + z·(c − 500,250) ... check via the clip centre offset.
+    const drawnRectCx = a.placement!.xPx + z * (250 - 500);
+    const drawnRectCy = a.placement!.yPx + z * (125 - 250);
+    expect(drawnRectCx).toBeCloseTo(500, 0);
+    expect(drawnRectCy).toBeCloseTo(250, 0);
+  });
+
+  it("zoomThrough: needs no extra media headroom and holds frames", () => {
+    const project = videoProject();
+    project.dispatch({
+      type: "transition/add",
+      payload: { id: "t1", kind: "zoomThrough", fromClipId: "a", toClipId: "b", durationUs: SEC },
+    });
+    const doc = project.getState().doc;
+    expect(renderExtension(doc, doc.clips["a"]!)).toEqual({ beforeUs: 0, afterUs: 0 });
+    expect(renderExtension(doc, doc.clips["b"]!)).toEqual({ beforeUs: 0, afterUs: 0 });
+    expect(rendersBothClips("zoomThrough")).toBe(true);
+  });
+
+  it("core's hold-frame kinds match the renderers' holdsFrames flag", () => {
+    for (const kind of ["crossDissolve", "wipe", "slide", "zoomThrough", "dipToBlack", "dipToWhite"]) {
+      expect(transitionHoldsFrames(kind)).toBe(getTransitionRenderer(kind)?.holdsFrames ?? false);
+    }
   });
 });

@@ -74,11 +74,15 @@ export function rendersBothClips(kind: string): boolean {
  * because of transitions: `beforeUs` extends before startUs ("to" roles),
  * `afterUs` beyond the end ("from" roles).
  */
+export function holdsFrames(kind: string): boolean {
+  return getTransitionRenderer(kind)?.holdsFrames ?? false;
+}
+
 export function renderExtension(doc: ProjectDocument, clip: Clip): { beforeUs: Us; afterUs: Us } {
   let beforeUs = 0;
   let afterUs = 0;
   for (const { window, role } of transitionsForClip(doc, clip.id)) {
-    if (!rendersBothClips(window.transition.kind)) continue;
+    if (!rendersBothClips(window.transition.kind) || holdsFrames(window.transition.kind)) continue;
     if (role === "to") beforeUs = Math.max(beforeUs, window.cutUs - window.startUs);
     else afterUs = Math.max(afterUs, window.endUs - window.cutUs);
   }

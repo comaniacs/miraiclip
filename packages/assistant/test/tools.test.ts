@@ -107,6 +107,18 @@ describe("every catalog entry works through the tools", () => {
   });
 });
 
+describe("zoomThrough", () => {
+  it("takes a rect and ease, and a bad rect is rejected without changing anything", () => {
+    const rect = { x: 0.1, y: 0.1, w: 0.2, h: 0.2 };
+    const { project, out } = run("add_transition", { kind: "zoomThrough", allCuts: true, rect, ease: "out" });
+    expect(out.ok).toBe(true);
+    for (const t of Object.values(project.getState().doc.transitions)) expect(t.params).toMatchObject({ rect, ease: "out" });
+    const bad = run("add_transition", { kind: "zoomThrough", allCuts: true, rect: { x: 0.9, y: 0.9, w: 0.3, h: 0.3 } });
+    expect(bad.out.ok).toBe(false);
+    expect(Object.keys(bad.project.getState().doc.transitions)).toEqual([]);
+  });
+});
+
 describe("errors that steer the model (from the second live eval)", () => {
   const err = (out: { ok: boolean; error?: unknown }) => JSON.stringify(!out.ok && out.error);
 

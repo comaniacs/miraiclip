@@ -30,6 +30,10 @@ describe.runIf(browserPath)("checkShot", () => {
     const joined = await checkShot(doc, { browser: { executablePath: browserPath } });
     expect(joined.across.map((f) => f.rule)).toEqual(["act-join"]);
     expect(joined.across[0]!.t).toBe(12);
+    doc.transitions = { t: { id: "t", kind: "zoomThrough", fromClipId: "a", toClipId: "b", durationUs: 1_000_000 } };
+    const carried = await checkShot(doc, { browser: { executablePath: browserPath } });
+    expect(carried.across).toEqual([]); // a zoomThrough between them is the hand-over
+    doc.transitions = {};
     doc.clips.b.startUs = 20_000_000;
     const gap = await checkShot(doc, { browser: { executablePath: browserPath } });
     expect(gap.across).toEqual([]);

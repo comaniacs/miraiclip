@@ -114,7 +114,7 @@ export async function checkShot(doc: ProjectDocument, options: CheckShotOptions 
   } finally {
     await browser.close();
   }
-  const across = acrossClips(out);
+  const across = acrossClips(out, doc);
   const findings = [...out.flatMap((c) => c.report?.findings.map((f) => ({ ...f, t: f.t === null ? null : f.t + c.startSec })) ?? []), ...across];
   return { clips: out, across, findings };
 }
@@ -123,20 +123,24 @@ function startOf(clip: { startUs?: number; start?: number }): number {
   return clip.startUs ?? clip.start ?? 0;
 }
 
-/** Consecutive sequence clips join with a hard cut unless a carry runs across the join; flag every join. */
-function acrossClips(clips: ClipShotReport[]): ShotFinding[] {
+/** Consecutive sequence clips join with a hard cut unless a zoomThrough transition runs across the join; flag every join. */
+function acrossClips(clips: ClipShotReport[], doc: ProjectDocument): ShotFinding[] {
+  const carried = (a: string, b: string) =>
+    Object.values(doc.transitions ?? {}).some(
+      (t) => t.kind === "zoomThrough" && ((t.fromClipId === a && t.toClipId === b) || (t.fromClipId === b && t.toClipId === a)),
+    );
   const seqs = clips.filter((c) => c.report).sort((a, b) => a.startSec - b.startSec);
   const found: ShotFinding[] = [];
   for (let i = 1; i < seqs.length; i++) {
     const prev = seqs[i - 1]!;
     const gap = seqs[i]!.startSec - (prev.startSec + prev.report!.duration);
-    if (Math.abs(gap) < 0.05) {
+    if (Math.abs(gap) < 0.05 && !carried(prev.clipId, seqs[i]!.clipId)) {
       found.push({
         rule: "act-join",
         severity: "warning",
         t: round(seqs[i]!.startSec),
         message: `clip ${prev.clipId} hands over to clip ${seqs[i]!.clipId} with a hard cut`,
-        hint: "end the first clip on an element the next one starts from, or join them with a carry transition",
+        hint: "end the first clip on an element the next one starts from, or join them with a zoomThrough transition",
       });
     }
   }

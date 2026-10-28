@@ -132,13 +132,38 @@ const transitionSchemas = new Map<string, z.ZodType>();
 
 const direction = z.enum(["left", "right", "up", "down"]).default("left");
 
+const fraction = z.number().min(0).max(1);
+
 export const builtinTransitionParamSchemas = {
   crossDissolve: z.object({}),
   dipToBlack: z.object({}),
   dipToWhite: z.object({}),
   wipe: z.object({ direction }),
   slide: z.object({ direction }),
+  /**
+   * The outgoing frame zooms (in log space) toward `rect` until the rect fills the frame, with the incoming
+   * clip drawn inside the rect from the start. `rect` is in fractions of the frame (default: the centre quarter).
+   * Holds the outgoing clip's last frame and the incoming clip's first, so it needs no spare footage.
+   */
+  zoomThrough: z.object({
+    rect: z
+      .object({ x: fraction, y: fraction, w: fraction.min(0.02), h: fraction.min(0.02) })
+      .refine((r) => r.x + r.w <= 1.0001 && r.y + r.h <= 1.0001, "rect must lie inside the frame")
+      .default({ x: 0.375, y: 0.375, w: 0.25, h: 0.25 }),
+    ease: z.enum(["linear", "in", "out", "inOut"]).default("inOut"),
+  }),
 } as const;
+
+/**
+ * Built-in kinds that hold the outgoing clip's last frame and the incoming clip's first frame instead of
+ * drawing spare footage past the cut: they need no handles, so `transition/add` skips the headroom check.
+ */
+const HOLD_FRAME_TRANSITION_KINDS: ReadonlySet<string> = new Set(["zoomThrough"]);
+
+/** Whether a transition kind needs no spare footage on either side of the cut. */
+export function transitionHoldsFrames(kind: string): boolean {
+  return HOLD_FRAME_TRANSITION_KINDS.has(kind);
+}
 
 for (const [kind, schema] of Object.entries(builtinTransitionParamSchemas)) {
   transitionSchemas.set(kind, schema);

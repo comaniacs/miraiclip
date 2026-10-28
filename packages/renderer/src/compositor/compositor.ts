@@ -284,6 +284,10 @@ export class Compositor {
       let opacityFactor = 1;
       let offsetXPx = 0;
       let offsetYPx = 0;
+      let affineScale = 1;
+      let affineX = 0;
+      let affineY = 0;
+      let holdFrames = false;
       for (const { window, role } of transitions) {
         if (timeUs < window.startUs || timeUs >= window.endUs) continue;
         const { kind, params } = window.transition;
@@ -294,6 +298,7 @@ export class Compositor {
         // Both clips render through the whole window (media comes from source
         // headroom) — except overlay kinds (dips), which cover the hard cut.
         if (renderer.rendersBothClips) visible = true;
+        if (renderer.holdsFrames) holdFrames = true;
         const frame = renderer.frame(role, progressIn(window, timeUs), params, {
           compositionSize: doc.settings,
         });
@@ -305,6 +310,13 @@ export class Compositor {
         }
         offsetXPx += frame.offsetXPx ?? 0;
         offsetYPx += frame.offsetYPx ?? 0;
+        if (frame.affine) {
+          // Compose: later(earlier(x)) = t2 + s2·(t1 + s1·x).
+          affineX = frame.affine.txPx + frame.affine.scale * affineX;
+          affineY = frame.affine.tyPx + frame.affine.scale * affineY;
+          affineScale *= frame.affine.scale;
+          // (identity start is s=1,t=0, so the first affine lands as-is)
+        }
         // Highest-alpha overlay wins for the frame.
         if (frame.overlay && frame.overlay.alpha > dipAlpha) {
           dipAlpha = frame.overlay.alpha;
@@ -314,7 +326,12 @@ export class Compositor {
 
       node.setVisible(visible);
       if (visible) {
-        evaluateClipInto(clip, timeUs - clip.startUs, this.scratchEvaluated);
+        // Hold-frame kinds draw outside the clip's bounds from its first/last
+        // frame: evaluate and tick at the nearest in-bounds instant.
+        const localTimeUs = holdFrames
+          ? Math.min(Math.max(timeUs, clip.startUs), clip.startUs + clip.durationUs - 1)
+          : timeUs;
+        evaluateClipInto(clip, localTimeUs - clip.startUs, this.scratchEvaluated);
         const placement = placementFromEvaluated(
           this.scratchEvaluated,
           doc.settings,
@@ -323,9 +340,14 @@ export class Compositor {
         placement.opacity *= opacityFactor;
         placement.xPx += offsetXPx;
         placement.yPx += offsetYPx;
+        if (affineScale !== 1 || affineX !== 0 || affineY !== 0) {
+          placement.xPx = affineX + affineScale * placement.xPx;
+          placement.yPx = affineY + affineScale * placement.yPx;
+          placement.scale *= affineScale;
+        }
         node.setPlacement(placement);
-        if (hasAnimatedEffectRegion(clip)) node.setEffectTime?.(timeUs - clip.startUs, clip.durationUs);
-        node.tick?.(clip, timeUs);
+        if (hasAnimatedEffectRegion(clip)) node.setEffectTime?.(localTimeUs - clip.startUs, clip.durationUs);
+        node.tick?.(clip, localTimeUs);
       }
       node.setReveal?.(reveal, revealDirection);
     }
