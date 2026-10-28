@@ -84,7 +84,7 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "track/rename": "Rename a track.",
   "track/reorder": "Move a track to a new index in the render order (0 = bottom layer).",
   "track/set-property": "Set a track property: muted, solo, locked, or hidden (hidden tracks aren't drawn; audio follows muted).",
-  "transition/add": "Add a transition (crossDissolve, dipToBlack, dipToWhite, wipe, slide) across the cut between two adjacent clips.",
+  "transition/add": "Add a transition (crossDissolve, dipToBlack, dipToWhite, wipe, slide, zoomThrough) across the cut between two adjacent clips. zoomThrough zooms into a rect of the outgoing frame until the incoming clip fills the screen and needs no spare footage.",
   "transition/remove": "Remove a transition.",
   "transition/update": "Update a transition's duration, kind, or params.",
 };

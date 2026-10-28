@@ -26,6 +26,8 @@ export interface HarnessExportOptions {
   stream?: boolean;
   /** Audio mix chunk length in seconds (renderer default: 60). */
   audioChunkSeconds?: number;
+  /** Shutter motion blur (see `ExportProjectOptions.motionBlur`). */
+  motionBlur?: { shutterAngle?: number; minSamples?: number; maxSamples?: number; gapPx?: number };
 }
 
 export interface HarnessStillOptions {

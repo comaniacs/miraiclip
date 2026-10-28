@@ -29,6 +29,13 @@ export interface TransitionFrameEffects {
    * active, the highest-alpha overlay wins for the frame.
    */
   overlay?: { color: number; alpha: number };
+  /**
+   * A scale-and-translate of the whole clip about the composition's top-left:
+   * a clip centred at (x, y) is drawn at (tx + scale·x, ty + scale·y) and its
+   * own scale is multiplied by `scale` (zoomThrough). Composes with other
+   * transitions' affines multiplicatively.
+   */
+  affine?: { scale: number; txPx: number; tyPx: number };
 }
 
 export interface TransitionRenderContext {
@@ -45,6 +52,13 @@ export interface TransitionRenderer {
    * hard cut instead and need no out-of-bounds media at all.
    */
   rendersBothClips: boolean;
+  /**
+   * The clips keep showing their FIRST/LAST frame through the window instead
+   * of sourcing media from beyond their bounds, so the kind needs no spare
+   * footage (core's `transitionHoldsFrames` mirrors this for validation;
+   * a test keeps the two in step). Implies `rendersBothClips`.
+   */
+  holdsFrames?: boolean;
   /**
    * The adjustments for one participating clip at one moment. `progress` runs
    * 0 → 1 across the window (0.5 is the cut); `role` says which side this
@@ -105,6 +119,53 @@ const slide: TransitionRenderer = {
   },
 };
 
+const EASES = {
+  linear: (p: number) => p,
+  in: (p: number) => p * p * p,
+  out: (p: number) => 1 - (1 - p) ** 3,
+  inOut: (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2),
+} as const;
+
+/**
+ * Zoom through a region of the outgoing clip into the incoming one. The
+ * camera dives toward a fixed point so the chosen rect grows to fill the
+ * frame; the incoming clip lives inside that rect (scaled 1/Z) and arrives
+ * full-frame exactly as the dive ends. Both clips hold a frame — no handles.
+ */
+const zoomThrough: TransitionRenderer = {
+  rendersBothClips: true,
+  holdsFrames: true,
+  frame: (role, progress, params, { compositionSize: { width: W, height: H } }) => {
+    const rect = (params?.["rect"] as { x: number; y: number; w: number; h: number } | undefined) ?? {
+      x: 0.375, y: 0.375, w: 0.25, h: 0.25,
+    };
+    const easeName = params?.["ease"];
+    const ease = EASES[(typeof easeName === "string" && easeName in EASES ? easeName : "inOut") as keyof typeof EASES];
+    const rw = rect.w * W;
+    const rh = rect.h * H;
+    const cx = rect.x * W + rw / 2;
+    const cy = rect.y * H + rh / 2;
+    const Z = Math.max(W / rw, H / rh);
+    const fade = Math.min(1, 2 * progress);
+    if (!(Z > 1)) return role === "to" ? { opacity: fade } : null;
+    const e = ease(progress);
+    const z = Z ** e;
+    // The camera's fixed point: maps the rect centre to the screen centre at full zoom.
+    const fx = (W / 2 - Z * cx) / (1 - Z);
+    const fy = (H / 2 - Z * cy) / (1 - Z);
+    const camX = fx * (1 - z);
+    const camY = fy * (1 - z);
+    if (role === "from") return { affine: { scale: z, txPx: camX, tyPx: camY } };
+    // Incoming: lives in the world at scale 1/Z, centred on the rect centre.
+    const wx = cx - W / (2 * Z);
+    const wy = cy - H / (2 * Z);
+    return {
+      opacity: fade,
+      affine: { scale: z / Z, txPx: camX + z * wx, tyPx: camY + z * wy },
+    };
+  },
+};
+
 function dip(color: number): TransitionRenderer {
   return {
     rendersBothClips: false,
@@ -119,6 +180,7 @@ for (const [kind, renderer] of Object.entries({
   crossDissolve,
   wipe,
   slide,
+  zoomThrough,
   dipToBlack: dip(0x000000),
   dipToWhite: dip(0xffffff),
 })) {

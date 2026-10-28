@@ -39,6 +39,8 @@ let nextAudioRequestId = 0;
 const pendingAudio = new Map<number, { resolve: (chunk: PcmAudioChunk | null) => void; reject: (error: Error) => void }>();
 let nextHtmlRequestId = 0;
 const pendingHtml = new Map<number, { resolve: (bitmap: ImageBitmap) => void; reject: (error: Error) => void }>();
+let nextMotionRequestId = 0;
+const pendingMotion = new Map<number, { resolve: (px: number | null) => void; reject: (error: Error) => void }>();
 let nextOutputChunkId = 0;
 const pendingOutput = new Map<number, { resolve: () => void; reject: (error: Error) => void }>();
 
@@ -56,6 +58,15 @@ function requestHtmlRaster(request: HtmlRasterRequest): Promise<ImageBitmap> {
     const id = nextHtmlRequestId++;
     pendingHtml.set(id, { resolve, reject });
     scope.postMessage({ type: "need-html-raster", id, request });
+  });
+}
+
+/** Motion blur: how far a scripted clip's contents move — main has the DOM that can tell. */
+function requestHtmlMotion(clipId: string, fromUs: number, toUs: number): Promise<number | null> {
+  return new Promise((resolve, reject) => {
+    const id = nextMotionRequestId++;
+    pendingMotion.set(id, { resolve, reject });
+    scope.postMessage({ type: "need-html-motion", id, clipId, fromUs, toUs });
   });
 }
 
@@ -118,6 +129,7 @@ async function run(message: Extract<MainToWorkerMessage, { type: "start" }>): Pr
     const project = createProject(message.doc);
     const bytes = await exportProject(project, {
       ...message.options,
+      ...(message.options.motionBlur ? { blurHtmlMotion: (clip: { id: string }, fromUs: number, toUs: number) => requestHtmlMotion(clip.id, fromUs, toUs) } : {}),
       signal: abortController.signal,
       ...(message.streamOutput ? { target: relayTarget() } : {}),
       onProgress: (progress) => scope.postMessage({ type: "progress", progress }),
@@ -155,6 +167,12 @@ scope.onmessage = (event: MessageEvent<MainToWorkerMessage>) => {
     if (!pending) return;
     if (message.error !== undefined || !message.bitmap) pending.reject(new Error(message.error ?? "html raster missing"));
     else pending.resolve(message.bitmap);
+  } else if (message.type === "html-motion") {
+    const pending = pendingMotion.get(message.id);
+    pendingMotion.delete(message.id);
+    if (!pending) return;
+    if (message.error !== undefined) pending.reject(new Error(message.error));
+    else pending.resolve(message.motionPx);
   } else if (message.type === "output-chunk-ack") {
     const pending = pendingOutput.get(message.id);
     pendingOutput.delete(message.id);

@@ -1,0 +1,11 @@
+<div class="stage" data-libs="stage" data-duration="10" data-stage-version="2">
+  <div class="world" style="position:absolute;inset:0">
+    <div id="a" style="position:absolute;left:5%;top:40%;width:10%;height:15%;background:#e63946"></div>
+  </div>
+</div>
+<script>
+  stage.build((tl) => {
+    tl.label("a", 0).label("b", 2).label("c", 4).label("d", 6).label("e", 8);
+    tl.to("#a", { left: "80%", duration: 10, ease: "linear" }, 0);
+  });
+</script>

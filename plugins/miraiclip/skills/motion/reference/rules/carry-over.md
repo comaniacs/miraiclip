@@ -23,3 +23,25 @@ tl.label("name", 0)
   .from(".body p", { y: S.h(3), opacity: 0, duration: 0.5, stagger: 0.15, ease: "expo.out" }, "hand+=0.6")
   .camera({ zoom: 1.1, tiltY: -8, duration: 3.4, ease: "sine.inOut" }, "name");
 ```
+
+## With `tl.hop`, `tl.gather` and `tl.morph` (version 2)
+
+The hand-off can be a verb: `tl.hop` carries an element to its next slot on an arc and lands with a squash, `tl.gather` flies many elements into one container, and `tl.morph` turns one box into another. Each one records the carry, so the shot check counts it.
+
+```html v2
+<div class="world"><div class="dot"></div><div class="slot"><p class="label">Ready</p></div></div>
+```
+
+```css v2
+.dot{position:absolute;left:12cqw;top:60cqh;width:7cqmin;height:7cqmin;border-radius:50%;background:var(--p)}.slot{position:absolute;left:62cqw;top:56cqh;width:26cqw;height:16cqh;border-radius:2cqmin;background:var(--card);border:.3cqmin solid var(--line);display:grid;place-items:center}.label{margin:0;font-size:4.4cqmin;font-weight:700}
+```
+
+```js v2
+tl.label("dot", 0)
+  .from(".dot", { scale: 0, duration: 0.4, ease: "back.out" }, "dot")
+  .from(".slot", { opacity: 0, duration: 0.4, ease: "expo.out" }, "dot+=0.2")
+  .hop(".dot", { to: ".slot", height: S.h(14), duration: 0.7 }, 0.9)
+  .impact(".slot", 1.55, { squash: 0.06 })
+  .from(".label", { y: S.h(2), opacity: 0, duration: 0.4, ease: "expo.out" }, 1.6)
+  .camera({ zoom: 1.08, duration: 3, ease: "sine.inOut" }, "dot");
+```

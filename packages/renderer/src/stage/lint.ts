@@ -36,6 +36,35 @@ const FORBIDDEN: { rule: string; re: RegExp; message: string }[] = [
   { rule: "gsap", re: /\b(gsap|TweenMax|TweenLite|TimelineMax|ScrollTrigger)\b/, message: "GSAP isn't available here: use the stage kit's tl.to / tl.from / tl.fromTo / tl.set / tl.label / tl.camera" },
 ];
 
+
+const V2_VERBS = "morph|iris|zoomThrough|hop|gather|impact|press|pointer|follow|whip|handheld|shake|hit|rest|cut";
+/** Verbs whose first argument(s) name elements, with how many leading selector arguments to check. */
+const TARGET_ARGS: Record<string, number> = { morph: 2, iris: 1, zoomThrough: 1, hop: 1, gather: 1, impact: 1, press: 1, follow: 1, whip: 1 };
+const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+
+/** Which ids sit inside `<div class="world">`, by walking the markup's tags. */
+function idsByWorld(template: string): { inside: Set<string>; all: Set<string>; classes: Set<string> } {
+  const markup = template.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<!--[\s\S]*?-->/g, "");
+  const inside = new Set<string>(), all = new Set<string>(), classes = new Set<string>();
+  const stack: { tag: string; world: boolean }[] = [];
+  for (const m of markup.matchAll(/<(\/?)([a-zA-Z][\w-]*)([^>]*?)(\/?)>/g)) {
+    const [, close, tag, attrs, selfClose] = m;
+    const name = tag!.toLowerCase();
+    if (close) {
+      for (let i = stack.length - 1; i >= 0; i--) if (stack[i]!.tag === name) { stack.length = i; break; }
+      continue;
+    }
+    const id = /\bid\s*=\s*["']([^"']+)["']/.exec(attrs!)?.[1];
+    const cls = /\bclass\s*=\s*["']([^"']+)["']/.exec(attrs!)?.[1]?.split(/\s+/) ?? [];
+    const isWorld = cls.includes("world");
+    const world = isWorld || stack.some((e) => e.world);
+    if (id) { all.add(id); if (world) inside.add(id); }
+    cls.forEach((c) => classes.add(c));
+    if (!selfClose && !VOID.has(name)) stack.push({ tag: name, world: isWorld });
+  }
+  return { inside, all, classes };
+}
+
 /** Lint a stage-kit sequence template. */
 export function lintSequence(template: string): SequenceLintResult {
   const errors: SequenceLintFinding[] = [];
@@ -73,5 +102,34 @@ export function lintSequence(template: string): SequenceLintResult {
   // Pixel literals for positions and sizes don't survive another frame size.
   const raw = [...code.matchAll(/\b(x|y|left|top|width|height)\s*:\s*(-?\d+(?:\.\d+)?)(?![\d.]*\s*(?:%|cq|em|rem))/g)].filter((m) => Math.abs(Number(m[2])) > 40);
   if (raw.length) warn("pixels", `${raw.map((m) => `${m[1]}: ${m[2]}`).slice(0, 3).join(", ")} are pixels: use S.w(…) / S.h(…) / S.min(…) (percent of the stage) so the sequence fits 16:9, 9:16 and 1:1`);
+
+  // ---- continuous shot (version 2)
+  const rawCode = scripts.map((x) => x.code).join("\n");
+  const version2 = /data-stage-version\s*=\s*["']2["']/i.test(template);
+  const usesV2 = new RegExp(`\\btl\\s*\\.\\s*(${V2_VERBS})\\s*\\(|\\bS\\s*\\.\\s*grid\\s*\\(|\\banchor\\s*:`).test(code);
+  if (usesV2 && !version2) err("version", 'this sequence uses continuous-shot verbs (morph, hop, follow, shake, rest, anchor …): add data-stage-version="2" to the stage root');
+  if (usesV2 || version2) {
+    const ids = idsByWorld(template);
+    for (const m of rawCode.matchAll(new RegExp(`\\btl\\s*\\.\\s*(${Object.keys(TARGET_ARGS).join("|")})\\s*\\(\\s*((?:"[^"]*"|'[^']*')(?:\\s*,\\s*(?:"[^"]*"|'[^']*'))?)`, "g"))) {
+      const verb = m[1]!;
+      const sels = [...m[2]!.matchAll(/["']([^"']*)["']/g)].map((x) => x[1]!).slice(0, TARGET_ARGS[verb]);
+      for (const sel of sels) {
+        const id = /^#([\w-]+)$/.exec(sel)?.[1];
+        const cls = /^\.([\w-]+)$/.exec(sel)?.[1];
+        if ((id && !ids.all.has(id)) || (cls && !ids.classes.has(cls))) err("carry-target", `tl.${verb}("${sel}"): nothing in the markup matches "${sel}". Add the element, or fix the selector.`);
+        if (verb === "zoomThrough" && id && ids.all.has(id) && !ids.inside.has(id)) err("zoom-target", `tl.zoomThrough("${sel}"): the target must be inside <div class="world"> so the camera can move to it.`);
+      }
+    }
+    for (const m of code.matchAll(/\bzoom\s*:\s*(\d+(?:\.\d+)?)/g)) {
+      if (Number(m[1]) > 50 && !/\banchor\s*:/.test(code)) warn("zoom-anchor", `zoom: ${m[1]} without an anchor: a deep zoom drifts off its subject. Key it in screen space with tl.camera({ anchor: "#target", at: [50, 50], zoom: ${m[1]} }).`);
+    }
+    const animated = new Set<string>();
+    for (const m of rawCode.matchAll(/\btl\s*\.\s*(morph|hop|gather|impact|press)\s*\(\s*["']#([\w-]+)["']/g)) animated.add(m[2]!);
+    for (const id of animated) {
+      const inline = new RegExp(`id\\s*=\\s*["']${id}["'][^>]*style\\s*=\\s*"[^"]*\\btransform\\s*:`, "i").test(template) || new RegExp(`style\\s*=\\s*"[^"]*\\btransform\\s*:[^"]*"[^>]*id\\s*=\\s*["']${id}["']`, "i").test(template);
+      const sheet = new RegExp(`#${id}\\s*\\{[^}]*\\btransform\\s*:`, "i").test(css);
+      if (inline || sheet) warn("verb-transform", `#${id} has a CSS transform, but a verb animates it and writes its own transform. Move the transform onto a wrapper, or use translate / scale / rotate properties.`);
+    }
+  }
   return { errors, warnings };
 }

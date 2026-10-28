@@ -1,0 +1,110 @@
+// Builds the "prompt" sample: a 14 s continuous shot for an invented site builder, "Paper".
+// A prompt bar types a request, a press sends it, the bar morphs into the browser window the
+// request builds, three tiles gather into a Publish button, and the confirmation folds into the
+// wordmark. Nothing cuts.
+//
+// Concept chosen: "a prompt bar that becomes the product" (alternatives were "a cursor that
+// opens each screen" and "one dot that becomes everything").
+//
+//   node build.mjs   writes sequence.html and video.miraiclip.json
+import fs from "node:fs";
+import { createProject } from "../../../packages/core/dist/index.js";
+
+const W = 1920, H = 1080, DURATION = 14;
+const PROMPT = "a landing page for a pottery studio";
+
+const css = `
+*{box-sizing:border-box;margin:0}
+.stage{background:#f2ede4;color:#1c1b19;font-family:Inter,"DejaVu Sans",system-ui,sans-serif;overflow:hidden}
+.world{position:absolute;left:0;top:0;width:${W}px;height:${H}px}
+.abs{position:absolute}
+#bar{left:${W / 2 - 640}px;top:${H / 2 - 56}px;width:1280px;height:112px;border-radius:56px;background:#fff;border:3px solid #1c1b19;z-index:4}
+#prompt{left:${W / 2 - 590}px;top:${H / 2 - 30}px;font-size:48px;font-weight:600;white-space:nowrap;z-index:6}
+#prompt .caret{display:inline-block;width:5px;height:54px;background:#e4572e;margin-left:6px;vertical-align:-9px}
+#send{left:${W / 2 + 500}px;top:${H / 2 - 38}px;width:76px;height:76px;border-radius:50%;background:#e4572e;z-index:6;display:grid;place-items:center;color:#fff;font-size:42px;font-weight:800}
+#win{left:${W / 2 - 700}px;top:130px;width:1400px;height:760px;border-radius:30px;background:#fff;border:3px solid #1c1b19;z-index:3;opacity:0}
+.nav{left:0;top:0;width:100%;height:84px;border-bottom:3px solid #1c1b19;display:flex;align-items:center;padding:0 40px;font-size:34px;font-weight:800}
+.hero{left:70px;top:130px;font-size:92px;font-weight:800;line-height:1.02;letter-spacing:-.02em}
+.tile{top:470px;width:380px;height:210px;border-radius:24px;border:3px solid #1c1b19;display:grid;place-items:center;font-size:40px;font-weight:700;z-index:5}
+#t1{left:70px;background:#ffd9c9}#t2{left:510px;background:#d9e7ff}#t3{left:950px;background:#e3f5d0}
+#pub{left:${W / 2 - 230}px;top:930px;width:460px;height:110px;border-radius:55px;background:#e4572e;color:#fff;display:grid;place-items:center;font-size:48px;font-weight:800;z-index:6;opacity:0}
+#veil{left:0;top:0;width:${W}px;height:${H}px;background:#f2ede4;z-index:7;opacity:0}
+#live{left:${W / 2 - 450}px;top:${H / 2 - 225}px;width:900px;height:450px;border-radius:40px;background:#1c1b19;color:#f2ede4;display:grid;place-items:center;text-align:center;z-index:9;opacity:0}
+#live h2{font-size:120px;font-weight:800;line-height:1}#live p{font-size:44px;opacity:.7;margin-top:14px}
+#word{left:${W / 2 - 400}px;top:${H / 2 - 120}px;width:800px;height:240px;border-radius:120px;background:#e4572e;color:#fff;display:grid;place-items:center;font-size:150px;font-weight:800;letter-spacing:-.03em;z-index:10;opacity:0}
+`;
+
+const markup = `<div class="world">
+<div class="abs" id="bar"></div>
+<p class="abs" id="prompt"><span class="chars">${PROMPT}</span><i class="caret"></i></p>
+<div class="abs" id="send">↑</div>
+<div class="abs" id="win">
+  <div class="abs nav" id="nav">Kiln &amp; Co.</div>
+  <p class="abs hero" id="hero">Pottery you<br>can book.</p>
+  <div class="abs tile" id="t1">Classes</div><div class="abs tile" id="t2">Studio time</div><div class="abs tile" id="t3">Shop</div>
+</div>
+<div class="abs" id="pub">Publish</div>
+<div class="abs" id="veil"></div>
+<div class="abs" id="live"><div><h2>Live.</h2><p>kiln.paper.site</p></div></div>
+<div class="abs" id="word">Paper</div>
+</div>`;
+
+const script = `
+S.grid({ depth: 0.5, spacing: S.min(7), dot: 2, color: "#1c1b19", opacity: 0.08 });
+const chars = S.split(".chars", "chars");
+
+tl.pointer({ path: [
+    { t: 0, x: S.w(104), y: S.h(96) }, { t: 2.8, x: S.w(84), y: S.h(70) }, { t: 3.3, x: S.w(76.4), y: S.h(50) }, { t: 3.6, x: S.w(76.4), y: S.h(50) },
+    { t: 5.2, x: S.w(90), y: S.h(104) }, { t: 8.0, x: S.w(60), y: S.h(98) }, { t: 8.9, x: S.w(50), y: S.h(92) }, { t: 9.7, x: S.w(50), y: S.h(92) }, { t: 10.6, x: S.w(104), y: S.h(96) },
+  ], clicks: [3.4, 9.4] });
+tl.label("type", 0)
+  .from("#bar", { scaleX: 0.3, opacity: 0, duration: 0.7, ease: "expo.out" }, 0)
+  .from("#send", { scale: 0, duration: 0.4, ease: "back.out" }, 0.4)
+  .from(chars, { opacity: 0, duration: 0.01, stagger: 0.07 }, 0.7)
+  .camera({ zoom: 1.08, duration: 3.2, ease: "sine.inOut" }, 0)
+  .label("send", 3.4)
+  .press("#send", 3.4)
+  .shake(3.4, { amp: S.min(0.8), decay: 0.35, seed: 2 })
+  .label("build", 3.9)
+  .set("#win", { opacity: 1 }, "build")
+  .morph("#bar", "#win", { duration: 1.1, ease: "expo.inOut", content: "none" }, "build")
+  .to("#prompt, #send", { opacity: 0, duration: 0.35 }, "build")
+  .camera({ zoom: 1, duration: 1.4, ease: "inOut(3)" }, "build")
+  .from("#nav", { y: -S.h(4), opacity: 0, duration: 0.5, ease: "expo.out" }, "build+=0.9")
+  .from("#hero", { y: S.h(4), opacity: 0, blur: 8, duration: 0.7, ease: "expo.out" }, "build+=1.1")
+  .from(".tile", { y: S.h(5), opacity: 0, duration: 0.6, stagger: 0.14, ease: "expo.out" }, "build+=1.5")
+  .camera({ zoom: 1.05, duration: 3, ease: "sine.inOut" }, "build+=1.4")
+  .label("pub", 7.2)
+  .set("#pub", { opacity: 1 }, "pub")
+  .gather(".tile", { into: "#pub", arc: 0.2, stagger: 0.1, duration: 0.9 }, "pub")
+  .from("#pub", { scale: 0.6, duration: 0.6, ease: "expo.out" }, "pub+=0.2")
+  .set(".tile", { opacity: 0 }, "pub+=1.15")
+  .label("rest", 8.6)
+  .rest("rest", "rest+=0.7")
+  .label("press", 9.4)
+  .press("#pub", 9.4)
+  .shake(9.4, { amp: S.min(0.9), decay: 0.35, seed: 6 })
+  .label("live", 9.9)
+  .set("#live", { opacity: 1 }, "live")
+  .iris("#live", { from: "#pub", duration: 1.0, ease: "inOut(3)" }, "live")
+  .to("#veil", { opacity: 0.88, duration: 0.8 }, "live")
+  .to("#pub", { opacity: 0, duration: 0.4 }, "live+=0.6")
+  .camera({ zoom: 1.04, duration: 2, ease: "sine.inOut" }, "live")
+  .label("lockup", 11.6)
+  .set("#word", { opacity: 1 }, "lockup")
+  .to("#veil", { opacity: 1, duration: 0.6 }, "lockup")
+  .morph("#live", "#word", { duration: 1.1, ease: "expo.inOut" }, "lockup")
+  .handheld({ amount: S.min(0.25) }, 0, ${DURATION})
+  .label("end", 12.9);
+`;
+
+const html = `<div class="stage" data-libs="stage" data-duration="${DURATION}" data-stage-version="2" style="width:${W}px;height:${H}px"><style>${css}</style>${markup}</div>\n<script>stage.build((tl, S) => {${script}});</script>`;
+fs.writeFileSync(new URL("./sequence.html", import.meta.url), html);
+
+const project = createProject({ width: W, height: H, fps: 30 });
+project.transaction(() => {
+  project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+  project.dispatch({ type: "clip/add", payload: { kind: "html", id: "paper", trackId: "v1", startUs: 0, durationUs: DURATION * 1_000_000, template: html, scripted: true } });
+});
+fs.writeFileSync(new URL("./video.miraiclip.json", import.meta.url), JSON.stringify(project.toJSON(), null, 2) + "\n");
+console.log("wrote sequence.html and video.miraiclip.json");

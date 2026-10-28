@@ -67,14 +67,17 @@ describe("miraiclip MCP server (edit tools)", () => {
     const names = tools.map((tool) => tool.name).sort();
     expect(names).toEqual([
       "apply_commands",
+      "check_sequence",
       "dispatch",
       "export",
       "get_command_schema",
       "get_project_json",
       "get_state",
       "list_commands",
+      "place_sfx_from_events",
       "preview_frame",
       "redo",
+      "set_beat_grid",
       "undo",
     ]);
 
@@ -254,6 +257,72 @@ describe.skipIf(browserPath === undefined)("miraiclip MCP server (rendering tool
     expect(view.getUint32(16)).toBe(768);
     expect(view.getUint32(20)).toBe(432);
     expect(textOf(result)).toContain("500000us");
+  }, 120_000);
+
+  it("check_sequence reports on stage sequences and skips plain html", async () => {
+    const tpl = '<div class="stage" data-libs="stage" data-duration="12" data-stage-version="2"><div class="world" style="position:absolute;inset:0"><div id="a" style="position:absolute;inset:10%;background:#e63946">A</div><div id="b" style="position:absolute;inset:10%;background:#264653;opacity:0">B</div></div></div><script>stage.build((tl)=>{tl.label("a",0).label("b",5);tl.to("#a",{opacity:0,duration:.2},4.9).to("#b",{opacity:1,duration:.2},4.9);});</script>';
+    const added = await client.callTool({
+      name: "apply_commands",
+      arguments: {
+        commands: [
+          { type: "track/add", payload: { id: "seqT", kind: "video" } },
+          { type: "clip/add", payload: { id: "seq1", kind: "html", trackId: "seqT", startUs: 0, durationUs: 12_000_000, template: tpl, params: {} } },
+        ],
+      },
+    });
+    expect(added.isError ?? false).toBe(false);
+    const result = await client.callTool({ name: "check_sequence", arguments: { clipId: "seq1" } });
+    expect(result.isError ?? false).toBe(false);
+    const report = JSON.parse(textOf(result)) as { clips: { clipId: string; report: { bare: number } | null }[]; findings: { rule: string }[] };
+    expect(report.clips[0]!.report!.bare).toBe(1);
+    expect(report.findings.some((f) => f.rule === "bare-boundary")).toBe(true);
+    const withFrames = await client.callTool({ name: "check_sequence", arguments: { clipId: "seq1", frames: true } });
+    expect((withFrames.content as ContentItem[]).filter((c) => c.type === "image")).toHaveLength(2);
+    expect(textOf(withFrames)).toContain("before");
+  }, 120_000);
+
+  it("place_sfx_from_events and set_beat_grid work on a sequence with hits", async () => {
+    const tpl = '<div class="stage" data-libs="stage" data-duration="6" data-stage-version="2"><div class="world" style="position:absolute;inset:0"><div id="a" style="position:absolute;left:10%;top:40%;width:10%;height:15%;background:#e63946"></div></div></div><script>stage.build((tl)=>{tl.label("a",0).label("b",3);tl.to("#a",{left:"70%",duration:6,ease:"linear"},0).shake(2,{amp:3}).hit("land",4,{pan:0.5,kind:"land"});});</script>';
+    const added = await client.callTool({
+      name: "apply_commands",
+      arguments: {
+        commands: [
+          { type: "track/add", payload: { id: "vT", kind: "video" } },
+          { type: "track/add", payload: { id: "mT", kind: "audio" } },
+          { type: "asset/add", payload: { id: "boom", kind: "audio", name: "boom", src: "boom.wav", durationUs: 800_000 } },
+          { type: "asset/add", payload: { id: "thud", kind: "audio", name: "thud", src: "thud.wav", durationUs: 400_000 } },
+          { type: "asset/add", payload: { id: "song", kind: "audio", name: "song", src: "song.wav", durationUs: 60_000_000 } },
+          { type: "clip/add", payload: { id: "seq2", kind: "html", trackId: "vT", startUs: 2_000_000, durationUs: 6_000_000, template: tpl, params: {} } },
+          { type: "clip/add", payload: { id: "music", kind: "audio", trackId: "mT", assetId: "song", startUs: 0, durationUs: 20_000_000, trimStartUs: 0, volume: 0.8 } },
+        ],
+      },
+    });
+    expect(added.isError ?? false).toBe(false);
+    const placed = await client.callTool({ name: "place_sfx_from_events", arguments: { clipId: "seq2", sounds: { shake: "boom", land: "thud" }, musicClipId: "music" } });
+    expect(placed.isError ?? false).toBe(false);
+    const out = JSON.parse(textOf(placed)) as { placed: number; placements: { atUs: number; kind: string }[]; ducks: number };
+    expect(out.placed).toBe(2);
+    expect(out.placements.map((p) => [p.kind, p.atUs])).toEqual([["shake", 4_000_000], ["land", 6_000_000]]);
+    expect(out.ducks).toBe(2);
+    const state = JSON.parse(textOf(await client.callTool({ name: "get_project_json", arguments: {} }))) as { clips: Record<string, { kind: string; trackId: string }> };
+    expect(Object.values(state.clips).filter((c) => c.trackId === "sfx")).toHaveLength(2);
+
+    const grid = await client.callTool({ name: "set_beat_grid", arguments: { clipId: "seq2", beats: [0.5, 2.5, 3, 3.5], downbeats: [0.5, 3.5], musicClipId: "music" } });
+    expect(grid.isError ?? false).toBe(false);
+    expect(JSON.parse(textOf(grid))).toMatchObject({ beats: 3, downbeats: 1, offsetSeconds: 2 });
+    const doc = JSON.parse(textOf(await client.callTool({ name: "get_project_json", arguments: {} }))) as { clips: Record<string, { template?: string }> };
+    expect(doc.clips["seq2"]!.template).toContain(`data-beats='[0.5,1,1.5]'`);
+    // Leave the project as it was: the export test below renders it, and these audio files don't exist.
+    const cleanup = await client.callTool({
+      name: "apply_commands",
+      arguments: {
+        commands: [
+          ...Object.keys(doc.clips).filter((id) => id === "seq2" || id === "music" || id.startsWith("sfx")).map((clipId) => ({ type: "clip/remove", payload: { clipId } })),
+          ...["boom", "thud", "song"].map((id) => ({ type: "asset/remove", payload: { id } })),
+        ],
+      },
+    });
+    expect(cleanup.isError ?? false).toBe(false);
   }, 120_000);
 
   it("export streams a WebM next to the project file", async () => {

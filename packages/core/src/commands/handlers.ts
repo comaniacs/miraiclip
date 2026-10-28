@@ -7,6 +7,7 @@ import {
   clipKindRegistration,
   effectParamsSchema,
   isBuiltinClipKind,
+  transitionHoldsFrames,
   transitionParamsSchema,
 } from "../registry.js";
 import {
@@ -779,19 +780,30 @@ export const builtinHandlers: {
     }
     // Centered on the cut: each side needs half the window of source headroom.
     const half: Us = Math.ceil(p.durationUs / 2);
-    if (headroomUs(doc, from, "out") < half) {
-      reject(
-        "transition/add",
-        "insufficient-handles",
-        `"${p.fromClipId}" has no source media past its end — trim it shorter or shorten the transition`,
-      );
-    }
-    if (headroomUs(doc, to, "in") < half) {
-      reject(
-        "transition/add",
-        "insufficient-handles",
-        `"${p.toClipId}" has no source media before its start — trim it or shorten the transition`,
-      );
+    if (transitionHoldsFrames(p.kind)) {
+      // Holds the outgoing last frame and the incoming first frame: no handles, but the window can't outlast either clip.
+      if (p.durationUs > Math.min(from.durationUs, to.durationUs)) {
+        reject(
+          "transition/add",
+          "transition-too-long",
+          `a ${p.kind} transition can't be longer than the shorter of the two clips (${Math.min(from.durationUs, to.durationUs)} µs)`,
+        );
+      }
+    } else {
+      if (headroomUs(doc, from, "out") < half) {
+        reject(
+          "transition/add",
+          "insufficient-handles",
+          `"${p.fromClipId}" has no source media past its end — trim it shorter or shorten the transition`,
+        );
+      }
+      if (headroomUs(doc, to, "in") < half) {
+        reject(
+          "transition/add",
+          "insufficient-handles",
+          `"${p.toClipId}" has no source media before its start — trim it or shorten the transition`,
+        );
+      }
     }
     const params = parseParams("transition/add", "transition", p.kind, p.params ?? {});
     const transitionId = p.id ?? nanoid();
@@ -817,7 +829,11 @@ export const builtinHandlers: {
       const from = getClip(doc, "transition/update", transition.fromClipId);
       const to = getClip(doc, "transition/update", transition.toClipId);
       const half: Us = Math.ceil(p.durationUs / 2);
-      if (headroomUs(doc, from, "out") < half || headroomUs(doc, to, "in") < half) {
+      if (transitionHoldsFrames(transition.kind)) {
+        if (p.durationUs > Math.min(from.durationUs, to.durationUs)) {
+          reject("transition/update", "transition-too-long", "a held-frame transition can't be longer than the shorter of the two clips");
+        }
+      } else if (headroomUs(doc, from, "out") < half || headroomUs(doc, to, "in") < half) {
         reject(
           "transition/update",
           "insufficient-handles",

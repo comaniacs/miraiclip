@@ -55,3 +55,5 @@ export type {
   TransformGuides,
   TransformModifiers,
 } from "./transform.js";
+export { shotCheckKey, shotWarnings, staleShotChecks } from "./shot-warnings.js";
+export type { ShotFindingLike, ShotReportLike, ShotWarningMarker, ShotWarningsModel } from "./shot-warnings.js";

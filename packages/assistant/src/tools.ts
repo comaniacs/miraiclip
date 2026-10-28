@@ -2,9 +2,12 @@ import {
   ANIMATION_EASINGS,
   ANIMATION_PRESETS,
   animationCommands,
+  applyBeatGrid,
   applyCommands,
+  planSoundFromEvents,
   commandCatalog,
   builtinTransitionParamSchemas,
+  transitionHoldsFrames,
   describeAnimation,
   EFFECT_CATALOG,
   findCuts,
@@ -14,9 +17,12 @@ import {
   type AnimationEasing,
   type AnimationRecipe,
   type AnimationSlot,
+  type AudioClip,
+  type HtmlClip,
   type Command,
   type Cut,
   type Project,
+  type ProjectDocument,
 } from "@miraiclip/core";
 import { describeForAssistant, describeKeyframes, htmlPlaceholders, readClipAnimation } from "./state.js";
 import { unknownFields } from "./strict.js";
@@ -140,6 +146,11 @@ export interface EditorToolsOptions {
   transitionKinds?: string[];
   /** The command catalog to offer in apply_commands (default: the built-ins). Pass `project.commandCatalog()` when you register custom commands. */
   commandCatalog?: Record<string, unknown>;
+  /**
+   * Runs the continuous-shot check over the document (e.g. `checkShot` from `@miraiclip/server-export`, or the app's
+   * in-browser equivalent). The `check_sequence` tool is offered only when this is given, because the check needs a browser.
+   */
+  checkSequence?: (doc: ProjectDocument, options: { clipId?: string }) => Promise<unknown>;
 }
 
 /**
@@ -151,7 +162,123 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
   const transitionKinds = options.transitionKinds ?? Object.keys(builtinTransitionParamSchemas);
   const presetIds = (slot: AnimationSlot) => ANIMATION_PRESETS.filter((p) => p.slot === slot).map((p) => p.id.split(":")[1]!);
 
+  const checkTools: AssistantTool[] = options.checkSequence
+    ? [
+        defineTool({
+          name: "check_sequence",
+          description:
+            'Check a stage sequence (data-libs="stage") as one continuous shot: for every label it reports whether something survives into the next beat (carried / anchored / bare), subjects that leave the frame (data-keep-in-frame), uneven or metronomic beat spacing and stray hard cuts, as warnings with times and a hint each. Run it after composing or editing a sequence and fix the bare boundaries; warnings never block an export.',
+          inputSchema: {
+            type: "object",
+            properties: { clipId: { type: "string", description: "Check only this html clip (default: every html clip)." } },
+            additionalProperties: false,
+          },
+          async run(input, { project }) {
+            try {
+              const result = await options.checkSequence!(project.toJSON(), typeof input.clipId === "string" ? { clipId: input.clipId } : {});
+              return { ok: true, result };
+            } catch (error) {
+              return { ok: false, error: error instanceof Error ? error.message : String(error) };
+            }
+          },
+        }),
+        defineTool({
+          name: "place_sfx_from_events",
+          description:
+            "Put sound effects on a continuous shot's hits. Reads the sound moments the sequence declared (tl.hit, presses, impacts, shakes, carry landings), adds one audio clip at each (one sound per hit kind, so the film keeps one material set) and optionally ducks a music clip under them. Add the sounds as audio assets first (prefer CC0; keep to one material). Audio clips have no pan yet, so where on screen a hit happened is reported but not applied. " + US_NOTE,
+          inputSchema: {
+            type: "object",
+            properties: {
+              clipId: { type: "string", description: "The html sequence clip." },
+              sounds: { type: "object", description: 'Audio asset id per hit kind, e.g. { "impact": "thud", "click": "tick" }. Kinds: impact, click, whoosh, land, shake.', additionalProperties: { type: "string" } },
+              trackId: { type: "string", description: 'Audio track for the effects (default "sfx", created if missing).' },
+              musicClipId: { type: "string", description: "A music audio clip to lower under the hits." },
+              volume: { type: "number", minimum: 0, maximum: 4 },
+              duckTo: { type: "number", minimum: 0, maximum: 1, description: "Music level during a hit, as a fraction of its own (default 0.35)." },
+            },
+            required: ["clipId", "sounds"],
+            additionalProperties: false,
+          },
+          async run(input, { project }) {
+            const doc = project.toJSON();
+            const clipId = String(input.clipId ?? "");
+            const seq = doc.clips[clipId];
+            if (!seq || seq.kind !== "html") return { ok: false, error: `"${clipId}" is not an html clip` };
+            let report: { events?: { name: string; t: number; kind: string; pan: number }[] } | null | undefined;
+            try {
+              const checked = (await options.checkSequence!(doc, { clipId })) as { clips?: { clipId: string; report: typeof report; skipped?: string }[] };
+              const entry = checked.clips?.find((c) => c.clipId === clipId);
+              report = entry?.report;
+              if (!report) return { ok: false, error: entry?.skipped ?? "the sequence could not be checked" };
+            } catch (error) {
+              return { ok: false, error: error instanceof Error ? error.message : String(error) };
+            }
+            const sounds: Record<string, { assetId: string; durationUs: number }> = {};
+            for (const [kind, assetId] of Object.entries((input.sounds ?? {}) as Record<string, string>)) {
+              const asset = doc.assets[assetId];
+              if (!asset || asset.kind !== "audio") return { ok: false, error: `sounds.${kind}: "${assetId}" is not an audio asset` };
+              sounds[kind] = { assetId, durationUs: (asset as { durationUs?: number }).durationUs ?? 1_000_000 };
+            }
+            const music = input.musicClipId !== undefined ? doc.clips[String(input.musicClipId)] : undefined;
+            if (input.musicClipId !== undefined && (!music || music.kind !== "audio")) return { ok: false, error: `"${String(input.musicClipId)}" is not an audio clip` };
+            const trackId = typeof input.trackId === "string" ? input.trackId : "sfx";
+            const plan = planSoundFromEvents({
+              events: report.events ?? [],
+              sequenceStartUs: seq.startUs,
+              sounds,
+              trackId,
+              existingClipIds: Object.keys(doc.clips),
+              ...(typeof input.volume === "number" ? { volume: input.volume } : {}),
+              ...(typeof input.duckTo === "number" ? { duckTo: input.duckTo } : {}),
+              ...(music ? { music: { clipId: music.id, startUs: music.startUs, durationUs: music.durationUs, volume: (music as AudioClip).volume } } : {}),
+            });
+            if (!plan.placements.length) return { ok: true, result: { placed: 0, skipped: plan.skipped, note: "nothing placed: the sequence has no hits with a sound; add tl.hit calls or more kinds in sounds" } };
+            const commands: Command[] = [...(doc.tracks[trackId] ? [] : [{ type: "track/add", payload: { id: trackId, kind: "audio", name: "SFX" } }]), ...plan.commands];
+            const out = applyChecked(project, commands);
+            if (!out.ok) return out;
+            return { ...out, result: { placed: plan.placements.length, placements: plan.placements, skipped: plan.skipped, ducks: plan.ducks.length }, changes: [`Placed ${plan.placements.length} sound effects on ${trackId}${plan.ducks.length ? ` and ducked the music under ${plan.ducks.length} hit${plan.ducks.length === 1 ? "" : "s"}` : ""}`] };
+          },
+        }),
+      ]
+    : [];
+
+  const beatTool = defineTool({
+    name: "set_beat_grid",
+    description:
+      "Write a music beat grid onto a sequence so S.beat(n) and S.downbeat(n) land on the music. Pass beats and downbeats in seconds from the start of the music, and the music clip so the offset between music and sequence is applied. " + US_NOTE,
+    inputSchema: {
+      type: "object",
+      properties: {
+        clipId: { type: "string", description: "The html sequence clip." },
+        beats: { type: "array", items: { type: "number" } },
+        downbeats: { type: "array", items: { type: "number" } },
+        musicClipId: { type: "string", description: "The music audio clip the grid belongs to." },
+        offsetSeconds: { type: "number", description: "Instead of musicClipId: how far into the music the sequence starts." },
+      },
+      required: ["clipId", "beats"],
+      additionalProperties: false,
+    },
+    run(input, { project }) {
+      const doc = project.toJSON();
+      const clipId = String(input.clipId ?? "");
+      const seq = doc.clips[clipId];
+      if (!seq || seq.kind !== "html") return { ok: false, error: `"${clipId}" is not an html clip` };
+      let offset = typeof input.offsetSeconds === "number" ? input.offsetSeconds : 0;
+      if (input.musicClipId !== undefined) {
+        const music = doc.clips[String(input.musicClipId)];
+        if (!music || music.kind !== "audio") return { ok: false, error: `"${String(input.musicClipId)}" is not an audio clip` };
+        offset = (seq.startUs - music.startUs + (music as AudioClip).trimStartUs) / 1_000_000;
+      }
+      const grid = applyBeatGrid((seq as HtmlClip).template, { beats: (input.beats ?? []) as number[], ...(Array.isArray(input.downbeats) ? { downbeats: input.downbeats as number[] } : {}) }, offset);
+      if (!grid.found) return { ok: false, error: 'the template has no stage root (data-libs="stage")' };
+      const out = applyChecked(project, [{ type: "clip/set-property", payload: { clipId, template: grid.template } }]);
+      if (!out.ok) return out;
+      return { ...out, result: { beats: grid.beats, downbeats: grid.downbeats, offsetSeconds: offset }, changes: [`Set a beat grid on ${clipId}: ${grid.beats} beats, ${grid.downbeats} downbeats`] };
+    },
+  });
+
   return [
+    ...checkTools,
     defineTool({
       name: "get_state",
       description: `The project as it is now (after your edits so far): settings, assets, tracks with clips (ids, kinds, time ranges), transitions, and each clip's position, size, opacity, text style, volume, effects and animation. ${US_NOTE}`,
@@ -200,6 +327,7 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
       description:
         "Add (or replace, or remove) a transition on cuts — where one clip ends exactly where the next starts on the same video track. Pick the cut by its two clip ids, by a time near it, or all cuts. " +
         "A transition overlaps both clips around the cut, so its length is capped by the spare footage there; cuts with none are skipped and reported. " +
+        "zoomThrough is the exception: it dives into a region of the outgoing clip and arrives in the next one, holding the first/last frames, so it needs no spare footage (length capped by the shorter clip). " +
         'When a video clip directly follows another on its track, "fade into / dissolve to / slide in / wipe to" that clip means a transition on the cut before it, not an animation. ' +
         'Slide / wipe direction is the direction of motion: "from the left" = right.',
       inputSchema: {
@@ -212,6 +340,14 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
           allCuts: { type: "boolean", description: "Apply to every cut." },
           durationSeconds: { type: "number", minimum: 0.1, maximum: 3, description: "Default 0.6." },
           direction: { type: "string", enum: ["left", "right", "up", "down"], description: "wipe / slide only." },
+          rect: {
+            type: "object",
+            description: "zoomThrough only: the region to dive into, as fractions of the frame (default the centre quarter).",
+            properties: { x: { type: "number" }, y: { type: "number" }, w: { type: "number" }, h: { type: "number" } },
+            required: ["x", "y", "w", "h"],
+            additionalProperties: false,
+          },
+          ease: { type: "string", enum: ["linear", "in", "out", "inOut"], description: "zoomThrough only (default inOut)." },
         },
         required: ["kind"],
         additionalProperties: false,
@@ -247,13 +383,18 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
             if (cut.transition) changes.push(`Removed the transition at ${seconds(cut.atUs)}`);
             continue;
           }
-          const durationUs = Math.min(wanted, cut.maxTransitionUs);
+          const durationUs = Math.min(wanted, transitionHoldsFrames(kind) ? cut.maxHoldTransitionUs : cut.maxTransitionUs);
           if (durationUs < 100_000) {
             skipped.push({ ...cutInfo(cut), reason: `no spare footage (${cut.short === "from" ? "the first clip ends where its media ends" : cut.short === "to" ? "the second clip starts at its media's start" : "both clips use all their media"})` });
             if (cut.transition) commands.pop();
             continue;
           }
-          const params = input.direction && (kind === "wipe" || kind === "slide") ? { direction: input.direction } : undefined;
+          const params =
+            input.direction && (kind === "wipe" || kind === "slide")
+              ? { direction: input.direction }
+              : kind === "zoomThrough" && (input.rect || input.ease)
+                ? { ...(input.rect ? { rect: input.rect } : {}), ...(input.ease ? { ease: input.ease } : {}) }
+                : undefined;
           commands.push({ type: "transition/add", payload: { kind, fromClipId: cut.fromClipId, toClipId: cut.toClipId, durationUs, ...(params ? { params } : {}) } });
           changes.push(`${cut.transition ? "Replaced the transition with" : "Added"} ${kind} at ${seconds(cut.atUs)} (${seconds(durationUs)})`);
         }
@@ -624,6 +765,7 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
         return out.ok ? { ...out, changes: [`Closed ${commands.length} gap${commands.length > 1 ? "s" : ""} on ${input.trackId}`] } : out;
       },
     }),
+    beatTool,
   ];
 }
 
@@ -768,7 +910,7 @@ function noCutReason(project: Project, fromId: unknown, toId: unknown): string {
 }
 
 function cutInfo(c: Cut) {
-  return { fromClipId: c.fromClipId, toClipId: c.toClipId, atSeconds: c.atUs / S, maxSeconds: c.maxTransitionUs / S, ...(c.transition ? { transition: c.transition.kind } : {}) };
+  return { fromClipId: c.fromClipId, toClipId: c.toClipId, atSeconds: c.atUs / S, maxSeconds: c.maxTransitionUs / S, maxZoomThroughSeconds: c.maxHoldTransitionUs / S, ...(c.transition ? { transition: c.transition.kind } : {}) };
 }
 
 /** apply_commands' input schema: `type` is an enum of the catalog's commands. */

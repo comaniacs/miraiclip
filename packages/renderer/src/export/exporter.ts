@@ -1,5 +1,6 @@
 import { frameCount, frameToUs, toFrameRate, type FrameRate } from "@miraiclip/core";
 import type { Us } from "../media/types.js";
+import type { FrameAccumulator } from "./frame-accumulator.js";
 import {
   ExportAbortedError,
   type ExportProgress,
@@ -21,6 +22,17 @@ export interface ExportCompositionOptions {
    * awaits exact decode (`videos.renderFrameAt` in production).
    */
   renderFrame: (timeUs: Us) => Promise<void>;
+  /**
+   * Shutter motion blur: for each output frame `plan` returns the instants to
+   * render (one entry = render once, no averaging); several are rendered
+   * and averaged by `accumulator`, whose canvas is what the sink captures.
+   * Times must be strictly increasing within a frame and across frames
+   * (decoders only move forward).
+   */
+  blur?: {
+    accumulator: FrameAccumulator;
+    plan: (frame: { n: number; startUs: Us; endUs: Us; sampleUs: Us }) => Us[] | Promise<Us[]>;
+  };
   sink: ExportSink;
   /**
    * Produce the mixed audio for the WHOLE range in one buffer
@@ -204,7 +216,23 @@ export async function exportComposition(
       // sampling at the exact frame start grabs the previous source frame
       // whenever that jitter lands the boundary ±1ms off. The midpoint is
       // maximally far from both boundaries.
-      await renderFrame(sampleUs);
+      if (options.blur) {
+        const { accumulator, plan } = options.blur;
+        const times = await plan({ n, startUs: frameStartUs, endUs: frameEndUs, sampleUs });
+        if (times.length <= 1) {
+          await renderFrame(times[0] ?? sampleUs);
+          accumulator.copy();
+        } else {
+          accumulator.reset();
+          for (const t of times) {
+            await renderFrame(t);
+            accumulator.add(1 / times.length);
+          }
+          accumulator.resolve();
+        }
+      } else {
+        await renderFrame(sampleUs);
+      }
       await throwIfAborted(); // rendering awaits decode — abort may land there
       if (sinkError) throw sinkError;
       trackAdd(sink.addVideoFrame(frameStartUs - startUs, frameEndUs - frameStartUs));

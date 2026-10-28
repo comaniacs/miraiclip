@@ -20,3 +20,21 @@ tl.label("drift", 0)
   .to(".title", { x: -S.w(4), duration: 4, ease: "sine.inOut" }, "drift")
   .to(".near", { x: -S.w(18), duration: 4, ease: "sine.inOut" }, "drift");
 ```
+
+## With `data-depth` (version 2)
+
+On a `data-stage-version="2"` sequence, put `data-depth` on the layers instead of animating each one: under any camera pan a layer at depth `d` moves 1 / (1 + d) as far as depth 0, so far layers (larger depth) move less and foreground layers (negative depth, down to −0.5) move more. One camera move drives them all.
+
+```html v2
+<div class="world"><div class="far" data-depth="4"></div><div class="mid" data-depth="1.5"><i></i><i></i><i></i></div><p class="title">One platform</p><div class="near" data-depth="-0.5"><i></i><i></i></div></div>
+```
+
+```css v2
+.far{position:absolute;inset:-10cqh -10cqw;background:radial-gradient(circle at 30% 40%,#5ad1ff33,transparent 40%),radial-gradient(circle at 75% 60%,#ff5d8f33,transparent 45%)}.mid i{position:absolute;width:22cqmin;height:14cqmin;border-radius:1.6cqmin;background:var(--card);opacity:.7}.mid i:nth-child(1){left:8cqw;top:14cqh}.mid i:nth-child(2){left:66cqw;top:10cqh}.mid i:nth-child(3){left:58cqw;top:64cqh}.title{position:absolute;inset:0;display:grid;place-items:center;margin:0;font-size:10cqmin;font-weight:800}.near i{position:absolute;width:4cqmin;height:4cqmin;border-radius:50%;background:var(--p)}.near i:nth-child(1){left:20cqw;top:76cqh}.near i:nth-child(2){left:84cqw;top:30cqh}
+```
+
+```js v2
+tl.label("drift", 0)
+  .camera({ x: -S.w(8), duration: 4, ease: "sine.inOut" }, "drift")
+  .handheld({ amount: S.min(0.3) }, 0, 4);
+```

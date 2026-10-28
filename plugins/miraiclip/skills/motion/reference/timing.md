@@ -47,7 +47,7 @@ The film is checked against these, measured on small greyscale frames at 10 fps 
 
 For reference, a well-made 13 s launch film measures density 0.99 with a median change of 3.5. Slide-like films with dissolves measure about 0.6 and 0.8, with several dead holds.
 
-Documentary-paced films have lower targets (density ≥ 0.6, median change ≥ 0.6, no hold over 2 s), but the camera still never stops.
+Documentary-paced films have lower targets (density ≥ 0.6, median change ≥ 0.6, no hold over 2 s), but the camera still keeps moving, except in rests you declare with `tl.rest`.
 
 ## Fixing what the checks find
 

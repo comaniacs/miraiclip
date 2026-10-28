@@ -26,3 +26,5 @@ export { checkIntegrity, preparePlugins } from "./plugins.js";
 export type { PreparedPlugins, ServerPluginOptions } from "./plugins.js";
 export { createRenderJobHandler, hasAudibleClips, httpRunner, localRunner, planChunks, renderDistributed } from "./distributed.js";
 export type { HttpRunnerOptions, LocalRunnerOptions, RenderDistributedOptions, RenderDistributedResult, RenderJob, RenderJobHandlerOptions, RenderJobResult, RenderRunner } from "./distributed.js";
+export { checkShot } from "./check-shot.js";
+export type { CheckShotOptions, CheckShotResult, ClipShotReport, ShotBoundary, ShotFinding, ShotReport } from "./check-shot.js";

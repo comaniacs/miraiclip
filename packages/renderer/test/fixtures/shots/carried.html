@@ -1,0 +1,12 @@
+<div class="stage" data-libs="stage" data-duration="8" data-stage-version="2">
+  <div class="world" style="position:absolute;inset:0">
+    <div id="m1" style="position:absolute;left:10%;top:40%;width:10%;height:15%;background:#e63946"></div>
+    <div id="m2" style="position:absolute;left:50%;top:20%;width:30%;height:40%;background:#264653;opacity:0"></div>
+  </div>
+</div>
+<script>
+  stage.build((tl) => {
+    tl.label("a", 0).label("b", 3).label("c", 6);
+    tl.morph("#m1", "#m2", { duration: 1 }, 2.6);
+  });
+</script>

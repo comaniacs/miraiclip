@@ -43,3 +43,5 @@ A film is a few acts, each one compose_sequence clip. The join between acts foll
 - Re-animating a whole sentence to change one word.
 - An act that starts on an empty frame and builds from zero (only the very first act may).
 - Resetting the camera to a neutral position between beats.
+
+Run `check_sequence` after composing: it names every beat that starts from nothing (bare) and suggests the carry that would fix it.

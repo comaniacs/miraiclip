@@ -107,6 +107,18 @@ describe("every catalog entry works through the tools", () => {
   });
 });
 
+describe("zoomThrough", () => {
+  it("takes a rect and ease, and a bad rect is rejected without changing anything", () => {
+    const rect = { x: 0.1, y: 0.1, w: 0.2, h: 0.2 };
+    const { project, out } = run("add_transition", { kind: "zoomThrough", allCuts: true, rect, ease: "out" });
+    expect(out.ok).toBe(true);
+    for (const t of Object.values(project.getState().doc.transitions)) expect(t.params).toMatchObject({ rect, ease: "out" });
+    const bad = run("add_transition", { kind: "zoomThrough", allCuts: true, rect: { x: 0.9, y: 0.9, w: 0.3, h: 0.3 } });
+    expect(bad.out.ok).toBe(false);
+    expect(Object.keys(bad.project.getState().doc.transitions)).toEqual([]);
+  });
+});
+
 describe("errors that steer the model (from the second live eval)", () => {
   const err = (out: { ok: boolean; error?: unknown }) => JSON.stringify(!out.ok && out.error);
 
@@ -278,5 +290,73 @@ describe("from the fourth live eval", () => {
     const model = scriptedChatModel(["ok"]);
     await createAssistant({ model }).run(project, "make this vintage");
     expect(model.requests[0]!.messages[0]!.content).toMatch(/Selected: v2 \(video, 10–15s\)\. .*mean ONLY v2/);
+  });
+});
+
+describe("check_sequence", () => {
+  it("is offered only when the host supplies a checker", () => {
+    expect(editorTools().some((t) => t.name === "check_sequence")).toBe(false);
+    expect(editorTools({ checkSequence: async () => ({}) }).some((t) => t.name === "check_sequence")).toBe(true);
+  });
+
+  it("hands the working copy and clip id to the checker and returns its report", async () => {
+    let seen: { clips: number; clipId?: string } | undefined;
+    const tool = editorTools({
+      checkSequence: async (doc, options) => {
+        seen = { clips: Object.keys(doc.clips).length, ...(options.clipId !== undefined ? { clipId: options.clipId } : {}) };
+        return { findings: [] };
+      },
+    }).find((t) => t.name === "check_sequence")!;
+    const project = fixture();
+    const out = await tool.run({ clipId: "seq1" }, { project });
+    expect(out).toEqual({ ok: true, result: { findings: [] } });
+    expect(seen).toEqual({ clips: Object.keys(project.toJSON().clips).length, clipId: "seq1" });
+  });
+
+  it("reports a checker failure as an error, not a crash", async () => {
+    const tool = editorTools({ checkSequence: async () => { throw new Error("no browser"); } }).find((t) => t.name === "check_sequence")!;
+    expect(await tool.run({}, { project: fixture() })).toEqual({ ok: false, error: "no browser" });
+  });
+});
+
+describe("sound and beats for a continuous shot", () => {
+  const US = 1_000_000;
+  const tpl = '<div class="stage" data-libs="stage" data-duration="6" data-stage-version="2"><div class="world"></div></div><script>stage.build(()=>{})</script>';
+  const setup = () => {
+    const project = createProject({ width: 1920, height: 1080, fps: 30 } as never);
+    const d = (type: string, payload: object) => project.dispatch({ type, payload } as never);
+    d("track/add", { id: "v", kind: "video" });
+    d("track/add", { id: "m", kind: "audio" });
+    for (const id of ["thud", "song"]) d("asset/add", { id, kind: "audio", name: id, src: `${id}.wav`, durationUs: 30 * US });
+    d("clip/add", { id: "seq", kind: "html", trackId: "v", startUs: 2 * US, durationUs: 6 * US, template: tpl, params: {} });
+    d("clip/add", { id: "music", kind: "audio", trackId: "m", assetId: "song", startUs: 0, durationUs: 20 * US, trimStartUs: 0, volume: 0.8 });
+    return project;
+  };
+
+  it("place_sfx_from_events puts one clip at each hit and ducks the music", async () => {
+    const checker = async () => ({ clips: [{ clipId: "seq", report: { events: [{ name: "land", t: 1, kind: "land", pan: 0 }, { name: "x", t: 3, kind: "whoosh", pan: 0 }] } }] });
+    const tool = editorTools({ checkSequence: checker }).find((t) => t.name === "place_sfx_from_events")!;
+    const project = setup();
+    const out = (await tool.run({ clipId: "seq", sounds: { land: "thud" }, musicClipId: "music" }, { project })) as { ok: boolean; result?: { placed: number; skipped: unknown[]; ducks: number } };
+    expect(out.ok).toBe(true);
+    expect(out.result).toMatchObject({ placed: 1, ducks: 1 });
+    expect(out.result!.skipped).toHaveLength(1);
+    const sfx = Object.values(project.toJSON().clips).filter((c) => c.trackId === "sfx");
+    expect(sfx).toHaveLength(1);
+    expect(sfx[0]!.startUs).toBe(3 * US);
+  });
+
+  it("place_sfx_from_events is offered only with a checker", () => {
+    expect(editorTools().some((t) => t.name === "place_sfx_from_events")).toBe(false);
+  });
+
+  it("set_beat_grid writes the grid with the offset from the music clip", async () => {
+    const tool = editorTools().find((t) => t.name === "set_beat_grid")!;
+    const project = setup();
+    const out = (await tool.run({ clipId: "seq", beats: [1, 2.5, 3], downbeats: [3], musicClipId: "music" }, { project })) as { ok: boolean };
+    expect(out.ok).toBe(true);
+    const template = (project.toJSON().clips["seq"] as { template: string }).template;
+    expect(template).toContain(`data-beats='[0.5,1]'`);
+    expect(template).toContain(`data-downbeats='[1]'`);
   });
 });

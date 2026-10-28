@@ -1,0 +1,12 @@
+<div class="stage" data-libs="stage" data-duration="5" data-stage-version="2">
+  <div class="world" style="position:absolute;inset:0">
+    <div id="m1" style="position:absolute;left:10%;top:40%;width:8%;height:14%;background:#e63946;border-radius:50%"></div>
+    <div id="m2" style="position:absolute;left:40%;top:20%;width:30%;height:40%;background:#264653;border-radius:12px"><p style="margin:0;padding:8%;color:#fff">Card</p></div>
+    <div id="m3" style="position:absolute;left:60%;top:70%;width:25%;height:10%;background:#2a9d8f;border-radius:30px"></div>
+  </div>
+</div>
+<script>
+  stage.build((tl) => {
+    tl.label("a", 0).morph("#m1", "#m2", { duration: 1 }, "a").morph("#m2", "#m3", { duration: 1 }, ">+=0.5");
+  });
+</script>

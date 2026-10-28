@@ -1,4 +1,4 @@
-import { projectFrameRate, type FrameRate, type Project, type ProjectDocument } from "@miraiclip/core";
+import { projectFrameRate, type FrameRate, type HtmlClip, type Project, type ProjectDocument } from "@miraiclip/core";
 import { Compositor } from "../compositor/compositor.js";
 import type { NodeFactory } from "../compositor/types.js";
 import { createPixiBackend } from "../compositor/pixi-backend.js";
@@ -13,6 +13,10 @@ import type { AudioSourceFactory } from "../audio/types.js";
 import { createVideoSupport } from "../video/video-support.js";
 import { loadFontAssets } from "../captions/fonts.js";
 import { exportComposition } from "./exporter.js";
+import { createBlurPlanner } from "./blur-plan.js";
+import { collectSequenceCuts, createHtmlMotionMeasurer } from "./blur-html.js";
+import { createFrameAccumulator, type FrameAccumulator } from "./frame-accumulator.js";
+import { resolveMotionBlur, type MotionBlurOptions } from "./motion-blur.js";
 import {
   createMediabunnySink,
   hasHardwareVideoEncoder,
@@ -35,6 +39,26 @@ export interface ExportProjectOptions {
   height?: number;
   /** Composition range (default: 0 → end of the last clip). */
   range?: ExportRange;
+  /**
+   * Shutter motion blur: each frame is rendered at several instants inside the
+   * open shutter and averaged in linear light, so fast motion smears like film
+   * instead of strobing. Costs render time (up to `maxSamples` times a frame
+   * that moves fast; a frame that doesn't move renders once), so use it for
+   * finals. `{}` takes the defaults (180° shutter, 4–32 samples, 6 px gap).
+   */
+  motionBlur?: MotionBlurOptions;
+  /**
+   * Advanced — sequence `tl.cut` times (timeline µs) that blur must not cross.
+   * Worker exports measure these on the main thread and pass them in; leave
+   * unset elsewhere and they are measured here.
+   */
+  blurCutsUs?: number[];
+  /**
+   * Advanced — measure how far a scripted html clip's contents move between
+   * two timeline instants (composition px; null = can't say). Worker exports
+   * answer this on the main thread; elsewhere it is measured in place.
+   */
+  blurHtmlMotion?: (clip: HtmlClip, fromUs: Us, toUs: Us) => Promise<number | null>;
   signal?: AbortSignal;
   onProgress?: (progress: ExportProgress) => void;
   /** Media adapters — injectable, with browser defaults. */
@@ -161,10 +185,22 @@ export async function exportProject(
     outputSize: { width, height },
   });
 
+  // Motion blur averages sub-samples on the GPU into a canvas of its own; the
+  // encoder then captures THAT canvas. A browser that can't render to float
+  // textures exports sharp frames instead (and says so).
+  const blurOptions = resolveMotionBlur(options.motionBlur);
+  let accumulator: FrameAccumulator | null = null;
+  if (blurOptions) {
+    accumulator = createFrameAccumulator(canvas, width, height);
+    if (!accumulator) {
+      console.warn("[miraiclip] motion blur needs floating-point render targets (EXT_color_buffer_float), which this browser lacks: exporting without it");
+    }
+  }
+
   let sink;
   try {
     const sinkOptions: CreateMediabunnySinkOptions = {
-      canvas,
+      canvas: accumulator?.canvas ?? canvas,
       format: options.format,
       // CPU-mirror capture whenever zero-copy capture can outpace encoding:
       // under software WebGL (headless CI, VMs), direct canvas capture leaks
@@ -174,12 +210,13 @@ export async function exportProject(
       // encode (field report: a WebM High export exhausted a 36GB machine).
       // Zero-copy capture stays only where a hardware encoder drains it.
       cpuCapture:
-        isSoftwareWebGL(canvas) || !(await hasHardwareVideoEncoder(options.format, width, height)),
+        isSoftwareWebGL(accumulator?.canvas ?? canvas) || !(await hasHardwareVideoEncoder(options.format, width, height)),
       ...(options.quality !== undefined ? { quality: options.quality } : {}),
       ...(options.target ? { target: options.target } : {}),
     };
     sink = await createMediabunnySink(sinkOptions); // probes codec support up front
   } catch (error) {
+    accumulator?.destroy();
     compositor.destroy(); // also destroys the backend
     videos.dispose();
     throw error;
@@ -211,11 +248,30 @@ export async function exportProject(
       mixCompositionAudio({ doc, range: chunkRange, openAudio, silenceIfEmpty: true, ...mixContext }));
 
   try {
+    const blur =
+      blurOptions && accumulator
+        ? {
+            accumulator,
+            plan: createBlurPlanner({
+              options: blurOptions,
+              doc,
+              compositor,
+              range,
+              outputScale: width / doc.settings.width,
+              extraCutsUs: options.blurCutsUs ?? (await collectSequenceCuts(doc)),
+              ...(() => {
+                const htmlMotion = options.blurHtmlMotion ?? createHtmlMotionMeasurer(doc);
+                return htmlMotion ? { htmlMotion } : {};
+              })(),
+            }),
+          }
+        : undefined;
     return await exportComposition({
       startUs: range.startUs,
       endUs: range.endUs,
       fps,
       renderFrame: (timeUs) => videos.renderFrameAt(compositor, timeUs),
+      ...(blur ? { blur } : {}),
       sink,
       // Audio mixes in bounded sequential chunks interleaved with the frame
       // walk — silent stretches return real silent buffers so chunk
@@ -226,6 +282,7 @@ export async function exportProject(
       ...(options.onProgress ? { onProgress: options.onProgress } : {}),
     });
   } finally {
+    accumulator?.destroy();
     compositor.destroy(); // also destroys the backend
     videos.dispose();
   }

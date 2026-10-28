@@ -45,6 +45,17 @@ describe("motion metrics", () => {
     expect(motionFindings(report, MOTION_TARGETS.motion)).toEqual([]);
   });
 
+  it("exempts declared rests from holds under the shot targets", () => {
+    // 1 s moving, 1.5 s still (1–2.5 s), 1 s moving.
+    const series = [...Array(10).fill(3), ...Array(15).fill(0.1), ...Array(10).fill(3)];
+    const report = motionMetrics(series, 10);
+    expect(motionFindings(report, MOTION_TARGETS.shot).some((x) => x.kind === "hold")).toBe(true);
+    expect(motionFindings(report, MOTION_TARGETS.shot, { rests: [{ from: 1, to: 2.5 }] }).some((x) => x.kind === "hold")).toBe(false);
+    // a rest that covers only part of the hold leaves the rest of it flagged
+    const partial = motionFindings(report, MOTION_TARGETS.shot, { rests: [{ from: 1, to: 1.8 }] }).filter((x) => x.kind === "hold");
+    expect(partial).toEqual([expect.objectContaining({ from: 1.8, to: 2.5 })]);
+  });
+
   it("fails the slide-like films the assistant made before sequences", () => {
     for (const name of ["course-film", "environment-film", "nasa-film"]) {
       const f = fixture(name);

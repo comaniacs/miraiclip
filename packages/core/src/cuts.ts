@@ -21,6 +21,8 @@ export interface Cut {
   transition?: Transition;
   /** Longest transition the media allows here (0 when a side has no spare footage). */
   maxTransitionUs: Us;
+  /** Longest transition that holds frames (`zoomThrough`) allows here: it needs no spare footage, only clips at least that long. */
+  maxHoldTransitionUs: Us;
   /** Which side lacks spare footage, when one does. */
   short?: "from" | "to" | "both";
 }
@@ -58,7 +60,7 @@ export function findCuts(doc: ProjectDocument, options: { minTransitionUs?: Us }
       const shortFrom = 2 * out < min;
       const shortTo = 2 * into < min;
       const transition = byBoundary.get(`${from.id}>${to.id}`);
-      const cut: Cut = { trackId, fromClipId: from.id, toClipId: to.id, atUs: to.startUs, maxTransitionUs };
+      const cut: Cut = { trackId, fromClipId: from.id, toClipId: to.id, atUs: to.startUs, maxTransitionUs, maxHoldTransitionUs: Math.min(from.durationUs, to.durationUs) };
       if (transition) cut.transition = transition;
       if (shortFrom || shortTo) cut.short = shortFrom && shortTo ? "both" : shortFrom ? "from" : "to";
       cuts.push(cut);

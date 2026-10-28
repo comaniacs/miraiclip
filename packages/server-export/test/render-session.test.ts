@@ -158,6 +158,29 @@ describe.skipIf(browserPath === undefined)("createRenderSession (integration)", 
     expect(Math.max(r, b), `rgb(${r},${g},${b})`).toBeLessThan(60);
   }, 60_000);
 
+  it("renders zoomThrough server-side: the rect grows to fill the frame and the next clip arrives (no handles)", async () => {
+    const project = createProject({ width: 320, height: 180, fps: 30 });
+    const card = (bg: string, inner: string) =>
+      `<div style="width:100%;height:100%;background:${bg};position:relative"><div style="position:absolute;left:37.5%;top:37.5%;width:25%;height:25%;background:${inner}"></div></div>`;
+    project.transaction(() => {
+      project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+      project.dispatch({ type: "clip/add", payload: { kind: "html", id: "a", trackId: "v1", startUs: 0, durationUs: 2_000_000, template: card("#ff0000", "#0000ff"), params: {} } });
+      project.dispatch({ type: "clip/add", payload: { kind: "html", id: "b", trackId: "v1", startUs: 2_000_000, durationUs: 2_000_000, template: card("#00ff00", "#00ff00"), params: {} } });
+      project.dispatch({ type: "transition/add", payload: { id: "t", kind: "zoomThrough", fromClipId: "a", toClipId: "b", durationUs: 1_000_000 } });
+    });
+    const doc = project.toJSON();
+    const before = await session.renderStill(doc, { timeUs: 1_000_000 });
+    expect(pngPixel(before, 160, 90)).toEqual([0, 0, 255]); // untouched: blue square at centre
+    const mid = await session.renderStill(doc, { timeUs: 2_000_000 });
+    const midCorner = pngPixel(mid, 6, 6);
+    const midCentre = pngPixel(mid, 160, 90);
+    expect(midCorner[0], `corner ${midCorner}`).toBeGreaterThan(200); // outgoing red still around the edge, zoomed
+    expect(midCentre[1], `centre ${midCentre}`).toBeGreaterThan(200); // incoming green arriving inside the rect
+    const end = await session.renderStill(doc, { timeUs: 2_480_000 });
+    const endCorner = pngPixel(end, 12, 12);
+    expect(endCorner[1], `end corner ${endCorner}`).toBeGreaterThan(200); // incoming is (almost) full-frame
+  }, 60_000);
+
   it("a failed render (missing asset file) rejects without wedging the session", async () => {
     const project = createProject({ width: 320, height: 180, fps: 30 });
     project.transaction(() => {

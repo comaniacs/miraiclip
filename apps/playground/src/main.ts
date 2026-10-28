@@ -34,6 +34,7 @@ const exportButton = document.getElementById("export") as HTMLButtonElement;
 const exportFormat = document.getElementById("export-format") as HTMLSelectElement;
 const exportQuality = document.getElementById("export-quality") as HTMLSelectElement;
 const exportFps = document.getElementById("export-fps") as HTMLSelectElement;
+const exportBlur = document.getElementById("export-blur") as HTMLInputElement;
 const markInButton = document.getElementById("mark-in") as HTMLButtonElement;
 const markOutButton = document.getElementById("mark-out") as HTMLButtonElement;
 const rangeLabel = document.getElementById("range-label") as HTMLSpanElement;
@@ -176,6 +177,7 @@ async function load(fileOrUrl: File | string): Promise<void> {
   exportFormat.disabled = false;
   exportQuality.disabled = false;
   exportFps.disabled = false;
+  exportBlur.disabled = false;
   markInButton.disabled = false;
   markOutButton.disabled = false;
 
@@ -229,6 +231,7 @@ async function load(fileOrUrl: File | string): Promise<void> {
         // output rate cuts the frame count — and export time — proportionally.
         ...(exportFps.value === "source" ? {} : { fps: Number(exportFps.value) }),
         range: { startUs: rangeStartUs, endUs: rangeEndUs },
+        ...(exportBlur.checked ? { motionBlur: {} } : {}),
         onProgress: ({ phase, framesDone, totalFrames, audioMixedUs, audioTotalUs }) => {
           status.textContent =
             phase === "video"

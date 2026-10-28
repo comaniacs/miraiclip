@@ -5,6 +5,7 @@
 //   node scripts/bundle-stage.mjs          write the file
 //   node scripts/bundle-stage.mjs --check  exit 1 if it's out of date
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,6 +27,8 @@ function bundle() {
     `export const ANIME_VERSION = ${JSON.stringify(version)};`,
     `export const ANIME_SOURCE: string = ${JSON.stringify(anime)};`,
     `export const STAGE_KIT_SOURCE: string = ${JSON.stringify(kit)};`,
+    `/** A fingerprint of the kit source: hosts that bundle the kit expose it so a stale bundle can be told from a current one. */`,
+    `export const STAGE_KIT_HASH = ${JSON.stringify(createHash("sha1").update(kit).digest("hex").slice(0, 12))};`,
     "",
   ].join("\n");
 }

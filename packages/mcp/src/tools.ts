@@ -1,10 +1,13 @@
 import {
+  applyBeatGrid,
   applyCommands,
+  planSoundFromEvents,
   commandTypeForTool,
   describeProject,
   toToolDefinitions,
   tryDispatch,
 } from "@miraiclip/core";
+import type { AudioClip, HtmlClip } from "@miraiclip/core";
 import type { ProjectSession } from "./session.js";
 
 /** The MCP tool-result shape (structured content list + error flag). */
@@ -129,9 +132,59 @@ export function listTools(session: ProjectSession): ToolDefinition[] {
       },
     },
     {
+      name: "check_sequence",
+      description:
+        "Check a stage sequence (data-libs=\"stage\") as one continuous shot. Seeks it around every label and reports, per beat, what survives into the next one (carried / anchored / bare), subjects that leave the frame (data-keep-in-frame), beat spacing and stray hard cuts, as warnings with times and a hint for each. Nothing is rendered or exported; warnings never block an export. Run it after composing a sequence and fix the bare boundaries.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          clipId: { type: "string", description: "Check only this html clip (default: every html clip)." },
+          frames: { type: "boolean", description: "Also return a before/after frame pair (0.2 s either side) for up to 3 bare boundaries, so you can see what is replaced." },
+        },
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "place_sfx_from_events",
+      description:
+        "Put sound effects on a continuous shot's hits. Reads the sound moments the sequence declared (tl.hit, plus presses, impacts, shakes and carry landings), adds one audio clip at each (the same sound for every hit of a kind, so the film keeps one material set), and optionally ducks a music clip under them. Add the sounds as audio assets first (search_audio / add_audio; prefer CC0 and keep to one material: all wood, or all glass). Audio clips have no pan yet, so where on screen a hit happened is reported but not applied. " +
+        US_NOTE,
+      inputSchema: {
+        type: "object",
+        properties: {
+          clipId: { type: "string", description: "The html sequence clip." },
+          sounds: { type: "object", description: 'Audio asset id per hit kind, e.g. { "impact": "thud", "click": "tick", "whoosh": "air" }. Kinds: impact, click, whoosh, land, shake.', additionalProperties: { type: "string" } },
+          trackId: { type: "string", description: "Audio track for the effects (default: a track \"sfx\", created if missing)." },
+          musicClipId: { type: "string", description: "A music audio clip to lower under the hits." },
+          volume: { type: "number", minimum: 0, maximum: 4, description: "Effect level (default 0.8)." },
+          duckTo: { type: "number", minimum: 0, maximum: 1, description: "Music level during a hit, as a fraction of its own (default 0.35)." },
+        },
+        required: ["clipId", "sounds"],
+        additionalProperties: false,
+      },
+    },
+    {
+      name: "set_beat_grid",
+      description:
+        "Write a music beat grid onto a sequence so S.beat(n) and S.downbeat(n) land on the music. Pass the beats and downbeats in seconds from the start of the music (from `node mc.mjs beats <file>`), and the music clip so the offset between the music and the sequence is applied. Compose carries on S.beat / S.downbeat afterwards. " +
+        US_NOTE,
+      inputSchema: {
+        type: "object",
+        properties: {
+          clipId: { type: "string", description: "The html sequence clip." },
+          beats: { type: "array", items: { type: "number" }, description: "Beat times in seconds from the start of the music file." },
+          downbeats: { type: "array", items: { type: "number" }, description: "First beat of each bar, in seconds." },
+          musicClipId: { type: "string", description: "The music audio clip the grid belongs to (its start and trim set the offset)." },
+          offsetSeconds: { type: "number", description: "Instead of musicClipId: how far into the music the sequence starts." },
+        },
+        required: ["clipId", "beats"],
+        additionalProperties: false,
+      },
+    },
+    {
       name: "export",
       description:
-        "Export the project to a video file (streams to disk; headless Chrome). MP4 needs a real Chrome install — WebM works everywhere. Relative `out` paths land next to the project file.",
+        "Export the project to a video file (streams to disk; headless Chrome). MP4 needs a real Chrome install — WebM works everywhere. Relative `out` paths land next to the project file. Add `motionBlur` ({} for the defaults) on FINAL exports only: fast motion smears like film instead of strobing, at the cost of render time; leave it off for drafts and previews.",
       inputSchema: {
         type: "object",
         properties: {
@@ -143,6 +196,17 @@ export function listTools(session: ProjectSession): ToolDefinition[] {
           height: { type: "integer", minimum: 16 },
           rangeStartUs: { type: "integer", minimum: 0 },
           rangeEndUs: { type: "integer", minimum: 1 },
+          motionBlur: {
+            type: "object",
+            description: "Shutter motion blur. {} takes the defaults.",
+            properties: {
+              shutterAngle: { type: "number", minimum: 0, maximum: 360, description: "Degrees the shutter is open (default 180)." },
+              minSamples: { type: "integer", minimum: 2, maximum: 64, description: "Fewest sub-frames for a frame that moves (default 4)." },
+              maxSamples: { type: "integer", minimum: 2, maximum: 64, description: "Most sub-frames per frame (default 32)." },
+              gapPx: { type: "number", minimum: 0.5, maximum: 64, description: "Largest gap between sub-frames in output pixels (default 6)." },
+            },
+            additionalProperties: false,
+          },
         },
         required: ["out", "format"],
         additionalProperties: false,
@@ -250,6 +314,84 @@ export async function callTool(
       };
     }
 
+    case "check_sequence": {
+      const result = await session.checkSequence(args["clipId"] !== undefined ? { clipId: String(args["clipId"]) } : {});
+      const out: ToolResult = text(result);
+      if (args["frames"] === true) {
+        const settings = project.toJSON().settings;
+        const scale = Math.min(1, 512 / Math.max(settings.width, settings.height));
+        const width = Math.round(settings.width * scale);
+        const height = Math.round(settings.height * scale);
+        const pairs = result.clips
+          .flatMap((c) => (c.report?.boundaries ?? []).filter((b) => b.kind === "bare").map((b) => ({ label: b.label, at: c.startSec + b.t })))
+          .slice(0, 3);
+        for (const p of pairs) {
+          for (const [name, dt] of [["before", -0.2], ["after", 0.2]] as const) {
+            const png = await session.preview({ timeUs: Math.max(0, Math.round((p.at + dt) * 1_000_000)), width, height });
+            out.content.push({ type: "image", data: Buffer.from(png).toString("base64"), mimeType: "image/png" });
+            out.content.push({ type: "text", text: `${p.label} (${p.at.toFixed(2)} s), ${name}` });
+          }
+        }
+      }
+      return out;
+    }
+
+    case "place_sfx_from_events": {
+      const doc = project.toJSON();
+      const clipId = String(args["clipId"] ?? "");
+      const seq = doc.clips[clipId];
+      if (!seq || seq.kind !== "html") return failure({ error: `"${clipId}" is not an html clip` });
+      const checked = await session.checkSequence({ clipId });
+      const report = checked.clips.find((c) => c.clipId === clipId)?.report;
+      if (!report) return failure({ error: checked.clips.find((c) => c.clipId === clipId)?.skipped ?? "the sequence could not be checked" });
+      const named = (args["sounds"] ?? {}) as Record<string, string>;
+      const sounds: Record<string, { assetId: string; durationUs: number }> = {};
+      for (const [kind, assetId] of Object.entries(named)) {
+        const asset = doc.assets[assetId];
+        if (!asset || asset.kind !== "audio") return failure({ error: `sounds.${kind}: "${assetId}" is not an audio asset` });
+        sounds[kind] = { assetId, durationUs: (asset as { durationUs?: number }).durationUs ?? 1_000_000 };
+      }
+      const music = args["musicClipId"] !== undefined ? doc.clips[String(args["musicClipId"])] : undefined;
+      if (args["musicClipId"] !== undefined && (!music || music.kind !== "audio")) return failure({ error: `"${String(args["musicClipId"])}" is not an audio clip` });
+      const trackId = args["trackId"] !== undefined ? String(args["trackId"]) : "sfx";
+      const commands: { type: string; payload: unknown }[] = [];
+      if (!doc.tracks[trackId]) commands.push({ type: "track/add", payload: { id: trackId, kind: "audio", name: "SFX" } });
+      const plan = planSoundFromEvents({
+        events: report.events,
+        sequenceStartUs: seq.startUs,
+        sounds,
+        trackId,
+        existingClipIds: Object.keys(doc.clips),
+        ...(args["volume"] !== undefined ? { volume: Number(args["volume"]) } : {}),
+        ...(args["duckTo"] !== undefined ? { duckTo: Number(args["duckTo"]) } : {}),
+        ...(music ? { music: { clipId: music.id, startUs: music.startUs, durationUs: music.durationUs, volume: (music as AudioClip).volume } } : {}),
+      });
+      if (!plan.placements.length) return text({ ok: true, placed: 0, skipped: plan.skipped, events: report.events.length, note: "nothing placed: the sequence has no hits with a sound, add tl.hit calls or more kinds in sounds" });
+      const result = applyCommands(project, [...commands, ...plan.commands] as never, { label: "sound from events" });
+      if (!result.ok) return failure(result);
+      await session.save();
+      return text({ ok: true, placed: plan.placements.length, placements: plan.placements, skipped: plan.skipped, ducks: plan.ducks.length });
+    }
+
+    case "set_beat_grid": {
+      const doc = project.toJSON();
+      const clipId = String(args["clipId"] ?? "");
+      const seq = doc.clips[clipId];
+      if (!seq || seq.kind !== "html") return failure({ error: `"${clipId}" is not an html clip` });
+      let offset = args["offsetSeconds"] !== undefined ? Number(args["offsetSeconds"]) : 0;
+      if (args["musicClipId"] !== undefined) {
+        const music = doc.clips[String(args["musicClipId"])];
+        if (!music || music.kind !== "audio") return failure({ error: `"${String(args["musicClipId"])}" is not an audio clip` });
+        offset = (seq.startUs - music.startUs + (music as AudioClip).trimStartUs) / 1_000_000;
+      }
+      const grid = applyBeatGrid((seq as HtmlClip).template, { beats: (args["beats"] ?? []) as number[], ...(Array.isArray(args["downbeats"]) ? { downbeats: args["downbeats"] as number[] } : {}) }, offset);
+      if (!grid.found) return failure({ error: "the template has no stage root (data-libs=\"stage\")" });
+      const result = applyCommands(project, [{ type: "clip/set-property", payload: { clipId, template: grid.template } }] as never, { label: "beat grid" });
+      if (!result.ok) return failure(result);
+      await session.save();
+      return text({ ok: true, beats: grid.beats, downbeats: grid.downbeats, offsetSeconds: offset });
+    }
+
     case "export": {
       const range =
         args["rangeStartUs"] !== undefined && args["rangeEndUs"] !== undefined
@@ -262,6 +404,9 @@ export async function callTool(
         ...(args["fps"] !== undefined ? { fps: Number(args["fps"]) } : {}),
         ...(args["width"] !== undefined ? { width: Number(args["width"]) } : {}),
         ...(args["height"] !== undefined ? { height: Number(args["height"]) } : {}),
+        ...(args["motionBlur"] !== undefined && typeof args["motionBlur"] === "object" && args["motionBlur"] !== null
+          ? { motionBlur: args["motionBlur"] as NonNullable<Parameters<typeof session.export>[0]["motionBlur"]> }
+          : {}),
         ...range,
       });
       return text({ ok: true, filePath: result.filePath, bytesWritten: result.bytesWritten });

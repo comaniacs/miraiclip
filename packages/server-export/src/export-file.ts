@@ -125,6 +125,7 @@ export async function exportProjectFile(
             ...(options.height !== undefined ? { height: options.height } : {}),
             ...(options.range !== undefined ? { range: options.range } : {}),
             ...(options.audioChunkSeconds !== undefined ? { audioChunkSeconds: options.audioChunkSeconds } : {}),
+            ...(options.motionBlur !== undefined ? { motionBlur: options.motionBlur } : {}),
             ...(filePath ? { stream: true } : {}),
             ...(plugins ? { plugins } : {}),
           },

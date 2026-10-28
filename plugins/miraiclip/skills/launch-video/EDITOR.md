@@ -7,6 +7,8 @@ description: Make a product or service launch, feature announcement, promo, intr
 
 A recipe: the launch's story order and defaults. How to direct, design and build comes from the skills `make-film` calls on (`direction`, `look`, `media-sound`, `sequence-core`, `motion`). Load `make-film` and follow its steps, with what this file adds. For a film that isn't promoting a product or business (a course, a show, a story, an event), `make-film` alone is the recipe.
 
+When the user asks for a continuous shot, one take or no cuts, load `continuous-shot` instead and follow it; it replaces the act-by-act build below.
+
 A launch film people watch to the end is fast, specific and always moving. A deck of cards with a headline each is not a film, even with transitions.
 
 ## Brand first

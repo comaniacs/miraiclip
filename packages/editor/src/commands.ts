@@ -243,7 +243,7 @@ export function createCommands(project: Project) {
       d({ type: "effect/remove", payload: { clipId, effectId } });
     },
 
-    /* ---- transitions (built-ins: crossDissolve, dipToBlack, dipToWhite, wipe, slide) ---- */
+    /* ---- transitions (built-ins: crossDissolve, dipToBlack, dipToWhite, wipe, slide, zoomThrough) ---- */
     /** Across the cut where `fromClipId` ends and `toClipId` starts (same track). Centered on the cut. */
     addTransition(payload: { id?: string; kind: string; fromClipId: string; toClipId: string; durationUs: Us; params?: Record<string, unknown> }) {
       d({ type: "transition/add", payload });

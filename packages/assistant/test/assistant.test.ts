@@ -64,7 +64,7 @@ describe("agent loop", () => {
     expect(first.messages[0]!.role).toBe("system");
     expect(first.messages[0]!.content).toContain("v2: video");
     expect(first.messages[0]!.content).toContain("Selected: clip title.");
-    expect(first.tools!.map((t) => t.name)).toEqual(["get_state", "get_command_schema", "apply_commands", "add_transition", "animate_clip", "add_effect", "remove_effects", "trim_clip", "set_effects_enabled", "set_keyframes", "set_background", "close_gaps"]);
+    expect(first.tools!.map((t) => t.name)).toEqual(["get_state", "get_command_schema", "apply_commands", "add_transition", "animate_clip", "add_effect", "remove_effects", "trim_clip", "set_effects_enabled", "set_keyframes", "set_background", "close_gaps", "set_beat_grid"]);
     // History for the next turn: no system prompt, tool results paired with calls.
     expect(turn.messages[0]).toEqual({ role: "user", content: "smooth cuts and animate the title" });
     expect(turn.messages.filter((m) => m.role === "tool")).toHaveLength(2);

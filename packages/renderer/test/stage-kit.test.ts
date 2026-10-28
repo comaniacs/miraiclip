@@ -38,4 +38,28 @@ describe("stage kit", () => {
     expect(opacity(0.3)).toBeCloseTo(0.75, 2); // a hard step, not 0.7
     expect(opacity(0.6)).toBeCloseTo(0.5, 2);
   });
+
+  it("spring ease: 0 at the start, overshoots when under-damped, settled by the end, repeatable", async () => {
+    const root = await build(`<div class="world"><i class="c"></i></div>`, (tl) => {
+      tl.label("a", 0).fromTo(".c", { x: 0 }, { x: 100, duration: 1, ease: "spring(0.4, 20)" }, "a");
+    });
+    expect(root.getAttribute("data-stage-error")).toBeNull();
+    const seek = (window as unknown as { __miraiclipSeek: (t: number) => void }).__miraiclipSeek;
+    const x = (t: number) => (seek(t), parseFloat(/translateX\(([-\d.e]+)px\)/.exec((root.querySelector(".c") as HTMLElement).style.transform)![1]!));
+    expect(x(0)).toBeCloseTo(0, 6);
+    let peak = 0;
+    for (let t = 0; t <= 1; t += 0.01) peak = Math.max(peak, x(t));
+    expect(peak).toBeGreaterThan(105); // overshoots
+    expect(Math.abs(x(1) - 100)).toBeLessThan(0.1); // within 0.1 %
+    const first = (seek(0.37), (root.querySelector(".c") as HTMLElement).style.transform);
+    seek(0.9);
+    expect((seek(0.37), (root.querySelector(".c") as HTMLElement).style.transform)).toBe(first);
+  });
+
+  it("a version 2 verb on a version 1 sequence reports how to fix it", async () => {
+    const root = await build(`<div class="world"><i class="a"></i><i class="b"></i></div>`, (tl) => {
+      tl.hop(".a", { to: ".b" });
+    });
+    expect(root.getAttribute("data-stage-error")).toMatch(/hop\(\): needs data-stage-version="2"/);
+  });
 });

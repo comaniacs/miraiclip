@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "assets": {},
+  "tracks": {
+    "v1": {
+      "id": "v1",
+      "kind": "video",
+      "name": "v1",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    }
+  },
+  "trackOrder": [
+    "v1"
+  ],
+  "clips": {
+    "tally": {
+      "kind": "html",
+      "id": "tally",
+      "trackId": "v1",
+      "startUs": 0,
+      "durationUs": 14000000,
+      "template": "<div class=\"stage\" data-libs=\"stage\" data-duration=\"14\" data-stage-version=\"2\" style=\"width:1920px;height:1080px\"><style>\n*{box-sizing:border-box;margin:0}\n.stage{background:#10131c;color:#f4efe6;font-family:Inter,\"DejaVu Sans\",system-ui,sans-serif;overflow:hidden}\n.world{position:absolute;left:0;top:0;width:1920px;height:1080px}\n.abs{position:absolute}\n#dot{left:300px;top:690px;width:36px;height:36px;border-radius:50%;background:#ffb454;z-index:6}\n#ring{left:770px;top:350px;width:380px;height:380px;border-radius:50%;border:16px solid #ffb454;background:#171b27;display:grid;place-items:center;z-index:5}\n#ring p{font-size:150px;font-weight:800;color:#f4efe6}\n.row{left:260px;top:460px;width:1400px;height:160px;display:flex;gap:16px;z-index:3}\n.day{flex:1;border-radius:20px;background:#1d2231;border:3px solid #2a3046;display:grid;place-items:center;font-size:44px;font-weight:700;color:#9aa3bd}\n.day.first{border-color:#ffb454;color:#ffb454}\n.pip{width:44px;height:44px;border-radius:50%;background:#ffb454;opacity:0}\n#bar{left:310px;top:730px;width:1300px;height:120px;border-radius:60px;background:#1d2231;border:3px solid #2a3046;z-index:4;display:flex;align-items:center;justify-content:center;font-size:46px;font-weight:700}\n#btn{left:770px;top:870px;width:380px;height:110px;border-radius:28px;background:#ffb454;color:#10131c;display:grid;place-items:center;font-size:46px;font-weight:800;z-index:4}\n#card{left:510px;top:315px;width:900px;height:450px;border-radius:36px;background:#f4efe6;color:#10131c;display:grid;place-items:center;z-index:8;text-align:center}\n#card h2{font-size:110px;font-weight:800;line-height:1}\n#card p{font-size:44px;color:#5c6378;margin-top:14px}\n#word{left:580px;top:430px;width:760px;height:220px;border-radius:110px;background:#ffb454;color:#10131c;display:grid;place-items:center;z-index:9;font-size:140px;font-weight:800;letter-spacing:-.02em}\n#ring,#card,#word,.row,#bar,#btn{opacity:0}\n</style><div class=\"world\">\n<i class=\"abs\" id=\"dot\"></i>\n<div class=\"abs\" id=\"ring\"><p>7</p></div>\n<div class=\"abs row\" id=\"row\"><div class=\"day first\" id=\"d0\"></div><div class=\"day\" id=\"d1\">T</div><div class=\"day\" id=\"d2\">W</div><div class=\"day\" id=\"d3\">T</div><div class=\"day\" id=\"d4\">F</div><div class=\"day\" id=\"d5\">S</div><div class=\"day\" id=\"d6\">S</div></div>\n<i class=\"abs pip\" id=\"p1\" style=\"left:533.3px;top:518px\"></i><i class=\"abs pip\" id=\"p2\" style=\"left:735.6px;top:518px\"></i><i class=\"abs pip\" id=\"p3\" style=\"left:937.9000000000001px;top:518px\"></i><i class=\"abs pip\" id=\"p4\" style=\"left:1140.2px;top:518px\"></i><i class=\"abs pip\" id=\"p5\" style=\"left:1342.5px;top:518px\"></i><i class=\"abs pip\" id=\"p6\" style=\"left:1544.8000000000002px;top:518px\"></i>\n<div class=\"abs\" id=\"bar\">7-day streak</div>\n<div class=\"abs\" id=\"btn\">Log it</div>\n<div class=\"abs\" id=\"card\"><div><h2>Done.</h2><p>Day 7 of 7</p></div></div>\n<div class=\"abs\" id=\"word\">Tally</div>\n</div></div>\n<script>stage.build((tl, S) => {\nS.grid({ depth: 0.5, spacing: S.min(7), dot: 2, color: \"#8b93b8\", opacity: 0.14 });\n\ntl.label(\"spark\", 0)\n  .to(\"#dot\", { x: S.w(34.4), y: -S.h(13.9), duration: 1.9, ease: \"sine.inOut\" }, 0)\n  .follow(\"#dot\", { lead: 0.15, from: 0, to: 1.9 })\n  .label(\"ring\", 1.9)\n  .set(\"#ring\", { opacity: 1 }, \"ring\")\n  .morph(\"#dot\", \"#ring\", { duration: 1.2, ease: \"expo.inOut\" }, \"ring\")\n  .camera({ zoom: 1.06, duration: 3.2, ease: \"sine.inOut\" }, \"ring\")\n  .label(\"week\", 3.8)\n  .set(\".row\", { opacity: 1 }, \"week\")\n  .to(\"#ring p\", { opacity: 0, duration: 0.3, ease: \"sine.in\" }, \"week\")\n  .morph(\"#ring\", \"#d0\", { duration: 1.0, ease: \"expo.inOut\" }, \"week\")\n  .from(\".day:not(.first)\", { scale: 0.6, opacity: 0, duration: 0.6, stagger: 0.07, ease: \"expo.out\" }, \"week+=0.5\")\n  .camera({ zoom: 0.94, duration: 2, ease: \"inOut(3)\" }, \"week\")\n  .label(\"fill\", 5.6)\n  .set(\".pip\", { opacity: 1 }, \"fill\")\n  .from(\".pip\", { scale: 0, duration: 0.35, stagger: 0.08, ease: \"back.out\" }, \"fill\")\n  .set(\"#bar\", { opacity: 1 }, \"fill+=0.9\")\n  .gather(\".pip\", { into: \"#bar\", arc: 0.25, stagger: 0.06, duration: 0.9 }, \"fill+=0.9\")\n  .from(\"#bar\", { scaleX: 0.5, duration: 0.7, ease: \"expo.out\" }, \"fill+=0.9\")\n  .set(\"#btn\", { opacity: 1 }, \"fill+=1.5\")\n  .from(\"#btn\", { y: S.h(4), duration: 0.5, ease: \"expo.out\" }, \"fill+=1.5\")\n  .label(\"rest\", 7.8)\n  .rest(\"rest\", \"rest+=0.7\")\n  .pointer({ path: [{ t: 0, x: S.w(104), y: S.h(96) }, { t: 6.8, x: S.w(78), y: S.h(90) }, { t: 7.5, x: S.w(50), y: S.h(86) }, { t: 9.4, x: S.w(50), y: S.h(86) }, { t: 10.2, x: S.w(104), y: S.h(96) }], clicks: [8.6] })\n  .label(\"press\", 8.6)\n  .press(\"#btn\", 8.6)\n  .shake(8.6, { amp: S.min(0.9), decay: 0.35, seed: 3 })\n  .label(\"confirm\", 9.2)\n  .set(\"#card\", { opacity: 1 }, \"confirm\")\n  .iris(\"#card\", { from: \"#btn\", duration: 1.0, ease: \"inOut(3)\" }, \"confirm\")\n  .camera({ zoom: 1.04, duration: 2, ease: \"sine.inOut\" }, \"confirm\")\n  .label(\"lockup\", 11)\n  .set(\"#word\", { opacity: 1 }, \"lockup\")\n  .morph(\"#card\", \"#word\", { duration: 1.1, ease: \"expo.inOut\" }, \"lockup\")\n  .handheld({ amount: S.min(0.25) }, 0, 14)\n  .label(\"end\", 12.9);\n});</script>",
+      "params": {},
+      "scripted": true,
+      "animated": true,
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    }
+  },
+  "transitions": {}
+}

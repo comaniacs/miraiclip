@@ -500,7 +500,7 @@ export const builtinPayloadSchemas = {
   "transition/add": z.object({
     /** Supply one for deterministic replay. */
     id: id.optional(),
-    /** Registry kind: crossDissolve, dipToBlack, dipToWhite, wipe, slide, or custom. */
+    /** Registry kind: crossDissolve, dipToBlack, dipToWhite, wipe, slide, zoomThrough, or custom. */
     kind: z.string().min(1),
     /** The clip ending at the cut; toClipId starts exactly there, on the same track. */
     fromClipId: id,

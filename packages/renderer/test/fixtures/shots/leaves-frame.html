@@ -1,0 +1,11 @@
+<div class="stage" data-libs="stage" data-duration="6" data-stage-version="2">
+  <div class="world" style="position:absolute;inset:0">
+    <div id="hero" data-keep-in-frame="0,6" style="position:absolute;left:10%;top:40%;width:10%;height:15%;background:#e63946"></div>
+  </div>
+</div>
+<script>
+  stage.build((tl) => {
+    tl.label("a", 0).label("b", 3);
+    tl.to("#hero", { left: "130%", duration: 4, ease: "linear" }, 1);
+  });
+</script>

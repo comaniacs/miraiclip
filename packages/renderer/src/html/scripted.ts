@@ -102,6 +102,27 @@ const BRIDGE = String.raw`(() => {
       }
     });
   });
+  // A runtime that reports on itself (the stage kit's shot check) answers a probe with plain data.
+  window.addEventListener("message", (event) => {
+    const m = event.data;
+    if (!m || m.__miraiclip !== "probe") return;
+    queue = queue.then(async () => {
+      try {
+        const motion = m.options && m.options.motion;
+        if (motion) {
+          // null = this runtime can't say (not the stage kit): the caller falls back to a default.
+          const px = typeof window.__miraiclipMotion === "function" ? window.__miraiclipMotion(motion.from, motion.to) : null;
+          parent.postMessage({ __miraiclip: "probed", id: m.id, result: { motionPx: px } }, "*");
+          return;
+        }
+        if (typeof window.__miraiclipProbe !== "function") throw new Error("this sequence has no shot check (it needs the stage kit)");
+        const result = window.__miraiclipProbe(m.options || {});
+        parent.postMessage({ __miraiclip: "probed", id: m.id, result: JSON.parse(JSON.stringify(result)) }, "*");
+      } catch (e) {
+        parent.postMessage({ __miraiclip: "probed", id: m.id, error: String(e && e.message || e) }, "*");
+      }
+    });
+  });
   // A runtime that builds its timeline asynchronously (the stage kit, after fonts load) sets
   // window.__miraiclipReady to a promise; the frame reports ready only once it settles.
   const ready = () => (document.fonts ? document.fonts.ready : Promise.resolve())
@@ -197,13 +218,22 @@ const frames = new Map<string, Frame>();
 const MAX_FRAMES = 8;
 let nextId = 1;
 const waiting = new Map<number, { resolve: (markup: string) => void; reject: (error: Error) => void }>();
+const probing = new Map<number, { resolve: (result: unknown) => void; reject: (error: Error) => void }>();
 let listening = false;
 
 function listen(): void {
   if (listening) return;
   listening = true;
   window.addEventListener("message", (event: MessageEvent) => {
-    const m = event.data as { __miraiclip?: string; id?: number; markup?: string; error?: string } | null;
+    const m = event.data as { __miraiclip?: string; id?: number; markup?: string; result?: unknown; error?: string } | null;
+    if (m && m.__miraiclip === "probed" && m.id !== undefined) {
+      const p = probing.get(m.id);
+      if (!p) return;
+      probing.delete(m.id);
+      if (m.error !== undefined) p.reject(new Error(`scripted html clip: ${m.error}`));
+      else p.resolve(m.result);
+      return;
+    }
     if (!m || m.__miraiclip !== "frame" || m.id === undefined) return;
     const w = waiting.get(m.id);
     if (!w) return;
@@ -295,4 +325,69 @@ export async function snapshotScriptedHtml(options: {
   });
   frame.queue = run.catch(() => undefined);
   return run;
+}
+
+/**
+ * Ask a scripted template's runtime about itself: the stage kit measures the boxes at every label and reports
+ * what survives each beat, framing and rhythm (see `ShotReport` in @miraiclip/server-export for the shape).
+ * Runs in the same sandboxed frame the editor previews with, so it needs a DOM and nothing else.
+ */
+export async function probeScriptedHtml(options: {
+  markup: string;
+  widthPx: number;
+  heightPx: number;
+  /** Half-width of the window around each label, in seconds (default 0.2). */
+  window?: number;
+  loadTimeoutMs?: number;
+}): Promise<{ report?: unknown }> {
+  const key = JSON.stringify([options.markup, options.widthPx, options.heightPx, librariesVersion]);
+  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, options.loadTimeoutMs ?? 15_000);
+  const run = frame.queue.then(async () => {
+    await frame.ready;
+    const id = nextId++;
+    const result = new Promise<{ report?: unknown }>((resolve, reject) => {
+      probing.set(id, { resolve: resolve as (r: unknown) => void, reject });
+      setTimeout(() => {
+        if (!probing.has(id)) return;
+        probing.delete(id);
+        reject(new Error("scripted html clip didn't answer a shot check in time"));
+      }, 30_000);
+    });
+    frame.iframe.contentWindow?.postMessage({ __miraiclip: "probe", id, options: options.window !== undefined ? { window: options.window } : {} }, "*");
+    return result;
+  });
+  frame.queue = run.catch(() => undefined);
+  return run;
+}
+
+/**
+ * How far (in the template's own pixels) anything on screen travels between two seconds of a scripted template,
+ * or null when its runtime can't say (only the stage kit measures). Motion blur uses it to pick a sample count.
+ */
+export async function motionScriptedHtml(options: {
+  markup: string;
+  widthPx: number;
+  heightPx: number;
+  fromS: number;
+  toS: number;
+  loadTimeoutMs?: number;
+}): Promise<number | null> {
+  const key = JSON.stringify([options.markup, options.widthPx, options.heightPx, librariesVersion]);
+  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, options.loadTimeoutMs ?? 15_000);
+  const run = frame.queue.then(async () => {
+    await frame.ready;
+    const id = nextId++;
+    const result = new Promise<{ motionPx: number | null }>((resolve, reject) => {
+      probing.set(id, { resolve: resolve as (r: unknown) => void, reject });
+      setTimeout(() => {
+        if (!probing.has(id)) return;
+        probing.delete(id);
+        reject(new Error("scripted html clip didn't answer a motion query in time"));
+      }, 30_000);
+    });
+    frame.iframe.contentWindow?.postMessage({ __miraiclip: "probe", id, options: { motion: { from: options.fromS, to: options.toS } } }, "*");
+    return result;
+  });
+  frame.queue = run.catch(() => undefined);
+  return (await run).motionPx;
 }

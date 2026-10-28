@@ -160,6 +160,7 @@ export type { Cut } from "./cuts.js";
 export {
   builtinEffectParamSchemas,
   builtinTransitionParamSchemas,
+  transitionHoldsFrames,
   effectParamsSchema,
   isBuiltinClipKind,
   clipKindRegistration,
@@ -189,3 +190,7 @@ export {
 export { creditsFor, licenseReport, usedAssets } from "./provenance.js";
 export type { LicenseIssue } from "./provenance.js";
 export type { AsrGroupingOptions, AsrWord, CaptionCue, CaptionCueSource, CaptionImportOptions } from "./captions.js";
+export { planSoundFromEvents } from "./sound-from-events.js";
+export type { EventSound, SoundFromEventsOptions, SoundFromEventsPlan, SoundPlacement, StageEvent } from "./sound-from-events.js";
+export { applyBeatGrid } from "./beat-grid.js";
+export type { BeatGrid } from "./beat-grid.js";

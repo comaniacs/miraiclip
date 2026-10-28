@@ -1,0 +1,72 @@
+<div class="stage" data-libs="stage" data-duration="14" data-stage-version="2" style="width:1920px;height:1080px"><style>
+*{box-sizing:border-box;margin:0}
+.stage{background:#080b16;color:#eef1ff;font-family:Inter,"DejaVu Sans",system-ui,sans-serif;overflow:hidden}
+.world{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.title{z-index:5;position:absolute;left:0;width:1920px;top:120px;text-align:center;font-weight:800;font-size:74px;letter-spacing:-.02em}
+.lv{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;--bg:hsl(var(--h) 50% 12%);--ac:hsl(var(--h) 90% 64%);background:var(--bg)}
+.lv .cap{position:absolute;left:0;width:1920px;top:60px;text-align:center;font-size:34px;letter-spacing:.34em;color:var(--ac);font-weight:700}
+.mon{position:absolute;left:680px;top:300px;width:560px;height:315px;border-radius:26px;background:hsl(var(--h) 40% 30%);border:10px solid hsl(var(--h) 40% 30%)}
+.scr{position:absolute;inset:0;border-radius:14px;overflow:hidden;background:var(--bg)}
+.scr > .lv{left:0;top:0;transform:scale(0.28125)}
+.m{position:absolute;left:954px;top:534px;width:12px;height:12px;border-radius:50%;background:var(--ac)}
+.lv:not(.last) > .m{top:990px}
+#L0{background:none}
+#seed{z-index:4;position:absolute;left:946px;top:443.5px;width:28px;height:28px;border-radius:50%;background:hsl(215 90% 64%)}
+.last .end{position:absolute;left:0;width:1920px;top:430px;text-align:center;font-size:96px;font-weight:800;color:var(--ac);white-space:nowrap}
+.caret{display:inline-block;width:10px;height:84px;margin-left:12px;background:var(--ac);vertical-align:-10px}
+</style><div class="world">
+<p class="title">Every screen holds another.</p>
+<i id="seed"></i>
+
+<div class="lv" id="L0" style="--h:215">
+  <p class="cap">LEVEL 0</p>
+  <div class="mon" id="mon0"><div class="scr">
+<div class="lv" id="L1" style="--h:253">
+  <p class="cap">LEVEL 1</p>
+  <div class="mon" id="mon1"><div class="scr">
+<div class="lv" id="L2" style="--h:291">
+  <p class="cap">LEVEL 2</p>
+  <div class="mon" id="mon2"><div class="scr">
+<div class="lv" id="L3" style="--h:329">
+  <p class="cap">LEVEL 3</p>
+  <div class="mon" id="mon3"><div class="scr"><div class="lv last" id="L4" style="--h:367"><p class="cap">LEVEL 4</p><p class="end">…and another.<span class="caret"></span></p><i class="m" id="m4"></i></div></div></div>
+  <i class="m" id="m3"></i>
+</div></div></div>
+  <i class="m" id="m2"></i>
+</div></div></div>
+  <i class="m" id="m1"></i>
+</div></div></div>
+  <i class="m" id="m0"></i>
+</div>
+</div></div>
+<script>stage.build((tl, S) => {
+const Z = 159.81953970431334;
+const home = S.center("#m4");
+const homeAt = [(home.x / S.width) * 100, (home.y / S.height) * 100];
+const words = S.split(".title", "words");
+S.grid({ depth: 0.6, spacing: S.min(7), dot: 2, color: "#8b93b8", opacity: 0.16 });
+tl.label("open", 0)
+  .from(words, { y: S.h(5), opacity: 0, blur: 10, duration: 0.7, stagger: 0.09, ease: "expo.out" }, 0.2)
+  .from("#seed", { scale: 0, duration: 0.5, ease: "back.out" }, 0.2)
+  .morph("#seed", "#mon0", { duration: 1.1, ease: "expo.inOut" }, 0.9)
+  .camera({ zoom: 1.05, duration: 2.4, ease: "sine.inOut" }, 0)
+  .label("dive", 2.4)
+  .hit("dive", "dive", { kind: "whoosh", pan: -0.3 })
+  .camera({ anchor: "#m4", at: [50, 50], zoom: Z, duration: 4.2, ease: "inOut(3)" }, "dive")
+  .hit("deep", "dive+=4.2", { kind: "land" })
+  .shake("dive+=4.2", { amp: S.min(0.9), decay: 0.4, seed: 5 })
+  .from(".end", { y: S.h(3), opacity: 0, duration: 0.5, ease: "expo.out" }, "dive+=3.6")
+  .label("rest", 7.4)
+  .rest("rest", "rest+=1.1", { allow: [".caret"] })
+  .set(".caret", { opacity: 0 }, "rest+=0.3")
+  .set(".caret", { opacity: 1 }, "rest+=0.7")
+  .label("out", 8.6)
+  .hit("out", "out", { kind: "whoosh", pan: 0.3 })
+  .camera({ anchor: "#m4", at: homeAt, zoom: 1, duration: 3.6, ease: "inOut(3)" }, "out")
+  .hit("home", "out+=3.6", { kind: "land" })
+  .camera({ zoom: 1.04, duration: 1.6, ease: "sine.inOut" }, "out+=3.7")
+  .handheld({ amount: S.min(0.25) }, 0, 14);
+for (let n = 0; n <= 4; n++) {
+  tl.to("#m" + n, { scale: 1.7, duration: 0.7, ease: "sine.inOut" }, 1.4 + n * 0.12).to("#m" + n, { scale: 1, duration: 0.7, ease: "sine.inOut" }, ">");
+}
+});</script>

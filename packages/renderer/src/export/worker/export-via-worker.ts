@@ -18,9 +18,10 @@
  * Html clips DO cross: they rasterize on this thread (workers have no DOM)
  * and the bitmaps transfer with the start message.
  */
-import type { Project } from "@miraiclip/core";
+import { isHtmlClip, type Project } from "@miraiclip/core";
 import { openMediabunnyAudio } from "../../audio/webaudio.js";
 import { collectHtmlRasters, rasterizeHtml } from "../../html/rasterize.js";
+import { collectSequenceCuts, createHtmlMotionMeasurer } from "../blur-html.js";
 import { compositionEnd, probeCompositionAudio } from "../export-project.js";
 import { mixCompositionAudio } from "../offline-audio.js";
 import { ExportAbortedError, type ExportProgress, type ExportRange, type PcmAudioChunk } from "../types.js";
@@ -85,6 +86,10 @@ export async function exportViaWorker(
 
   const { signal, onProgress, target, ...wire } = options;
   if (signal?.aborted) throw new ExportAbortedError();
+  // Motion blur needs two things only a DOM can answer: where sequences cut,
+  // and how far their contents move. Cuts are measured now; motion on request.
+  if (wire.motionBlur && wire.blurCutsUs === undefined) wire.blurCutsUs = await collectSequenceCuts(doc);
+  const measureMotion = wire.motionBlur ? createHtmlMotionMeasurer(doc) : undefined;
 
   return new Promise<Uint8Array>((resolve, reject) => {
     const post = (message: MainToWorkerMessage, transfer: Transferable[] = []): void =>
@@ -137,6 +142,14 @@ export async function exportViaWorker(
           .then((bitmap) => post({ type: "html-raster", id: message.id, bitmap }, [bitmap]))
           .catch((error: unknown) =>
             post({ type: "html-raster", id: message.id, bitmap: null, error: String((error as Error)?.message ?? error) }),
+          );
+      } else if (message.type === "need-html-motion") {
+        const clip = doc.clips[message.clipId];
+        const measured = clip && isHtmlClip(clip) && measureMotion ? measureMotion(clip, message.fromUs, message.toUs) : Promise.resolve(null);
+        void measured
+          .then((motionPx) => post({ type: "html-motion", id: message.id, motionPx }))
+          .catch((error: unknown) =>
+            post({ type: "html-motion", id: message.id, motionPx: null, error: String((error as Error)?.message ?? error) }),
           );
       } else if (message.type === "need-audio-chunk") {
         void mixChunk({ startUs: message.startUs, endUs: message.endUs })

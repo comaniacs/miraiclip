@@ -284,6 +284,10 @@ export class Compositor {
       let opacityFactor = 1;
       let offsetXPx = 0;
       let offsetYPx = 0;
+      let affineScale = 1;
+      let affineX = 0;
+      let affineY = 0;
+      let holdFrames = false;
       for (const { window, role } of transitions) {
         if (timeUs < window.startUs || timeUs >= window.endUs) continue;
         const { kind, params } = window.transition;
@@ -294,6 +298,7 @@ export class Compositor {
         // Both clips render through the whole window (media comes from source
         // headroom) — except overlay kinds (dips), which cover the hard cut.
         if (renderer.rendersBothClips) visible = true;
+        if (renderer.holdsFrames) holdFrames = true;
         const frame = renderer.frame(role, progressIn(window, timeUs), params, {
           compositionSize: doc.settings,
         });
@@ -305,6 +310,13 @@ export class Compositor {
         }
         offsetXPx += frame.offsetXPx ?? 0;
         offsetYPx += frame.offsetYPx ?? 0;
+        if (frame.affine) {
+          // Compose: later(earlier(x)) = t2 + s2·(t1 + s1·x).
+          affineX = frame.affine.txPx + frame.affine.scale * affineX;
+          affineY = frame.affine.tyPx + frame.affine.scale * affineY;
+          affineScale *= frame.affine.scale;
+          // (identity start is s=1,t=0, so the first affine lands as-is)
+        }
         // Highest-alpha overlay wins for the frame.
         if (frame.overlay && frame.overlay.alpha > dipAlpha) {
           dipAlpha = frame.overlay.alpha;
@@ -314,7 +326,12 @@ export class Compositor {
 
       node.setVisible(visible);
       if (visible) {
-        evaluateClipInto(clip, timeUs - clip.startUs, this.scratchEvaluated);
+        // Hold-frame kinds draw outside the clip's bounds from its first/last
+        // frame: evaluate and tick at the nearest in-bounds instant.
+        const localTimeUs = holdFrames
+          ? Math.min(Math.max(timeUs, clip.startUs), clip.startUs + clip.durationUs - 1)
+          : timeUs;
+        evaluateClipInto(clip, localTimeUs - clip.startUs, this.scratchEvaluated);
         const placement = placementFromEvaluated(
           this.scratchEvaluated,
           doc.settings,
@@ -323,9 +340,14 @@ export class Compositor {
         placement.opacity *= opacityFactor;
         placement.xPx += offsetXPx;
         placement.yPx += offsetYPx;
+        if (affineScale !== 1 || affineX !== 0 || affineY !== 0) {
+          placement.xPx = affineX + affineScale * placement.xPx;
+          placement.yPx = affineY + affineScale * placement.yPx;
+          placement.scale *= affineScale;
+        }
         node.setPlacement(placement);
-        if (hasAnimatedEffectRegion(clip)) node.setEffectTime?.(timeUs - clip.startUs, clip.durationUs);
-        node.tick?.(clip, timeUs);
+        if (hasAnimatedEffectRegion(clip)) node.setEffectTime?.(localTimeUs - clip.startUs, clip.durationUs);
+        node.tick?.(clip, localTimeUs);
       }
       node.setReveal?.(reveal, revealDirection);
     }
@@ -341,6 +363,77 @@ export class Compositor {
       this.overlay?.setVisible(false);
     }
     this.backend.render();
+  }
+
+  /**
+   * How far, in composition pixels, any corner of any clip travels between
+   * two instants — keyframes, transitions and all. Drives the adaptive sample
+   * count of shutter motion blur. A clip that only appears or disappears
+   * contributes nothing (that is a cut or a fade, not motion), and so does a
+   * pure opacity change. Content that moves INSIDE a clip (a video's picture,
+   * an html clip's elements) is not seen here.
+   */
+  motionPxBetween(fromUs: Us, toUs: Us): number {
+    const doc = this.doc();
+    const frame = { xPx: 0, yPx: 0, scale: 1, rotationRad: 0 };
+    const at = (clip: Clip, timeUs: Us): Placement | null => {
+      const transitions = this.transitionsByClip.get(clip.id);
+      let visible = clip.startUs <= timeUs && timeUs < clip.startUs + clip.durationUs;
+      let offsetX = 0;
+      let offsetY = 0;
+      let affineScale = 1;
+      let affineX = 0;
+      let affineY = 0;
+      for (const { window, role } of transitions ?? []) {
+        if (timeUs < window.startUs || timeUs >= window.endUs) continue;
+        const renderer = getTransitionRenderer(window.transition.kind);
+        if (!renderer) continue;
+        if (renderer.rendersBothClips) visible = true;
+        const effects = renderer.frame(role, progressIn(window, timeUs), window.transition.params, { compositionSize: doc.settings });
+        if (!effects) continue;
+        offsetX += effects.offsetXPx ?? 0;
+        offsetY += effects.offsetYPx ?? 0;
+        if (effects.affine) {
+          affineX = effects.affine.txPx + effects.affine.scale * affineX;
+          affineY = effects.affine.tyPx + effects.affine.scale * affineY;
+          affineScale *= effects.affine.scale;
+        }
+      }
+      if (!visible) return null;
+      const placement = hasVisualAnimation(clip)
+        ? placementFromEvaluated(evaluateClipInto(clip, timeUs - clip.startUs, { x: 0, y: 0, scale: 1, rotation: 0, opacity: 1, volume: 1 }), doc.settings, { ...frame, opacity: 1 })
+        : { ...computePlacement(clip, doc.settings) };
+      placement.xPx = affineX + affineScale * (placement.xPx + offsetX);
+      placement.yPx = affineY + affineScale * (placement.yPx + offsetY);
+      placement.scale *= affineScale;
+      return placement;
+    };
+    let farthest = 0;
+    for (const [clipId, node] of this.nodes) {
+      const clip = doc.clips[clipId];
+      if (!clip || doc.tracks[clip.trackId]?.hidden) continue;
+      const a = at(clip, fromUs);
+      const b = at(clip, toUs);
+      if (!a || !b) continue;
+      const local = node.getLocalBounds?.() ?? { xPx: -doc.settings.width / 2, yPx: -doc.settings.height / 2, widthPx: doc.settings.width, heightPx: doc.settings.height };
+      const corners = [
+        [local.xPx, local.yPx],
+        [local.xPx + local.widthPx, local.yPx],
+        [local.xPx + local.widthPx, local.yPx + local.heightPx],
+        [local.xPx, local.yPx + local.heightPx],
+      ] as const;
+      const world = (p: Placement, lx: number, ly: number): [number, number] => {
+        const cos = Math.cos(p.rotationRad);
+        const sin = Math.sin(p.rotationRad);
+        return [p.xPx + (lx * cos - ly * sin) * p.scale, p.yPx + (lx * sin + ly * cos) * p.scale];
+      };
+      for (const [lx, ly] of corners) {
+        const [x0, y0] = world(a, lx, ly);
+        const [x1, y1] = world(b, lx, ly);
+        farthest = Math.max(farthest, Math.hypot(x1 - x0, y1 - y0));
+      }
+    }
+    return farthest;
   }
 
   /**

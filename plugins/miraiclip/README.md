@@ -20,6 +20,7 @@ skills/edit-video/           router, edit loop, rules, reference/ (craft, html r
 skills/talking-head/
 skills/captions/
 skills/launch-video/
+skills/continuous-shot/      three concepts → beat sheet → build at stage version 2 → check_sequence → contact sheet; reference/ (carry-types, beat-sheet, scorecard)
 skills/reformat/
 skills/screen-tutorial/
 skills/make-template/        template loop, kit/ (shared kit + starter), scripts/frames.mjs (studio frame capture), reference/ (patterns, scorecard)
