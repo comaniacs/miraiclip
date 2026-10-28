@@ -1,0 +1,177 @@
+// "Resolution": one phone is one pixel. The same picture resolves as the chain grows (1, 3x3, 10x10, 32x32, 100x100)
+// and the film ends on one phone showing the whole picture. Every frame is a pure function of t, drawn on a canvas.
+var W = 1920, H = 1080, DUR = 25.6, P = 3, GRID = [1, 3, 10, 32, 100];
+var BEAT = function (n) { return 0.029 + n * 60 / 140; };
+var cv = document.getElementById("c"), g = cv.getContext("2d");
+var clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
+var c01 = function (x) { return clamp(x, 0, 1); };
+var sm = function (x) { x = c01(x); return x * x * (3 - 2 * x); };
+var mix = function (a, b, u) { return a + (b - a) * u; };
+
+// ---- the picture: a smiling classic computer, as a function of (u, v) in 0..1, v down
+function pic(u, v, wink) {
+  var rr = function (x0, y0, x1, y1, r) { var cx = clamp(u, x0 + r, x1 - r), cy = clamp(v, y0 + r, y1 - r); return (u - cx) * (u - cx) + (v - cy) * (v - cy) <= r * r; };
+  var col = [26 + 30 * v, 82 + 40 * v, 128 + 20 * v]; // sky backdrop
+  if (rr(0.12, 0.88, 0.88, 0.94, 0.02)) col = [190, 182, 160];
+  if (rr(0.19, 0.07, 0.81, 0.88, 0.05)) col = [226, 219, 200];
+  if (rr(0.26, 0.14, 0.74, 0.60, 0.04)) {
+    col = [16, 30, 52];
+    var e = function (cx, ry, rx) { return ((u - cx) / rx) * ((u - cx) / rx) + ((v - 0.30) / ry) * ((v - 0.30) / ry) <= 1; };
+    if (e(0.405, 0.055, 0.024)) col = [245, 248, 255];
+    if (wink ? e(0.595, 0.012, 0.038) : e(0.595, 0.055, 0.024)) col = [245, 248, 255];
+    var q = ((u - 0.5) / 0.17) * ((u - 0.5) / 0.17) + ((v - 0.37) / 0.13) * ((v - 0.37) / 0.13);
+    if (v > 0.41 && q > 0.72 && q < 1.12) col = [245, 248, 255];
+  }
+  if (rr(0.33, 0.69, 0.67, 0.725, 0.01)) col = [120, 112, 96];
+  if (rr(0.62, 0.77, 0.70, 0.80, 0.01)) col = [150, 142, 124];
+  return col;
+}
+function sample(n, wink) {
+  var a = new Uint8Array(n * n * 3), s = 4;
+  for (var i = 0; i < n; i++) for (var j = 0; j < n; j++) {
+    var r = 0, gg = 0, b = 0;
+    for (var a1 = 0; a1 < s; a1++) for (var b1 = 0; b1 < s; b1++) {
+      var c = pic((j + (b1 + 0.5) / s) / n, (i + (a1 + 0.5) / s) / n, wink);
+      r += c[0]; gg += c[1]; b += c[2];
+    }
+    var k = (i * n + j) * 3, m = s * s;
+    a[k] = r / m; a[k + 1] = gg / m; a[k + 2] = b / m;
+  }
+  return a;
+}
+var COL = GRID.map(function (n) { return sample(n, false); });
+var COL100W = sample(100, true);
+var big = document.createElement("canvas"); big.width = big.height = 480;
+var bigW = document.createElement("canvas"); bigW.width = bigW.height = 480;
+[[big, false], [bigW, true]].forEach(function (p) {
+  var x = p[0].getContext("2d"), im = x.createImageData(480, 480);
+  for (var i = 0; i < 480; i++) for (var j = 0; j < 480; j++) { var c = pic(j / 480, i / 480, p[1]), k = (i * 480 + j) * 4; im.data[k] = c[0]; im.data[k + 1] = c[1]; im.data[k + 2] = c[2]; im.data[k + 3] = 255; }
+  x.putImageData(im, 0, 0);
+});
+
+// ---- when each phone starts to fall, per generation. Rows are i (down), columns j.
+var T = {
+  tip0: 1.0, land0: 2.60,
+  tz: function (j) { var z = 0; if (j === 0) return 0; while (j % 2 === 0) { j /= 2; z++; } return 5 - z; }
+};
+function start(k, i, j) {
+  if (k === 1) return 2.60 + 0.16 * (i + j);
+  if (k === 2) return 3.46 + (i * 10 + (i % 2 ? 9 - j : j)) * 0.034;
+  if (k === 3) return 8.60 + T.tz(j) * 0.686 + i * 0.035;
+  if (k === 4) { var s = 16.74 + Math.hypot(i - 49.5, j - 49.5) * 0.05; return j === 50 ? Math.min(s, 13.6 + i * 0.031) : s; }
+  return 0;
+}
+var FALL = [1.6, 0.5, 0.35, 0.28, 0.22];
+function fall(k, i, j, t) {
+  var u = c01((t - start(k, i, j)) / FALL[k]);
+  return k === 0 ? Math.pow(u, 2.4) : u * u * (3 - 2 * u);
+}
+var DROP = 13.74;
+function lit(k, t, f) {
+  if (k === 3) return f * sm((t - DROP) / 0.06);
+  return sm((f - 0.55) / 0.45);
+}
+
+// ---- the camera: keyed, with its own pull on the front of the first line, the chase and the surf
+var K = [ // t, cx, cy (world units), zoom (px per unit), tilt (1 = face on), roll (deg)
+  [0, 0, 0, 330, 0.85, -2], [1.7, 0, 0.1, 300, 0.78, 1], [2.6, 0, 0, 300, 0.8, 0], [3.46, 0, 0, 260, 0.8, 0],
+  [6.0, 0, 0, 230, 0.8, 0], [6.89, 0, 0, 205, 0.85, 0], [7.8, -1.4, -1.0, 330, 0.5, 0], [8.6, -1.4, -1.35, 520, 0.42, -3],
+  [9.3, -1.4, -0.4, 520, 0.42, 4], [10.3, -1.4, 0.9, 480, 0.45, -2], [10.6, -0.7, 0.4, 400, 0.55, 0], [11.4, -0.3, 0.2, 320, 0.62, 0],
+  [12.2, 0, 0.1, 250, 0.7, 0], [13.6, 0, 0, 235, 0.72, 0], [13.74, 0, 0, 235, 0.72, 0], [14.6, 0.05, -1.2, 470, 0.38, 2],
+  [16.6, 0.05, 1.2, 470, 0.36, -2], [16.74, 0, 0.9, 430, 0.36, 0], [18.4, 0, 0.6, 360, 0.4, 0], [20.2, 0, 0.2, 260, 0.5, 0],
+  [21.4, 0, 0, 200, 0.62, 0], [22.31, 0, 0, 200, 0.62, 0], [23.6, 5.6, 0, 340, 1, 0], [25.6, 5.6, 0, 345, 1, 0]
+];
+function cam(t) {
+  var i = 0; while (i < K.length - 2 && t > K[i + 1][0]) i++;
+  var a = K[i], b = K[i + 1], u = sm((t - a[0]) / (b[0] - a[0]));
+  var s = { cx: mix(a[1], b[1], u), cy: mix(a[2], b[2], u), z: Math.exp(mix(Math.log(a[3]), Math.log(b[3]), u)), tilt: mix(a[4], b[4], u), roll: mix(a[5], b[5], u) };
+  return s;
+}
+var SHAKES = [[2.60, 5], [6.89, 7], [DROP, 9], [16.74, 7], [BEAT(58), 4]];
+function shake(t) {
+  var x = 0, y = 0;
+  SHAKES.forEach(function (s) { var d = t - s[0]; if (d > 0 && d < 0.6) { var a = s[1] * Math.exp(-d * 9); x += a * Math.sin(d * 71); y += a * Math.cos(d * 59); } });
+  return [x, y];
+}
+
+// ---- drawing
+function rrect(x, y, w, h, r) { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, r); else g.rect(x, y, w, h); }
+function phone(cx, cy, w, h, f, L, rgb, big) {
+  // f: how far it has fallen (0 standing, 1 flat). Standing shows a thin edge, flat shows the screen.
+  var th = f * Math.PI / 2, sy = Math.sin(th), co = Math.cos(th);
+  var hh = h * (0.1 + 0.9 * sy), edge = h * 0.22 * co;
+  var x0 = cx - w / 2, y0 = cy - hh / 2 - edge * 0.5;
+  if (w < 2.2) {
+    g.fillStyle = L > 0.02 ? "rgb(" + (rgb[0] * L + 8) + "," + (rgb[1] * L + 10) + "," + (rgb[2] * L + 16) + ")" : "#0c1018";
+    g.fillRect(x0, y0, w + 0.6, hh + edge + 0.6); return;
+  }
+  if (co > 0.02) { g.fillStyle = "#2a3142"; rrect(x0, y0 + hh, w, edge, w * 0.12); g.fill(); }
+  g.fillStyle = "#151a27"; rrect(x0, y0, w, hh, w * 0.14); g.fill();
+  if (hh > w * 0.2) {
+    var m = w * 0.07;
+    g.fillStyle = L > 0.02 ? "rgb(" + Math.round(rgb[0] * L + 6) + "," + Math.round(rgb[1] * L + 8) + "," + Math.round(rgb[2] * L + 14) + ")" : "#070a12";
+    rrect(x0 + m, y0 + m * sy, w - 2 * m, Math.max(0.5, hh - 2 * m * sy), w * 0.1); g.fill();
+  }
+  if (w > 6) { g.strokeStyle = "rgba(190,205,255," + (0.22 + 0.2 * (1 - sy)) + ")"; g.lineWidth = Math.max(1, w * 0.03); rrect(x0, y0, w, hh, w * 0.14); g.stroke(); }
+}
+var HITS = {};
+function draw(t) {
+  var c = cam(t), sh = shake(t), tilt = c.tilt;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = "#070a12"; g.fillRect(0, 0, W, H);
+  var gr = g.createRadialGradient(W / 2, H * 0.55, 80, W / 2, H * 0.55, 1100); gr.addColorStop(0, "#111a2e"); gr.addColorStop(1, "#05070d");
+  g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  g.translate(W / 2 + sh[0], H / 2 + sh[1]); g.rotate(c.roll * Math.PI / 180);
+  var X = function (wx) { return (wx - c.cx) * c.z; }, Y = function (wy) { return (wy - c.cy) * c.z * tilt; };
+  var half = P / 2;
+  // generations, coarse first; a generation is on once its first phone moves
+  var firsts = [0, 2.60, 3.46, 8.60, 13.6];
+  for (var k = 0; k < 5; k++) {
+    if (t < firsts[k]) break;
+    var n = GRID[k], p = P / n, size = p * 0.9, col = COL[k];
+    var i0 = 0, i1 = n, j0 = 0, j1 = n;
+    if (n > 3) {
+      j0 = clamp(Math.floor((c.cx - (W / 2 + 140) / c.z) / p + n / 2 + 0.0 + half / p - half / p), 0, n);
+      j1 = clamp(Math.ceil((c.cx + (W / 2 + 140) / c.z) / p + n / 2), 0, n);
+      i0 = clamp(Math.floor((c.cy - (H / 2 + 200) / (c.z * tilt)) / p + n / 2), 0, n);
+      i1 = clamp(Math.ceil((c.cy + (H / 2 + 200) / (c.z * tilt)) / p + n / 2), 0, n);
+    }
+    for (var i = i0; i < i1; i++) for (var j = j0; j < j1; j++) {
+      var f = k === 0 ? fall(0, 0, 0, t) : fall(k, i, j, t);
+      if (k === 0) { f = c01((t - T.tip0) / (T.land0 - T.tip0)); f = Math.pow(f, 2.4); }
+      var wx = (j + 0.5 - n / 2) * p, wy = (i + 0.5 - n / 2) * p;
+      var L = lit(k, t, f), idx = (i * n + j) * 3, rgb;
+      if (k === 4 && t > 20.6 && ((t < 20.85) || (t > BEAT(50) && t < BEAT(50) + 0.25))) rgb = [COL100W[idx], COL100W[idx + 1], COL100W[idx + 2]];
+      else rgb = [col[idx], col[idx + 1], col[idx + 2]];
+      if (k === 4 && t > 21.0) { /* the field holds its picture */ }
+      var sx = X(wx), sy = Y(wy);
+      if (sx < -W / 2 - size * c.z || sx > W / 2 + size * c.z || sy < -H / 2 - size * c.z || sy > H / 2 + size * c.z) continue;
+      phone(sx, sy, size * c.z, size * c.z * tilt, f, L, rgb, k === 0);
+    }
+  }
+  // the survivor
+  if (t > 21.0) {
+    var sx2 = X(5.6), sy2 = Y(0), sz = P * c.z, wk = (t > 23.6 && t < 24.0) || (t > 24.3 && t < 24.5);
+    var L2 = sm((t - 23.1) / 0.5) * (1 - sm((t - 24.89) / 0.07));
+    g.fillStyle = "#151a27"; rrect(sx2 - sz / 2, sy2 - sz * tilt / 2, sz, sz * tilt, sz * 0.07); g.fill();
+    g.save(); g.globalAlpha = L2; rrect(sx2 - sz * 0.46, sy2 - sz * tilt * 0.46, sz * 0.92, sz * tilt * 0.92, sz * 0.05); g.clip();
+    g.drawImage(wk ? bigW : big, sx2 - sz * 0.46, sy2 - sz * tilt * 0.46, sz * 0.92, sz * tilt * 0.92); g.restore();
+    g.strokeStyle = "rgba(190,205,255,.35)"; g.lineWidth = 3; rrect(sx2 - sz / 2, sy2 - sz * tilt / 2, sz, sz * tilt, sz * 0.07); g.stroke();
+  }
+  // the drop, and a vignette
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  var fl = Math.exp(-(t - DROP) * 9) * (t >= DROP ? 1 : 0);
+  if (fl > 0.01) { g.fillStyle = "rgba(180,210,255," + 0.35 * fl + ")"; g.fillRect(0, 0, W, H); }
+  var v = g.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 0.95); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.55)");
+  g.fillStyle = v; g.fillRect(0, 0, W, H);
+}
+
+tl.frame(draw);
+
+// beats: the labels and the sound hits the score is cut to
+tl.label("tip", T.tip0).label("land", 2.60).label("launch", BEAT(8)).label("struck", 6.89).label("split", 8.60).label("drop", DROP).label("front", 16.74).label("dive", 22.31).label("wink", 23.6).label("dark", 24.89);
+tl.hit("tip", T.tip0, { kind: "whoosh", pan: -0.2 }).hit("land", 2.60, { kind: "land" }).hit("launch", BEAT(8), { kind: "impact" }).hit("struck", 6.89, { kind: "impact" })
+  .hit("drop", DROP, { kind: "impact" }).hit("front", 16.74, { kind: "impact" }).hit("dive", 22.31, { kind: "whoosh" }).hit("wink", 23.6, { kind: "click" }).hit("dark", 24.89, { kind: "land" });
+for (var gi = 0; gi < 6; gi++) tl.hit("split" + gi, 8.60 + gi * 0.686, { kind: "click", pan: (gi % 2 ? 0.3 : -0.3) });
+for (var ci = 0; ci < 30; ci++) tl.hit("chase" + ci, 13.6 + ci * 0.1, { kind: "click", pan: Math.sin(ci) * 0.4 });
+for (var ri = 0; ri < 20; ri++) tl.hit("ring" + ri, 16.74 + ri * 0.17, { kind: "click", pan: Math.sin(ri * 1.7) * 0.5 });

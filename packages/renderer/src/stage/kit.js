@@ -735,6 +735,13 @@
       iris: function (target, opts, pos) { need2("iris"); irisImpl(target, opts, pos); return api; },
       zoomThrough: function (target, opts, pos) { need2("zoomThrough"); zoomThroughImpl(target, opts, pos); return api; },
       hop: function (target, opts, pos) { need2("hop"); hopImpl(target, opts, pos); return api; },
+      /** Paint something on every seek as a pure function of the time (a canvas, say): fn(t) gets the time in seconds. */
+      frame: function (fn) {
+        need2("frame");
+        if (typeof fn !== "function") throw new Error("frame(): pass a function (t) => void that paints the frame for time t.");
+        v2.drivers.push({ start: 0, end: Infinity, apply: fn });
+        return api;
+      },
       shadow: function (target, opts) { need2("shadow"); shadowImpl(target, opts); return api; },
       focus: function (target, opts, pos) { need2("focus"); focusImpl(target, opts, pos); return api; },
       gather: function (targets, opts, pos) { need2("gather"); gatherImpl(targets, opts, pos); return api; },
