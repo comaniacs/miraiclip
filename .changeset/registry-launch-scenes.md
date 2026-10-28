@@ -1,5 +1,0 @@
----
-"@miraiclip/registry": minor
----
-
-Launch scenes: sixteen full-frame, animated `scene` blocks for launch films, teasers and promos in the fast "launch trailer" style. They are a typed hook question, a word slam on the beat, tilted prompt cards, a 3D product shot with feature chips, three feature cards, an image montage, a counting stat in a drawn ring, a wordmark reveal with a call to action, a phone-style conversation, notifications landing, a product close-up that zooms into one spot of a screenshot, before and after, steps along a drawing line, a tilted wall of feature words, a kinetic three-line statement, and a customer quote. Every scene has three looks (`look`: light, dark, brand colour; `LOOK_FIELD`, `LOOKS`), so a long film changes light. Every scene keeps moving (camera push or pan) and exits with a short blur-push. Each takes the brand as fields (`primary`, `secondary`, `bg`, `ink`, `font`; `BRAND_FIELDS`, `BRAND_FIELD_KEYS`), images as asset ids, and is sized in container units, so it works in 16:9, 9:16 and 1:1 and at any preview or export resolution. `LAUNCH_SCENES` exports them; they're also in `BUILTIN_BLOCKS` (new category `scene`).

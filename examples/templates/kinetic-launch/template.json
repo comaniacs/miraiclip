@@ -1,0 +1,17 @@
+{
+  "id": "kinetic-launch",
+  "title": "Kinetic launch",
+  "goal": "launch",
+  "type": "product-launch",
+  "formats": ["16:9", "9:16"],
+  "themes": ["paper", "midnight", "terminal", "pop"],
+  "defaultTheme": "paper",
+  "durationSec": 22,
+  "style": ["one-take", "kinetic-type", "ui-mockup", "devices"],
+  "pace": "energetic",
+  "industry": ["saas"],
+  "startFrom": ["text", "numbers"],
+  "fields": 36,
+  "assets": [{ "url": "https://assets.miraiclip.com/templates/_shared/", "license": "SIL OFL 1.1" }],
+  "source": "new"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "feature-drop",
+  "title": "Feature drop",
+  "goal": "launch",
+  "type": "feature-drop",
+  "formats": ["16:9", "9:16"],
+  "themes": ["midnight", "paper", "terminal", "pop"],
+  "defaultTheme": "midnight",
+  "durationSec": 20,
+  "style": ["one-take", "before-after", "ui-mockup", "cursor"],
+  "pace": "steady",
+  "industry": ["saas"],
+  "startFrom": ["text", "numbers"],
+  "fields": 39,
+  "assets": [{ "url": "https://assets.miraiclip.com/templates/_shared/", "license": "SIL OFL 1.1" }],
+  "source": "new; backlog example 3"
+}

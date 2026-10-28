@@ -1,5 +1,16 @@
 # @miraiclip/templates
 
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [1240743]
+- Updated dependencies [02fa701]
+- Updated dependencies [ba096e4]
+- Updated dependencies [cdd6cf6]
+  - @miraiclip/server-export@0.6.0
+  - @miraiclip/core@0.8.0
+
 ## 0.1.5
 
 ### Patch Changes

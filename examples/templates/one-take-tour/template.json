@@ -1,0 +1,20 @@
+{
+  "id": "one-take-tour",
+  "title": "One-take product tour",
+  "goal": "show-how-it-works",
+  "type": "walkthrough",
+  "formats": ["16:9", "9:16"],
+  "themes": ["pop", "midnight", "paper", "terminal"],
+  "defaultTheme": "pop",
+  "durationSec": 22,
+  "style": ["one-take", "ui-mockup", "cursor"],
+  "pace": "steady",
+  "industry": ["saas", "ai"],
+  "startFrom": ["text", "screenshots"],
+  "fields": 37,
+  "assets": [
+    { "url": "https://assets.miraiclip.com/templates/miraiclip-launch/product.jpg", "license": "CC BY 3.0 (frame of Big Buck Bunny)", "credit": "Big Buck Bunny © Blender Foundation, CC BY 3.0" },
+    { "url": "https://assets.miraiclip.com/templates/_shared/", "license": "SIL OFL 1.1" }
+  ],
+  "source": "new; direction after a reference clip supplied by the user"
+}

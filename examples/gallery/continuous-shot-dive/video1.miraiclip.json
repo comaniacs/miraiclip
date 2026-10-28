@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "assets": {},
+  "tracks": {
+    "v1": {
+      "id": "v1",
+      "kind": "video",
+      "name": "v1",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    }
+  },
+  "trackOrder": [
+    "v1"
+  ],
+  "clips": {
+    "paper": {
+      "kind": "html",
+      "id": "paper",
+      "trackId": "v1",
+      "startUs": 0,
+      "durationUs": 14000000,
+      "template": "<div class=\"stage\" data-libs=\"stage\" data-duration=\"14\" data-stage-version=\"2\" style=\"width:1920px;height:1080px\"><style>\n*{box-sizing:border-box;margin:0}\n.stage{background:#f2ede4;color:#1c1b19;font-family:Inter,\"DejaVu Sans\",system-ui,sans-serif;overflow:hidden}\n.world{position:absolute;left:0;top:0;width:1920px;height:1080px}\n.abs{position:absolute}\n#bar{left:320px;top:484px;width:1280px;height:112px;border-radius:56px;background:#fff;border:3px solid #1c1b19;z-index:4}\n#prompt{left:370px;top:510px;font-size:48px;font-weight:600;white-space:nowrap;z-index:6}\n#prompt .caret{display:inline-block;width:5px;height:54px;background:#e4572e;margin-left:6px;vertical-align:-9px}\n#send{left:1460px;top:502px;width:76px;height:76px;border-radius:50%;background:#e4572e;z-index:6;display:grid;place-items:center;color:#fff;font-size:42px;font-weight:800}\n#win{left:260px;top:130px;width:1400px;height:760px;border-radius:30px;background:#fff;border:3px solid #1c1b19;z-index:3;opacity:0}\n.nav{left:0;top:0;width:100%;height:84px;border-bottom:3px solid #1c1b19;display:flex;align-items:center;padding:0 40px;font-size:34px;font-weight:800}\n.hero{left:70px;top:130px;font-size:92px;font-weight:800;line-height:1.02;letter-spacing:-.02em}\n.tile{top:470px;width:380px;height:210px;border-radius:24px;border:3px solid #1c1b19;display:grid;place-items:center;font-size:40px;font-weight:700;z-index:5}\n#t1{left:70px;background:#ffd9c9}#t2{left:510px;background:#d9e7ff}#t3{left:950px;background:#e3f5d0}\n#pub{left:730px;top:930px;width:460px;height:110px;border-radius:55px;background:#e4572e;color:#fff;display:grid;place-items:center;font-size:48px;font-weight:800;z-index:6;opacity:0}\n#veil{left:0;top:0;width:1920px;height:1080px;background:#f2ede4;z-index:7;opacity:0}\n#live{left:510px;top:315px;width:900px;height:450px;border-radius:40px;background:#1c1b19;color:#f2ede4;display:grid;place-items:center;text-align:center;z-index:9;opacity:0}\n#live h2{font-size:120px;font-weight:800;line-height:1}#live p{font-size:44px;opacity:.7;margin-top:14px}\n#word{left:560px;top:420px;width:800px;height:240px;border-radius:120px;background:#e4572e;color:#fff;display:grid;place-items:center;font-size:150px;font-weight:800;letter-spacing:-.03em;z-index:10;opacity:0}\n</style><div class=\"world\">\n<div class=\"abs\" id=\"bar\"></div>\n<p class=\"abs\" id=\"prompt\"><span class=\"chars\">a landing page for a pottery studio</span><i class=\"caret\"></i></p>\n<div class=\"abs\" id=\"send\">↑</div>\n<div class=\"abs\" id=\"win\">\n  <div class=\"abs nav\" id=\"nav\">Kiln &amp; Co.</div>\n  <p class=\"abs hero\" id=\"hero\">Pottery you<br>can book.</p>\n  <div class=\"abs tile\" id=\"t1\">Classes</div><div class=\"abs tile\" id=\"t2\">Studio time</div><div class=\"abs tile\" id=\"t3\">Shop</div>\n</div>\n<div class=\"abs\" id=\"pub\">Publish</div>\n<div class=\"abs\" id=\"veil\"></div>\n<div class=\"abs\" id=\"live\"><div><h2>Live.</h2><p>kiln.paper.site</p></div></div>\n<div class=\"abs\" id=\"word\">Paper</div>\n</div></div>\n<script>stage.build((tl, S) => {\nS.grid({ depth: 0.5, spacing: S.min(7), dot: 2, color: \"#1c1b19\", opacity: 0.08 });\nconst chars = S.split(\".chars\", \"chars\");\n\ntl.pointer({ path: [\n    { t: 0, x: S.w(104), y: S.h(96) }, { t: 2.8, x: S.w(84), y: S.h(70) }, { t: 3.3, x: S.w(76.4), y: S.h(50) }, { t: 3.6, x: S.w(76.4), y: S.h(50) },\n    { t: 5.2, x: S.w(90), y: S.h(104) }, { t: 8.0, x: S.w(60), y: S.h(98) }, { t: 8.9, x: S.w(50), y: S.h(92) }, { t: 9.7, x: S.w(50), y: S.h(92) }, { t: 10.6, x: S.w(104), y: S.h(96) },\n  ], clicks: [3.4, 9.4] });\ntl.label(\"type\", 0)\n  .from(\"#bar\", { scaleX: 0.3, opacity: 0, duration: 0.7, ease: \"expo.out\" }, 0)\n  .from(\"#send\", { scale: 0, duration: 0.4, ease: \"back.out\" }, 0.4)\n  .from(chars, { opacity: 0, duration: 0.01, stagger: 0.07 }, 0.7)\n  .camera({ zoom: 1.08, duration: 3.2, ease: \"sine.inOut\" }, 0)\n  .label(\"send\", 3.4)\n  .press(\"#send\", 3.4)\n  .shake(3.4, { amp: S.min(0.8), decay: 0.35, seed: 2 })\n  .label(\"build\", 3.9)\n  .set(\"#win\", { opacity: 1 }, \"build\")\n  .morph(\"#bar\", \"#win\", { duration: 1.1, ease: \"expo.inOut\", content: \"none\" }, \"build\")\n  .to(\"#prompt, #send\", { opacity: 0, duration: 0.35 }, \"build\")\n  .camera({ zoom: 1, duration: 1.4, ease: \"inOut(3)\" }, \"build\")\n  .from(\"#nav\", { y: -S.h(4), opacity: 0, duration: 0.5, ease: \"expo.out\" }, \"build+=0.9\")\n  .from(\"#hero\", { y: S.h(4), opacity: 0, blur: 8, duration: 0.7, ease: \"expo.out\" }, \"build+=1.1\")\n  .from(\".tile\", { y: S.h(5), opacity: 0, duration: 0.6, stagger: 0.14, ease: \"expo.out\" }, \"build+=1.5\")\n  .camera({ zoom: 1.05, duration: 3, ease: \"sine.inOut\" }, \"build+=1.4\")\n  .label(\"pub\", 7.2)\n  .set(\"#pub\", { opacity: 1 }, \"pub\")\n  .gather(\".tile\", { into: \"#pub\", arc: 0.2, stagger: 0.1, duration: 0.9 }, \"pub\")\n  .from(\"#pub\", { scale: 0.6, duration: 0.6, ease: \"expo.out\" }, \"pub+=0.2\")\n  .set(\".tile\", { opacity: 0 }, \"pub+=1.15\")\n  .label(\"rest\", 8.6)\n  .rest(\"rest\", \"rest+=0.7\")\n  .label(\"press\", 9.4)\n  .press(\"#pub\", 9.4)\n  .shake(9.4, { amp: S.min(0.9), decay: 0.35, seed: 6 })\n  .label(\"live\", 9.9)\n  .set(\"#live\", { opacity: 1 }, \"live\")\n  .iris(\"#live\", { from: \"#pub\", duration: 1.0, ease: \"inOut(3)\" }, \"live\")\n  .to(\"#veil\", { opacity: 0.88, duration: 0.8 }, \"live\")\n  .to(\"#pub\", { opacity: 0, duration: 0.4 }, \"live+=0.6\")\n  .camera({ zoom: 1.04, duration: 2, ease: \"sine.inOut\" }, \"live\")\n  .label(\"lockup\", 11.6)\n  .set(\"#word\", { opacity: 1 }, \"lockup\")\n  .to(\"#veil\", { opacity: 1, duration: 0.6 }, \"lockup\")\n  .morph(\"#live\", \"#word\", { duration: 1.1, ease: \"expo.inOut\" }, \"lockup\")\n  .handheld({ amount: S.min(0.25) }, 0, 14)\n  .label(\"end\", 12.9);\n});</script>",
+      "params": {},
+      "scripted": true,
+      "animated": true,
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    }
+  },
+  "transitions": {}
+}

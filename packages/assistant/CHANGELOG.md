@@ -1,5 +1,38 @@
 # @miraiclip/assistant
 
+## 0.3.0
+
+### Minor Changes
+
+- 63276db: Skills: playbooks the assistant loads when a request needs one. `createAssistant({ skills })` lists each skill's name and description in the system prompt and adds `load_skill` and `read_skill_file` tools, so the model reads a playbook (and its reference files, in parts when long) only when it uses it. `run(project, request, { skills: ["captions"] })` starts a request with a skill already loaded, e.g. from a button. `MIRAICLIP_SKILLS` bundles the Claude Code plugin's skills in their editor versions (edit-video, captions, talking-head, launch-video, screen-tutorial, reformat, make-template) with their references; unused, it's tree-shaken. `parseSkill`, `skillsFromFiles` (a folder of skill folders, e.g. from `import.meta.glob`) and `defineSkill` load your own.
+- 63276db: Tools can return images, and films from a brief have a new skill set.
+  
+  - `ToolOutput` takes `images` (`ChatImage`: `mimeType` plus base64 `data`), and the assistant sends them to the model with the tool's result:
+    - Anthropic gets them inside the `tool_result`.
+    - OpenAI and Gemini get them in a message right after the run of tool results.
+  - Only the latest two image-bearing results keep their pictures. If a model refuses images (400), the turn continues with text only.
+  - `tool-end` events carry the tool's `images`, so apps can show them, for example a storyboard.
+  - `MIRAICLIP_SKILLS` splits film-making by job:
+    - `direction`: brief to treatment;
+    - `look`: palette, type and finish from the subject;
+    - `media-sound`: pictures, music first, sound effects;
+    - `sequence-core`: the contract for stage-kit sequences;
+    - `motion`: the motion-graphics grammar, 32 techniques with working code, and breakdowns of whole films.
+  - `make-film` and `launch-video` are recipes on top of these skills: direct, plan the look, approve, music first, build continuous acts, check.
+- 1240743: Check a sequence as one continuous shot. The stage kit now reports, for every label, whether something survives into the next beat (carried, anchored or bare), subjects that leave the frame (`data-keep-in-frame="t0,t1[,whole]"`), uneven beat spacing and stray hard cuts. `@miraiclip/server-export` exports `checkShot(doc, options)`, the MCP server gains a `check_sequence` tool, and `editorTools({ checkSequence })` in `@miraiclip/assistant` offers the same tool to a host that can run the check. `MOTION_TARGETS.shot` is a stricter target for a continuous shot, and `motionFindings` takes `{ rests }` so declared rests are not flagged. The skills now allow stillness only inside a declared `tl.rest`. Warnings never block an export. `probeScriptedHtml` in `@miraiclip/renderer` runs the check in the editor's own sandboxed frame, and `@miraiclip/editor` adds `shotWarnings`, `staleShotChecks` and `shotCheckKey` for a badge, timeline markers and re-checking after edits. `check_sequence` can return before/after frames for bare boundaries (`frames: true`).
+- 02fa701: Shutter motion blur on export. Pass `motionBlur` (`{}` for the defaults, or `{ shutterAngle, minSamples, maxSamples, gapPx }`) to `exportProject`, `exportProjectInWorker`/`exportViaWorker`, `exportProjectFile` and the MCP `export` tool. Each frame is rendered at several instants inside the open shutter and averaged in linear light on the GPU, in a floating-point texture. The sample count follows how far things travel on screen (keyframes, transitions, the camera, and the elements of a stage sequence), a frame where nothing moves renders once, and a hard cut (a clip edge without a transition, a `tl.cut`) is never blended. Sub-frame times are whole microseconds and mirror around the frame centre. Video footage uses the nearest decoded frame. The kit gains `window.__miraiclipMotion(from, to)`. Where the browser can't render to float textures the export finishes without blur and warns. The continuous-shot skill suggests blur for the final export only.
+- ba096e4: Sound and music for a continuous shot. `planSoundFromEvents` (core) plans one sound effect clip at each hit a sequence declared, with one sound per hit kind, and volume keyframes that duck a music clip under the hits. `applyBeatGrid` (core) writes a music beat grid onto a sequence's stage root. The stage kit reads `data-downbeats` (`S.downbeats`, `S.downbeat(n)`) next to `data-beats`, and the shot report lists the sequence's `events`. The MCP server and the assistant gain `place_sfx_from_events` (the assistant's only when the host supplies `checkSequence`) and `set_beat_grid`. The Claude Code plugin's `mc.mjs beats <file>` analyses a music file into beats and downbeats.
+- cdd6cf6: A new built-in transition, `zoomThrough`: the camera dives into a region of the outgoing clip (`rect`, as fractions of the frame; `ease`) and arrives in the incoming clip, so a cut reads as one continuous move. It holds the outgoing clip's last frame and the incoming clip's first frame through the window, so it needs no spare footage; `transition/add` and `transition/update` reject it only when it is longer than the shorter clip (`transition-too-long`). `findCuts` reports `maxHoldTransitionUs`, and core exports `transitionHoldsFrames(kind)`. Renderer transitions gain `affine` (scale and translate) in `TransitionFrameEffects` and a `holdsFrames` flag. `add_transition` in `@miraiclip/assistant` accepts `zoomThrough` with `rect` and `ease`, and `checkShot` treats a `zoomThrough` between two sequence clips as the hand-over, so no `act-join` warning.
+
+### Patch Changes
+
+- 63276db: `apply_commands` now rejects an html clip whose markup won't render, before anything is applied: the template is parsed as XML (unclosed `<br>`, a bare `&` or `<`, HTML-only entities like `&nbsp;`, unquoted attributes, mismatched tags) and `asset:<id>` references must name an asset in the project or one added in the same batch. The error says what's wrong and where, so the model fixes it instead of landing a scene that renders blank. `markupProblem` and `assetRefs` are exported.
+- 63276db: New bundled skill `make-film`: it makes any film from a brief (a course promo, trailer, documentary, recap, explainer or launch). It first picks the format and style that fit the subject and tone, from the reference styles or a custom one, then builds the film from scenes. `launch-video` and `edit-video` route to it. It uses the image tools (`find_images`, `generate_image`) when the editor has them.
+- 888c1eb: The bundled `sequence-core` and `motion` skills document the continuous-shot verbs, the operated camera and the new lint rules, with version 2 snippets for morph, zoom-through, carry-over, whip pan and parallax.
+- Updated dependencies [ba096e4]
+- Updated dependencies [cdd6cf6]
+  - @miraiclip/core@0.8.0
+
 ## 0.2.0
 
 ### Minor Changes

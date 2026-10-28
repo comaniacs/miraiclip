@@ -1,5 +1,33 @@
 # @miraiclip/renderer
 
+## 0.10.0
+
+### Minor Changes
+
+- 1240743: Check a sequence as one continuous shot. The stage kit now reports, for every label, whether something survives into the next beat (carried, anchored or bare), subjects that leave the frame (`data-keep-in-frame="t0,t1[,whole]"`), uneven beat spacing and stray hard cuts. `@miraiclip/server-export` exports `checkShot(doc, options)`, the MCP server gains a `check_sequence` tool, and `editorTools({ checkSequence })` in `@miraiclip/assistant` offers the same tool to a host that can run the check. `MOTION_TARGETS.shot` is a stricter target for a continuous shot, and `motionFindings` takes `{ rests }` so declared rests are not flagged. The skills now allow stillness only inside a declared `tl.rest`. Warnings never block an export. `probeScriptedHtml` in `@miraiclip/renderer` runs the check in the editor's own sandboxed frame, and `@miraiclip/editor` adds `shotWarnings`, `staleShotChecks` and `shotCheckKey` for a badge, timeline markers and re-checking after edits. `check_sequence` can return before/after frames for bare boundaries (`frames: true`).
+- 888c1eb: Continuous shot for the stage kit. Add `data-stage-version="2"` to a sequence's stage root and it can be built as one unbroken camera move: carry verbs that turn one element into the next (`tl.morph`, `tl.iris`, `tl.zoomThrough`, `tl.hop`, `tl.gather`, `tl.impact`, `tl.press`, `tl.pointer`, and a `spring` ease), an operated camera on its own track (log-space zoom, a screen-space `anchor` for deep zooms, `tl.follow`, `tl.whip`, `tl.handheld`, `tl.shake`, `data-depth` parallax, `data-lod`, and `S.grid`), declared rests (`tl.rest`), hard cuts (`tl.cut`) and sound hits (`tl.hit`), reported on the stage root as `data-stage-carries`, `-events`, `-rests` and `-cuts`. `S.rect`, `S.center` and `S.pointerPath` measure elements and import a recorded click log. `lintSequence` gains `version`, `carry-target`, `zoom-target`, `zoom-anchor` and `verb-transform`. Sequences without the attribute render exactly as before. The package also exports `ANIME_SOURCE` and `STAGE_KIT_HASH` from `@miraiclip/renderer/stage`.
+- 02fa701: Shutter motion blur on export. Pass `motionBlur` (`{}` for the defaults, or `{ shutterAngle, minSamples, maxSamples, gapPx }`) to `exportProject`, `exportProjectInWorker`/`exportViaWorker`, `exportProjectFile` and the MCP `export` tool. Each frame is rendered at several instants inside the open shutter and averaged in linear light on the GPU, in a floating-point texture. The sample count follows how far things travel on screen (keyframes, transitions, the camera, and the elements of a stage sequence), a frame where nothing moves renders once, and a hard cut (a clip edge without a transition, a `tl.cut`) is never blended. Sub-frame times are whole microseconds and mirror around the frame centre. Video footage uses the nearest decoded frame. The kit gains `window.__miraiclipMotion(from, to)`. Where the browser can't render to float textures the export finishes without blur and warns. The continuous-shot skill suggests blur for the final export only.
+- ba096e4: Sound and music for a continuous shot. `planSoundFromEvents` (core) plans one sound effect clip at each hit a sequence declared, with one sound per hit kind, and volume keyframes that duck a music clip under the hits. `applyBeatGrid` (core) writes a music beat grid onto a sequence's stage root. The stage kit reads `data-downbeats` (`S.downbeats`, `S.downbeat(n)`) next to `data-beats`, and the shot report lists the sequence's `events`. The MCP server and the assistant gain `place_sfx_from_events` (the assistant's only when the host supplies `checkSequence`) and `set_beat_grid`. The Claude Code plugin's `mc.mjs beats <file>` analyses a music file into beats and downbeats.
+- cdd6cf6: A new built-in transition, `zoomThrough`: the camera dives into a region of the outgoing clip (`rect`, as fractions of the frame; `ease`) and arrives in the incoming clip, so a cut reads as one continuous move. It holds the outgoing clip's last frame and the incoming clip's first frame through the window, so it needs no spare footage; `transition/add` and `transition/update` reject it only when it is longer than the shorter clip (`transition-too-long`). `findCuts` reports `maxHoldTransitionUs`, and core exports `transitionHoldsFrames(kind)`. Renderer transitions gain `affine` (scale and translate) in `TransitionFrameEffects` and a `holdsFrames` flag. `add_transition` in `@miraiclip/assistant` accepts `zoomThrough` with `rect` and `ease`, and `checkShot` treats a `zoomThrough` between two sequence clips as the hand-over, so no `act-join` warning.
+- 63276db: Sequences: motion graphics as one timeline.
+  
+  - `registerScriptedLibraries` makes libraries available to scripted html clips through `data-libs`. They're inlined in dependency order, with no network.
+  - `registerStageKit()` adds the stage kit (on anime.js v4, MIT). It provides:
+    - `stage.build((tl, S) => …)` with `tl.to/from/fromTo/set/label/camera`;
+    - stage-relative sizes (`S.w/h/min`), `S.split`, `S.rand(seed)` and music beats (`S.beat(n)`);
+    - frame-exact seeking, and building after fonts load.
+  - `lintSequence(template)` checks a sequence before it renders: randomness, the clock, timers, network, infinite loops, viewport units, `position: fixed`, its shape, raw pixels and large blurred layers.
+  - Motion metrics measure how much rendered frames move: `lumaFrame`, `frameChange`, `changeSeries`, `motionMetrics` (density, median change, holds, jumps), `motionFindings` and `MOTION_TARGETS`.
+  - `rasterizeHtml({ software: true })` rasterizes on the CPU. It's exact for analysis and small previews, where some GPU rasterizers add tile artifacts to large blurred layers under 3D transforms.
+  - Scripted frames inject the template's `@font-face` before building, and wait for `__miraiclipReady`.
+
+### Patch Changes
+
+- 63276db: An html clip whose font asset can't be fetched now renders with the CSS's fallback font (and warns once) instead of failing to render at all.
+- Updated dependencies [ba096e4]
+- Updated dependencies [cdd6cf6]
+  - @miraiclip/core@0.8.0
+
 ## 0.9.1
 
 ### Patch Changes
