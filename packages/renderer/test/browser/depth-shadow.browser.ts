@@ -112,3 +112,23 @@ describe("depth of field", () => {
     await s.close();
   });
 });
+
+describe("frame", () => {
+  it("calls the function with the time on every seek, so a canvas is a function of t", async (ctx) => {
+    const s = await openShot(SEQ(`tl.frame((t) => { document.getElementById("c").getContext("2d").fillStyle = "rgb(" + Math.round(t * 20) + ",0,0)"; document.getElementById("c").getContext("2d").fillRect(0, 0, 4, 4); });`, `<canvas id="c" width="4" height="4"></canvas>`), "landscape");
+    if (!s) return ctx.skip();
+    expect((await s.attrs())["data-stage-error"]).toBeUndefined();
+    const red = () => s.page.evaluate(() => (document.getElementById("c") as HTMLCanvasElement).getContext("2d")!.getImageData(1, 1, 1, 1).data[0]);
+    await s.seek(5);
+    expect(await red()).toBe(100);
+    await s.seek(2);
+    expect(await red()).toBe(40);
+    await s.close();
+  });
+  it("needs a function", async (ctx) => {
+    const s = await openShot(SEQ(`tl.frame("nope");`), "landscape");
+    if (!s) return ctx.skip();
+    expect((await s.attrs())["data-stage-error"]).toMatch(/frame\(\): pass a function/);
+    await s.close();
+  });
+});

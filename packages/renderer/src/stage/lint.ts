@@ -37,7 +37,7 @@ const FORBIDDEN: { rule: string; re: RegExp; message: string }[] = [
 ];
 
 
-const V2_VERBS = "morph|iris|zoomThrough|hop|gather|impact|press|pointer|follow|whip|handheld|shake|hit|rest|cut|shadow|focus";
+const V2_VERBS = "morph|iris|zoomThrough|hop|gather|impact|press|pointer|follow|whip|handheld|shake|hit|rest|cut|shadow|focus|frame";
 /** Verbs whose first argument(s) name elements, with how many leading selector arguments to check. */
 const TARGET_ARGS: Record<string, number> = { morph: 2, iris: 1, zoomThrough: 1, hop: 1, gather: 1, impact: 1, press: 1, follow: 1, whip: 1, shadow: 1 };
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
