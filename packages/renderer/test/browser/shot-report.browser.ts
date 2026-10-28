@@ -106,3 +106,15 @@ describe("probe through the frame bridge", () => {
     expect(reply.result.report.boundaries.length).toBe(2);
   });
 });
+
+describe("what counts as visible", () => {
+  it("an element an iris has not opened yet is not on screen", async (ctx) => {
+    const html = `<div class="stage" data-libs="stage" data-duration="4" data-stage-version="2"><div class="world" style="position:absolute;inset:0"><div id="btn" style="position:absolute;left:10%;top:10%;width:10%;height:10%;background:#f43f5e"></div><div id="scene" style="position:absolute;inset:0;background:#2563eb"></div></div></div><script>stage.build((tl) => { tl.label("a", 0).iris("#scene", { from: "#btn", duration: 1 }, 2); });</script>`;
+    const shot = await openShot(html);
+    if (!shot) return ctx.skip();
+    const names = await shot.page.evaluate(() => (window as any).__miraiclipProbe({ times: [1, 3] }).frames.map((f: any) => f.items.map((i: any) => i.name)));
+    await shot.close();
+    expect(names[0].join(" ")).not.toContain("scene");
+    expect(names[1].join(" ")).toContain("scene");
+  });
+});

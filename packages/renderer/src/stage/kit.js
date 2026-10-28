@@ -850,6 +850,8 @@
     for (var n = el; n && n !== stop.parentNode && n.nodeType === 1; n = n.parentNode) {
       var cs = getComputedStyle(n);
       if (cs.display === "none" || cs.visibility === "hidden") return 0;
+      // An iris that has not opened yet clips its target to nothing: it is on the page but not on screen.
+      if (/^circle\(0(px)?[ )]/.test(cs.clipPath || "")) return 0;
       o *= parseFloat(cs.opacity);
     }
     return o;
