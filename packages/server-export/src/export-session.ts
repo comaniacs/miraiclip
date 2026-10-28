@@ -162,6 +162,7 @@ export async function createExportSession(
                   ...(exportOptions.audioChunkSeconds !== undefined
                     ? { audioChunkSeconds: exportOptions.audioChunkSeconds }
                     : {}),
+                  ...(exportOptions.motionBlur !== undefined ? { motionBlur: exportOptions.motionBlur } : {}),
                   ...(filePath ? { stream: true } : {}),
                   ...(plugins ? { plugins } : {}),
                 },

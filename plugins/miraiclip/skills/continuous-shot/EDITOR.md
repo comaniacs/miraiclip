@@ -34,7 +34,7 @@ Repeat until no boundary is bare and every subject stays in frame. A carry score
 
 ## 5. Contact sheet and review
 
-Show the boundary frames (the filmstrip `compose_sequence` returns, and the frames around every label) and grade the draft against `reference/scorecard.md`. Fix any fail, then tell the user which concept was built, the beat sheet in one line, and what to look at. Warnings never block an export, but don't hand over a draft with a bare boundary.
+Show the boundary frames (the filmstrip `compose_sequence` returns, and the frames around every label) and grade the draft against `reference/scorecard.md`. Fix any fail, then tell the user which concept was built, the beat sheet in one line, and what to look at. Warnings never block an export, but don't hand over a draft with a bare boundary. When the user is ready to export the final, suggest motion blur (`motionBlur: {}` on the export): a continuous shot moves a lot, and the shutter smear is what keeps fast moves from strobing. It is slower to render, so it is for the final, not for drafts or previews.
 
 ## More than one act
 

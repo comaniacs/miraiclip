@@ -264,11 +264,8 @@ export async function rasterizeHtml(
   if (options.scripted) {
     // Seek the template's scripts in their frame, then raster the snapshot
     // like any static template (assets and fonts already inlined).
-    const assets = options.assets ?? {};
-    const markup = await inlineAssetRefs(substituteParams(options.template, options.params), assets);
-    const fonts = await fontFaceCss(markup, assets);
     const snapshot = await snapshotScriptedHtml({
-      markup: (fonts ? `<style>${fonts}</style>` : "") + markup,
+      markup: await scriptedMarkup(options.template, options.params, options.assets ?? {}),
       widthPx,
       heightPx,
       timeS: options.timeS ?? 0,
@@ -316,6 +313,21 @@ export async function rasterizeHtml(
   // A reused element is released by its next `src`; a one-off one now.
   if (!options.image) image.src = "";
   return canvas;
+}
+
+/**
+ * The markup a scripted template runs as: params substituted, asset references
+ * inlined, the fonts it names embedded. Seeking, snapshotting and measuring
+ * the same template must all pass THIS string, so they share one frame.
+ */
+export async function scriptedMarkup(
+  template: string,
+  params: Readonly<Record<string, unknown>>,
+  assets: Readonly<Record<string, Asset>>,
+): Promise<string> {
+  const markup = await inlineAssetRefs(substituteParams(template, params as Record<string, string>), assets);
+  const fonts = await fontFaceCss(markup, assets);
+  return (fonts ? `<style>${fonts}</style>` : "") + markup;
 }
 
 /** Inline `asset:<id>` references (images inside the template) as data: URIs. */

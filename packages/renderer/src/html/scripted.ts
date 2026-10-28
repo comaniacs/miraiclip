@@ -108,6 +108,13 @@ const BRIDGE = String.raw`(() => {
     if (!m || m.__miraiclip !== "probe") return;
     queue = queue.then(async () => {
       try {
+        const motion = m.options && m.options.motion;
+        if (motion) {
+          // null = this runtime can't say (not the stage kit): the caller falls back to a default.
+          const px = typeof window.__miraiclipMotion === "function" ? window.__miraiclipMotion(motion.from, motion.to) : null;
+          parent.postMessage({ __miraiclip: "probed", id: m.id, result: { motionPx: px } }, "*");
+          return;
+        }
         if (typeof window.__miraiclipProbe !== "function") throw new Error("this sequence has no shot check (it needs the stage kit)");
         const result = window.__miraiclipProbe(m.options || {});
         parent.postMessage({ __miraiclip: "probed", id: m.id, result: JSON.parse(JSON.stringify(result)) }, "*");
@@ -351,4 +358,36 @@ export async function probeScriptedHtml(options: {
   });
   frame.queue = run.catch(() => undefined);
   return run;
+}
+
+/**
+ * How far (in the template's own pixels) anything on screen travels between two seconds of a scripted template,
+ * or null when its runtime can't say (only the stage kit measures). Motion blur uses it to pick a sample count.
+ */
+export async function motionScriptedHtml(options: {
+  markup: string;
+  widthPx: number;
+  heightPx: number;
+  fromS: number;
+  toS: number;
+  loadTimeoutMs?: number;
+}): Promise<number | null> {
+  const key = JSON.stringify([options.markup, options.widthPx, options.heightPx, librariesVersion]);
+  const frame = frameFor(key, options.markup, options.widthPx, options.heightPx, options.loadTimeoutMs ?? 15_000);
+  const run = frame.queue.then(async () => {
+    await frame.ready;
+    const id = nextId++;
+    const result = new Promise<{ motionPx: number | null }>((resolve, reject) => {
+      probing.set(id, { resolve: resolve as (r: unknown) => void, reject });
+      setTimeout(() => {
+        if (!probing.has(id)) return;
+        probing.delete(id);
+        reject(new Error("scripted html clip didn't answer a motion query in time"));
+      }, 30_000);
+    });
+    frame.iframe.contentWindow?.postMessage({ __miraiclip: "probe", id, options: { motion: { from: options.fromS, to: options.toS } } }, "*");
+    return result;
+  });
+  frame.queue = run.catch(() => undefined);
+  return (await run).motionPx;
 }

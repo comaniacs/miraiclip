@@ -184,7 +184,7 @@ export function listTools(session: ProjectSession): ToolDefinition[] {
     {
       name: "export",
       description:
-        "Export the project to a video file (streams to disk; headless Chrome). MP4 needs a real Chrome install — WebM works everywhere. Relative `out` paths land next to the project file.",
+        "Export the project to a video file (streams to disk; headless Chrome). MP4 needs a real Chrome install — WebM works everywhere. Relative `out` paths land next to the project file. Add `motionBlur` ({} for the defaults) on FINAL exports only: fast motion smears like film instead of strobing, at the cost of render time; leave it off for drafts and previews.",
       inputSchema: {
         type: "object",
         properties: {
@@ -196,6 +196,17 @@ export function listTools(session: ProjectSession): ToolDefinition[] {
           height: { type: "integer", minimum: 16 },
           rangeStartUs: { type: "integer", minimum: 0 },
           rangeEndUs: { type: "integer", minimum: 1 },
+          motionBlur: {
+            type: "object",
+            description: "Shutter motion blur. {} takes the defaults.",
+            properties: {
+              shutterAngle: { type: "number", minimum: 0, maximum: 360, description: "Degrees the shutter is open (default 180)." },
+              minSamples: { type: "integer", minimum: 2, maximum: 64, description: "Fewest sub-frames for a frame that moves (default 4)." },
+              maxSamples: { type: "integer", minimum: 2, maximum: 64, description: "Most sub-frames per frame (default 32)." },
+              gapPx: { type: "number", minimum: 0.5, maximum: 64, description: "Largest gap between sub-frames in output pixels (default 6)." },
+            },
+            additionalProperties: false,
+          },
         },
         required: ["out", "format"],
         additionalProperties: false,
@@ -393,6 +404,9 @@ export async function callTool(
         ...(args["fps"] !== undefined ? { fps: Number(args["fps"]) } : {}),
         ...(args["width"] !== undefined ? { width: Number(args["width"]) } : {}),
         ...(args["height"] !== undefined ? { height: Number(args["height"]) } : {}),
+        ...(args["motionBlur"] !== undefined && typeof args["motionBlur"] === "object" && args["motionBlur"] !== null
+          ? { motionBlur: args["motionBlur"] as NonNullable<Parameters<typeof session.export>[0]["motionBlur"]> }
+          : {}),
         ...range,
       });
       return text({ ok: true, filePath: result.filePath, bytesWritten: result.bytesWritten });

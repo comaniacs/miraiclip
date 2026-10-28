@@ -1080,6 +1080,28 @@
           if (v2) seekAll(Math.max(0, t), true);
         };
         window.__miraiclipProbe = function (opts) { return probe(tl, r, opts); };
+        // How far (px) anything with an id travels between two instants, camera included: what the exporter's
+        // motion blur needs to pick a sample count. Seeks, so it leaves the sequence wherever it ended.
+        window.__miraiclipMotion = function (from, to) {
+          var els = Array.prototype.slice.call(r.querySelectorAll("[id],[data-carry]"), 0, 160);
+          function boxes(t) {
+            seekPublic(t);
+            void document.body.offsetHeight;
+            var r0 = r.getBoundingClientRect();
+            return els.map(function (el) {
+              var rc = el.getBoundingClientRect();
+              return { l: rc.left - r0.left, t: rc.top - r0.top, w: rc.width, h: rc.height, on: effectiveOpacity(el, r) > 0.02 && rc.width > 0 && rc.height > 0 };
+            });
+          }
+          var A = boxes(from), B = boxes(to), far = 0;
+          for (var i = 0; i < A.length; i++) {
+            if (!A[i].on || !B[i].on) continue; // appearing or vanishing is a fade, not motion
+            far = Math.max(far,
+              Math.hypot(B[i].l - A[i].l, B[i].t - A[i].t),
+              Math.hypot(B[i].l + B[i].w - A[i].l - A[i].w, B[i].t + B[i].h - A[i].t - A[i].h));
+          }
+          return Math.round(far * 100) / 100;
+        };
         readyResolve();
       });
     },

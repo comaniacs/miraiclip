@@ -10,6 +10,7 @@ import type { ExportProgress, ExportRange, PcmAudioChunk } from "../types.js";
 import type { ExportFormat, ExportQualityPreset } from "../mediabunny-sink.js";
 import type { FrameRate } from "@miraiclip/core";
 import type { HtmlRasterRequest } from "../../html/rasterize.js";
+import type { MotionBlurOptions } from "../motion-blur.js";
 
 /** The subset of ExportProjectOptions that crosses the boundary as data. */
 export interface WorkerExportWireOptions {
@@ -20,6 +21,10 @@ export interface WorkerExportWireOptions {
   height?: number;
   range?: ExportRange;
   audioChunkSeconds?: number;
+  /** Shutter motion blur (see `ExportProjectOptions.motionBlur`). */
+  motionBlur?: MotionBlurOptions;
+  /** Set by `exportViaWorker`: sequence `tl.cut` times, measured on the main thread. */
+  blurCutsUs?: number[];
 }
 
 export type MainToWorkerMessage =
@@ -70,6 +75,13 @@ export type MainToWorkerMessage =
       error?: string;
     }
   | {
+      type: "html-motion";
+      id: number;
+      /** Composition px the clip's contents travel, or null when its runtime can't say. */
+      motionPx: number | null;
+      error?: string;
+    }
+  | {
       type: "output-chunk-ack";
       id: number;
       /** Set when main's write into the target failed — the worker fails the export. */
@@ -79,6 +91,7 @@ export type MainToWorkerMessage =
 export type WorkerToMainMessage =
   | { type: "need-audio-chunk"; id: number; startUs: number; endUs: number }
   | { type: "need-html-raster"; id: number; request: HtmlRasterRequest }
+  | { type: "need-html-motion"; id: number; clipId: string; fromUs: number; toUs: number }
   | { type: "output-chunk"; id: number; chunk: StreamTargetChunk }
   | { type: "progress"; progress: ExportProgress }
   | { type: "done"; bytes: Uint8Array }

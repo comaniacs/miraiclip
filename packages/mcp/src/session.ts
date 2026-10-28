@@ -42,6 +42,8 @@ export interface SessionExportOptions {
   width?: number;
   height?: number;
   range?: { startUs: number; endUs: number };
+  /** Shutter motion blur for finals (`{}` = defaults: 180° shutter, 4 to 32 samples). Slower to render. */
+  motionBlur?: { shutterAngle?: number; minSamples?: number; maxSamples?: number; gapPx?: number };
 }
 
 /**
@@ -138,6 +140,7 @@ export class ProjectSession {
       ...(options.width !== undefined ? { width: options.width } : {}),
       ...(options.height !== undefined ? { height: options.height } : {}),
       ...(options.range !== undefined ? { range: options.range } : {}),
+      ...(options.motionBlur !== undefined ? { motionBlur: options.motionBlur } : {}),
       ...(this.browser !== undefined ? { browser: this.browser } : {}),
       ...(this.pluginOptions !== undefined ? { plugins: this.pluginOptions } : {}),
     });

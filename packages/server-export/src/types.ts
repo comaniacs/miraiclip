@@ -1,4 +1,5 @@
 import type { ProjectDocument } from "@miraiclip/core";
+import type { MotionBlurOptions } from "@miraiclip/renderer";
 import type { ServerPluginOptions } from "./plugins.js";
 
 /** Mirrors the renderer's ExportProgress — re-declared so the Node side has no runtime dependency on the renderer. */
@@ -69,6 +70,14 @@ export interface ExportProjectFileOptions {
    * sequential chunks, so timeline length does not grow mix memory.
    */
   audioChunkSeconds?: number;
+  /**
+   * Shutter motion blur for finals: every frame is rendered at several
+   * instants inside the open shutter and averaged in linear light, so fast
+   * motion smears like film instead of strobing. Frames that don't move render
+   * once. `{}` takes the defaults (`shutterAngle` 180, 4 to 32 samples,
+   * `gapPx` 6). Costs render time in proportion to how much moves.
+   */
+  motionBlur?: MotionBlurOptions;
   signal?: AbortSignal;
   onProgress?: (progress: ServerExportProgress) => void;
   browser?: BrowserOptions;

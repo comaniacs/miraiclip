@@ -85,6 +85,8 @@ export { exportComposition, exportFrameWindow } from "./export/exporter.js";
 export type { ExportCompositionOptions } from "./export/exporter.js";
 export { compositionEnd, exportProject, probeCompositionAudio } from "./export/export-project.js";
 export type { ExportProjectOptions } from "./export/export-project.js";
+export { MOTION_BLUR_DEFAULTS, resolveMotionBlur, sampleCountFor, shutterSampleTimes, shutterUs } from "./export/motion-blur.js";
+export type { MotionBlurOptions, ResolvedMotionBlur } from "./export/motion-blur.js";
 export { analyzeHtmlAnimations, buildAnimationTimeline } from "./html/animation-timeline.js";
 export type { AnimationDescriptor, ConstantSpan, HtmlAnimationTimeline } from "./html/animation-timeline.js";
 export { collectHtmlRasters, htmlAnimationTiming, htmlRasterKey, provideHtmlRasters, rasterizeHtml, setHtmlRasterSource, substituteParams } from "./html/rasterize.js";
