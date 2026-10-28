@@ -20,6 +20,8 @@ describe("lintSequence", () => {
     const bad = (code: string) => rules(ok.replace("tl.from", `${code}; tl.from`));
     expect(bad("const r = Math.random()")).toContain("random");
     expect(bad("const t = Date.now()")).toContain("clock");
+    expect(bad("renderer.setAnimationLoop(f)")).toContain("three-clock");
+    expect(bad("const c = new THREE.Clock()")).toContain("three-clock");
     expect(bad("requestAnimationFrame(f)")).toContain("async-loop");
     expect(bad("fetch('/x')")).toContain("network");
     expect(bad("tl.to('.a', { repeat: -1 })")).toContain("infinite");

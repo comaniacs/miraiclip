@@ -132,3 +132,13 @@ describe("frame", () => {
     await s.close();
   });
 });
+
+describe("frame motion", () => {
+  it("reports a painted frame's own motion to the exporter", async (ctx) => {
+    const s = await openShot(SEQ(`tl.frame(() => {}, { motion: (a, b) => (b - a) * 300 });`, SLOTS), "landscape");
+    if (!s) return ctx.skip();
+    const px = await s.page.evaluate(() => (window as unknown as { __miraiclipMotion(a: number, b: number): number }).__miraiclipMotion(1, 1.1));
+    expect(px).toBeCloseTo(30, 1);
+    await s.close();
+  });
+});

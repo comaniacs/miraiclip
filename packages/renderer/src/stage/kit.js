@@ -100,7 +100,7 @@
   // timeline seeks, so a frame never depends on the one before it.
   var v2 = null;
   function newV2() {
-    return { moves: [], drivers: [], hits: [], carries: [], rests: [], cuts: [], follows: [], handhelds: [], shakes: [], grids: [], pointers: [], depth: [], lod: [], camFrom: [], focus: [], focusEls: null };
+    return { moves: [], drivers: [], hits: [], carries: [], rests: [], cuts: [], follows: [], handhelds: [], shakes: [], grids: [], pointers: [], depth: [], lod: [], camFrom: [], focus: [], focusEls: null, frameMotion: [] };
   }
   function need2(verb) {
     if (!v2) throw new Error(verb + '(): needs data-stage-version="2" on the stage root. Add the attribute, or remove this call.');
@@ -735,11 +735,19 @@
       iris: function (target, opts, pos) { need2("iris"); irisImpl(target, opts, pos); return api; },
       zoomThrough: function (target, opts, pos) { need2("zoomThrough"); zoomThroughImpl(target, opts, pos); return api; },
       hop: function (target, opts, pos) { need2("hop"); hopImpl(target, opts, pos); return api; },
-      /** Paint something on every seek as a pure function of the time (a canvas, say): fn(t) gets the time in seconds. */
-      frame: function (fn) {
+      /**
+       * Paint something on every seek as a pure function of the time (a canvas, say): fn(t) gets the time in seconds.
+       * opts.motion(from, to) returns how many stage pixels the picture moves between two times, so the exporter's
+       * motion blur can size its samples (boxes on the page can't show a canvas moving).
+       */
+      frame: function (fn, opts) {
         need2("frame");
         if (typeof fn !== "function") throw new Error("frame(): pass a function (t) => void that paints the frame for time t.");
         v2.drivers.push({ start: 0, end: Infinity, apply: fn });
+        if (opts && opts.motion != null) {
+          if (typeof opts.motion !== "function") throw new Error("frame(): motion must be a function (from, to) => pixels.");
+          v2.frameMotion.push(opts.motion);
+        }
         return api;
       },
       shadow: function (target, opts) { need2("shadow"); shadowImpl(target, opts); return api; },
@@ -1202,6 +1210,8 @@
               Math.hypot(B[i].l - A[i].l, B[i].t - A[i].t),
               Math.hypot(B[i].l + B[i].w - A[i].l - A[i].w, B[i].t + B[i].h - A[i].t - A[i].h));
           }
+          // A painted frame (a canvas) can't be measured from boxes: it reports its own motion.
+          if (v2) v2.frameMotion.forEach(function (m) { var px = Number(m(from, to)); if (px > far) far = px; });
           return Math.round(far * 100) / 100;
         };
         readyResolve();

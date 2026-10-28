@@ -10,6 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { ANIME_SOURCE, STAGE_KIT_SOURCE } from "../../src/stage/stage.generated.js";
+import { THREE_SOURCE } from "../../src/stage/three.generated.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 export const FIXTURES = join(here, "../fixtures/shots");
@@ -63,6 +64,7 @@ export async function openShot(html: string, size: SizeName = "landscape"): Prom
   await page.setContent(doc, { waitUntil: "load" });
   await page.addScriptTag({ content: ANIME_SOURCE });
   await page.addScriptTag({ content: STAGE_KIT_SOURCE });
+  if (/data-libs\s*=\s*["'][^"']*\bthree\b/.test(markup)) await page.addScriptTag({ content: THREE_SOURCE });
   const started = Date.now();
   if (inline) await page.addScriptTag({ content: inline });
   await page.evaluate(() => (window as unknown as { __miraiclipReady: Promise<void> }).__miraiclipReady);
