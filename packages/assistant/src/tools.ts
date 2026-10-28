@@ -278,7 +278,6 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
 
   return [
     ...checkTools,
-    beatTool,
     defineTool({
       name: "get_state",
       description: `The project as it is now (after your edits so far): settings, assets, tracks with clips (ids, kinds, time ranges), transitions, and each clip's position, size, opacity, text style, volume, effects and animation. ${US_NOTE}`,
@@ -751,6 +750,7 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
         return out.ok ? { ...out, changes: [`Closed ${commands.length} gap${commands.length > 1 ? "s" : ""} on ${input.trackId}`] } : out;
       },
     }),
+    beatTool,
   ];
 }
 
