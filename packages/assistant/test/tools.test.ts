@@ -280,3 +280,29 @@ describe("from the fourth live eval", () => {
     expect(model.requests[0]!.messages[0]!.content).toMatch(/Selected: v2 \(video, 10–15s\)\. .*mean ONLY v2/);
   });
 });
+
+describe("check_sequence", () => {
+  it("is offered only when the host supplies a checker", () => {
+    expect(editorTools().some((t) => t.name === "check_sequence")).toBe(false);
+    expect(editorTools({ checkSequence: async () => ({}) }).some((t) => t.name === "check_sequence")).toBe(true);
+  });
+
+  it("hands the working copy and clip id to the checker and returns its report", async () => {
+    let seen: { clips: number; clipId?: string } | undefined;
+    const tool = editorTools({
+      checkSequence: async (doc, options) => {
+        seen = { clips: Object.keys(doc.clips).length, ...(options.clipId !== undefined ? { clipId: options.clipId } : {}) };
+        return { findings: [] };
+      },
+    }).find((t) => t.name === "check_sequence")!;
+    const project = fixture();
+    const out = await tool.run({ clipId: "seq1" }, { project });
+    expect(out).toEqual({ ok: true, result: { findings: [] } });
+    expect(seen).toEqual({ clips: Object.keys(project.toJSON().clips).length, clipId: "seq1" });
+  });
+
+  it("reports a checker failure as an error, not a crash", async () => {
+    const tool = editorTools({ checkSequence: async () => { throw new Error("no browser"); } }).find((t) => t.name === "check_sequence")!;
+    expect(await tool.run({}, { project: fixture() })).toEqual({ ok: false, error: "no browser" });
+  });
+});

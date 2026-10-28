@@ -129,6 +129,16 @@ export function listTools(session: ProjectSession): ToolDefinition[] {
       },
     },
     {
+      name: "check_sequence",
+      description:
+        "Check a stage sequence (data-libs=\"stage\") as one continuous shot. Seeks it around every label and reports, per beat, what survives into the next one (carried / anchored / bare), subjects that leave the frame (data-keep-in-frame), beat spacing and stray hard cuts, as warnings with times and a hint for each. Nothing is rendered or exported; warnings never block an export. Run it after composing a sequence and fix the bare boundaries.",
+      inputSchema: {
+        type: "object",
+        properties: { clipId: { type: "string", description: "Check only this html clip (default: every html clip)." } },
+        additionalProperties: false,
+      },
+    },
+    {
       name: "export",
       description:
         "Export the project to a video file (streams to disk; headless Chrome). MP4 needs a real Chrome install — WebM works everywhere. Relative `out` paths land next to the project file.",
@@ -248,6 +258,11 @@ export async function callTool(
           { type: "text", text: `frame at ${timeUs}us (${width}x${height})` },
         ],
       };
+    }
+
+    case "check_sequence": {
+      const result = await session.checkSequence(args["clipId"] !== undefined ? { clipId: String(args["clipId"]) } : {});
+      return text(result);
     }
 
     case "export": {

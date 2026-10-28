@@ -3,6 +3,8 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createProject, type Project, type ProjectDocument } from "@miraiclip/core";
 import {
+  checkShot,
+  type CheckShotResult,
   createRenderSession,
   exportProjectFile,
   type BrowserOptions,
@@ -115,6 +117,14 @@ export class ProjectSession {
       }
       throw error;
     }
+  }
+
+  /** How the project's stage sequences hold together as one continuous shot (nothing is rendered or written). */
+  async checkSequence(options: { clipId?: string } = {}): Promise<CheckShotResult> {
+    return await checkShot(this.project.toJSON(), {
+      ...(options.clipId !== undefined ? { clipId: options.clipId } : {}),
+      ...(this.browser !== undefined ? { browser: this.browser } : {}),
+    });
   }
 
   async export(options: SessionExportOptions): Promise<ExportProjectFileResult> {

@@ -97,7 +97,7 @@ export { registerStageKit, ANIME_VERSION } from "./stage/index.js";
 export type { SequenceLintFinding, SequenceLintResult } from "./stage/lint.js";
 // Motion metrics: how much rendered frames move (holds, jumps, density), for checking motion graphics.
 export { changeSeries, frameChange, lumaFrame, motionFindings, motionMetrics, MOTION_SAMPLE, MOTION_TARGETS } from "./metrics/motion.js";
-export type { LumaFrame, MotionFinding, MotionOptions, MotionReport, MotionTargets } from "./metrics/motion.js";
+export type { LumaFrame, MotionFinding, MotionFindingsOptions, MotionOptions, MotionReport, MotionTargets } from "./metrics/motion.js";
 export { renderProjectStill } from "./export/render-still.js";
 export type { RenderProjectStillOptions } from "./export/render-still.js";
 

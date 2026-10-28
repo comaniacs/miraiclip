@@ -118,11 +118,20 @@ export interface MotionTargets {
   holdSeconds: number;
 }
 
-/** Targets by pace: motion graphics, and documentary-paced films (stills with slow moves). */
-export const MOTION_TARGETS: Record<"motion" | "documentary", MotionTargets> = {
+/**
+ * Targets by pace: motion graphics, documentary-paced films (stills with slow moves), and a continuous shot
+ * (always moving; the only stillness allowed is declared with `tl.rest`, which `motionFindings` exempts).
+ */
+export const MOTION_TARGETS: Record<"motion" | "documentary" | "shot", MotionTargets> = {
   motion: { density: 0.85, medianChange: 1.5, holdSeconds: 0.8 },
   documentary: { density: 0.6, medianChange: 0.6, holdSeconds: 2 },
+  shot: { density: 0.92, medianChange: 1.2, holdSeconds: 0.5 },
 };
+
+export interface MotionFindingsOptions {
+  /** Declared dead-still stretches (`tl.rest`), in the same seconds as the report. Holds inside them are not findings. */
+  rests?: readonly { from: number; to: number }[];
+}
 
 export interface MotionFinding {
   kind: "density" | "change" | "hold" | "jump";
@@ -133,10 +142,23 @@ export interface MotionFinding {
 }
 
 /** What falls short of the targets, as findings with times. */
-export function motionFindings(report: MotionReport, targets: MotionTargets): MotionFinding[] {
+export function motionFindings(report: MotionReport, targets: MotionTargets, options: MotionFindingsOptions = {}): MotionFinding[] {
   const out: MotionFinding[] = [];
+  const rests = options.rests ?? [];
   for (const h of report.holds) {
-    if (h.to - h.from > targets.holdSeconds) out.push({ kind: "hold", from: h.from, to: h.to, message: `nothing moves ${h.from.toFixed(1)}–${h.to.toFixed(1)} s` });
+    // The part of the hold a declared rest does not cover is what counts.
+    let spans = [{ from: h.from, to: h.to }];
+    for (const r of rests) {
+      spans = spans.flatMap((x) => {
+        if (r.to <= x.from || r.from >= x.to) return [x];
+        const left = r.from > x.from ? [{ from: x.from, to: r.from }] : [];
+        const right = r.to < x.to ? [{ from: r.to, to: x.to }] : [];
+        return [...left, ...right];
+      });
+    }
+    for (const x of spans) {
+      if (x.to - x.from > targets.holdSeconds) out.push({ kind: "hold", from: x.from, to: x.to, message: `nothing moves ${x.from.toFixed(1)}–${x.to.toFixed(1)} s` });
+    }
   }
   if (report.density < targets.density) out.push({ kind: "density", message: `${Math.round(report.density * 100)}% of the time something visibly moves (target ${Math.round(targets.density * 100)}%)` });
   if (report.medianChange < targets.medianChange) out.push({ kind: "change", message: `motion is faint: median change ${report.medianChange.toFixed(2)} per frame (target ${targets.medianChange})` });

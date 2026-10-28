@@ -17,6 +17,7 @@ import {
   type Command,
   type Cut,
   type Project,
+  type ProjectDocument,
 } from "@miraiclip/core";
 import { describeForAssistant, describeKeyframes, htmlPlaceholders, readClipAnimation } from "./state.js";
 import { unknownFields } from "./strict.js";
@@ -140,6 +141,11 @@ export interface EditorToolsOptions {
   transitionKinds?: string[];
   /** The command catalog to offer in apply_commands (default: the built-ins). Pass `project.commandCatalog()` when you register custom commands. */
   commandCatalog?: Record<string, unknown>;
+  /**
+   * Runs the continuous-shot check over the document (e.g. `checkShot` from `@miraiclip/server-export`, or the app's
+   * in-browser equivalent). The `check_sequence` tool is offered only when this is given, because the check needs a browser.
+   */
+  checkSequence?: (doc: ProjectDocument, options: { clipId?: string }) => Promise<unknown>;
 }
 
 /**
@@ -151,7 +157,31 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
   const transitionKinds = options.transitionKinds ?? Object.keys(builtinTransitionParamSchemas);
   const presetIds = (slot: AnimationSlot) => ANIMATION_PRESETS.filter((p) => p.slot === slot).map((p) => p.id.split(":")[1]!);
 
+  const checkTools: AssistantTool[] = options.checkSequence
+    ? [
+        defineTool({
+          name: "check_sequence",
+          description:
+            'Check a stage sequence (data-libs="stage") as one continuous shot: for every label it reports whether something survives into the next beat (carried / anchored / bare), subjects that leave the frame (data-keep-in-frame), uneven or metronomic beat spacing and stray hard cuts, as warnings with times and a hint each. Run it after composing or editing a sequence and fix the bare boundaries; warnings never block an export.',
+          inputSchema: {
+            type: "object",
+            properties: { clipId: { type: "string", description: "Check only this html clip (default: every html clip)." } },
+            additionalProperties: false,
+          },
+          async run(input, { project }) {
+            try {
+              const result = await options.checkSequence!(project.toJSON(), typeof input.clipId === "string" ? { clipId: input.clipId } : {});
+              return { ok: true, result };
+            } catch (error) {
+              return { ok: false, error: error instanceof Error ? error.message : String(error) };
+            }
+          },
+        }),
+      ]
+    : [];
+
   return [
+    ...checkTools,
     defineTool({
       name: "get_state",
       description: `The project as it is now (after your edits so far): settings, assets, tracks with clips (ids, kinds, time ranges), transitions, and each clip's position, size, opacity, text style, volume, effects and animation. ${US_NOTE}`,

@@ -67,6 +67,7 @@ describe("miraiclip MCP server (edit tools)", () => {
     const names = tools.map((tool) => tool.name).sort();
     expect(names).toEqual([
       "apply_commands",
+      "check_sequence",
       "dispatch",
       "export",
       "get_command_schema",
@@ -254,6 +255,25 @@ describe.skipIf(browserPath === undefined)("miraiclip MCP server (rendering tool
     expect(view.getUint32(16)).toBe(768);
     expect(view.getUint32(20)).toBe(432);
     expect(textOf(result)).toContain("500000us");
+  }, 120_000);
+
+  it("check_sequence reports on stage sequences and skips plain html", async () => {
+    const tpl = '<div class="stage" data-libs="stage" data-duration="12" data-stage-version="2"><div class="world" style="position:absolute;inset:0"><div id="a" style="position:absolute;inset:10%;background:#e63946">A</div><div id="b" style="position:absolute;inset:10%;background:#264653;opacity:0">B</div></div></div><script>stage.build((tl)=>{tl.label("a",0).label("b",5);tl.to("#a",{opacity:0,duration:.2},4.9).to("#b",{opacity:1,duration:.2},4.9);});</script>';
+    const added = await client.callTool({
+      name: "apply_commands",
+      arguments: {
+        commands: [
+          { type: "track/add", payload: { id: "seqT", kind: "video" } },
+          { type: "clip/add", payload: { id: "seq1", kind: "html", trackId: "seqT", startUs: 0, durationUs: 12_000_000, template: tpl, params: {} } },
+        ],
+      },
+    });
+    expect(added.isError ?? false).toBe(false);
+    const result = await client.callTool({ name: "check_sequence", arguments: { clipId: "seq1" } });
+    expect(result.isError ?? false).toBe(false);
+    const report = JSON.parse(textOf(result)) as { clips: { clipId: string; report: { bare: number } | null }[]; findings: { rule: string }[] };
+    expect(report.clips[0]!.report!.bare).toBe(1);
+    expect(report.findings.some((f) => f.rule === "bare-boundary")).toBe(true);
   }, 120_000);
 
   it("export streams a WebM next to the project file", async () => {
