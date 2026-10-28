@@ -17,7 +17,7 @@ A film made from a brief should read as **one continuous move**, not slides. Thi
    - or on the same element at two framings (match-cut).
 
    Never dissolve one full layout into another.
-3. **The camera never stops.** Push, pull, pan with the type, tilt in depth, untilt to resolve. A beat with a still camera needs something else moving. See `reference/camera.md`.
+3. **The camera keeps moving.** Push, pull, pan with the type, tilt in depth, untilt to resolve. A beat with a still camera needs something else moving; the only allowed stillness is a rest declared with `tl.rest`. See `reference/camera.md`.
 4. **Type is the main actor.** Lines type, retype in place, rise from masks and swap words. The key word is in the accent colour. Never more than about 7 words on screen.
 5. **One accent colour.** Use it on the key word, the small accent shapes and the end dot, and nowhere else.
 6. **Blur on every fast move** and a soft focus-in on every new element (motion-blur).

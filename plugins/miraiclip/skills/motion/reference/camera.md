@@ -14,9 +14,9 @@ Elements **outside** `.world` (for example a `.hud` with a chip or a caption) do
 
 The camera zooms about the `.world` transform-origin (the centre by default). To push into a detail, put the origin on that detail. Measure it with `getBoundingClientRect()` before any camera move, then `tl.set(".world", { transformOrigin: "x% y%" }, 0)`.
 
-## The camera never stops
+## The camera keeps moving, except in a declared rest
 
-Give each beat one camera move that lasts the beat, or longer, overlapping the next. A static camera is allowed only during a hold that has something else moving, and for less than 0.8 s.
+Give each beat one camera move that lasts the beat, or longer, overlapping the next. A static camera is allowed only during a hold that has something else moving, and for less than 0.8 s. The one exception is a stretch you declare with `tl.rest(from, to)` (stage version 2): everything in `.world` is dead still on purpose, for a punchline or a pause. Undeclared stillness is still flagged, and the build fails if something moves during a declared rest. After composing, run `check_sequence` to see which beats start from nothing.
 
 ## Moves and when to use them
 

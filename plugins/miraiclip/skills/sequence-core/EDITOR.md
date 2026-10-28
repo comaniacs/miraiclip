@@ -138,6 +138,10 @@ Elements these verbs drive keep their own `transform` and `opacity` for the verb
 
 The stage root reports `data-stage-carries`, `data-stage-events`, `data-stage-rests` and `data-stage-cuts` as JSON, for the checks and for placing sound.
 
+**Check the shot**
+
+Mark every beat with `tl.label(name, time)`: labels are the beats the check looks at. Put `data-keep-in-frame="t0,t1"` on a subject that must stay on screen (add `,whole` to also forbid it being cut off by the frame edge). Then run `check_sequence` (when the tool is offered). For each label it compares the frame 0.2 s before and after and reports the beat as **carried** (something survives and moves, scales, or the camera moves with it), **anchored** (something large stays put) or **bare** (nothing survives), with a hint naming what left and what arrived. It also warns about subjects that leave the frame, beats spaced too evenly, and hard cuts outside a burst of cuts. A bare beat is fixed by carrying an element across it (`tl.morph`, `tl.hop`, `tl.zoomThrough`, `tl.gather`). Beats at `tl.cut` times, bursts of three or more beats within 1.5 s, and the last 1.2 s are not scored. Warnings never block an export.
+
 ## The stage helpers: `S`
 
 | Helper | Gives |

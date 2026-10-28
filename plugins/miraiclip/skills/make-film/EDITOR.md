@@ -80,7 +80,7 @@ A film from a brief gets its own timeline. First remove the project's existing c
 
 **Motion graphics.** Load `sequence-core` and `motion`. Then compose one `compose_sequence` per act, in order:
 
-- Each act is one timeline. Elements persist and transform; the camera never stops; beats are labels; each beat grows out of the last.
+- Each act is one timeline. Elements persist and transform; the camera keeps moving (stillness only in a declared `tl.rest`); beats are labels; each beat grows out of the last.
 - The next act starts where the last one ended.
 - Look at each filmstrip and fix the act with `replace` before composing the next.
 - Use `design_scene` only for a single still moment, if one is needed at all.
