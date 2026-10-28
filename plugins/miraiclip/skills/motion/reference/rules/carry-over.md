@@ -26,7 +26,7 @@ tl.label("name", 0)
 
 ## With `tl.hop`, `tl.gather` and `tl.morph` (version 2)
 
-The hand-off can be a verb: `tl.hop` carries an element to its next slot on an arc and lands with a squash, `tl.gather` flies many elements into one container, and `tl.morph` turns one box into another. Each one records the carry, so the shot check counts it.
+The hand-off can be a verb: `tl.hop` carries an element to its next slot on an arc and lands with a squash, `tl.gather` flies many elements into one container, and `tl.morph` turns one box into another. Each one records the carry, so the shot check counts it. A character can hop slot to slot: call `tl.hop` again on the same element and it leaves from where it landed. Add `shadow: true` for a contact shadow that thins out in the air, and mark layers with `data-dof` and call `tl.focus` when the shot should rack focus.
 
 ```html v2
 <div class="world"><div class="dot"></div><div class="slot"><p class="label">Ready</p></div></div>

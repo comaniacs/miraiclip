@@ -100,7 +100,7 @@
   // timeline seeks, so a frame never depends on the one before it.
   var v2 = null;
   function newV2() {
-    return { moves: [], drivers: [], hits: [], carries: [], rests: [], cuts: [], follows: [], handhelds: [], shakes: [], grids: [], pointers: [], depth: [], lod: [], camFrom: [] };
+    return { moves: [], drivers: [], hits: [], carries: [], rests: [], cuts: [], follows: [], handhelds: [], shakes: [], grids: [], pointers: [], depth: [], lod: [], camFrom: [], focus: [], focusEls: null };
   }
   function need2(verb) {
     if (!v2) throw new Error(verb + '(): needs data-stage-version="2" on the stage root. Add the attribute, or remove this call.');
@@ -484,23 +484,116 @@
       }
       step(start, d);
     }
+    // A hop is measured from the element's resting layout position, so a second hop on the
+    // same element starts from where the first one ended: `chain` holds the offset it has
+    // already travelled. Transforms of one element add up, so each hop only adds its own leg.
+    var chain = new Map(), poses = new Map(), shadows = new Map();
     function hopImpl(target, opts, pos) {
       opts = opts || {};
       var E = one(target, "hop", "target"), D = one(opts.to, "hop", "to");
       var start = at(pos), d = opts.duration != null ? opts.duration : 0.7, sq = opts.squash != null ? opts.squash : 0.18;
       var h = opts.height != null ? opts.height : size().h * 0.18;
+      var prev = chain.get(E) || { x: 0, y: 0, end: -Infinity };
+      if (start < prev.end - 1e-6) throw new Error('hop(): "' + labelOf(target, E) + '" is still in its previous hop until ' + round3(prev.end) + "s. Start this hop at or after that time.");
       var c0 = centerOf(layoutRect(E)), c1 = centerOf(layoutRect(D));
-      var dx = c1.x - c0.x, dy = c1.y - c0.y, ex = easeFn("inOut(2)");
+      var tx = c1.x - c0.x, ty = c1.y - c0.y;
+      var dx = tx - prev.x, dy = ty - prev.y, ex = easeFn("inOut(2)");
+      chain.set(E, { x: tx, y: ty, end: start + d });
       E.style.transformOrigin = "50% 100%";
-      v2.drivers.push({ start: start, end: start + d, apply: function (t) {
+      function pose(t) {
         var u = clamp01((t - start) / d);
-        var x = dx * ex(u), y = dy * u - 4 * h * u * (1 - u);
+        return { x: dx * ex(u), gy: dy * u, lift: 4 * h * u * (1 - u), u: u };
+      }
+      if (!poses.has(E)) poses.set(E, []);
+      poses.get(E).push(pose);
+      v2.drivers.push({ start: start, end: start + d, apply: function (t) {
+        var p = pose(t), u = p.u;
         var k = u > 0.8 && u < 1 ? Math.sin(Math.PI * ((u - 0.8) / 0.2)) * sq : 0;
-        tf(E, "translate(" + x + "px," + y + "px) scale(" + (1 + k * 0.6) + "," + (1 - k) + ")");
+        tf(E, "translate(" + p.x + "px," + (p.gy - p.lift) + "px) scale(" + (1 + k * 0.6) + "," + (1 - k) + ")");
       } });
       v2.carries.push({ from: labelOf(target, E), to: labelOf(opts.to, D), start: round3(start), end: round3(start + d), kind: "hop" });
       addHit("hop", start + d * 0.9, "land");
+      if (opts.shadow) shadowImpl(E, opts.shadow === true ? {} : opts.shadow);
       step(start, d);
+    }
+    /**
+     * A contact shadow under an element: a soft ellipse on the ground below it. It follows
+     * the element along the ground, grows faint and wide as the element lifts (hop arcs
+     * are read automatically; `lift` sets a fixed height for a hovering element), and
+     * fades with the element's own opacity.
+     */
+    function shadowImpl(target, opts) {
+      opts = opts || {};
+      var E = one(target, "shadow", "target");
+      if (shadows.has(E)) return shadows.get(E);
+      var r = layoutRect(E), parent = E.parentNode;
+      var pr = layoutRect(parent);
+      var w = (opts.width != null ? opts.width : 0.9) * r.w, hgt = (opts.height != null ? opts.height : 0.16) * r.w;
+      var alpha = opts.opacity != null ? opts.opacity : 0.4, spread = opts.spread != null ? opts.spread : 0.9;
+      var gap = opts.offset != null ? opts.offset : 0;
+      var peak = opts.lift != null ? opts.lift : 0, ref = size().h * 0.18;
+      var sh = document.createElement("div");
+      sh.className = "stage-shadow";
+      var cs = getComputedStyle(parent);
+      if (cs.position === "static") throw new Error('shadow(): the parent of "' + describe(E) + '" must be positioned (position:absolute or relative) so the shadow can sit beside it.');
+      sh.setAttribute("style", "position:absolute;pointer-events:none;left:" + (r.x - pr.x + r.w / 2 - w / 2) + "px;top:" + (r.y - pr.y + r.h - hgt / 2 + gap) + "px;width:" + w + "px;height:" + hgt + "px;border-radius:50%;background:radial-gradient(closest-side," + (opts.color || "rgba(0,0,0,1)") + " 0%,rgba(0,0,0,0) 100%);opacity:0;will-change:transform,opacity");
+      parent.insertBefore(sh, E);
+      shadows.set(E, sh);
+      v2.drivers.push({ start: 0, end: Infinity, apply: function (t) {
+        var gx = 0, gy = 0, lift = peak;
+        (poses.get(E) || []).forEach(function (f) { var p = f(t); gx += p.x; gy += p.gy; lift += p.lift; });
+        var k = clamp01(lift / (ref * 1.5));
+        var s = 1 + k * spread * 0.6, a = alpha * (1 - 0.65 * k);
+        var own = parseFloat(getComputedStyle(E).opacity);
+        op(sh, a * (isNaN(own) ? 1 : own));
+        tf(sh, "translate(" + gx + "px," + gy + "px) scale(" + s + "," + (1 + k * 0.3) + ")");
+      } });
+      return sh;
+    }
+    /**
+     * Depth of field: every element carrying data-dof="<depth>" is blurred in proportion to
+     * its distance from the focus depth. tl.focus("#el") focuses on that element's depth
+     * (a number works too), and a later call racks the focus from there to the new depth.
+     * tl.focus(null) puts everything back in focus. Blur is a filter on the element itself,
+     * so keep it off containers that use transform-style: preserve-3d.
+     */
+    function focusImpl(target, opts, pos) {
+      opts = opts || {};
+      var depth = null;
+      if (target != null && target !== false && target !== "off") {
+        if (typeof target === "number") depth = target;
+        else {
+          var f = one(target, "focus", "target");
+          depth = parseFloat(f.getAttribute("data-dof"));
+          if (isNaN(depth)) throw new Error('focus(): "' + labelOf(target, f) + '" has no data-dof depth. Give it data-dof="<number>" (the depth it sits at), or pass a number.');
+        }
+      }
+      var start = at(pos), d = opts.duration != null ? opts.duration : 0.6;
+      v2.focus.push({ start: start, dur: d, easeFn: easeFn(opts.ease || "inOut(2)"), depth: depth, blur: opts.blur != null ? opts.blur : 8, max: opts.max != null ? opts.max : 28 });
+      if (!v2.focusEls) {
+        var els = Array.prototype.slice.call(root().querySelectorAll("[data-dof]"));
+        if (!els.length) throw new Error('focus(): no element has data-dof. Mark the layers that should blur, for example <div data-dof="2">, nearer layers with smaller numbers.');
+        v2.focusEls = els.map(function (el) { return { el: el, depth: parseFloat(el.getAttribute("data-dof")) || 0, base: el.style.filter || "" }; });
+        v2.drivers.push({ start: 0, end: Infinity, apply: focusApply });
+      }
+      step(start, d);
+    }
+    function focusApply(t) {
+      var keys = v2.focus.slice().sort(function (a, b) { return a.start - b.start; });
+      var st = { depth: null, blur: 0, max: 28 };
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        if (t < k.start) break;
+        var u = k.easeFn(clamp01((t - k.start) / k.dur));
+        var td = k.depth === null ? st.depth : k.depth, tb = k.depth === null ? 0 : k.blur;
+        st = { depth: st.depth === null || td === null ? td : lerp(st.depth, td, u), blur: lerp(st.blur, tb, u), max: k.max };
+        if (u < 1) break;
+      }
+      v2.focusEls.forEach(function (it) {
+        var b = st.depth === null ? 0 : Math.min(st.max, Math.abs(it.depth - st.depth) * st.blur);
+        var f = b > 0.05 ? "blur(" + round3(b) + "px)" : "";
+        it.el.style.filter = (it.base + " " + f).trim();
+      });
     }
     function gatherImpl(targets, opts, pos) {
       opts = opts || {};
@@ -642,6 +735,8 @@
       iris: function (target, opts, pos) { need2("iris"); irisImpl(target, opts, pos); return api; },
       zoomThrough: function (target, opts, pos) { need2("zoomThrough"); zoomThroughImpl(target, opts, pos); return api; },
       hop: function (target, opts, pos) { need2("hop"); hopImpl(target, opts, pos); return api; },
+      shadow: function (target, opts) { need2("shadow"); shadowImpl(target, opts); return api; },
+      focus: function (target, opts, pos) { need2("focus"); focusImpl(target, opts, pos); return api; },
       gather: function (targets, opts, pos) { need2("gather"); gatherImpl(targets, opts, pos); return api; },
       impact: function (target, pos, opts) { need2("impact"); impactImpl(target, pos, opts); return api; },
       press: function (target, t) { need2("press"); pressImpl(target, t); return api; },
