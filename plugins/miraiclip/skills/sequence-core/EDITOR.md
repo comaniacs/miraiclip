@@ -154,6 +154,7 @@ Mark every beat with `tl.label(name, time)`: labels are the beats the check look
 | `S.grid({ depth, spacing, dot })` | A faint dot lattice behind the scene that keeps its dot size at any zoom, so camera moves read on an empty ground (version 2) |
 | `S.pointerPath(log)` | Turns a recorded click log `[{ t, x, y, type }]` into `{ path, clicks }` for `tl.pointer` (version 2) |
 | `S.beats`, `S.beat(n)` | The music's beat grid in seconds, when the film has one (otherwise `S.beat(n)` is n × 0.5 s) |
+| `S.downbeats`, `S.downbeat(n)` | The first beat of each bar in seconds, from `data-downbeats` (otherwise `S.downbeat(n)` is n × 2 s). Land a carry on `S.downbeat(n)` to put it on the music |
 
 ## Rules (compose_sequence checks them)
 

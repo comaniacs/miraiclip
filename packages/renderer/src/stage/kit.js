@@ -728,6 +728,8 @@
     var r = root();
     var beats = [];
     try { beats = JSON.parse(r.getAttribute("data-beats") || "[]"); } catch (e) {}
+    var downbeats = [];
+    try { downbeats = JSON.parse(r.getAttribute("data-downbeats") || "[]"); } catch (e) {}
     return {
       width: sz.w,
       height: sz.h,
@@ -738,6 +740,7 @@
       rand: seeded,
       split: split,
       beats: beats,
+      downbeats: downbeats,
       /** An element's resting box { x, y, w, h } in stage pixels (version 2). */
       rect: function (el) { return layoutRect(one(el, "S.rect", "element")); },
       /** An element's resting centre { x, y } in stage pixels (version 2). */
@@ -747,6 +750,7 @@
       /** Turn a recorded click log [{ t, x, y, type }] (seconds, stage pixels) into pointer({ path, clicks }) (version 2). */
       pointerPath: function (log) { return pointerPathImpl(log); },
       /** The time of beat n (seconds), or n × 0.5 s without a beat grid. */
+      downbeat: function (n) { return downbeats.length ? downbeats[Math.min(downbeats.length - 1, Math.max(0, n))] : n * 2; },
       beat: function (n) { return beats.length ? beats[Math.min(beats.length - 1, Math.max(0, n))] : n * 0.5; },
     };
   }
@@ -1033,7 +1037,7 @@
     if (shots.length >= 4 && cv < 0.25) add("cadence", "warning", "the beats are evenly spaced (variation " + cv.toFixed(2) + ", under 0.25): it reads as a metronome", "vary the shot lengths: hold some beats, rush others");
     lone.forEach(function (c) { add("hard-cut", "warning", "a hard cut at " + c.toFixed(2) + " s outside a burst", "hide the cut inside a move (tl.zoomThrough, tl.whip) or take it out", c); });
 
-    return { version: v2 ? 2 : 1, duration: round3(declared), labels: tl.labels, score: score, carried: carried, anchored: anchored, bare: scored.length - carried - anchored, exempt: boundaries.length - scored.length, boundaries: boundaries, coverage: coverage, framing: framing, rhythm: rhythm, findings: findings };
+    return { version: v2 ? 2 : 1, events: v2 ? v2.hits.slice().sort(function (x, y) { return x.t - y.t; }) : [], duration: round3(declared), labels: tl.labels, score: score, carried: carried, anchored: anchored, bare: scored.length - carried - anchored, exempt: boundaries.length - scored.length, boundaries: boundaries, coverage: coverage, framing: framing, rhythm: rhythm, findings: findings };
   }
 
   var built = false;

@@ -25,6 +25,8 @@ export interface ShotBoundary {
 
 export interface ShotReport {
   version: 1 | 2;
+  /** The sound moments declared with `tl.hit` (and added by carries, presses, impacts, shakes), in time order. */
+  events: { name: string; t: number; kind: string; pan: number }[];
   duration: number;
   labels: Record<string, number>;
   /** (carried + anchored/2) / scored boundaries, or null when nothing was scored. */

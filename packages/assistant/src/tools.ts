@@ -2,7 +2,9 @@ import {
   ANIMATION_EASINGS,
   ANIMATION_PRESETS,
   animationCommands,
+  applyBeatGrid,
   applyCommands,
+  planSoundFromEvents,
   commandCatalog,
   builtinTransitionParamSchemas,
   describeAnimation,
@@ -14,6 +16,8 @@ import {
   type AnimationEasing,
   type AnimationRecipe,
   type AnimationSlot,
+  type AudioClip,
+  type HtmlClip,
   type Command,
   type Cut,
   type Project,
@@ -177,11 +181,104 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
             }
           },
         }),
+        defineTool({
+          name: "place_sfx_from_events",
+          description:
+            "Put sound effects on a continuous shot's hits. Reads the sound moments the sequence declared (tl.hit, presses, impacts, shakes, carry landings), adds one audio clip at each (one sound per hit kind, so the film keeps one material set) and optionally ducks a music clip under them. Add the sounds as audio assets first (prefer CC0; keep to one material). Audio clips have no pan yet, so where on screen a hit happened is reported but not applied. " + US_NOTE,
+          inputSchema: {
+            type: "object",
+            properties: {
+              clipId: { type: "string", description: "The html sequence clip." },
+              sounds: { type: "object", description: 'Audio asset id per hit kind, e.g. { "impact": "thud", "click": "tick" }. Kinds: impact, click, whoosh, land, shake.', additionalProperties: { type: "string" } },
+              trackId: { type: "string", description: 'Audio track for the effects (default "sfx", created if missing).' },
+              musicClipId: { type: "string", description: "A music audio clip to lower under the hits." },
+              volume: { type: "number", minimum: 0, maximum: 4 },
+              duckTo: { type: "number", minimum: 0, maximum: 1, description: "Music level during a hit, as a fraction of its own (default 0.35)." },
+            },
+            required: ["clipId", "sounds"],
+            additionalProperties: false,
+          },
+          async run(input, { project }) {
+            const doc = project.toJSON();
+            const clipId = String(input.clipId ?? "");
+            const seq = doc.clips[clipId];
+            if (!seq || seq.kind !== "html") return { ok: false, error: `"${clipId}" is not an html clip` };
+            let report: { events?: { name: string; t: number; kind: string; pan: number }[] } | null | undefined;
+            try {
+              const checked = (await options.checkSequence!(doc, { clipId })) as { clips?: { clipId: string; report: typeof report; skipped?: string }[] };
+              const entry = checked.clips?.find((c) => c.clipId === clipId);
+              report = entry?.report;
+              if (!report) return { ok: false, error: entry?.skipped ?? "the sequence could not be checked" };
+            } catch (error) {
+              return { ok: false, error: error instanceof Error ? error.message : String(error) };
+            }
+            const sounds: Record<string, { assetId: string; durationUs: number }> = {};
+            for (const [kind, assetId] of Object.entries((input.sounds ?? {}) as Record<string, string>)) {
+              const asset = doc.assets[assetId];
+              if (!asset || asset.kind !== "audio") return { ok: false, error: `sounds.${kind}: "${assetId}" is not an audio asset` };
+              sounds[kind] = { assetId, durationUs: (asset as { durationUs?: number }).durationUs ?? 1_000_000 };
+            }
+            const music = input.musicClipId !== undefined ? doc.clips[String(input.musicClipId)] : undefined;
+            if (input.musicClipId !== undefined && (!music || music.kind !== "audio")) return { ok: false, error: `"${String(input.musicClipId)}" is not an audio clip` };
+            const trackId = typeof input.trackId === "string" ? input.trackId : "sfx";
+            const plan = planSoundFromEvents({
+              events: report.events ?? [],
+              sequenceStartUs: seq.startUs,
+              sounds,
+              trackId,
+              existingClipIds: Object.keys(doc.clips),
+              ...(typeof input.volume === "number" ? { volume: input.volume } : {}),
+              ...(typeof input.duckTo === "number" ? { duckTo: input.duckTo } : {}),
+              ...(music ? { music: { clipId: music.id, startUs: music.startUs, durationUs: music.durationUs, volume: (music as AudioClip).volume } } : {}),
+            });
+            if (!plan.placements.length) return { ok: true, result: { placed: 0, skipped: plan.skipped, note: "nothing placed: the sequence has no hits with a sound; add tl.hit calls or more kinds in sounds" } };
+            const commands: Command[] = [...(doc.tracks[trackId] ? [] : [{ type: "track/add", payload: { id: trackId, kind: "audio", name: "SFX" } }]), ...plan.commands];
+            const out = applyChecked(project, commands);
+            if (!out.ok) return out;
+            return { ...out, result: { placed: plan.placements.length, placements: plan.placements, skipped: plan.skipped, ducks: plan.ducks.length }, changes: [`Placed ${plan.placements.length} sound effects on ${trackId}${plan.ducks.length ? ` and ducked the music under ${plan.ducks.length} hit${plan.ducks.length === 1 ? "" : "s"}` : ""}`] };
+          },
+        }),
       ]
     : [];
 
+  const beatTool = defineTool({
+    name: "set_beat_grid",
+    description:
+      "Write a music beat grid onto a sequence so S.beat(n) and S.downbeat(n) land on the music. Pass beats and downbeats in seconds from the start of the music, and the music clip so the offset between music and sequence is applied. " + US_NOTE,
+    inputSchema: {
+      type: "object",
+      properties: {
+        clipId: { type: "string", description: "The html sequence clip." },
+        beats: { type: "array", items: { type: "number" } },
+        downbeats: { type: "array", items: { type: "number" } },
+        musicClipId: { type: "string", description: "The music audio clip the grid belongs to." },
+        offsetSeconds: { type: "number", description: "Instead of musicClipId: how far into the music the sequence starts." },
+      },
+      required: ["clipId", "beats"],
+      additionalProperties: false,
+    },
+    run(input, { project }) {
+      const doc = project.toJSON();
+      const clipId = String(input.clipId ?? "");
+      const seq = doc.clips[clipId];
+      if (!seq || seq.kind !== "html") return { ok: false, error: `"${clipId}" is not an html clip` };
+      let offset = typeof input.offsetSeconds === "number" ? input.offsetSeconds : 0;
+      if (input.musicClipId !== undefined) {
+        const music = doc.clips[String(input.musicClipId)];
+        if (!music || music.kind !== "audio") return { ok: false, error: `"${String(input.musicClipId)}" is not an audio clip` };
+        offset = (seq.startUs - music.startUs + (music as AudioClip).trimStartUs) / 1_000_000;
+      }
+      const grid = applyBeatGrid((seq as HtmlClip).template, { beats: (input.beats ?? []) as number[], ...(Array.isArray(input.downbeats) ? { downbeats: input.downbeats as number[] } : {}) }, offset);
+      if (!grid.found) return { ok: false, error: 'the template has no stage root (data-libs="stage")' };
+      const out = applyChecked(project, [{ type: "clip/set-property", payload: { clipId, template: grid.template } }]);
+      if (!out.ok) return out;
+      return { ...out, result: { beats: grid.beats, downbeats: grid.downbeats, offsetSeconds: offset }, changes: [`Set a beat grid on ${clipId}: ${grid.beats} beats, ${grid.downbeats} downbeats`] };
+    },
+  });
+
   return [
     ...checkTools,
+    beatTool,
     defineTool({
       name: "get_state",
       description: `The project as it is now (after your edits so far): settings, assets, tracks with clips (ids, kinds, time ranges), transitions, and each clip's position, size, opacity, text style, volume, effects and animation. ${US_NOTE}`,

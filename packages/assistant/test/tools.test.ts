@@ -306,3 +306,45 @@ describe("check_sequence", () => {
     expect(await tool.run({}, { project: fixture() })).toEqual({ ok: false, error: "no browser" });
   });
 });
+
+describe("sound and beats for a continuous shot", () => {
+  const US = 1_000_000;
+  const tpl = '<div class="stage" data-libs="stage" data-duration="6" data-stage-version="2"><div class="world"></div></div><script>stage.build(()=>{})</script>';
+  const setup = () => {
+    const project = createProject({ width: 1920, height: 1080, fps: 30 } as never);
+    const d = (type: string, payload: object) => project.dispatch({ type, payload } as never);
+    d("track/add", { id: "v", kind: "video" });
+    d("track/add", { id: "m", kind: "audio" });
+    for (const id of ["thud", "song"]) d("asset/add", { id, kind: "audio", name: id, src: `${id}.wav`, durationUs: 30 * US });
+    d("clip/add", { id: "seq", kind: "html", trackId: "v", startUs: 2 * US, durationUs: 6 * US, template: tpl, params: {} });
+    d("clip/add", { id: "music", kind: "audio", trackId: "m", assetId: "song", startUs: 0, durationUs: 20 * US, trimStartUs: 0, volume: 0.8 });
+    return project;
+  };
+
+  it("place_sfx_from_events puts one clip at each hit and ducks the music", async () => {
+    const checker = async () => ({ clips: [{ clipId: "seq", report: { events: [{ name: "land", t: 1, kind: "land", pan: 0 }, { name: "x", t: 3, kind: "whoosh", pan: 0 }] } }] });
+    const tool = editorTools({ checkSequence: checker }).find((t) => t.name === "place_sfx_from_events")!;
+    const project = setup();
+    const out = (await tool.run({ clipId: "seq", sounds: { land: "thud" }, musicClipId: "music" }, { project })) as { ok: boolean; result?: { placed: number; skipped: unknown[]; ducks: number } };
+    expect(out.ok).toBe(true);
+    expect(out.result).toMatchObject({ placed: 1, ducks: 1 });
+    expect(out.result!.skipped).toHaveLength(1);
+    const sfx = Object.values(project.toJSON().clips).filter((c) => c.trackId === "sfx");
+    expect(sfx).toHaveLength(1);
+    expect(sfx[0]!.startUs).toBe(3 * US);
+  });
+
+  it("place_sfx_from_events is offered only with a checker", () => {
+    expect(editorTools().some((t) => t.name === "place_sfx_from_events")).toBe(false);
+  });
+
+  it("set_beat_grid writes the grid with the offset from the music clip", async () => {
+    const tool = editorTools().find((t) => t.name === "set_beat_grid")!;
+    const project = setup();
+    const out = (await tool.run({ clipId: "seq", beats: [1, 2.5, 3], downbeats: [3], musicClipId: "music" }, { project })) as { ok: boolean };
+    expect(out.ok).toBe(true);
+    const template = (project.toJSON().clips["seq"] as { template: string }).template;
+    expect(template).toContain(`data-beats='[0.5,1]'`);
+    expect(template).toContain(`data-downbeats='[1]'`);
+  });
+});

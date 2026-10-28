@@ -42,4 +42,10 @@ If the film needs more than one act, use the existing hand-off between acts: the
 
 ## Sound and music
 
-Sound moments are `tl.hit` events (carry landings, presses, impacts and shakes add their own). When the tools are offered, `place_sfx_from_events` places sound effects at each hit, and the music's beat grid can be written to `data-beats` so `S.beat(n)` lands carries on the music. Use one material set of sounds per film.
+Sound moments are `tl.hit` events; carry landings, presses, impacts and shakes add their own. After the check is clean:
+
+1. Pick one material for the film's sounds (all wood, all glass, all soft synth) and add one CC0 sound per hit kind as audio assets.
+2. `place_sfx_from_events` puts one sound at every hit and ducks the music under them. It reports where on screen each hit happened; audio clips have no pan yet, so that is not applied.
+3. To land carries on the music: Get the beat grid with `node mc.mjs beats <music file>` and write it with `set_beat_grid`, then build carries on `S.beat(n)` and `S.downbeat(n)`.
+
+Sound effects on the big moments only; a hit on every beat is noise.

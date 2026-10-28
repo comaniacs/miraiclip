@@ -13,10 +13,11 @@
  *   node mc.mjs captions <words.json|.srt|.vtt> [--track captions] [--style '{...}'] [--max-words 4] [--map map.json] [--offset-us 0] [--prefix cap]
  *   node mc.mjs animate --clip <id[,id...]> [--in pop] [--out fade] [--loop kenburns] [--in-ms 600] [--out-ms 500] [--easing smooth] [--project p.json]
  *   node mc.mjs sheet <video> [--every 1] [--cols 5] [--width 320] [--out sheet.png]
+ *   node mc.mjs beats <audio> [--out beats.json]
  *   node mc.mjs subtitles [--format srt|vtt|txt] [--out captions.srt] [--project p.json]
  *   node mc.mjs presets
  *
- * Needs Node 18+. `probe`, `cuts` and `sheet` need ffmpeg/ffprobe on PATH.
+ * Needs Node 18+. `probe`, `cuts`, `beats` and `sheet` need ffmpeg/ffprobe on PATH.
  * `captions`, `animate`, `presets` and `subtitles` use @miraiclip/core, installed on first use into ~/.miraiclip/tools.
  */
 import { spawnSync } from "node:child_process";
@@ -29,6 +30,7 @@ import { pathToFileURL } from "node:url";
 const DEFAULT_PROJECT = process.env.MIRAICLIP_PROJECT || "video.miraiclip.json";
 const TOOLS_DIR = process.env.MIRAICLIP_TOOLS_DIR || path.join(os.homedir(), ".miraiclip", "tools");
 const CORE_RANGE = "^0.5.8";
+const AUDIO_RANGE = "^0.4.0";
 
 // ---------- args ----------
 function parse(argv) {
@@ -69,31 +71,32 @@ const slug = (s) =>
 const has = (cmd) => spawnSync(cmd, ["-version"], { stdio: "ignore", shell: process.platform === "win32" }).status === 0;
 const run = (cmd, args) => spawnSync(cmd, args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 
-// ---------- @miraiclip/core (lazy install) ----------
-async function core() {
+// ---------- @miraiclip packages (lazy install) ----------
+async function pkg(name, range) {
   const tryLoad = async (base) => {
     try {
       const req = createRequire(path.join(base, "noop.js"));
-      return await import(pathToFileURL(req.resolve("@miraiclip/core")).href);
+      return await import(pathToFileURL(req.resolve(name)).href);
     } catch {
       return undefined;
     }
   };
   let mod = (await tryLoad(process.cwd())) ?? (await tryLoad(TOOLS_DIR));
   if (mod) return mod;
-  process.stderr.write(`mc: installing @miraiclip/core into ${TOOLS_DIR} (one time)…\n`);
+  process.stderr.write(`mc: installing ${name} into ${TOOLS_DIR} (one time)…\n`);
   fs.mkdirSync(TOOLS_DIR, { recursive: true });
   if (!fs.existsSync(path.join(TOOLS_DIR, "package.json"))) fs.writeFileSync(path.join(TOOLS_DIR, "package.json"), '{"private":true}');
-  const r = spawnSync("npm", ["install", "--no-audit", "--no-fund", "--silent", `@miraiclip/core@${CORE_RANGE}`], {
+  const r = spawnSync("npm", ["install", "--no-audit", "--no-fund", "--silent", `${name}@${range}`], {
     cwd: TOOLS_DIR,
     stdio: ["ignore", "ignore", "inherit"],
     shell: process.platform === "win32",
   });
-  if (r.status !== 0) die("could not install @miraiclip/core (npm failed)");
+  if (r.status !== 0) die(`could not install ${name} (npm failed)`);
   mod = await tryLoad(TOOLS_DIR);
-  if (!mod) die("installed @miraiclip/core but could not load it");
+  if (!mod) die(`installed ${name} but could not load it`);
   return mod;
 }
+const core = () => pkg("@miraiclip/core", CORE_RANGE);
 
 function readProject(file) {
   const p = file || DEFAULT_PROJECT;
@@ -406,6 +409,23 @@ async function subtitles(flags) {
   out({ out: file, notes: [`${caps.length} caption clips → ${file}`] });
 }
 
+// ---------- beats ----------
+/** Tempo, beats and downbeats of a music file, for the set_beat_grid tool. */
+async function beats(file, flags) {
+  if (!file) die("beats: pass an audio or video file");
+  if (!has("ffmpeg")) die("beats: ffmpeg is not on PATH");
+  const sampleRate = 22050;
+  const r = spawnSync("ffmpeg", ["-v", "error", "-i", file, "-vn", "-ac", "1", "-ar", String(sampleRate), "-f", "f32le", "-"], { maxBuffer: 1024 * 1024 * 1024 });
+  if (r.status !== 0) die(`beats: ffmpeg could not decode ${file}`);
+  const buf = r.stdout;
+  const samples = new Float32Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength - (buf.byteLength % 4)));
+  const { analyzeBeats } = await pkg("@miraiclip/audio-sources", AUDIO_RANGE);
+  const a = analyzeBeats({ samples, sampleRate });
+  const result = { bpm: a.bpm, confidence: a.confidence, beats: a.beats, downbeats: a.downbeats };
+  if (flags.out && flags.out !== true) fs.writeFileSync(flags.out, JSON.stringify(result));
+  out({ ...result, notes: [`${a.bpm} bpm, ${a.beats.length} beats, confidence ${Number(a.confidence).toFixed(2)}. Pass beats and downbeats to set_beat_grid (seconds from the start of ${path.basename(file)}).`] });
+}
+
 // ---------- main ----------
 const [cmd, ...rest] = process.argv.slice(2);
 const { pos, flags } = parse(rest);
@@ -433,6 +453,9 @@ switch (cmd) {
     break;
   case "sheet":
     sheet(pos[0], flags);
+    break;
+  case "beats":
+    await beats(pos[0], flags);
     break;
   case "subtitles":
     await subtitles(flags);
