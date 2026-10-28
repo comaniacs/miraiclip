@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { createProject } from "@miraiclip/core";
 import { checkShot } from "../src/check-shot.js";
 
 const browserPath = [process.env["MIRAICLIP_BROWSER"], "/opt/pw-browsers/chromium"].find((p) => p && existsSync(p));
@@ -9,7 +8,7 @@ const plain = `<div style="width:320px;height:180px">hello</div>`;
 
 describe.runIf(browserPath)("checkShot", () => {
   it("reports bare boundaries for a sequence and skips plain html", async () => {
-    const doc = createProject({ width: 320, height: 180 } as never) as never as any;
+    const doc: any = { schemaVersion: 1, settings: { width: 320, height: 180 }, assets: {}, tracks: {}, trackOrder: [], transitions: {}, clips: {} };
     doc.clips = {
       a: { id: "a", kind: "html", trackId: "t", startUs: 0, durationUs: 12_000_000, template: slideshow, params: {} },
       b: { id: "b", kind: "html", trackId: "t", startUs: 12_000_000, durationUs: 2_000_000, template: plain, params: {} },
