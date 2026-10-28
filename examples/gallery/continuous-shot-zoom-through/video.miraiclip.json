@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "assets": {},
+  "tracks": {
+    "v1": {
+      "id": "v1",
+      "kind": "video",
+      "name": "v1",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    }
+  },
+  "trackOrder": [
+    "v1"
+  ],
+  "clips": {
+    "push": {
+      "kind": "html",
+      "id": "push",
+      "trackId": "v1",
+      "startUs": 0,
+      "durationUs": 14000000,
+      "template": "<div class=\"stage\" data-libs=\"stage\" data-duration=\"14\" data-stage-version=\"2\" style=\"width:1920px;height:1080px\"><style>\n*{box-sizing:border-box;margin:0}\n.stage{background:#10151f;color:#eef2f7;font-family:Inter,\"DejaVu Sans\",system-ui,sans-serif;overflow:hidden}\n.world{position:absolute;left:0;top:0;width:1920px;height:1080px}\n.title{position:absolute;left:0;width:1920px;top:110px;text-align:center;font-size:72px;font-weight:800;letter-spacing:-.02em}\n.desk{position:absolute;left:0;top:760px;width:1920px;height:320px;background:#1a2230}\n#lap{position:absolute;left:580px;top:330px;width:760px;height:430px;border-radius:26px;background:#2a3446;padding:22px}\n#screen{position:absolute;inset:22px;border-radius:12px;background:#0d2a35;overflow:hidden}\n#screen i{position:absolute;left:40px;top:50px;height:18px;border-radius:9px;background:#3fb8c9;opacity:.8}\n.base{position:absolute;left:500px;top:760px;width:920px;height:26px;border-radius:0 0 26px 26px;background:#3a455b}\n#roomB{position:absolute;inset:0;opacity:0;background:#0d2a35}\n.top{position:absolute;left:120px;top:70px;font-size:44px;font-weight:800;color:#8fe3f0}\n.card{position:absolute;top:210px;width:520px;height:360px;border-radius:28px;background:#14394a;border:3px solid #3fb8c9;padding:36px}\n.card h3{font-size:30px;letter-spacing:.2em;color:#8fe3f0}\n.card p{font-size:96px;font-weight:800;margin-top:20px}\n.bar{position:absolute;left:36px;bottom:40px;height:22px;border-radius:11px;background:#3fb8c9;transform-origin:0 50%}\n#c1{left:120px}#c2{left:700px}#c3{left:1280px}\n#ship{position:absolute;left:700px;top:700px;width:520px;height:130px;border-radius:65px;background:#ffd166;color:#10151f;font-size:48px;font-weight:800;display:flex;align-items:center;justify-content:center}\n#done{position:absolute;inset:0;background:#ffd166;color:#10151f;display:flex;align-items:center;justify-content:center;font-size:140px;font-weight:800;letter-spacing:-.03em}\n</style><div class=\"world\"><p class=\"title\">One screen, all your tides.</p><div class=\"desk\"></div>\n<div id=\"lap\"><div id=\"screen\"><i style=\"width:340px\"></i><i style=\"width:220px;top:100px\"></i><i style=\"width:420px;top:150px\"></i></div></div><div class=\"base\"></div></div>\n<div id=\"roomB\"><p class=\"top\">Tidepool</p>\n<div class=\"card\" id=\"c1\"><h3>VISITS</h3><p>48.2k</p><i class=\"bar\" style=\"width:380px\"></i></div>\n<div class=\"card\" id=\"c2\"><h3>SIGN-UPS</h3><p>3,910</p><i class=\"bar\" style=\"width:290px\"></i></div>\n<div class=\"card\" id=\"c3\"><h3>RETAINED</h3><p>71%</p><i class=\"bar\" style=\"width:330px\"></i></div>\n<div id=\"ship\">Ship report</div><div id=\"done\">Sent.</div></div></div>\n<script>stage.build((tl, S) => {\ntl.label(\"desk\", 0)\n  .from(\".title\", { y: S.h(4), opacity: 0, duration: 0.8, ease: \"expo.out\" }, 0.2)\n  .from(\"#lap\", { y: S.h(10), opacity: 0, duration: 0.9, ease: \"expo.out\" }, 0.4)\n  .camera({ zoom: 1.08, duration: 2.2, ease: \"sine.inOut\" }, 0)\n  .label(\"push\", 2.2)\n  .hit(\"push\", \"push\", { kind: \"whoosh\", pan: -0.2 })\n  .zoomThrough(\"#screen\", { fit: \"cover\", into: \"#roomB\", duration: 2.4, ease: \"inOut(3)\" }, \"push\")\n  .label(\"fill\", 4.6)\n  .from(\"#c1\", { y: S.h(6), opacity: 0, duration: 0.6, ease: \"expo.out\" }, \"fill+=0.3\")\n  .from(\"#c2\", { y: S.h(6), opacity: 0, duration: 0.6, ease: \"expo.out\" }, \"fill+=0.65\")\n  .from(\"#c3\", { y: S.h(6), opacity: 0, duration: 0.6, ease: \"expo.out\" }, \"fill+=1.0\")\n  .from(\".bar\", { scaleX: 0, duration: 0.9, stagger: 0.15, ease: \"expo.out\" }, \"fill+=0.8\")\n  .from(\"#ship\", { y: S.h(8), opacity: 0, duration: 0.6, ease: \"expo.out\" }, \"fill+=2.1\")\n  .pointer({ path: [{ t: 0, x: S.w(104), y: S.h(96) }, { t: 8.2, x: S.w(80), y: S.h(86) }, { t: 9.4, x: S.w(50), y: S.h(76) }, { t: 10.6, x: S.w(50), y: S.h(76) }, { t: 11.4, x: S.w(104), y: S.h(98) }], clicks: [10.1] })\n  .label(\"ship\", 10.1)\n  .press(\"#ship\", 10.1)\n  .label(\"sent\", 10.3)\n  .iris(\"#done\", { from: \"#ship\", duration: 1.1, ease: \"inOut(3)\" }, \"sent\")\n  .hit(\"sent\", \"sent+=1.1\", { kind: \"land\" });\n});</script>",
+      "params": {},
+      "scripted": true,
+      "animated": true,
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    }
+  },
+  "transitions": {}
+}

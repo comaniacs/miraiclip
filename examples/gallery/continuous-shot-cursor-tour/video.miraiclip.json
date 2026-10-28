@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "assets": {},
+  "tracks": {
+    "v1": {
+      "id": "v1",
+      "kind": "video",
+      "name": "v1",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    }
+  },
+  "trackOrder": [
+    "v1"
+  ],
+  "clips": {
+    "dial": {
+      "kind": "html",
+      "id": "dial",
+      "trackId": "v1",
+      "startUs": 0,
+      "durationUs": 14000000,
+      "template": "<div class=\"stage\" data-libs=\"stage\" data-duration=\"14\" data-stage-version=\"2\" style=\"width:1920px;height:1080px\"><style>\n*{box-sizing:border-box;margin:0}\n.stage{background:#161312;color:#f6efe7;font-family:Inter,\"DejaVu Sans\",system-ui,sans-serif;overflow:hidden}\n.world{position:absolute;left:0;top:0;width:1920px;height:1080px}\n.panel{position:absolute;left:410px;top:150px;width:1100px;height:780px;border-radius:40px;background:#221e1c;border:3px solid #3a332f}\n.panel h1{position:absolute;left:60px;top:46px;font-size:54px;font-weight:800;letter-spacing:-.02em}\n.row{position:absolute;left:470px;width:980px;height:100px;font-size:46px;font-weight:600}\n.row span{position:absolute;left:0;top:26px}\n.sw{position:absolute;right:0;top:0;width:200px;height:100px;border-radius:50px;background:#3a332f}\n.knob{position:absolute;left:10px;top:10px;width:80px;height:80px;border-radius:50%;background:#f6efe7}\n#save{position:absolute;left:780px;top:760px;width:360px;height:110px;border-radius:55px;background:#ff8a5b;color:#161312;font-size:44px;font-weight:800;display:flex;align-items:center;justify-content:center}\n#saved{position:absolute;left:780px;top:900px;width:360px;text-align:center;font-size:36px;letter-spacing:.2em;color:#8fe3b0;font-weight:700}\n</style><div class=\"world\"><div class=\"panel\"><h1>Dial settings</h1></div><div class=\"row\" style=\"top:280px\"><span>Dark mode</span><div class=\"sw\" id=\"t0\"><i class=\"knob\" id=\"k0\"></i></div></div><div class=\"row\" style=\"top:450px\"><span>Quiet hours</span><div class=\"sw\" id=\"t1\"><i class=\"knob\" id=\"k1\"></i></div></div><div class=\"row\" style=\"top:620px\"><span>Weekly digest</span><div class=\"sw\" id=\"t2\"><i class=\"knob\" id=\"k2\"></i></div></div><div id=\"save\">Save</div><p id=\"saved\">SAVED</p></div></div>\n<script>stage.build((tl, S) => {\nconst flip = (n, t) => tl.to(\"#k\" + n, { x: S.w(5.2), duration: 0.35, ease: \"expo.out\" }, t).to(\"#t\" + n, { backgroundColor: \"#8fe3b0\", duration: 0.35 }, t);\ntl.from(\".panel\", { y: S.h(5), opacity: 0, duration: 0.9, ease: \"expo.out\" }, 0.1)\n  .from(\".row\", { y: S.h(3), opacity: 0, duration: 0.5, stagger: 0.12, ease: \"expo.out\" }, 0.4)\n  .from(\"#save\", { y: S.h(3), opacity: 0, duration: 0.5, ease: \"expo.out\" }, 0.9)\n  .set(\"#saved\", { opacity: 0 }, 0)\n  .pointer({ path: [\n    { t: 0, x: S.w(104), y: S.h(96) }, { t: 2.4, x: S.w(50), y: S.h(52) }, { t: 2.8, x: S.w(50), y: S.h(52) },\n    { t: 4.4, x: S.w(64), y: S.h(44) }, { t: 5.2, x: S.w(50), y: S.h(52) }, { t: 5.6, x: S.w(50), y: S.h(52) },\n    { t: 7.0, x: S.w(64), y: S.h(44) }, { t: 7.6, x: S.w(50), y: S.h(52) }, { t: 8.0, x: S.w(50), y: S.h(52) },\n    { t: 10.8, x: S.w(50), y: S.h(76) }, { t: 11.8, x: S.w(50), y: S.h(76) }, { t: 12.8, x: S.w(104), y: S.h(98) },\n  ], clicks: [2.6, 5.4, 7.8, 11.4] })\n  .label(\"sw0\", 1.2)\n  .camera({ anchor: \"#t0\", at: [50, 50], zoom: 2.2, duration: 1.0, ease: \"inOut(3)\" }, \"sw0\")\n  .press(\"#t0\", 2.6);\nflip(0, 2.65);\ntl.label(\"sw1\", 3.8)\n  .camera({ anchor: \"#t1\", at: [50, 50], zoom: 2.2, duration: 1.2, ease: \"inOut(3)\" }, \"sw1\")\n  .hit(\"pan1\", \"sw1\", { kind: \"whoosh\", pan: 0.2 })\n  .press(\"#t1\", 5.4);\nflip(1, 5.45);\ntl.label(\"sw2\", 6.2)\n  .camera({ anchor: \"#t2\", at: [50, 50], zoom: 2.2, duration: 1.2, ease: \"inOut(3)\" }, \"sw2\")\n  .hit(\"pan2\", \"sw2\", { kind: \"whoosh\", pan: 0.2 })\n  .press(\"#t2\", 7.8);\nflip(2, 7.85);\ntl.label(\"out\", 9.6)\n  .hit(\"out\", \"out\", { kind: \"whoosh\", pan: 0 })\n  .camera({ anchor: \"#save\", at: [50, 75.9], zoom: 1, duration: 1.2, ease: \"inOut(3)\" }, \"out\")\n  .label(\"save\", 11.2)\n  .press(\"#save\", 11.4)\n  .to(\"#saved\", { opacity: 1, y: -S.h(1.5), duration: 0.5, ease: \"expo.out\" }, 11.5)\n  .handheld({ amount: S.min(0.18) }, 0, 14);\n});</script>",
+      "params": {},
+      "scripted": true,
+      "animated": true,
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    }
+  },
+  "transitions": {}
+}

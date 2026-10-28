@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 30
+  },
+  "assets": {},
+  "tracks": {
+    "v1": {
+      "id": "v1",
+      "kind": "video",
+      "name": "v1",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    }
+  },
+  "trackOrder": [
+    "v1"
+  ],
+  "clips": {
+    "lumen": {
+      "kind": "html",
+      "id": "lumen",
+      "trackId": "v1",
+      "startUs": 0,
+      "durationUs": 14000000,
+      "template": "<div class=\"stage\" data-libs=\"stage\" data-duration=\"14\" data-stage-version=\"2\" style=\"width:1920px;height:1080px\"><style>\n*{box-sizing:border-box;margin:0}\n.stage{background:#0e1320;color:#f3f6ff;font-family:Inter,\"DejaVu Sans\",system-ui,sans-serif;overflow:hidden}\n.world{position:absolute;left:0;top:0;width:1920px;height:1080px}\n.title{position:absolute;left:0;width:1920px;top:120px;text-align:center;font-size:72px;font-weight:800;letter-spacing:-.02em}\n.abs{position:absolute;overflow:hidden}\n#pill{left:830px;top:495px;width:260px;height:90px;border-radius:45px;background:#7c9cff;color:#0e1320;font-size:36px;font-weight:800;display:flex;align-items:center;justify-content:center}\n#card{left:580px;top:310px;width:760px;height:460px;border-radius:44px;background:#1d2646;border:3px solid #7c9cff;padding:56px}\n#card h2{white-space:nowrap;font-size:84px;font-weight:800;letter-spacing:-.02em}\n#card p{font-size:36px;color:#b9c6ff;margin-top:14px}\n#card .art{position:absolute;right:56px;bottom:56px;width:160px;height:160px;border-radius:28px;background:linear-gradient(135deg,#7c9cff,#c28bff)}\n#panel{left:280px;top:260px;width:1360px;height:560px;border-radius:36px;background:#18203a;border:3px solid #c28bff;padding:48px}\n.tr{white-space:nowrap;font-size:46px;font-weight:600;padding:22px 0;border-bottom:2px solid #2c3764;display:flex;justify-content:space-between}\n.tr em{font-style:normal;color:#b9c6ff}\n#btn{left:840px;top:420px;width:240px;height:240px;border-radius:50%;background:#c28bff;display:flex;align-items:center;justify-content:center}\n#btn i{width:0;height:0;border-left:70px solid #0e1320;border-top:44px solid transparent;border-bottom:44px solid transparent;margin-left:20px}\n#end{position:absolute;inset:0;background:#7c9cff;color:#0e1320;display:flex;align-items:center;justify-content:center;font-size:150px;font-weight:800;letter-spacing:-.03em}\n</style><div class=\"world\"><p class=\"title\">One thing, many shapes.</p>\n<div class=\"abs\" id=\"pill\">Play</div>\n<div class=\"abs\" id=\"card\"><h2>Night Drive</h2><p>Lumen · 3:42</p><i class=\"art\"></i></div>\n<div class=\"abs\" id=\"panel\"><div class=\"tr\"><span>Night Drive</span><em>3:42</em></div><div class=\"tr\"><span>Glass Hours</span><em>4:05</em></div><div class=\"tr\"><span>Low Tide</span><em>2:58</em></div></div>\n<div class=\"abs\" id=\"btn\"><i></i></div>\n<div id=\"end\">Press play.</div></div></div>\n<script>stage.build((tl, S) => {\ntl.set(\"#card,#panel,#btn\", { opacity: 0 }, 0)\n  .label(\"pill\", 0)\n  .from(\".title\", { y: S.h(4), opacity: 0, duration: 0.8, ease: \"expo.out\" }, 0.2)\n  .from(\"#pill\", { scale: 0.4, opacity: 0, duration: 0.6, ease: \"back.out\" }, 0.3)\n  .camera({ zoom: 1.05, duration: 2.6, ease: \"sine.inOut\" }, 0)\n  .label(\"card\", 1.9)\n  .morph(\"#pill\", \"#card\", { duration: 1.2, ease: \"inOut(3)\" }, \"card\")\n  .label(\"panel\", 5.0)\n  .hit(\"m2\", \"panel\", { kind: \"whoosh\", pan: -0.2 })\n  .morph(\"#card\", \"#panel\", { duration: 1.2, ease: \"inOut(3)\" }, \"panel\")\n  .label(\"btn\", 9.0)\n  .hit(\"m3\", \"btn\", { kind: \"whoosh\", pan: 0.2 })\n  .morph(\"#panel\", \"#btn\", { duration: 1.2, ease: \"inOut(3)\" }, \"btn\")\n  .label(\"end\", 11.4)\n  .press(\"#btn\", 11.4)\n  .iris(\"#end\", { from: \"#btn\", duration: 1.1, ease: \"inOut(3)\" }, \"end+=0.2\")\n  .hit(\"end\", \"end+=1.3\", { kind: \"land\" })\n  .handheld({ amount: S.min(0.18) }, 0, 14);\n});</script>",
+      "params": {},
+      "scripted": true,
+      "animated": true,
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    }
+  },
+  "transitions": {}
+}

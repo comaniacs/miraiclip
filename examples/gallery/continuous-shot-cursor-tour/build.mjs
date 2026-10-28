@@ -1,0 +1,63 @@
+// A 14 s film for an invented settings screen, "Dial": a cursor flips three switches, and the camera
+// dives to each switch just before the click and pans on to the next. The cursor and the camera are both
+// operated, so the click is always the centre of attention. Ends on a Save press.
+//
+//   node build.mjs   writes sequence.html and video.miraiclip.json
+import { writeExample } from "../_lib/write-example.mjs";
+
+const W = 1920, H = 1080, DURATION = 14;
+const rows = [["Dark mode", "#t0"], ["Quiet hours", "#t1"], ["Weekly digest", "#t2"]];
+const rowTop = (i) => 280 + i * 170;
+const rowHtml = rows.map(([label], i) => `<div class="row" style="top:${rowTop(i)}px"><span>${label}</span><div class="sw" id="t${i}"><i class="knob" id="k${i}"></i></div></div>`).join("");
+
+const css = `
+*{box-sizing:border-box;margin:0}
+.stage{background:#161312;color:#f6efe7;font-family:Inter,"DejaVu Sans",system-ui,sans-serif;overflow:hidden}
+.world{position:absolute;left:0;top:0;width:${W}px;height:${H}px}
+.panel{position:absolute;left:410px;top:150px;width:1100px;height:780px;border-radius:40px;background:#221e1c;border:3px solid #3a332f}
+.panel h1{position:absolute;left:60px;top:46px;font-size:54px;font-weight:800;letter-spacing:-.02em}
+.row{position:absolute;left:470px;width:980px;height:100px;font-size:46px;font-weight:600}
+.row span{position:absolute;left:0;top:26px}
+.sw{position:absolute;right:0;top:0;width:200px;height:100px;border-radius:50px;background:#3a332f}
+.knob{position:absolute;left:10px;top:10px;width:80px;height:80px;border-radius:50%;background:#f6efe7}
+#save{position:absolute;left:${(W - 360) / 2}px;top:760px;width:360px;height:110px;border-radius:55px;background:#ff8a5b;color:#161312;font-size:44px;font-weight:800;display:flex;align-items:center;justify-content:center}
+#saved{position:absolute;left:${(W - 360) / 2}px;top:900px;width:360px;text-align:center;font-size:36px;letter-spacing:.2em;color:#8fe3b0;font-weight:700}
+`;
+const markup = `<div class="world"><div class="panel"><h1>Dial settings</h1></div>${rowHtml}<div id="save">Save</div><p id="saved">SAVED</p></div>`;
+
+const script = `
+const flip = (n, t) => tl.to("#k" + n, { x: S.w(5.2), duration: 0.35, ease: "expo.out" }, t).to("#t" + n, { backgroundColor: "#8fe3b0", duration: 0.35 }, t);
+tl.from(".panel", { y: S.h(5), opacity: 0, duration: 0.9, ease: "expo.out" }, 0.1)
+  .from(".row", { y: S.h(3), opacity: 0, duration: 0.5, stagger: 0.12, ease: "expo.out" }, 0.4)
+  .from("#save", { y: S.h(3), opacity: 0, duration: 0.5, ease: "expo.out" }, 0.9)
+  .set("#saved", { opacity: 0 }, 0)
+  .pointer({ path: [
+    { t: 0, x: S.w(104), y: S.h(96) }, { t: 2.4, x: S.w(50), y: S.h(52) }, { t: 2.8, x: S.w(50), y: S.h(52) },
+    { t: 4.4, x: S.w(64), y: S.h(44) }, { t: 5.2, x: S.w(50), y: S.h(52) }, { t: 5.6, x: S.w(50), y: S.h(52) },
+    { t: 7.0, x: S.w(64), y: S.h(44) }, { t: 7.6, x: S.w(50), y: S.h(52) }, { t: 8.0, x: S.w(50), y: S.h(52) },
+    { t: 10.8, x: S.w(50), y: S.h(76) }, { t: 11.8, x: S.w(50), y: S.h(76) }, { t: 12.8, x: S.w(104), y: S.h(98) },
+  ], clicks: [2.6, 5.4, 7.8, 11.4] })
+  .label("sw0", 1.2)
+  .camera({ anchor: "#t0", at: [50, 50], zoom: 2.2, duration: 1.0, ease: "inOut(3)" }, "sw0")
+  .press("#t0", 2.6);
+flip(0, 2.65);
+tl.label("sw1", 3.8)
+  .camera({ anchor: "#t1", at: [50, 50], zoom: 2.2, duration: 1.2, ease: "inOut(3)" }, "sw1")
+  .hit("pan1", "sw1", { kind: "whoosh", pan: 0.2 })
+  .press("#t1", 5.4);
+flip(1, 5.45);
+tl.label("sw2", 6.2)
+  .camera({ anchor: "#t2", at: [50, 50], zoom: 2.2, duration: 1.2, ease: "inOut(3)" }, "sw2")
+  .hit("pan2", "sw2", { kind: "whoosh", pan: 0.2 })
+  .press("#t2", 7.8);
+flip(2, 7.85);
+tl.label("out", 9.6)
+  .hit("out", "out", { kind: "whoosh", pan: 0 })
+  .camera({ anchor: "#save", at: [50, 75.9], zoom: 1, duration: 1.2, ease: "inOut(3)" }, "out")
+  .label("save", 11.2)
+  .press("#save", 11.4)
+  .to("#saved", { opacity: 1, y: -S.h(1.5), duration: 0.5, ease: "expo.out" }, 11.5)
+  .handheld({ amount: S.min(0.18) }, 0, ${DURATION});
+`;
+const html = `<div class="stage" data-libs="stage" data-duration="${DURATION}" data-stage-version="2" style="width:${W}px;height:${H}px"><style>${css}</style>${markup}</div>\n<script>stage.build((tl, S) => {${script}});</script>`;
+writeExample(import.meta.url, { html, duration: DURATION, id: "dial" });
