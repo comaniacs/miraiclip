@@ -66,7 +66,8 @@
     "build": "node scripts/bundle-stage.mjs --check && tsup",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "stage": "node scripts/bundle-stage.mjs"
+    "stage": "node scripts/bundle-stage.mjs",
+    "test:browser": "vitest run -c vitest.browser.config.ts"
   },
   "dependencies": {
     "mediabunny": "^1.24.0",
@@ -77,10 +78,11 @@
   },
   "devDependencies": {
     "@miraiclip/core": "workspace:*",
+    "animejs": "4.5.0",
+    "playwright-core": "^1.63.0",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4",
-    "zod": "^4.5.4",
-    "animejs": "4.5.0"
+    "zod": "^4.5.4"
   }
 }
