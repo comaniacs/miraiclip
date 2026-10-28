@@ -58,6 +58,7 @@
 - [x] P-screencast: `planZooms`, `planCursor`, `planClickEffects`, `planRedactions`, `planCallouts`, `planScreencast`.
 - [x] P-transcript: word model, `AsrProvider` (OpenAI, Deepgram) + handler/proxy, fillers/stutters/silences, ripple cuts, text-based editing, captions after cuts.
 - [x] P-narration: scripts, `rewriteScript` (any chat model), `synthesizeNarration` (any voice generator; `openAiSpeechGenerator` added to audio-sources), `alignNarration`.
+- [x] P-media: `@miraiclip/media-sources` (`MediaProvider`, Pexels + Pixabay, mixed search, `importMedia`), extracted from a product's stock panel. First release pending.
 - [x] P-guides: steps + annotated stills → Markdown / HTML / JSON.
 - [ ] Demo: React template "Record → product video + guide" flow at react.miraiclip.com (needs the `miraiclip-react-template` repo; not in this checkout).
 
