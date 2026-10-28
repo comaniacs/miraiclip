@@ -69,7 +69,7 @@ export function bundle() {
 const out = bundle();
 if (process.argv.includes("--check")) {
   const current = existsSync(OUT) ? readFileSync(OUT, "utf8") : "";
-  if (current !== out) {
+  if (current.replace(/\r\n/g, "\n") !== out) {
     console.error("src/skills.generated.ts is out of date: run `pnpm --filter @miraiclip/assistant skills`");
     process.exit(1);
   }
