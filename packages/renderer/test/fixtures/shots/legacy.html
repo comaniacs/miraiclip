@@ -1,0 +1,24 @@
+<div class="stage" data-libs="stage" data-duration="4" data-beats="[0,0.5,1,1.5,2,2.5,3,3.5]">
+  <div class="world">
+    <h1 class="title" style="position:absolute;left:8%;top:10%;margin:0;font:700 6vmin sans-serif">Ten tools. Ten bills.</h1>
+    <div id="card" style="position:absolute;left:10%;top:40%;width:30%;height:30%;background:#264653;border-radius:12px"></div>
+    <div class="dot" style="position:absolute;left:55%;top:45%;width:8%;height:8%;background:#e9c46a;border-radius:50%"></div>
+    <div class="dot" style="position:absolute;left:66%;top:45%;width:8%;height:8%;background:#f4a261;border-radius:50%"></div>
+    <div class="dot" style="position:absolute;left:77%;top:45%;width:8%;height:8%;background:#e76f51;border-radius:50%"></div>
+    <i class="fade" style="position:absolute;left:50%;top:80%;width:20%;height:6%;background:#2a9d8f"></i>
+  </div>
+</div>
+<script>
+  stage.build((tl, S) => {
+    const words = S.split(".title", "words");
+    tl.label("a", 0)
+      .from(words, { y: S.h(6), opacity: 0, blur: 12, duration: 0.6, stagger: 0.08, ease: "expo.out" }, "a")
+      .fromTo("#card", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, ease: "back.out" }, "a+=0.4")
+      .label("b", 1.4)
+      .to(".dot", { x: S.w(3), rotate: 90, duration: 0.8, stagger: { each: 0.12, from: "first" }, ease: "power2.inOut" }, "b")
+      .camera({ zoom: 1.4, x: -S.w(4), y: -S.h(2), tiltX: -6, duration: 1.6 }, "b")
+      .fromTo(".fade", { opacity: 1 }, { opacity: 0, duration: 1, ease: "steps(4)" }, "b+=0.5")
+      .set("#card", { background: "#e63946" }, "b+=1.2")
+      .camera({ zoom: 1, x: 0, y: 0, tiltX: 0, duration: 1 }, ">");
+  });
+</script>

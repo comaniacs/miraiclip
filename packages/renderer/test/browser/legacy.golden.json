@@ -1,0 +1,32 @@
+{
+  "landscape": {
+    "0": "8a8f4cca50f9c707793e71db2dd31a52b9f721c0",
+    "0.3": "abd8c45cb94d060f6c6ab416a69d06d5291d7912",
+    "0.9": "5a5ee04bf2f5f1373da5b414bc2e34519a44a460",
+    "1.4": "c37e4d8d861644beba74fcce39d9dd1d51e1a822",
+    "1.9": "220b0485bcaf0663c1f9a72244071b80b51d5e78",
+    "2.5": "1cfefc3c00b7ad949536e5481db9346fed79f722",
+    "3.1": "9f4dc7fe4eef3d4dcf7199db6d9ae6614223e6a5",
+    "3.9": "63bd985ffc4f01a11502fc219e3a353e364f59a0"
+  },
+  "portrait": {
+    "0": "6862b156978007632061a930ba31b6cee5b3ddc7",
+    "0.3": "4c2a8d9fa9196823ab75fa13ef865217872af988",
+    "0.9": "02fe1873f6316f7999627ed0628e46bf364f00f8",
+    "1.4": "db64b2d9759ab6efbb2a8de8fbea60aec2ccadc7",
+    "1.9": "4dea1de9b33e54fca558d655725dc7acbf63c0c7",
+    "2.5": "a90e0a39a85ec07ed3ee44db158b3e257c2c1e46",
+    "3.1": "a79bfeeec0ae5489ee4b7670014facf712a4682b",
+    "3.9": "6f074a2d11dd405986e350a5c6c41c288d66d3b5"
+  },
+  "square": {
+    "0": "fa2cabd93e39f3b4b8a7b5ca7fe30db2b5f28d32",
+    "0.3": "13c926c3ace842ece0e1ed3e6c03e2961ff5ac68",
+    "0.9": "c3159470e4a80f8a184d6ed372457f7551bcaead",
+    "1.4": "823da5cd5fc80b7912e4599306927fe65ed342eb",
+    "1.9": "074f39c94cc924b4b077a7854d9a39c53e28e301",
+    "2.5": "82bcc609acceb0f34da9c6b97995c817a1bbe12e",
+    "3.1": "858e3950ecd57cca27ee4ed87a7135a0b90bbb08",
+    "3.9": "bad60b9732d23cdeb31c7bf88a1e04957f494474"
+  }
+}

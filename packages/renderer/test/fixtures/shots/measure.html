@@ -1,0 +1,10 @@
+<div class="stage" data-libs="stage" data-duration="2">
+  <div class="world">
+    <div id="box" style="position:absolute;left:10%;top:20%;width:30%;height:25%;background:#e63946"></div>
+  </div>
+</div>
+<script>
+  stage.build((tl) => {
+    tl.label("a", 0).to("#box", { x: 100, duration: 1, ease: "none" }, "a");
+  });
+</script>
