@@ -1,0 +1,41 @@
+<div class="stage" data-libs="stage" data-duration="14" data-stage-version="2" style="width:1920px;height:1080px"><style>
+*{box-sizing:border-box;margin:0}
+.stage{background:#0b0e14;color:#f3efe6;font-family:Inter,"DejaVu Sans",system-ui,sans-serif;overflow:hidden}
+.world{position:absolute;left:0;top:0;width:1920px;height:1080px}
+#route{position:absolute;left:0;top:535px;width:7680px;height:10px;background:linear-gradient(90deg,#f3efe6 0 100%);opacity:.35}
+.stop{position:absolute;top:0;width:1920px;height:1080px}
+.hero{position:absolute;left:580px;top:320px;width:760px;height:440px;border-radius:36px;padding:56px;background:hsl(var(--h) 45% 20%);border:3px solid hsl(var(--h) 80% 62%);box-shadow:0 30px 80px hsl(var(--h) 80% 10% / .6)}
+.num{font-size:34px;letter-spacing:.3em;color:hsl(var(--h) 90% 70%);font-weight:700}
+h2{font-size:150px;font-weight:800;letter-spacing:-.03em;margin-top:10px}
+.note{font-size:36px;margin-top:18px;color:#dcd6c8}
+.pin{position:absolute;top:518px;width:44px;height:44px;border-radius:50%;background:#f3efe6;border:8px solid #0b0e14}
+</style><div class="world"><i id="route"></i><i class="pin" id="pin1" style="left:938px"></i><i class="pin" id="pin2" style="left:2858px"></i><i class="pin" id="pin3" style="left:4778px"></i><i class="pin" id="pin4" style="left:6698px"></i><section class="stop" id="s1" style="left:0px;--h:18">
+  <div class="hero" id="h1"><p class="num">01</p><h2>Lisbon</h2><p class="note">Arrive, tram 28 to the old town</p></div>
+</section><section class="stop" id="s2" style="left:1920px;--h:200">
+  <div class="hero" id="h2"><p class="num">02</p><h2>Porto</h2><p class="note">Two hours north by train</p></div>
+</section><section class="stop" id="s3" style="left:3840px;--h:140">
+  <div class="hero" id="h3"><p class="num">03</p><h2>Douro</h2><p class="note">A river valley of terraced vineyards</p></div>
+</section><section class="stop" id="s4" style="left:5760px;--h:285">
+  <div class="hero" id="h4"><p class="num">04</p><h2>Braga</h2><p class="note">Last night: stairs, lights, dinner</p></div>
+</section></div></div>
+<script>stage.build((tl, S) => {
+tl.label("s1", 0)
+  .from("#h1", { y: S.h(6), opacity: 0, duration: 0.8, ease: "expo.out" }, 0.2)
+  .camera({ zoom: 1.06, duration: 3, ease: "sine.inOut" }, 0)
+  .label("s2", 2.4)
+  .hit("w1", "s2", { kind: "whoosh", pan: -0.4 })
+  .whip("#h2", { duration: 0.9 }, "s2")
+  .from("#h2", { scale: 0.92, opacity: 0.2, duration: 0.7, ease: "expo.out" }, "s2+=0.3")
+  .label("s3", 6.4)
+  .hit("w2", "s3", { kind: "whoosh", pan: 0 })
+  .whip("#h3", { duration: 0.9 }, "s3")
+  .from("#h3", { scale: 0.92, opacity: 0.2, duration: 0.7, ease: "expo.out" }, "s3+=0.3")
+  .label("s4", 8.4)
+  .hit("w3", "s4", { kind: "whoosh", pan: 0.4 })
+  .whip("#h4", { duration: 0.9 }, "s4")
+  .from("#h4", { scale: 0.92, opacity: 0.2, duration: 0.7, ease: "expo.out" }, "s4+=0.3")
+  .label("route", 11.9)
+  .hit("out", "route", { kind: "land" })
+  .camera({ anchor: "#route", at: [50, 50], zoom: 0.250 * 1.02, duration: 2, ease: "inOut(3)" }, "route")
+  .handheld({ amount: S.min(0.2) }, 0, 14);
+});</script>

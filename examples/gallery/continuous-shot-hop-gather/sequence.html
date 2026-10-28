@@ -1,0 +1,32 @@
+<div class="stage" data-libs="stage" data-duration="14" data-stage-version="2" style="width:1920px;height:1080px"><style>
+*{box-sizing:border-box;margin:0}
+.stage{background:#14101f;color:#f4effc;font-family:Inter,"DejaVu Sans",system-ui,sans-serif;overflow:hidden}
+.world{position:absolute;left:0;top:0;width:1920px;height:1080px}
+.title{position:absolute;left:0;width:1920px;top:90px;text-align:center;font-size:70px;font-weight:800;letter-spacing:-.02em}
+.slot{position:absolute;top:220px;width:260px;height:260px;border-radius:50%;border:5px dashed #5b4f7d}
+.peg{position:absolute;top:800px;width:240px;height:240px;border-radius:50%;background:hsl(var(--h) 70% 55%);color:#14101f;font-size:120px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.bench{position:absolute;left:150px;top:1010px;width:1620px;height:14px;border-radius:7px;background:#2a2340}
+#inbox{position:absolute;left:1380px;top:520px;width:400px;height:230px;border-radius:30px;background:#2a2340;border:4px solid #b49bff;display:flex;align-items:flex-start;justify-content:center;padding-top:20px;font-size:34px;letter-spacing:.2em;color:#b49bff;font-weight:700}
+.chip{position:absolute;width:150px;height:60px;border-radius:30px;background:#b49bff;color:#14101f;font-size:26px;font-weight:700;display:flex;align-items:center;justify-content:center}
+</style><div class="world"><p class="title">Everyone has a seat.</p><div class="slot" id="slot0" style="left:230px"></div><div class="slot" id="slot1" style="left:530px"></div><div class="slot" id="slot2" style="left:830px"></div><div class="slot" id="slot3" style="left:1130px"></div><div class="slot" id="slot4" style="left:1430px"></div><i class="bench"></i><div class="peg" id="peg0" style="left:240px;--h:8">A</div><div class="peg" id="peg1" style="left:540px;--h:45">B</div><div class="peg" id="peg2" style="left:840px;--h:150">C</div><div class="peg" id="peg3" style="left:1140px;--h:205">D</div><div class="peg" id="peg4" style="left:1440px;--h:285">E</div><div id="inbox">INBOX</div><div class="chip" style="left:180px;top:565px">Task 1</div><div class="chip" style="left:300px;top:645px">Task 2</div><div class="chip" style="left:420px;top:565px">Task 3</div><div class="chip" style="left:540px;top:645px">Task 4</div><div class="chip" style="left:660px;top:565px">Task 5</div><div class="chip" style="left:780px;top:645px">Task 6</div></div></div>
+<script>stage.build((tl, S) => {
+tl.label("open", 0)
+  .from(".title", { y: S.h(4), opacity: 0, duration: 0.8, ease: "expo.out" }, 0.2)
+  .from(".peg", { y: S.h(12), opacity: 0, duration: 0.6, stagger: 0.1, ease: "expo.out" }, 0.3)
+  .from(".slot", { scale: 0.6, opacity: 0, duration: 0.6, stagger: 0.08, ease: "back.out" }, 0.4)
+  .camera({ zoom: 1.04, duration: 3, ease: "sine.inOut" }, 0);
+for (let i = 0; i < 5; i++) {
+  const t = 1.6 + i * 0.85;
+  tl.label("hop" + i, t)
+    .hop("#peg" + i, { to: "#slot" + i, height: S.h(16), duration: 0.8, squash: 0.2 }, "hop" + i)
+    .hit("land" + i, "hop" + i + "+=0.8", { kind: "land", pan: -0.6 + i * 0.3 });
+}
+tl.label("flush", 6.4)
+  .gather(".chip", { into: "#inbox", arc: 0.3, stagger: 0.07, duration: 1.0, spin: 0.2 }, "flush")
+  .impact("#inbox", "flush+=1.4", { squash: 0.12 })
+  .label("lift", 9.4)
+  .hit("lift", "lift", { kind: "whoosh", pan: 0.3 })
+  .whip("#inbox", { duration: 0.9 }, "lift")
+  .camera({ zoom: 1.6, duration: 2.2, ease: "inOut(3)" }, "lift+=1")
+  .handheld({ amount: S.min(0.2) }, 0, 14);
+});</script>
