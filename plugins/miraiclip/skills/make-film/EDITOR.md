@@ -16,6 +16,7 @@ Load `edit-video` first if you haven't (its Brand and direction rules apply). Th
 | `media-sound` | Pictures (find or generate), music chosen first, sound effects, mix |
 | `sequence-core` | The contract for compose_sequence acts: the stage kit API and its rules |
 | `motion` | The motion-graphics grammar and about 30 techniques, plus breakdowns of whole films |
+| `continuous-shot` | When the ask is a continuous shot, one take, no cuts, or "not a slideshow": three concepts, a beat sheet, and a measured check of every beat |
 
 ## 1. Read the brief
 

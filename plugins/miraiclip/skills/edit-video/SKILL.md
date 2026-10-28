@@ -13,6 +13,7 @@ You edit a video by sending **commands** to the `miraiclip` MCP server. The serv
 | --- | --- |
 | A recorded talk, interview, podcast or vlog cleaned up (pauses cut, punch-ins, captions, lower third) | `talking-head` skill |
 | Captions or subtitles on an existing video | `captions` skill |
+| A continuous shot, one take, a film with no cuts, or "make it not feel like a slideshow" | `continuous-shot` skill |
 | A product launch, feature promo, explainer or announcement made from a brief, screenshots or a URL | `launch-video` skill |
 | The same video in another shape (9:16 Reels/TikTok/Shorts, 1:1, 16:9) | `reformat` skill |
 | A screen recording turned into a tutorial or product walkthrough (zoom in on the action, hold frames, blur private data, chapters) | `screen-tutorial` skill |

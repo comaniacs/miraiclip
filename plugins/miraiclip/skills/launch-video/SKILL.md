@@ -5,6 +5,8 @@ description: Make a product launch, feature announcement, promo or explainer vid
 
 # Launch video (motion graphics)
 
+If the user asks for a continuous shot, one take, or no cuts, use the `continuous-shot` skill instead of the scene list below.
+
 A sequence of designed scenes: kinetic type, product shots, proof points and a call to action. It needs no camera footage. Read the `edit-video` skill first, especially `reference/craft.md` and `reference/html-recipes.md`. This skill is how to put them together.
 
 ## 1. Gather the material
