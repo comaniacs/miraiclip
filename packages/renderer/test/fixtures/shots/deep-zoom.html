@@ -1,0 +1,14 @@
+<div class="stage" data-libs="stage" data-duration="6" data-stage-version="2">
+  <div class="world" style="position:absolute;inset:0">
+    <div id="l0" style="position:absolute;left:30%;top:30%;width:40%;height:40%;background:#264653"></div>
+    <div id="l1" style="position:absolute;left:49.9%;top:49.9%;width:0.2%;height:0.2%;background:#e9c46a"></div>
+    <div id="l2" style="position:absolute;left:49.98%;top:49.98%;width:0.04%;height:0.04%;background:#e76f51"></div>
+  </div>
+</div>
+<script>
+  stage.build((tl) => {
+    tl.label("in", 0.5)
+      .camera({ anchor: "#l2", at: [50, 50], zoom: 300, duration: 2, ease: "inOut(3)" }, "in")
+      .camera({ anchor: "#l2", at: [50, 50], zoom: 1, duration: 2 }, ">+=1");
+  });
+</script>

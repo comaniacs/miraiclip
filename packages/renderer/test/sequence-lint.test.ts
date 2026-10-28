@@ -54,4 +54,37 @@ describe("lintSequence: large blurred layers", () => {
     expect(lintSequence(tpl(".dot{width:4cqmin;height:4cqmin;filter:blur(.3cqmin)}")).warnings).toEqual([]);
     expect(lintSequence(tpl(".bloom{width:70cqw;height:70cqw;background:radial-gradient(circle,#f0f,transparent 65%)}")).warnings).toEqual([]);
   });
+
+  describe("continuous shot (version 2)", () => {
+    const v2 = (script: string, markup = '<div id="a"></div><div id="b"></div>', css = "", version = ' data-stage-version="2"') =>
+      `<div class="stage" data-libs="stage" data-duration="6"${version}><style>${css}</style><div class="world">${markup}</div></div><script>stage.build((tl, S) => {${script}});</script>`;
+    const found = (t: string) => ({ e: lintSequence(t).errors.map((x) => x.rule), w: lintSequence(t).warnings.map((x) => x.rule) });
+
+    it("passes a clean version 2 sequence", () => {
+      expect(lintSequence(v2('tl.morph("#a", "#b", { duration: 1 }, 0).shake(2).camera({ zoom: 2, duration: 1 }, 0);'))).toEqual({ errors: [], warnings: [] });
+    });
+    it("version: verbs without data-stage-version=\"2\"", () => {
+      expect(found(v2('tl.hop("#a", { to: "#b" });', undefined, "", "")).e).toContain("version");
+      expect(found(v2('tl.hop("#a", { to: "#b" });')).e).not.toContain("version");
+    });
+    it("carry-target: a selector nothing matches", () => {
+      expect(found(v2('tl.morph("#a", "#nope");')).e).toContain("carry-target");
+      expect(found(v2('tl.press(".missing", 1);')).e).toContain("carry-target");
+      expect(found(v2('tl.hop("#a", { to: "#b" });')).e).not.toContain("carry-target");
+    });
+    it("zoom-target: zoomThrough needs a target inside the world", () => {
+      const html = `<div class="stage" data-libs="stage" data-duration="6" data-stage-version="2"><div class="world"><div id="in"></div></div><div id="out"></div></div><script>stage.build((tl) => {tl.zoomThrough("#out");});</script>`;
+      expect(found(html).e).toContain("zoom-target");
+      expect(found(html.replace('#out', '#in')).e).not.toContain("zoom-target");
+    });
+    it("zoom-anchor: a deep zoom without an anchor warns", () => {
+      expect(found(v2("tl.camera({ zoom: 300, duration: 2 }, 0);")).w).toContain("zoom-anchor");
+      expect(found(v2('tl.camera({ anchor: "#a", at: [50, 50], zoom: 300, duration: 2 }, 0);')).w).not.toContain("zoom-anchor");
+    });
+    it("verb-transform: a CSS transform on an element a verb animates warns", () => {
+      expect(found(v2('tl.hop("#a", { to: "#b" });', '<div id="a" style="transform:rotate(3deg)"></div><div id="b"></div>')).w).toContain("verb-transform");
+      expect(found(v2('tl.hop("#a", { to: "#b" });', undefined, "#a{transform:scale(2)}")).w).toContain("verb-transform");
+      expect(found(v2('tl.hop("#a", { to: "#b" });')).w).not.toContain("verb-transform");
+    });
+  });
 });
