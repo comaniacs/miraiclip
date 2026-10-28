@@ -97,6 +97,7 @@ npx @miraiclip/mcp --project ./video.miraiclip.json --assets ./media
 | [`@miraiclip/server-export`](https://docs.miraiclip.com/export/server) | 0.4.3 | The same export from Node, plus a CLI |
 | [`@miraiclip/templates`](https://docs.miraiclip.com/templates/defining-templates) | 0.1.3 | Parameterized videos and batch rendering |
 | [`@miraiclip/audio-sources`](https://docs.miraiclip.com/creative/audio) | 0.2.1 | Stock and AI-generated audio with licenses |
+| [`@miraiclip/media-sources`](packages/media-sources) | 0.0.0 | Stock photos and video (Pexels, Pixabay) with licenses |
 | [`@miraiclip/assistant`](https://docs.miraiclip.com/ai/assistant) | 0.1.1 | AI editing assistant, any model |
 | [`@miraiclip/mcp`](https://docs.miraiclip.com/ai/mcp-server) | 0.1.3 | MCP server for agents |
 | [`@miraiclip/editor`](packages/editor) | 0.1.0 | Headless editor logic: timeline geometry, clip drag and trim with snapping, shortcuts |
