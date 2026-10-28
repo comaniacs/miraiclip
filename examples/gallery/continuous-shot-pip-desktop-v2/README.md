@@ -17,6 +17,15 @@ How it is built: `.world` carries the perspective and the camera; a `.table` chi
 
 What it uses: `tl.follow`, `tl.camera` (zoom and roll), `tl.handheld`, `tl.hit` on every landing and press, and keyed `x`, `y` and `z` moves for Pip. The window pops are `tl.fromTo` scales rather than `tl.morph`, because a morph measures a flat bounding box and a tilted slab's projected box is not its plane size.
 
+Measured against v1 and the reference, frame to frame at 12 fps on low-res renders:
+
+| | reference | v1 | v2 |
+| --- | --- | --- | --- |
+| Average change per frame | 7.8 | 1.2 | 5.2 |
+| Frames where nothing moves | 0% | 39% | 6% |
+| Longest stretch with nothing moving | 0 s | 1.7 s | 0.7 s |
+| Share of the frame changing (median) | 16.7% | 0.9% | 7.8% |
+
 Not in this version: glass refraction, real lens blur, a depth-of-field pass and sound. Export with shutter motion blur on for the fast moves, and note that the hits are recorded for sound but nothing turns them into foley yet.
 
 Checked with the shot check and by eye on stills. Build it with `node build.mjs` (needs `@miraiclip/core` built), then open `video.miraiclip.json` in an editor, or export with `npx -p @miraiclip/server-export miraiclip-export video.miraiclip.json --out nudge2.mp4`.
