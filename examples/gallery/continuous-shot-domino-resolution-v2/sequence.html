@@ -46,16 +46,17 @@ var PH = { x: [], z: [], h: [], t: [], d: [], rest: [], col: [], colW: [], mode:
 function add(x, z, h, t, d, rest, col, mode, colW) {
   PH.x.push(x); PH.z.push(z); PH.h.push(h); PH.t.push(t); PH.d.push(d); PH.rest.push(rest); PH.col.push(col); PH.mode.push(mode || 0); PH.colW.push(colW || col);
 }
-var GAP = 0.9, PITCH = 0.85;
+var GAP = 0.9, LGAP = 0.72, PITCH = 0.85; // fields keep square pixels; lines are packed tighter so they fall into a stack
 // A line of phones along a smooth curve through the points, falling from t0 at dt per phone. Returns its front.
 function line(pts, t0, dt, col, opts) {
   opts = opts || {};
   var curve = new THREE.CatmullRomCurve3(pts.map(function (p) { return new THREE.Vector3(p[0], 0, p[1]); }), false, "centripetal");
-  var n = Math.max(2, Math.round(curve.getLength() / GAP));
+  var n = Math.max(2, Math.round(curve.getLength() / LGAP));
+  if (opts.span) dt = opts.span / (n - 1); // the whole line takes exactly `span` seconds, whatever its length
   var fr = { p: [], t: [] };
   for (var k = opts.skipFirst ? 1 : 0; k < n; k++) {
     var u = k / (n - 1), p = curve.getPointAt(u), tg = curve.getTangentAt(u), tk = t0 + (k - (opts.skipFirst ? 1 : 0)) * dt;
-    if (!(opts.skipLast && k === n - 1)) add(p.x, p.z, Math.atan2(tg.x, tg.z), tk, opts.d || 0.24, k === n - 1 ? 1.45 : 1.12, col || BLUE, 0);
+    if (!(opts.skipLast && k === n - 1)) add(p.x, p.z, Math.atan2(tg.x, tg.z), tk, opts.d || 0.24, k === n - 1 ? 1.45 : 1.27, col || BLUE, 0);
     fr.p.push([p.x, p.z]); fr.t.push(tk);
   }
   fr.end = fr.t[fr.t.length - 1];
@@ -78,7 +79,7 @@ function field(n, z0, start, mode, skip) {
 add(0, -0.45, 0, 1.74, 0.86, 1.18, BLUE, 0);
 field(3, 1.0, function (r, j) { return 2.60 + Math.abs(j - 1) * 0.14 + r * 0.26; }, 0);
 // the S-line to the 10x10
-var S1 = line([[0, 3.9], [0, 6], [6, 13], [-6, 25], [5, 37], [0, 45], [0, 47]], BEAT(8), 0.055);
+var S1 = line([[0, 3.9], [0, 6], [6, 13], [-6, 25], [5, 37], [0, 45], [0, 47]], BEAT(8), 0, BLUE, { span: 3.35 });
 var tC = S1.end + 0.05;
 // the 10x10: a header row struck in the middle, spreading both ways, each header phone starting its column
 for (var hj = 0; hj < 10; hj++) { var hx = -(hj - 4.5) * PITCH; add(hx, 48, hx < 0 ? -Math.PI / 2 : Math.PI / 2, tC + Math.abs(hx) * 0.06, 0.2, 1.3, BLUE, 0); }
@@ -86,7 +87,7 @@ field(10, 49.2, function (r, j, x) { return tC + 0.12 + Math.abs(x) * 0.06 + r *
 var cEnd = tC + 0.12 + 4 * 0.06 + 9 * 0.055;
 // the exit to the trunk, then five generations of splits into 32 lines: one generation a beat-pair
 var zRoot = 66, LV = 12, splitT = function (l) { return 8.60 + l * 0.686; };
-var EX = line([[0, 58.5], [0, 62], [0, zRoot]], cEnd + 0.1, (8.60 - cEnd - 0.1) / 8);
+var EX = line([[0, 58.5], [0, 62], [0, zRoot]], cEnd + 0.1, 0, BLUE, { span: 8.60 - cEnd - 0.1 });
 var colX = function (j) { return -(j - 15.5) * PITCH; };
 var HERO = { p: [], t: [] };
 function branch(l, lo, hi) {
@@ -96,7 +97,7 @@ function branch(l, lo, hi) {
   [[lo, mid], [mid, hi]].forEach(function (g, gi) {
     var x1 = 0; for (var j = g[0]; j < g[1]; j++) x1 += colX(j); x1 /= g[1] - g[0];
     var za = zRoot + l * LV, zb = za + LV, n = LV / GAP;
-    var fr = line([[x0, za], [x0, za + 2.5], [x1, zb - 2.5], [x1, zb]], splitT(l), 0.686 / n, BLUE, { skipFirst: true, skipLast: l < 4 });
+    var fr = line([[x0, za], [x0, za + 2.5], [x1, zb - 2.5], [x1, zb]], splitT(l), 0, BLUE, { skipFirst: true, skipLast: l < 4, span: 0.686 });
     if (lo === 0 && gi === 0) { HERO.p = HERO.p.concat(fr.p); HERO.t = HERO.t.concat(fr.t); }
     branch(l + 1, g[0], g[1]);
   });
@@ -108,7 +109,7 @@ field(32, zD, function (r) { return splitT(5) + 0.1 + r * 0.045; }, 1);
 var dEnd = splitT(5) + 0.1 + 31 * 0.045;
 // the chase line, then the 100x100 struck at its entrance: a circular front through 10,000
 var zE = zD + 31 * GAP + 48;
-var CH = line([[0, zD + 31 * GAP + 1.4], [0, zD + 31 * GAP + 6], [9, zD + 31 * GAP + 18], [-9, zD + 31 * GAP + 32], [0, zE - 4], [0, zE - 1]], 13.6, (16.74 - 13.6) / 60);
+var CH = line([[0, zD + 31 * GAP + 1.4], [0, zD + 31 * GAP + 6], [9, zD + 31 * GAP + 18], [-9, zD + 31 * GAP + 32], [0, zE - 4], [0, zE - 1]], 13.6, 0, BLUE, { span: 16.74 - 13.6 });
 var SURV = { r: 40, j: 50 };
 field(100, zE, function (r, j, x, z) { return 16.74 + Math.hypot(x, z - zE) * 0.034; }, 2, function (r, j) { return j === SURV.j && (r === SURV.r || r === SURV.r - 1); });
 var survX = -(SURV.j - 49.5) * PITCH, survZ = zE + SURV.r * GAP;
@@ -195,7 +196,7 @@ function pose(t) {
     E[k + 8] = sh * ct; E[k + 9] = -st; E[k + 10] = ch * ct; E[k + 11] = 0;
     E[k + 12] = PH.x[i] + sh * oz; E[k + 13] = oy; E[k + 14] = PH.z[i] + ch * oz; E[k + 15] = 1;
     for (var m = 0; m < 16; m++) E2[k + m] = E[k + m];
-    var L = sm((th / PH.rest[i] - 0.55) / 0.45), col = PH.col[i];
+    var L = i === 0 ? sm((t - 1.5) / 0.6) : sm((th / PH.rest[i] - 0.55) / 0.45), col = PH.col[i];
     if (PH.mode[i] === 1) L *= dropL;
     if (PH.mode[i] === 2 && winkOn) col = PH.colW[i];
     var o = i * 3;
@@ -224,13 +225,13 @@ function ride(fr, t, back, up, side, ahead, lag) {
 function bank(fr, t) { var a = heading(fr, t - 0.15), b = heading(fr, t + 0.15); return clamp((a.x * b.z - a.z * b.x) * 0.9, -0.12, 0.12); }
 var stepK = function (t) { var k = 0; [splitT(3), splitT(4), splitT(5)].forEach(function (s) { k += sm((t - s + 0.15) / 0.4); }); return k; };
 var SEG = [
-  [0, function (t) { var a = mix(-2.35, -2.85, sm(t / 1.9)); return { p: [Math.sin(a) * 3.0, mix(1.0, 1.3, t / 1.74), Math.cos(a) * 3.0 - 0.45], q: [0, 0.9, -0.45], fov: 26 }; }],
-  [1.74, function (t) { var u = sm((t - 1.74) / 0.86); return { p: [mix(-1.1, -2.6, u), mix(1.25, 1.9, u), mix(-2.5, -1.4, u)], q: [0, mix(0.8, 0.3, u), mix(0.2, 1.4, u)], fov: 32 }; }],
-  [2.6, function (t) { var u = sm((t - 2.6) / 0.9); return { p: [mix(-2.6, -2.2, u), mix(1.9, 3.6, u), mix(-1.4, -1.9, u)], q: [0, 0, mix(1.4, 3.6, u)], fov: 36 }; }],
-  [3.46, function (t) { var r = ride(S1, t, 4.6, 2.4, 2.2, 2.5); r.fov = 40; return r; }],
+  [0, function (t) { var a = mix(0.5, 1.05, sm(t / 1.9)); return { p: [Math.sin(a) * 2.4, mix(1.15, 1.35, t / 1.74), Math.cos(a) * 2.4 - 0.45], q: [0, 0.95, -0.45], fov: 26 }; }],
+  [1.74, function (t) { var u = sm((t - 1.74) / 0.86); return { p: [mix(2.1, 2.7, u), mix(1.35, 1.9, u), mix(0.75, -0.2, u)], q: [0, mix(0.9, 0.3, u), mix(-0.3, 1.2, u)], fov: mix(26, 32, u) }; }],
+  [2.6, function (t) { var u = sm((t - 2.6) / 0.9); return { p: [mix(2.7, 2.2, u), mix(1.9, 3.6, u), mix(-0.2, -1.9, u)], q: [0, 0, mix(1.2, 3.6, u)], fov: mix(32, 36, u) }; }],
+  [3.46, function (t) { var r = ride(S1, t, -0.4, 2.5, 2.2, -2.8); r.fov = 46; return r; }],
   [6.89, function (t) { var u = sm((t - 6.89) / 0.9); return { p: [mix(7, 9, u), mix(7, 11, u), mix(44, 46, u)], q: [0, 0, 53], fov: 40 }; }],
-  [7.8, function (t) { var r = ride(HERO, t, 3.4, 2.1, 0.4, 7); r.fov = 48; r.roll = bank(HERO, t); return r; }],
-  [10.3, function (t) { var k = stepK(t); return { p: [mix(-3, -7, k / 3), mix(6, 16, k / 3), mix(100, 94, k / 3)], q: [0, 0, mix(112, 124, k / 3)], fov: 42 }; }],
+  [7.8, function (t) { var r = ride(HERO, t, -0.6, 2.4, 2.0, -3.2); r.fov = 50; r.roll = bank(HERO, t); return r; }],
+  [10.3, function (t) { var k = stepK(t) / 3, r = ride(HERO, t, mix(-0.6, 12, k), mix(2.4, 12, k), mix(2.0, 4, k), mix(-3.2, 8, k)); r.fov = 48; return r; }],
   [12.2, function (t) { var u = sm((t - 12.2) / 2.0); return { p: [mix(-8, -6, u), mix(20, 22, u), mix(108, 112, u)], q: [0, 0, zD + 15], fov: 40 }; }],
   [14.3, function (t) { var r = ride(CH, t, 3.0, 1.25, 1.8, 2.5, 0.08); r.fov = 46; r.roll = bank(CH, t) * 0.6; return r; }],
   [16.74, function (t) {
@@ -238,7 +239,7 @@ var SEG = [
     return { p: [mix(2.2, 0, c), mix(2.6, 46, c), mix(zE + rr - 10, zE - 20, c)], q: [0, 0, mix(zE + rr + 5, zE + 50, c)], fov: mix(48, 40, c) };
   }],
   [22.31, function (t) { var u = sm((t - 22.31) / 1.25); var e = sm((t - 23.6) / 2.0);
-    return { p: [mix(0, survX, u), mix(46, 1.25, u), mix(zE - 20, survZ - 4.6 + 0.35 * e, u)], q: [mix(0, survX, u), mix(0, 0.85, u), mix(zE + 50, survZ, u)], fov: mix(40, 26, u) }; }],
+    return { p: [mix(0, survX, u), mix(46, 1.75, u), mix(zE - 20, survZ - 4.4 + 0.35 * e, u)], q: [mix(0, survX, u), mix(0, 0.95, u), mix(zE + 50, survZ, u)], fov: mix(40, 26, u) }; }],
 ];
 function segAt(t) { var i = 0; while (i < SEG.length - 1 && t >= SEG[i + 1][0]) i++; return i; }
 function camAt(t) {
@@ -279,7 +280,7 @@ function draw(t) {
   var dist = Math.hypot(c.p[0] - c.q[0], c.p[1] - c.q[1], c.p[2] - c.q[2]), half = clamp(dist * 0.9, 6, 70);
   sun.target.position.set(c.q[0], 0, c.q[2]); sun.position.set(c.q[0] - 18, 40, c.q[2] - 26);
   var sc = sun.shadow.camera; sc.left = -half; sc.right = half; sc.top = half; sc.bottom = -half; sc.near = 1; sc.far = 140; sc.updateProjectionMatrix();
-  scene.fog.near = Math.max(40, dist * 1.4); scene.fog.far = scene.fog.near + 180;
+  scene.fog.near = Math.max(30, dist * 1.4); scene.fog.far = scene.fog.near + 95;
   R.render(scene, cam);
 }
 tl.frame(draw, { motion: motion });
