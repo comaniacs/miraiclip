@@ -1,0 +1,5 @@
+---
+"@miraiclip/renderer": minor
+---
+
+Continuous shot for the stage kit. Add `data-stage-version="2"` to a sequence's stage root and it can be built as one unbroken camera move: carry verbs that turn one element into the next (`tl.morph`, `tl.iris`, `tl.zoomThrough`, `tl.hop`, `tl.gather`, `tl.impact`, `tl.press`, `tl.pointer`, and a `spring` ease), an operated camera on its own track (log-space zoom, a screen-space `anchor` for deep zooms, `tl.follow`, `tl.whip`, `tl.handheld`, `tl.shake`, `data-depth` parallax, `data-lod`, and `S.grid`), declared rests (`tl.rest`), hard cuts (`tl.cut`) and sound hits (`tl.hit`), reported on the stage root as `data-stage-carries`, `-events`, `-rests` and `-cuts`. `S.rect`, `S.center` and `S.pointerPath` measure elements and import a recorded click log. `lintSequence` gains `version`, `carry-target`, `zoom-target`, `zoom-anchor` and `verb-transform`. Sequences without the attribute render exactly as before. The package also exports `ANIME_SOURCE` and `STAGE_KIT_HASH` from `@miraiclip/renderer/stage`.

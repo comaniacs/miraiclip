@@ -39,6 +39,8 @@ export interface Shot {
   page: Page;
   /** Seek the timeline to t seconds and wait a frame. */
   seek(t: number): Promise<void>;
+  /** Milliseconds from running the sequence's script to the timeline being ready (build, follow pre-pass, rest checks). */
+  buildMs: number;
   /** The stage root's data-stage-* attributes. */
   attrs(): Promise<Record<string, string>>;
   close(): Promise<void>;
@@ -61,10 +63,13 @@ export async function openShot(html: string, size: SizeName = "landscape"): Prom
   await page.setContent(doc, { waitUntil: "load" });
   await page.addScriptTag({ content: ANIME_SOURCE });
   await page.addScriptTag({ content: STAGE_KIT_SOURCE });
+  const started = Date.now();
   if (inline) await page.addScriptTag({ content: inline });
   await page.evaluate(() => (window as unknown as { __miraiclipReady: Promise<void> }).__miraiclipReady);
+  const buildMs = Date.now() - started;
   return {
     page,
+    buildMs,
     seek: (t) => page.evaluate((time) => (window as unknown as { __miraiclipSeek(t: number): void }).__miraiclipSeek(time), t),
     attrs: () =>
       page.evaluate(() => {
