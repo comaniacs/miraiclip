@@ -9,17 +9,18 @@
  * `stage.build((tl, S) => { … })`. See src/stage/kit.js for the API.
  */
 import { registerScriptedLibraries } from "../html/scripted.js";
-import { ANIME_SOURCE, ANIME_VERSION, STAGE_KIT_HASH, STAGE_KIT_SOURCE } from "./stage.generated.js";
+import { ANIME_SOURCE, ANIME_VERSION, STAGE_KIT_HASH, STAGE_KIT_SOURCE, THREE_KIT_SOURCE } from "./stage.generated.js";
 import { THREE_SOURCE, THREE_VERSION } from "./three.generated.js";
 
-export { ANIME_SOURCE, ANIME_VERSION, STAGE_KIT_HASH, STAGE_KIT_SOURCE, THREE_SOURCE, THREE_VERSION };
+export { ANIME_SOURCE, ANIME_VERSION, STAGE_KIT_HASH, STAGE_KIT_SOURCE, THREE_KIT_SOURCE, THREE_SOURCE, THREE_VERSION };
 export { lintSequence } from "./lint.js";
 export type { SequenceLintFinding, SequenceLintResult } from "./lint.js";
 
 /**
  * Register `anime`, `stage` and `three` as scripted libraries. `three` is three.js with RoundedBoxGeometry,
  * RoomEnvironment and mergeGeometries, as a global THREE; a sequence asks for it with data-libs="stage three"
- * and draws each frame from the time in tl.frame(draw).
+ * and draws each frame from the time in tl.frame(draw). `three-kit` adds the global ThreeKit (lines, glows, noise,
+ * a shot-blending camera, subject and motion checks, overlay helpers): data-libs="stage three three-kit".
  */
 export function registerStageKit(): void {
   // Hosts that bundle the kit carry its fingerprint, so a stale bundle can be told from a current one.
@@ -28,5 +29,6 @@ export function registerStageKit(): void {
     anime: ANIME_SOURCE,
     stage: { code: STAGE_KIT_SOURCE, requires: ["anime"] },
     three: THREE_SOURCE,
+    "three-kit": { code: THREE_KIT_SOURCE, requires: ["three"] },
   });
 }

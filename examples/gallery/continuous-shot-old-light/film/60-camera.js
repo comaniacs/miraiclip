@@ -6,7 +6,7 @@ var deg = Math.PI / 180;
 // A · the core and the Sun: one log zoom from 0.022 to 40 units, an orbit that slows to a drift, the subject held
 // right of centre so the type has the left third
 function camSun(t) {
-  var az = (t < 9.4 ? 26.8 + 27 * Math.pow(1 - t / 9.4, 2) : 26.8 - 6 * sm((t - 9.4) / 5.6)) * deg;
+  var az = (t < 9.4 ? 26.8 + 27 * Math.pow(1 - t / 9.4, 2) : 26.8 - 6 * sm((t - 9.4) / (T.convEnd - 9.4))) * deg; // settles by the rest
   var el = (17 + 4 * smr(t, 5, 12)) * deg;
   var dir = V(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
   var D = logMix(0.018, 48, smoother((t - T.zoomStart) / (T.zoomEnd - T.zoomStart))) * logMix(1, 42 / 48, smr(t, 9.0, 14.1));
@@ -33,7 +33,7 @@ var C0 = (function () {
   var tNext = camRide(T.approach + 0.01).p.distanceTo(PE);
   return { De: De, a: Math.atan2(c2, c1), el: Math.asin(c3), rate: (Math.log(tNext) - Math.log(De)) / 0.01 };
 })();
-var APPROACH_DUR = 2.6, DE_NEAR = 8.6;
+var APPROACH_DUR = 2.0, DE_NEAR = 8.6;
 function hermite(u, m0) { u = c01(u); var u2 = u * u, u3 = u2 * u; return (-2 * u3 + 3 * u2) + m0 * (u3 - 2 * u2 + u); }
 function camEarth(t) {
   var dl = Math.log(DE_NEAR) - Math.log(C0.De), m0 = C0.rate * APPROACH_DUR / dl;
@@ -51,27 +51,15 @@ function camEarth(t) {
   return { p: p, q: p.clone().addScaledVector(look, De), fov: mix(50, 40, smr(t, T.approach, 22.0)) - 4 * smr(t, 25.6, 30), up: YUP.clone().lerp(NUP, 0.45 * smr(t, 25.6, 30)).normalize() };
 }
 
-function blendCam(a, b, w, wLook) {
-  // blend what each shot looks at, then aim from where the camera really is, so the aim never drifts off both
-  var p = a.p.clone().lerp(b.p, w), q = a.q.clone().lerp(b.q, wLook === undefined ? w : wLook);
-  return { p: p, q: q, fov: mix(a.fov, b.fov, w), up: a.up.clone().lerp(b.up, w).normalize() };
-}
-function camAt(t) {
-  if (t < T.breakout) return camSun(t);
-  if (t < T.rideStart) { // the aim turns to the escaping photon first, then the camera follows it out
-    var u = (t - T.breakout) / (T.rideStart - T.breakout);
-    return blendCam(camSun(t), camRide(t), smoother(u), smoother(u / 0.4));
-  }
-  if (t < T.approach) return camRide(t);
-  if (t < T.approach + 0.9) return blendCam(camRide(t), camEarth(t), smoother((t - T.approach) / 0.9));
-  return camEarth(t);
-}
+// one camera from the three shots: the aim turns to the escaping photon first, then the camera follows it out
+var camAt = K.shots([
+  { at: 0, fn: camSun },
+  { at: T.breakout, fn: camRide, blend: T.rideStart - T.breakout, aimFirst: 0.4 },
+  { at: T.approach, fn: camEarth, blend: 0.9 },
+]);
 function placeCamera(cam, t) {
   var c = camAt(t);
-  cam.fov = c.fov; cam.position.copy(c.p); cam.up.copy(c.up); cam.lookAt(c.q);
-  var dist = c.p.distanceTo(c.q) || 1;
-  cam.near = clamp(Math.min(dist, nearestThing(c.p)) * 0.02, 1e-5, 0.4); cam.far = 8000;
-  cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+  K.place(cam, c, { near: Math.min(c.p.distanceTo(c.q), nearestThing(c.p)), maxNear: 0.4, far: 8000 });
   return c;
 }
 // the closest thing the camera might be looking past: the photon in the core, the beam on the ride, Earth's surface

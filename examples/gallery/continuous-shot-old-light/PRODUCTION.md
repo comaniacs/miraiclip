@@ -112,7 +112,7 @@ Times are seconds on one shared timeline (`timeline.mjs` is the single source fo
 | 3 | 6.0 | Pulled back: a tangle of glowing thread inside a fading cloud. |
 | 4 | 8.5 | The Sun cutaway on the right (three bands); a leader line to "THE CORE". |
 | 5 | 12.0 | The thread snakes through the radiative band; the counter is at 60,000. |
-| 6 | 14.5 | Rest: the head pulses at the rim and the camera is still. |
+| 6 | 14.5 | Rest (`tl.rest`, verified): the head pulses at the rim and the camera is still. |
 | 7 | 16.2 | Breakout: the spark blazing toward the camera, the beam behind it, the Sun's limb filling the left. |
 | 8 | 18.5 | The ride: dust streaks, a small blue dot ahead, the clock at 4:10. |
 | 9 | 21.2 | Landing: a ring of light on Earth's dayside. |

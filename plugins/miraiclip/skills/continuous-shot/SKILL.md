@@ -23,7 +23,7 @@ Compose one sequence per act as an html clip whose template has `data-libs="stag
 
 ## 4. Check until clean
 
-Run `check_sequence` (the miraiclip MCP tool). Fix every warning:
+Run `check_sequence` (the miraiclip MCP tool; in the repo without it, `pnpm mc check <project.json>`). Fix every warning:
 
 - **bare boundary**: carry something across it with the verb its hint suggests, or redesign the beat;
 - **framing**: keep the subject in frame, or follow it with the camera;
@@ -35,6 +35,16 @@ Repeat until no boundary is bare and every subject stays in frame. A carry score
 ## 5. Contact sheet and review
 
 Show the boundary frames (the check can return before/after frames for bare beats; use `preview_frame` around every label for the rest, or `mc.mjs sheet` on a draft the user exports) and grade the draft against `reference/scorecard.md`. Fix any fail, then tell the user which concept was built, the beat sheet in one line, and what to look at. Warnings never block an export, but don't hand over a draft with a bare boundary. When the user is ready to export the final, suggest motion blur (`motionBlur: {}` on the export): a continuous shot moves a lot, and the shutter smear is what keeps fast moves from strobing. It is slower to render, so it is for the final, not for drafts or previews.
+
+## A 3D film (three.js)
+
+Paint the scene with `tl.frame` and use the kit's helpers instead of writing them again: `data-libs="stage three three-kit"` gives `ThreeKit` (constant-width lines, glows, noise, `ThreeKit.shots` to blend camera shots). Then make the checks see the canvas:
+
+- `tl.frame(draw, { motion: ThreeKit.motionOf(camAt) })`: motion blur and declared rests read it;
+- `tl.subject(name, ThreeKit.subjectOf(camAt, pointAt, { radius }), { minPx })` for the subject, so `check` reports when it leaves the frame or shrinks away (the carry score only sees DOM elements);
+- type and counters in a held painter, `tl.frame(paintType, { hold: true })`, with `data-fps` on the root, so motion blur doesn't ghost them.
+
+Work in this loop: `pnpm mc check` (seconds) → fix → `pnpm mc stills <project> --at … --sheet` around every label (seconds) → look. Render only once both are clean: `pnpm mc <project> --out film.mp4 --workers 4`, and with `--motion-blur` for the final. `examples/gallery/continuous-shot-old-light` is a worked example.
 
 ## More than one act
 

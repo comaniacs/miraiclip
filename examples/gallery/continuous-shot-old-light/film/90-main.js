@@ -1,9 +1,6 @@
 // ---- the renderer, the scene and the frame: everything drawn from t alone
 var cv = document.getElementById("c");
-var renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true });
-renderer.setPixelRatio(1); renderer.setSize(W, H, false);
-renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+var renderer = K.renderer(cv, W, H);
 
 var scene = new THREE.Scene();
 scene.background = GROUND;
@@ -26,23 +23,24 @@ function draw(t) {
   poseMicro(t, D); poseSun(t, c.p); poseSpace(t, speed); poseEarth(t, c.p);
   LINES.forEach(function (l) { l.material.uniforms.uNear.value = cam.near; });
   renderer.render(scene, cam);
-  poseOverlay(t, cam);
 }
 
-// how far the picture moves between two instants, for the exporter's motion blur: probe points around what the
-// camera looks at, seen from both poses
-var probe = new THREE.PerspectiveCamera(40, W / H, 0.001, 8000), pv = V(0, 0, 0);
-function motion(from, to) {
-  var a = camAt(from), d = a.p.distanceTo(a.q), f = a.q.clone().sub(a.p).normalize();
-  var side = f.clone().cross(YUP).normalize(), up = side.clone().cross(f);
-  var pts = [V(0, 0, 0), side.clone().multiplyScalar(d * 0.4), up.clone().multiplyScalar(d * 0.3), f.clone().multiplyScalar(-d * 0.5)].map(function (o) { return a.q.clone().add(o); });
-  placeCamera(probe, from); var A = pts.map(function (p) { return pv.copy(p).project(probe).clone(); });
-  placeCamera(probe, to);
-  var far = 0;
-  pts.forEach(function (p, i) { var b = pv.copy(p).project(probe); far = Math.max(far, Math.hypot((b.x - A[i].x) * W / 2, (b.y - A[i].y) * H / 2)); });
-  return far;
+// the 3D picture, with the motion blur and the rest check told how far it moves; the type is held to the frame grid
+// so blur samples of one frame show the same words and digits
+tl.frame(draw, { motion: K.motionOf(camAt) });
+var labelCam = new THREE.PerspectiveCamera(40, W / H, 0.001, 8000);
+tl.frame(function (t) { placeCamera(labelCam, t); poseOverlay(t, labelCam); }, { hold: true });
+
+// the subject the shot check keeps in frame: the photon, then the thread's head, the beam's head, and Earth
+function subjectAt(t) {
+  if (t < T.walkStart) return photonLocal(t).multiplyScalar(MICRO_SCALE).add(MC);
+  if (t < T.breakout) return threadPoint(t).p;
+  if (t < T.landing) return beamPoint(t);
+  return PE;
 }
-tl.frame(draw, { motion: motion });
+tl.subject("the photon", K.subjectOf(camAt, subjectAt, { w: W, h: H }), { to: T.landing });
+tl.subject("Earth", K.subjectOf(camAt, function () { return PE; }, { w: W, h: H, radius: RE }), { from: T.landing, minPx: 40 });
+tl.rest(T.convEnd, T.restEnd);
 
 // beats and sound moments
 tl.label("hook", 0.32).label("prisoner", T.hook2In).label("zoom", T.zoomStart).label("core", T.coreLabel[0]).label("walk", T.walkStart)

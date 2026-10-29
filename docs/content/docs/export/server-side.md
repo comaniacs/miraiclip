@@ -24,6 +24,22 @@ miraiclip-export project.json --out final.mp4 --quality high \
   --asset media=./media/interview.mp4
 ```
 
+The same command reviews a film without exporting it, and renders finals faster:
+
+```sh
+miraiclip-export stills project.json --at 1,9.5,15 --sheet   # PNG frames from one warm browser, plus a contact sheet
+miraiclip-export check project.json                          # the continuous-shot check: carries, framing, rests, rhythm
+miraiclip-export project.json --out final.mp4 --workers 4 --motion-blur   # parallel chunks, shutter motion blur
+miraiclip-export doctor                                      # browser and ffmpeg (and, in the repo, stale builds)
+```
+
+- `stills` keeps one browser and page for every frame, so a still costs a fraction of a second instead of a browser launch. `--width` renders smaller frames; `--sheet` (needs `ffmpeg`) tiles them 4 across with their times.
+- `check` prints each sequence clip's carry score, boundaries and findings with a hint for each. `--json` gives the full report; `--strict` exits with code 2 when there are findings.
+- `--workers N` renders through `renderDistributed` with a `localRunner` of N browsers (needs `ffmpeg` to join). Several WebGL scenes share one GPU, so expect less than N× on a single machine.
+- `--motion-blur` turns on the default shutter (180°). It is slower: use it for the final.
+
+In this repo, `pnpm mc …` runs the same CLI from source in the folder you call it from. Before any render it checks the generated stage bundles and the export harness against their sources and rebuilds what is stale, so a render never uses old code. `pnpm doctor` runs those checks on their own.
+
 ## Try it
 
 The repo ships a runnable example — a ready-made `project.json` (the e2e
@@ -74,6 +90,7 @@ await renderDistributed(doc, {
 - **Workers** run `createRenderJobHandler()`, a Fetch-API handler that takes one chunk job (a document plus a range) and answers with the encoded chunk. `examples/render-worker` has a ready server and container image. Jobs are stateless: the document arrives in the request, and assets must be http(s) URLs the workers can reach (signed URLs work). Protect public workers with `token`.
 - **The coordinator** needs `ffmpeg` on its PATH (or `ffmpegPath`) to join the chunks. Workers don't.
 - `chunks` defaults to the runner's concurrency, and chunks are at least `minChunkUs` (2 s) long. `onProgress` reports jobs done, then the join.
+- `motionBlur` applies to every video chunk. Frames are pure functions of time, so chunks blur exactly as a single pass does.
 - Write your own runner by implementing `RenderRunner.run(job)`: a queue, a batch service, a different cloud.
 
 ## The browser

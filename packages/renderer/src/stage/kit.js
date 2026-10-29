@@ -100,7 +100,7 @@
   // timeline seeks, so a frame never depends on the one before it.
   var v2 = null;
   function newV2() {
-    return { moves: [], drivers: [], hits: [], carries: [], rests: [], cuts: [], follows: [], handhelds: [], shakes: [], grids: [], pointers: [], depth: [], lod: [], camFrom: [], focus: [], focusEls: null, frameMotion: [] };
+    return { moves: [], drivers: [], hits: [], carries: [], rests: [], cuts: [], follows: [], handhelds: [], shakes: [], grids: [], pointers: [], depth: [], lod: [], camFrom: [], focus: [], focusEls: null, frameMotion: [], subjects: [], blindFrames: 0 };
   }
   function need2(verb) {
     if (!v2) throw new Error(verb + '(): needs data-stage-version="2" on the stage root. Add the attribute, or remove this call.');
@@ -743,11 +743,25 @@
       frame: function (fn, opts) {
         need2("frame");
         if (typeof fn !== "function") throw new Error("frame(): pass a function (t) => void that paints the frame for time t.");
-        v2.drivers.push({ start: 0, end: Infinity, apply: fn });
+        // hold: paint at the start of the output frame, so every motion-blur sample of one frame sees the same
+        // state (text, counters). Without it, changing text is averaged across the shutter and ghosts.
+        v2.drivers.push({ start: 0, end: Infinity, apply: opts && opts.hold ? function (t) { fn(heldTime(t)); } : fn });
         if (opts && opts.motion != null) {
           if (typeof opts.motion !== "function") throw new Error("frame(): motion must be a function (from, to) => pixels.");
           v2.frameMotion.push(opts.motion);
-        }
+        } else if (!(opts && opts.hold)) v2.blindFrames++;
+        return api;
+      },
+      /**
+       * A subject the shot check keeps in frame when it isn't a DOM element (something painted on a canvas).
+       * fn(t) returns where it is in stage pixels, { x, y, r }, or null while it isn't meant to be seen; it must be
+       * a pure function of t and must not paint. opts: { from, to, minPx } (minPx: smaller than this counts as lost).
+       */
+      subject: function (name, fn, opts) {
+        need2("subject");
+        if (typeof fn !== "function") throw new Error("subject(): pass a function (t) => { x, y, r } in stage pixels, or null.");
+        opts = opts || {};
+        v2.subjects.push({ name: String(name), fn: fn, from: opts.from != null ? at(opts.from) : 0, to: opts.to != null ? at(opts.to) : null, minPx: opts.minPx || 0 });
         return api;
       },
       shadow: function (target, opts) { need2("shadow"); shadowImpl(target, opts); return api; },
@@ -931,6 +945,7 @@
         var cam = JSON.stringify(camFull(t));
         if (!first) { first = { snap: snap, cam: cam }; continue; }
         if (cam !== first.cam) any = moved["the camera"] = true;
+        if (rest.allow.indexOf("frame") < 0) v2.frameMotion.forEach(function (m) { if (Number(m(rest.from, t)) > 0.5) any = moved["the painted frame (tl.frame motion)"] = true; });
         var els = document.querySelectorAll(".world *");
         snap.forEach(function (st, k) {
           if (st === first.snap[k]) return;
@@ -1131,6 +1146,28 @@
       });
     }
 
+    // canvas subjects (tl.subject): sampled from their own pure position function, no seeking or painting
+    if (v2) v2.subjects.forEach(function (sj) {
+      var t1s = sj.to != null ? sj.to : declared, step = 1 / 30;
+      [["out of frame", function (p) { return p && (p.x + (p.r || 0) < 0 || p.y + (p.r || 0) < 0 || p.x - (p.r || 0) > W || p.y - (p.r || 0) > H); }],
+       ["too small", function (p) { return p && sj.minPx > 0 && (p.r || 0) < sj.minPx; }]].forEach(function (rule) {
+        var runs = [], cur = null;
+        for (var t = sj.from; t <= t1s + 1e-9; t += step) {
+          var bad = !!rule[1](sj.fn(t));
+          if (bad && !cur) cur = { from: t, to: t };
+          else if (bad) cur.to = t;
+          else if (cur) { runs.push(cur); cur = null; }
+        }
+        if (cur) runs.push(cur);
+        runs.forEach(function (run) {
+          var item = { subject: sj.name, from: round3(run.from), to: round3(run.to), kind: rule[0] };
+          framing.push(item);
+          add("framing", "warning", sj.name + " is " + rule[0] + " from " + item.from.toFixed(2) + " s" + (run.to > run.from + step ? " to " + item.to.toFixed(2) + " s" : ""), rule[0] === "too small" ? "move the camera closer, or widen the shot less" : "aim the camera at the subject through this stretch", run.from);
+        });
+      });
+    });
+    if (v2 && v2.rests.length && v2.blindFrames) add("rest-unverified", "warning", "a tl.frame painter has no motion function, so declared rests can't check that the painted picture holds still", "pass { motion: (from, to) => px } to tl.frame, or { hold: true } for overlays", null);
+
     // rhythm
     var marks = [0].concat(B.map(function (b) { return b.t; }), [declared]);
     var shots = [];
@@ -1150,6 +1187,12 @@
     lone.forEach(function (c) { add("hard-cut", "warning", "a hard cut at " + c.toFixed(2) + " s outside a burst", "hide the cut inside a move (tl.zoomThrough, tl.whip) or take it out", c); });
 
     return { version: v2 ? 2 : 1, events: v2 ? v2.hits.slice().sort(function (x, y) { return x.t - y.t; }) : [], duration: round3(declared), labels: tl.labels, score: score, carried: carried, anchored: anchored, bare: scored.length - carried - anchored, exempt: boundaries.length - scored.length, boundaries: boundaries, coverage: coverage, framing: framing, rhythm: rhythm, findings: findings };
+  }
+
+  // the start of the output frame that t falls in (data-fps on the root, default 30)
+  function heldTime(t) {
+    var fps = parseFloat(root().getAttribute("data-fps") || "") || 30;
+    return Math.floor(t * fps + 1e-6) / fps;
   }
 
   var built = false;

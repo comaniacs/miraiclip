@@ -7,7 +7,7 @@ var BEAM_LEN = LAND.distanceTo(EXIT);
 // the photon's distance along the beam: a slow release from the surface, then exponential acceleration to Earth
 function beamS(t) {
   if (t <= T.breakout) return 0;
-  var u = c01((t - T.breakout) / (T.landing - T.breakout)), k = 4.5;
+  var u = c01((t - T.breakout) / (T.landing - T.breakout)), k = 3.0;
   return BEAM_LEN * (Math.exp(k * u) - 1) / (Math.exp(k) - 1);
 }
 function beamPoint(t) { return EXIT.clone().addScaledVector(DIR, beamS(t)); }

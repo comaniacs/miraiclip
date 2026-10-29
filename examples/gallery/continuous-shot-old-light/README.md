@@ -6,37 +6,31 @@ The creative concept, time-coded script, storyboard, continuity plan and sound d
 
 ## Run it
 
-From the repo root, once:
+From the repo root, once: `pnpm install`. There's nothing to build by hand: `pnpm mc` runs the export CLI from source and rebuilds any stale bundle first. From this folder:
 
 ```sh
-pnpm install
-pnpm --filter @miraiclip/core --filter @miraiclip/renderer --filter @miraiclip/server-export build
+node build.mjs                                            # film/*.js + timeline.mjs → sequence.html, video.miraiclip.json
+pnpm mc check video.miraiclip.json                        # shot check: subject in frame, rest holds still (~6 s)
+pnpm mc stills video.miraiclip.json --at 1,9,15.5 --sheet # frames + contact sheet from one warm browser (~0.3 s a frame)
+node render.mjs                                           # picture on 4 workers + score + mux + validation (~35 s)
+node render.mjs --blur                                    # the final, with 180° shutter motion blur (~3 min)
 ```
 
-Then from this folder:
-
-```sh
-node build.mjs                      # film/*.js + timeline.mjs → sequence.html and video.miraiclip.json
-node stills.mjs out/stills 1 9 15.5 # single frames through the real exporter, plus a contact sheet
-../../../packages/server-export/node_modules/.bin/tsx render.mjs          # full render, ~1 min
-../../../packages/server-export/node_modules/.bin/tsx render.mjs --blur   # final with 180° shutter motion blur
-```
-
-`render.mjs` renders the picture, synthesizes the score (`audio.mjs`), muxes them with loudness normalization, then probes the written file and prints PASS/FAIL checks. Rendering needs Google Chrome (H.264) and ffmpeg/ffprobe on PATH. It runs under `tsx` because the workspace packages export TypeScript source.
+`render.mjs` renders the picture through `pnpm mc --workers`, synthesizes the score (`audio.mjs`), muxes them with loudness normalization, then probes the written file and prints PASS/FAIL checks. It needs Google Chrome (H.264) and ffmpeg/ffprobe on PATH; `pnpm doctor` checks both.
 
 ## How it is built
 
 | File | Role |
 |---|---|
 | `timeline.mjs` | The single source of timing for picture and sound: beat times and the deterministic collision schedule |
-| `film/00-util.js` | Easing, a seeded RNG (`S.rand`), glow sprites, GLSL simplex noise, and a constant-pixel-width line shader (near-plane clipped) used for the trail, thread, beam and dust |
+| `film/00-util.js` | Names the `ThreeKit` helpers (`data-libs="stage three three-kit"`) for the film: easing, glows, noise, constant-pixel-width lines |
 | `film/20-micro.js` | The plasma cloud (instanced, kept clear of the photon's path), the photon, its bounce-accurate path, collision glow and trail |
 | `film/30-sun.js` | The half-cut Sun: a granulated surface shader, a layered cut-face shader (core, radiative, convective), and the random-walk thread |
 | `film/40-space.js` | The stars, the straight beam with its accelerating head, and speed-scaled dust streaks |
 | `film/50-earth.js` | Procedural Earth (oceans, land, ice, clouds, specular glint), fresnel atmosphere, and the landing ring |
-| `film/60-camera.js` | Three shots as pure functions of `t` (log zoom and orbit, an orbit around the flying photon, approach and orbit at Earth), blended on position and look-at point |
+| `film/60-camera.js` | Three shots as pure functions of `t` (log zoom and orbit, an orbit around the flying photon, approach and orbit at Earth), joined by `ThreeKit.shots` |
 | `film/70-overlay.js` | DOM motion graphics: masked captions, leader labels projected from 3D anchors, counters, the comparison bar and the lockup |
-| `film/90-main.js` | Renderer (ACES tone mapping, sRGB output), the frame function, a motion estimate for blur, labels and hits |
+| `film/90-main.js` | The renderer, the 3D painter (with `ThreeKit.motionOf` for blur and the rest), the type as a held painter, `tl.subject` for the photon and Earth, the declared rest, labels and hits |
 
 Each frame is a pure function of `t`. There's no clock, no `Math.random`, no animation loop and no state carried between frames, so any frame renders the same alone, out of order, or as a motion-blur sub-sample.
 
@@ -54,10 +48,14 @@ These are measured from the written file by `render.mjs`, not taken from the set
 | Audio | AAC 48 kHz stereo, 30.000 s, −16 LUFS integrated, true peak −1 dBFS |
 | Hard cuts | None. The largest frame-to-frame scene score is 0.049 (ffmpeg `scene`); a cut scores 0.3 or more. The peaks are designed events: collision flashes, the Sun fading in. |
 
+## Checked by the tools
+
+`pnpm mc check` reports no findings. The photon stays in frame from 0 to 21 s, Earth is never smaller than 40 px after the landing, and the 14.1–14.9 s rest holds still. The first run of the check found a defect the contact sheets had missed: the camera overtook the photon on the approach to Earth (19.6–20.9 s). The fix was a later hand-off to the Earth shot (20.2 s) and a gentler acceleration curve (exponent 3).
+
+The carry score is 0.50 because the check only sees DOM elements, and the only DOM element that stays put is the shading behind the type. For a canvas film, the subject check is the one that matters.
+
 ## Known limitations
 
 - **The type depends on the machine.** It uses Avenir Next, a macOS system font, with Helvetica Neue / Arial fallbacks. On a machine without it the layout holds, but the face changes.
 - **Some scale is cheated for clarity.** Earth is drawn about 30× too large relative to the Sun–Earth distance, which is itself compressed, so both fit one composition.
 - **There's no narration.** The story is carried by on-screen type and the score.
-- **`check_sequence` has not been run.** The miraiclip MCP tool wasn't available in this session. Continuity was checked with contact sheets, a frame-difference scan and per-transition stills instead.
-- **The rest is not declared to the kit.** The 14.1–14.9 s rest exists in the picture, but `tl.rest` isn't called, because the caption exit animates inside that window and the kit would reject it.

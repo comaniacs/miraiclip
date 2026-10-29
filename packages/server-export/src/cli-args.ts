@@ -5,6 +5,8 @@ export interface ParsedCliArgs {
   projectPath: string;
   options: ExportProjectFileOptions;
   quiet: boolean;
+  /** Browsers rendering frame-aligned chunks in parallel (1: a single pass). */
+  workers: number;
 }
 
 /** Pure and unit-testable: argv (after node + script) → validated options. */
@@ -22,6 +24,8 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
   let assetsDir: string | undefined;
   let browserPath: string | undefined;
   let quiet = false;
+  let motionBlur = false;
+  let workers = 1;
 
   const takeValue = (flag: string, value: string | undefined): string => {
     if (value === undefined) throw new Error(`${flag} needs a value`);
@@ -80,6 +84,13 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
       case "--quiet":
         quiet = true;
         break;
+      case "--motion-blur":
+        motionBlur = true;
+        break;
+      case "--workers":
+        workers = takeNumber(arg, argv[++i]);
+        if (!Number.isInteger(workers) || workers < 1) throw new Error("--workers needs a whole number, 1 or more");
+        break;
       default:
         if (arg.startsWith("-")) throw new Error(`unknown flag ${arg}`);
         if (projectPath !== undefined) throw new Error(`unexpected argument ${arg}`);
@@ -107,6 +118,7 @@ export function parseCliArgs(argv: string[]): ParsedCliArgs {
     ...(Object.keys(assets).length > 0 ? { assets } : {}),
     ...(assetsDir !== undefined ? { assetsDir } : {}),
     ...(browserPath !== undefined ? { browser: { executablePath: browserPath } } : {}),
+    ...(motionBlur ? { motionBlur: {} } : {}),
   };
-  return { projectPath, options, quiet };
+  return { projectPath, options, quiet, workers };
 }

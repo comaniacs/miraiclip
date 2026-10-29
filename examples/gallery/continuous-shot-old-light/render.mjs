@@ -1,20 +1,22 @@
 // Render "Old Light" end to end: picture (frame by frame, headless Chrome), score (synthesized), mux, and validate.
 //
-//   node build.mjs && ../../../packages/server-export/node_modules/.bin/tsx render.mjs [--blur] [--draft]
+//   node build.mjs && node render.mjs [--blur] [--draft] [--workers 4]
 //
-// --blur   shutter motion blur (180°): slower, for the final
-// --draft  standard quality, no blur
-// Writes out/old-light.mp4 and prints a validation summary. Run with tsx: the workspace packages export TS source.
+// --blur      shutter motion blur (180°): slower, for the final
+// --draft     standard quality, no blur
+// --workers   parallel browsers for the picture (default 4)
+// Writes out/old-light.mp4 and prints a validation summary. The picture goes through `pnpm mc` (the export CLI from
+// source), which rebuilds any stale bundle first.
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { exportProjectFile } from "../../../packages/server-export/src/index.ts";
 import { T } from "./timeline.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = (f) => path.join(here, "out", f);
 const blur = process.argv.includes("--blur"), draft = process.argv.includes("--draft");
+const wi = process.argv.indexOf("--workers"), workers = wi > 0 ? process.argv[wi + 1] : "4";
 fs.mkdirSync(path.join(here, "out"), { recursive: true });
 
 function run(cmd, args) {
@@ -24,16 +26,11 @@ function run(cmd, args) {
 }
 
 // 1 · picture
-const doc = JSON.parse(fs.readFileSync(path.join(here, "video.miraiclip.json"), "utf8"));
 const started = Date.now();
-await exportProjectFile(doc, {
-  format: "mp4",
-  quality: draft ? "standard" : "high",
-  out: out("old-light-picture.mp4"),
-  ...(blur && !draft ? { motionBlur: {} } : {}),
-  onProgress: (p) => { if ((p.framesDone ?? 0) % 90 === 0) process.stderr.write(`picture ${p.framesDone ?? 0}/${p.totalFrames ?? "?"}\n`); },
-});
-process.stderr.write(`\npicture done in ${((Date.now() - started) / 1000).toFixed(0)} s${blur ? " (motion blur)" : ""}\n`);
+const mc = path.join(here, "../../../scripts/mc.mjs");
+const pic = spawnSync("node", [mc, path.join(here, "video.miraiclip.json"), "--out", out("old-light-picture.mp4"), "--quality", draft ? "standard" : "high", "--workers", workers, ...(blur && !draft ? ["--motion-blur"] : []), "--quiet"], { stdio: "inherit" });
+if (pic.status !== 0) throw new Error("picture render failed");
+process.stderr.write(`picture done in ${((Date.now() - started) / 1000).toFixed(0)} s on ${workers} workers${blur ? " (motion blur)" : ""}\n`);
 
 // 2 · score
 run("node", [path.join(here, "audio.mjs"), out("old-light-score.wav")]);

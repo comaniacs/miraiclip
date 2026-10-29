@@ -56,5 +56,5 @@ ${cap("c_t1", 780, "Sunlight is old light.")}${cap("c_t2", 892, "It left the Sun
 <div id="barTrack"><div id="barFill"></div><div id="barTick" style="opacity:0"></div></div><div id="barNote" style="opacity:0">the last 8 minutes are too thin to draw at this scale</div></div>
 </div>`;
 
-const html = `<div class="stage" data-libs="stage three" data-duration="${T.DUR}" data-stage-version="2" data-frame-timeout="60" style="width:${W}px;height:${H}px;background:#07060a;overflow:hidden"><style>${css}</style><canvas id="c" width="${W}" height="${H}" style="position:absolute;left:0;top:0;width:${W}px;height:${H}px"></canvas>${overlay}</div>\n<script>stage.build((tl, S) => {${film}});</script>`;
+const html = `<div class="stage" data-libs="stage three three-kit" data-duration="${T.DUR}" data-fps="${T.FPS}" data-stage-version="2" data-frame-timeout="60" style="width:${W}px;height:${H}px;background:#07060a;overflow:hidden"><style>${css}</style><canvas id="c" width="${W}" height="${H}" style="position:absolute;left:0;top:0;width:${W}px;height:${H}px"></canvas>${overlay}</div>\n<script>stage.build((tl, S) => {${film}});</script>`;
 writeExample(import.meta.url, { html, duration: T.DUR, id: "old-light", width: W, height: H });

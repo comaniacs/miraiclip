@@ -50,6 +50,17 @@ const psnr = (a: string, b: string): number => {
   return avg === "inf" ? Infinity : Number(avg);
 };
 
+describe("renderDistributed job options", () => {
+  it("hands motion blur to every video chunk and not to the audio job", async () => {
+    const seen: { kind: string; motionBlur: unknown }[] = [];
+    // records each job, then stops the render: what was asked for is the contract under test
+    const recorder: RenderRunner = { concurrency: 16, async run(job) { seen.push({ kind: job.kind, motionBlur: job.options.motionBlur }); throw new Error("recorded"); } };
+    await expect(renderDistributed(doc(), { format: "mp4", runner: recorder, chunks: 3, out: "unused.mp4", motionBlur: { shutterAngle: 180 } })).rejects.toThrow("recorded");
+    expect(seen.filter((j) => j.kind === "video")).toEqual(Array(3).fill({ kind: "video", motionBlur: { shutterAngle: 180 } }));
+    expect(seen.find((j) => j.kind === "audio")?.motionBlur).toBeUndefined();
+  });
+});
+
 describe("planChunks", () => {
   it("splits on frame boundaries and covers the range exactly", () => {
     const d = doc();

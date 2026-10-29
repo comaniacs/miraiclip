@@ -25,7 +25,7 @@ export interface RenderJob {
   /** "video": a picture-only chunk; "audio": the whole range's sound (with a token picture). */
   kind: "video" | "audio";
   doc: ProjectDocument;
-  options: Pick<ExportProjectFileOptions, "format" | "quality" | "fps" | "width" | "height" | "range">;
+  options: Pick<ExportProjectFileOptions, "format" | "quality" | "fps" | "width" | "height" | "range" | "motionBlur">;
 }
 
 export interface RenderJobResult {
@@ -50,6 +50,8 @@ export interface RenderDistributedOptions {
   width?: number;
   height?: number;
   range?: { startUs: number; endUs: number };
+  /** Shutter motion blur on every video chunk (frames are pure functions of time, so chunks blur the same as one pass). */
+  motionBlur?: ExportProjectFileOptions["motionBlur"];
   runner: RenderRunner;
   /** Number of video chunks (default: enough for every runner slot, at least 2 s each). */
   chunks?: number;
@@ -129,7 +131,8 @@ export async function renderDistributed(doc: ProjectDocument, options: RenderDis
   const hasAudio = hasAudibleClips(doc, range);
   const common = { format: options.format, ...(options.quality ? { quality: options.quality } : {}), ...(options.fps ? { fps: options.fps } : {}), ...(options.width ? { width: options.width } : {}), ...(options.height ? { height: options.height } : {}) };
   const videoDoc = silenced(doc);
-  const jobs: RenderJob[] = chunks.map((r, i) => ({ id: `video-${String(i).padStart(4, "0")}`, kind: "video", doc: videoDoc, options: { ...common, range: r } }));
+  const videoOptions = { ...common, ...(options.motionBlur !== undefined ? { motionBlur: options.motionBlur } : {}) };
+  const jobs: RenderJob[] = chunks.map((r, i) => ({ id: `video-${String(i).padStart(4, "0")}`, kind: "video", doc: videoDoc, options: { ...videoOptions, range: r } }));
   if (hasAudio) {
     // The sound over the whole range, with a token picture (tiny, 1 fps): its audio track is the deliverable.
     const aspect = doc.settings.width / doc.settings.height;

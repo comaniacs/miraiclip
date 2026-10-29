@@ -1,0 +1,9 @@
+{
+  "status": "auth_failed",
+  "namespace": "platform",
+  "repoName": "miraiclip",
+  "branch": "feat/three-film-pipeline",
+  "result": null,
+  "error": "HTTP 401",
+  "updatedAt": "2026-10-29T19:13:17.377Z"
+}

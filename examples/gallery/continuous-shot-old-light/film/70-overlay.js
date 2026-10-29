@@ -3,19 +3,8 @@
 var $ = function (id) { return document.getElementById(id); };
 
 // a line rises through its mask on the way in and drifts up as it fades on the way out
-function lineIO(id, tin, tout, t) {
-  var el = $(id), sp = el.firstElementChild;
-  var u = smoother((t - tin) / 0.6), v = sm((t - tout) / 0.45);
-  el.style.opacity = t < tin || t > tout + 0.45 ? 0 : 1;
-  sp.style.transform = "translateY(" + ((1 - u) * 105 - v * 18).toFixed(2) + "%)";
-  sp.style.opacity = (u * (1 - v)).toFixed(3);
-  sp.style.letterSpacing = (mix(0.04, -0.01, u)).toFixed(4) + "em";
-}
-function fadeIO(id, tin, tout, t, dy) {
-  var el = $(id), u = smoother((t - tin) / 0.5), v = sm((t - tout) / 0.45);
-  el.style.opacity = (u * (1 - v)).toFixed(3);
-  el.style.transform = "translateY(" + ((1 - u) * (dy || 16) - v * 10).toFixed(2) + "px)";
-}
+function lineIO(id, tin, tout, t) { K.lineIO($(id), tin, tout, t); }
+function fadeIO(id, tin, tout, t, dy) { K.fadeIO($(id), tin, tout, t, dy); }
 var CAPTIONS = [
   ["c_h1", T.hook1In, T.hookOut], ["c_h2", T.hook2In, T.hookOut + 0.08],
   ["c_set", T.setupIn, T.setupOut],
@@ -31,8 +20,7 @@ var LABELS = [
   { at: T.radLabel, k: "RADIATIVE ZONE", v: "light random-walks out", r: 5.0, a: -40 },
   { at: T.convLabel, k: "CONVECTIVE ZONE", v: "boiling plasma rises", r: 8.6, a: -38 },
 ];
-var proj = V(0, 0, 0);
-function toScreen(v, cam) { proj.copy(v).project(cam); return { x: (proj.x + 1) / 2 * W, y: (1 - proj.y) / 2 * H }; }
+function toScreen(v, cam) { return K.toScreen(v, cam, W, H); }
 function poseLabel(t, cam) {
   var L = null;
   LABELS.forEach(function (l) { if (t >= l.at[0] - 0.05 && t <= l.at[1] + 0.5) L = l; });
@@ -54,13 +42,11 @@ function poseLabel(t, cam) {
 
 var fmt = function (n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); };
 function poseCounters(t) {
-  // digits change on frame boundaries only, so motion-blur sub-samples inside one frame never ghost two numbers
-  var tq = Math.floor(t * T.FPS + 1e-6) / T.FPS;
   fadeIO("yrs", T.walkStart + 0.2, T.yearsOut, t);
-  var share = yearsShare(tq), y = 100000 * share;
+  var share = yearsShare(t), y = 100000 * share;
   $("yrsV").textContent = share >= 1 ? "~100,000" : fmt(Math.floor(y / 100) * 100);
   fadeIO("clk", T.clockIn, T.clockOut, t);
-  var f = c01(beamS(tq) / BEAM_LEN), secs = 500 * f;
+  var f = c01(beamS(t) / BEAM_LEN), secs = 500 * f;
   $("clkV").textContent = Math.floor(secs / 60) + ":" + String(Math.floor(secs % 60)).padStart(2, "0");
   $("clkKm").textContent = (150 * f).toFixed(f >= 1 ? 0 : 1) + " of 150 million km";
 }

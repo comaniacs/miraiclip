@@ -35,7 +35,7 @@ export const T = {
   // 4 · transformation: free, straight, at the speed of light
   breakout: 15.0,
   rideStart: 16.4,
-  approach: 19.4,
+  approach: 20.2,
   landing: 21.0,
   freeIn: 15.8,
   freeOut: 18.6,
