@@ -11,7 +11,7 @@
     "corpus": "pnpm --filter @miraiclip/server-export corpus",
     "bench": "pnpm --filter miraiclip-playground bench",
     "mc": "node scripts/mc.mjs",
-    "doctor": "node scripts/mc.mjs doctor --fix"
+    "preflight": "node scripts/mc.mjs doctor --fix"
   },
   "packageManager": "pnpm@10.28.0",
   "devDependencies": {

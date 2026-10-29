@@ -16,7 +16,7 @@ node render.mjs                                           # picture on 4 workers
 node render.mjs --blur                                    # the final, with 180° shutter motion blur (~3 min)
 ```
 
-`render.mjs` renders the picture through `pnpm mc --workers`, synthesizes the score (`audio.mjs`), muxes them with loudness normalization, then probes the written file and prints PASS/FAIL checks. It needs Google Chrome (H.264) and ffmpeg/ffprobe on PATH; `pnpm doctor` checks both.
+`render.mjs` renders the picture through `pnpm mc --workers`, synthesizes the score (`audio.mjs`), muxes them with loudness normalization, then probes the written file and prints PASS/FAIL checks. It needs Google Chrome (H.264) and ffmpeg/ffprobe on PATH; `pnpm preflight` checks both.
 
 ## How it is built
 

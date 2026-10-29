@@ -1,0 +1,1177 @@
+<div class="stage" data-libs="stage" data-duration="30" data-fps="30" data-stage-version="2" data-frame-timeout="60" style="width:1920px;height:1080px;overflow:hidden"><style>/* Kiteline: warm paper UI, ink type, one coral accent. Everything is scoped under .kl-app so the app can be embedded. */
+.kl-app {
+  --paper: #fbfaf7; --side: #f3f1ec; --card: #ffffff; --ink: #1d1b2c; --ink2: #5d5a6e; --ink3: #908da0; --line: #e7e3dc; --line2: #d9d4cb;
+  --coral: #ff6a4d; --coral-d: #e8492c; --coral-t: #fff0ec; --lilac: #7c6cf2; --lilac-t: #f1efff; --mint: #25a876; --mint-t: #e8f6f0; --amber: #d98a1c; --amber-t: #fdf3e2;
+  --li: #2f6fd1; --ig: #d64f86; --x: #26252f;
+  --r: 12px; --sh: 0 1px 2px rgba(29, 27, 44, 0.06), 0 6px 20px rgba(29, 27, 44, 0.06);
+  position: relative; display: grid; grid-template-columns: 232px 1fr; width: 100%; height: 100%; overflow: hidden;
+  background: var(--paper); color: var(--ink); font: 14px/1.4 -apple-system, "SF Pro Text", "Helvetica Neue", Arial, sans-serif; -webkit-font-smoothing: antialiased; text-align: left;
+}
+.kl-app :where(*, *::before, *::after) { box-sizing: border-box; margin: 0; }
+.kl-app :where(button) { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; padding: 0; text-align: inherit; } /* :where keeps the reset at zero specificity so every component class wins */
+.kl-app button:focus-visible, .kl-app textarea:focus-visible, .kl-app input:focus-visible { outline: 2px solid var(--coral); outline-offset: 2px; }
+.kl-app svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.kl-app small { font-size: 12px; color: var(--ink3); }
+
+/* ---- sidebar */
+.kl-side { display: flex; flex-direction: column; gap: 18px; padding: 22px 16px; background: var(--side); border-right: 1px solid var(--line); }
+.kl-brand { display: flex; align-items: center; gap: 10px; font: 650 20px/1 "Avenir Next", -apple-system, sans-serif; letter-spacing: -0.02em; padding: 2px 6px; }
+.kl-mark { position: relative; width: 26px; height: 26px; }
+.kl-mark::before { content: ""; position: absolute; left: 5px; top: 1px; width: 16px; height: 16px; border-radius: 3px 8px 3px 8px; background: linear-gradient(135deg, #ff8a6d, var(--coral) 55%, var(--coral-d)); transform: rotate(45deg); box-shadow: 0 2px 6px rgba(232, 73, 44, 0.35); }
+.kl-mark i { position: absolute; left: 12px; top: 18px; width: 2px; height: 10px; border-radius: 1px; background: var(--ink); transform: rotate(-24deg); transform-origin: top; }
+.kl-ws { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; background: var(--card); box-shadow: var(--sh); }
+.kl-ws b { display: block; font-size: 13.5px; } .kl-ws small { font-size: 11.5px; }
+.kl-ws-av, .kl-av { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #233d3a; color: #e8f2e9; font-weight: 700; font-size: 14px; flex: none; }
+.kl-side nav { display: flex; flex-direction: column; gap: 2px; }
+.kl-nav { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--ink2); font-weight: 500; }
+.kl-nav:hover { background: rgba(29, 27, 44, 0.05); }
+.kl-nav.on { background: var(--card); color: var(--ink); box-shadow: var(--sh); }
+.kl-nav.on svg { color: var(--coral); }
+.kl-demo { margin-top: auto; padding: 12px; border-radius: 10px; border: 1px dashed var(--line2); font-size: 12px; color: var(--ink2); line-height: 1.45; }
+.kl-demo b { display: block; color: var(--ink); margin-bottom: 2px; }
+.kl-demo em { display: block; margin-top: 6px; font-style: normal; color: var(--coral-d); }
+
+/* ---- shared */
+.kl-main { display: flex; flex-direction: column; gap: 18px; min-width: 0; min-height: 0; padding: 24px 28px 22px; }
+.kl-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.kl-head small { display: block; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink3); margin-bottom: 4px; }
+.kl-head h1 { font: 650 27px/1.15 "Avenir Next", -apple-system, sans-serif; letter-spacing: -0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 640px; }
+.kl-tools { display: flex; align-items: center; gap: 10px; }
+.kl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; height: 36px; padding: 0 14px; border-radius: 9px; font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+.kl-btn.primary { background: var(--ink); color: #fff; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.15) inset, 0 4px 12px rgba(29, 27, 44, 0.18); }
+.kl-btn.primary:hover { background: #2c2a40; }
+.kl-btn.primary:disabled { background: #b9b6c4; box-shadow: none; cursor: not-allowed; }
+.kl-btn.ghost { background: var(--card); border: 1px solid var(--line); color: var(--ink); }
+.kl-btn.ghost:hover { border-color: var(--line2); }
+.kl-btn.ai { background: linear-gradient(135deg, #8f7ff7, var(--lilac) 60%, #6a59e6); color: #fff; box-shadow: 0 6px 16px rgba(124, 108, 242, 0.32); }
+.kl-btn.wide { width: 100%; height: 42px; }
+.kl-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: var(--card); border: 1px solid var(--line); }
+.kl-seg { display: flex; padding: 3px; border-radius: 10px; background: #ece9e3; }
+.kl-seg button { height: 30px; padding: 0 14px; border-radius: 7px; font-weight: 600; font-size: 13px; color: var(--ink2); }
+.kl-seg button.on { background: var(--card); color: var(--ink); box-shadow: var(--sh); }
+.kl-navbtns { display: flex; gap: 6px; }
+.kl-panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--sh); }
+.kl-lbl { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink2); margin: 14px 0 7px; }
+.kl-lbl small { font-weight: 400; margin-left: 4px; }
+.kl-input, .kl-idea, .kl-caption, .kl-prompt { width: 100%; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); font: inherit; padding: 9px 11px; resize: none; }
+.kl-input:focus, .kl-idea:focus, .kl-caption:focus, .kl-prompt:focus { outline: none; border-color: var(--coral); box-shadow: 0 0 0 3px rgba(255, 106, 77, 0.15); }
+.kl-pf { display: inline-grid; place-items: center; min-width: 18px; height: 16px; padding: 0 3px; border-radius: 4px; font: 700 9.5px/1 -apple-system, sans-serif; font-style: normal; color: #fff; letter-spacing: 0.02em; }
+.kl-pf.p-linkedin { background: var(--li); } .kl-pf.p-instagram { background: var(--ig); } .kl-pf.p-x { background: var(--x); }
+.kl-pill { display: inline-flex; align-items: center; gap: 3px; height: 20px; padding: 0 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.kl-pill svg { width: 12px; height: 12px; }
+.kl-pill.s-scheduled { background: var(--mint-t); color: #17855b; } .kl-pill.s-draft { background: var(--amber-t); color: #a8650a; } .kl-pill.s-published { background: #efeef2; color: var(--ink2); }
+.kl-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 22px 12px; text-align: center; color: var(--ink2); }
+.kl-empty b { color: var(--ink); font-size: 14.5px; }
+.kl-empty.big { flex: 1; gap: 8px; }
+.kl-empty-art { position: relative; width: 74px; height: 50px; margin-bottom: 6px; }
+.kl-empty-art i { position: absolute; width: 44px; height: 30px; border-radius: 7px; border: 1.5px solid var(--line2); background: #fff; }
+.kl-empty-art i:nth-child(1) { left: 0; top: 14px; transform: rotate(-8deg); } .kl-empty-art i:nth-child(2) { left: 28px; top: 4px; transform: rotate(7deg); }
+.kl-empty-art i:nth-child(3) { left: 15px; top: 18px; border-color: var(--coral); background: var(--coral-t); }
+.kl-empty-art.ai i:nth-child(3) { border-color: var(--lilac); background: var(--lilac-t); }
+
+/* ---- calendar */
+.kl-cal { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 292px; gap: 18px; }
+.kl-month { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--line); border-radius: var(--r); background: var(--card); box-shadow: var(--sh); overflow: hidden; }
+.kl-dow { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line); }
+.kl-dow span { padding: 8px 10px; font-size: 11.5px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.06em; }
+.kl-grid { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); grid-template-rows: repeat(6, 1fr); min-height: 0; }
+.kl-cell { position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0; min-height: 0; padding: 6px 6px 4px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); cursor: pointer; overflow: hidden; }
+.kl-cell:nth-child(7n) { border-right: 0; } .kl-cell:nth-last-child(-n + 7) { border-bottom: 0; }
+.kl-cell:hover { background: #fdfcfa; }
+.kl-cell.out { background: #faf8f4; } .kl-cell.out .kl-num { color: #c3bfb7; }
+.kl-cell.past .kl-chip { opacity: 0.72; }
+.kl-cell.sel { box-shadow: inset 0 0 0 2px var(--coral); background: #fffaf8; }
+.kl-num { align-self: flex-start; display: grid; place-items: center; min-width: 24px; height: 24px; padding: 0 4px; border-radius: 12px; font-size: 12.5px; font-weight: 600; color: var(--ink2); }
+.kl-cell.today .kl-num { background: var(--coral); color: #fff; }
+.kl-chip { display: flex; align-items: center; gap: 5px; height: 22px; padding: 0 6px 0 4px; border-radius: 6px; background: #fff; border: 1px solid var(--line); font-size: 11.5px; min-width: 0; white-space: nowrap; }
+.kl-chip b { font-weight: 600; color: var(--ink2); font-size: 11px; }
+.kl-chip span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.kl-chip.s-scheduled { border-color: #bfe5d4; background: #f5fbf8; } .kl-chip.s-draft { border-style: dashed; border-color: #e8c27c; background: #fffaf0; } .kl-chip.s-published { color: var(--ink3); }
+.kl-chip:hover { border-color: var(--ink3); }
+.kl-more { font-size: 11px; color: var(--ink3); padding-left: 4px; }
+.kl-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; min-height: 0; }
+.kl-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; padding: 8px; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); box-shadow: var(--sh); }
+.kl-col.past { background: #faf8f4; }
+.kl-col.sel { box-shadow: 0 0 0 2px var(--coral), var(--sh); }
+.kl-wh { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0 8px; border-radius: 8px; }
+.kl-wh span { font-size: 11.5px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.06em; }
+.kl-wh b { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 17px; font-size: 18px; font-weight: 650; }
+.kl-wh.today b { background: var(--coral); color: #fff; }
+.kl-wh.sel span { color: var(--coral-d); }
+.kl-col-body { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: hidden; }
+.kl-card { display: flex; flex-direction: column; gap: 7px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: #fff; }
+.kl-card:hover { border-color: var(--line2); box-shadow: var(--sh); }
+.kl-card.s-draft { border-style: dashed; border-color: #e8c27c; }
+.kl-card-top { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.kl-card-top b { font-weight: 600; color: var(--ink2); }
+.kl-card p { font-size: 13px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.kl-card .kl-pill { margin-left: 0; align-self: flex-start; }
+.kl-add { display: grid; place-items: center; height: 34px; border-radius: 9px; border: 1.5px dashed var(--line2); color: var(--ink3); }
+.kl-add:hover { border-color: var(--coral); color: var(--coral); }
+.kl-day { display: flex; flex-direction: column; gap: 12px; min-height: 0; padding: 16px; border-radius: var(--r); background: var(--card); border: 1px solid var(--line); box-shadow: var(--sh); }
+.kl-day header small { font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.kl-day h3 { font: 650 21px/1.2 "Avenir Next", -apple-system, sans-serif; letter-spacing: -0.015em; margin-top: 3px; }
+.kl-day header span { font-size: 12.5px; color: var(--ink2); }
+.kl-day-list { flex: 1; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto; }
+
+/* ---- prompt studio */
+.kl-date, .kl-ai-badge { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 16px; font-size: 12.5px; font-weight: 600; }
+.kl-date { background: var(--coral-t); color: var(--coral-d); }
+.kl-ai-badge { background: var(--lilac-t); color: #5a4bd6; }
+.kl-studio { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1.12fr; gap: 18px; }
+.kl-form { padding: 4px 20px 20px; overflow: auto; }
+.kl-form .kl-btn.wide { margin-top: 20px; }
+.kl-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.kl-opt { height: 32px; padding: 0 13px; border-radius: 16px; border: 1px solid var(--line); background: #fff; font-size: 13px; font-weight: 500; color: var(--ink2); }
+.kl-opt:hover { border-color: var(--line2); color: var(--ink); }
+.kl-opt.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.kl-out { display: flex; flex-direction: column; padding: 16px 18px 18px; min-height: 0; }
+.kl-out header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.kl-out header b { font-size: 15px; }
+.kl-out.has { border-color: #d9d3fb; box-shadow: 0 0 0 3px rgba(124, 108, 242, 0.08), var(--sh); }
+.kl-prompt { flex: 1; min-height: 0; font: 13px/1.55 "SF Mono", ui-monospace, Menlo, monospace; color: #2b2840; background: #fbfaff; border-color: #e6e2fb; padding: 14px 16px; }
+.kl-out-act { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+
+/* ---- editor and previews */
+.kl-editor { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 460px; gap: 18px; }
+.kl-edit { display: flex; flex-direction: column; padding: 16px 20px 18px; min-height: 0; }
+.kl-edit .kl-lbl:first-of-type { margin-top: 16px; }
+.kl-tabs { display: flex; gap: 6px; padding: 3px; border-radius: 10px; background: #ece9e3; align-self: flex-start; }
+.kl-tabs button { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px 0 9px; border-radius: 7px; font-weight: 600; font-size: 13px; color: var(--ink2); }
+.kl-tabs button.on { background: #fff; color: var(--ink); box-shadow: var(--sh); }
+.kl-from { display: inline-flex; align-items: center; gap: 4px; margin-left: 8px; color: #5a4bd6 !important; font-weight: 600 !important; }
+.kl-from svg { width: 13px; height: 13px; }
+.kl-caption { flex: 1; min-height: 120px; font-size: 14.5px; line-height: 1.55; padding: 12px 14px; }
+.kl-count { align-self: flex-end; margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--ink3); font-variant-numeric: tabular-nums; }
+.kl-count.over { color: #d23b3b; }
+.kl-thumbs { display: flex; gap: 10px; }
+.kl-thumb { width: 66px; height: 46px; border-radius: 8px; overflow: hidden; border: 2px solid transparent; box-shadow: 0 0 0 1px var(--line); }
+.kl-thumb.on { border-color: var(--coral); box-shadow: 0 0 0 3px rgba(255, 106, 77, 0.18); }
+.kl-thumb i { display: block; width: 100%; height: 100%; }
+.kl-when { display: flex; gap: 12px; } .kl-when .kl-lbl { flex: 1; } .kl-when .kl-input { margin-top: 7px; height: 38px; }
+.kl-edit-act { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.kl-why { margin-right: auto; font-size: 12.5px; color: #d23b3b; font-weight: 600; }
+.kl-preview { display: flex; flex-direction: column; align-items: center; min-height: 0; padding: 16px 18px; border-radius: var(--r); background: #efece6; border: 1px solid var(--line); }
+.kl-preview > header { align-self: stretch; display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+.kl-preview > header b { font-size: 15px; }
+.kl-pv { width: 100%; max-width: 420px; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(29, 27, 44, 0.08); overflow: hidden; font-size: 13.5px; line-height: 1.45; color: #1f1f24; }
+.kl-pv-h { display: flex; align-items: center; gap: 9px; padding: 12px 14px 8px; }
+.kl-pv-h b { display: block; font-size: 13.5px; } .kl-pv-h small { font-size: 11.5px; }
+.kl-av.sq { border-radius: 6px; }
+.kl-pv-text { padding: 2px 14px 12px; white-space: normal; overflow-wrap: anywhere; }
+.kl-pv .kl-media { border-radius: 0; }
+.kl-pv-bar { display: flex; justify-content: space-around; padding: 9px 8px; border-top: 1px solid #eee; font-size: 12px; font-weight: 600; color: #6b6a75; }
+.kl-pv.ig .kl-media { aspect-ratio: 1 / 1; }
+.kl-pv-acts { display: flex; gap: 12px; padding: 10px 14px 4px; } .kl-pv-acts i { width: 20px; height: 20px; border-radius: 6px; border: 2px solid #26252f; }
+.kl-pv.ig .kl-pv-text { padding-top: 4px; }
+.kl-pv.x { display: flex; gap: 10px; padding: 12px 14px; }
+.kl-pv.x > div { flex: 1; min-width: 0; } .kl-pv.x .kl-pv-h { padding: 0 0 2px; gap: 6px; } .kl-pv.x .kl-pv-h b { display: inline; }
+.kl-pv.x .kl-pv-text { padding: 0 0 10px; } .kl-pv.x .kl-media { border-radius: 12px; }
+.kl-tag { color: var(--li); }
+.kl-pv.ig .kl-tag { color: #3a5ba0; }
+
+/* media: four original campaign visuals, drawn in CSS */
+.kl-media { position: relative; aspect-ratio: 1.75 / 1; overflow: hidden; display: flex; align-items: flex-end; padding: 18px 20px; }
+.kl-media b { position: relative; z-index: 1; font: 650 28px/1.02 "Avenir Next", -apple-system, sans-serif; letter-spacing: -0.02em; }
+.kl-media i { position: absolute; }
+.m1 { background: radial-gradient(circle at 78% 30%, #ffd2a8 0 18%, transparent 19%), linear-gradient(160deg, #ff8f6b, #f0563a 60%, #b8352a); color: #fff7ef; }
+.m1 > i { right: 14%; top: 18%; width: 22%; aspect-ratio: 1; border-radius: 50%; box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.15); }
+.m2 { background: repeating-linear-gradient(180deg, transparent 0 21px, rgba(60, 80, 150, 0.14) 21px 22px), linear-gradient(180deg, #f8f6ef, #efeadf); color: #1d1b2c; }
+.m2 > i { left: 0; top: 0; bottom: 0; width: 34px; border-right: 2px solid rgba(255, 106, 77, 0.55); }
+.m2 b { margin-left: 26px; }
+.m3 { background: linear-gradient(135deg, #233d3a, #2f5b52 60%, #3f7a68); color: #e8f2e9; }
+.m3 > i { right: -10%; top: -30%; width: 70%; aspect-ratio: 1; border-radius: 50%; border: 18px solid rgba(232, 242, 233, 0.12); }
+.m4 { background: linear-gradient(135deg, #2b2840, #4a3fa8 70%, #7c6cf2); color: #f1efff; }
+.m4 > i { left: 55%; top: 20%; width: 34%; height: 50%; border-radius: 10px; background: rgba(255, 255, 255, 0.14); transform: rotate(8deg); }
+.kl-thumb.m2 { background-size: auto, auto; } .kl-thumb b { display: none; }
+
+/* ---- toast */
+.kl-toast { position: absolute; left: 50%; bottom: 22px; display: flex; align-items: center; gap: 10px; padding: 11px 12px 11px 16px; border-radius: 12px; background: var(--ink); color: #fff; font-weight: 600; font-size: 13.5px; box-shadow: 0 12px 30px rgba(29, 27, 44, 0.3); transform: translate(-50%, 140%); opacity: 0; pointer-events: none; }
+.kl-toast.on { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; transition: transform 0.25s, opacity 0.25s; }
+.kl-toast.on.ok svg { color: #6fe0b0; } .kl-toast.on.error { background: #8a2b2b; }
+.kl-toast button { width: 24px; height: 24px; border-radius: 6px; color: rgba(255, 255, 255, 0.7); font-size: 18px; line-height: 1; text-align: center; }
+
+/* ---- smaller screens */
+@media (max-width: 1100px) {
+  .kl-cal, .kl-studio, .kl-editor { grid-template-columns: 1fr; overflow: auto; }
+  .kl-app { grid-template-columns: 200px 1fr; }
+}
+@media (max-width: 760px) {
+  .kl-app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; overflow: auto; height: auto; min-height: 100%; }
+  .kl-side { flex-direction: row; flex-wrap: wrap; align-items: center; padding: 12px 16px; }
+  .kl-side nav { flex-direction: row; } .kl-ws, .kl-demo { display: none; }
+  .kl-main { padding: 16px; } .kl-head { flex-direction: column; align-items: flex-start; } .kl-tools { flex-wrap: wrap; }
+  .kl-week { grid-template-columns: 1fr; } .kl-grid { grid-template-rows: repeat(6, minmax(72px, auto)); }
+}
+
+
+.stage{background:radial-gradient(ellipse 60% 55% at 18% 12%,rgba(255,106,77,0.20),rgba(255,106,77,0) 70%),radial-gradient(ellipse 55% 55% at 88% 92%,rgba(124,108,242,0.20),rgba(124,108,242,0) 70%),linear-gradient(180deg,#171627,#100f1b);color:#f7f4ee}
+#view{position:absolute;left:0;top:0;width:1920px;height:1080px;perspective:1600px;perspective-origin:960px 540px}
+#ground,#world{position:absolute;left:960px;top:540px;width:0;height:0;transform-style:preserve-3d}
+#world>div:not(#win),.g3>div{position:absolute;left:0;top:0}
+.g3{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+.floor{position:absolute;left:-3000px;top:-3000px;width:6000px;height:6000px;transform:translateY(560px) rotateX(90deg);background:radial-gradient(circle,rgba(255,255,255,0.13) 1.4px,transparent 1.6px) 0 0/48px 48px;-webkit-mask:radial-gradient(circle at 50% 50%,#000 0 18%,transparent 48%);mask:radial-gradient(circle at 50% 50%,#000 0 18%,transparent 48%)}
+#winShadow{position:absolute;left:-800px;top:-260px;width:1600px;height:520px;transform:translateY(559px) rotateX(90deg);border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,0.6),rgba(0,0,0,0))}
+#win{position:absolute;left:-720px;top:-450px;width:1440px;height:900px;border-radius:16px;overflow:hidden;background:#fbfaf7;box-shadow:0 0 0 1px rgba(255,255,255,0.10),0 50px 140px rgba(0,0,0,0.55),0 12px 40px rgba(0,0,0,0.35)}
+#win *{transition:none!important;animation:none!important;caret-color:transparent}
+.bar{position:absolute;left:0;top:0;width:1440px;height:40px;background:#ece9e3;border-bottom:1px solid #ddd8cf;display:flex;align-items:center;justify-content:center;font:600 13px -apple-system,'SF Pro Text',sans-serif;color:#7d7a8c}
+.bar i{position:absolute;top:14px;width:12px;height:12px;border-radius:50%}
+.bar span{padding:5px 16px;border-radius:7px;background:#f7f5f1}
+#appslot{position:absolute;left:0;top:40px;width:1440px;height:860px}
+.appwrap{width:100%;height:100%}
+.kl-app .kl-focus{border-color:#ff6a4d;box-shadow:0 0 0 3px rgba(255,106,77,0.15)}
+#cursor{position:absolute;left:0;top:0;width:28px;height:28px;transform-origin:0 0;filter:drop-shadow(0 3px 5px rgba(0,0,0,0.35))}
+#ripple{position:absolute;left:-24px;top:-24px;width:48px;height:48px;border-radius:50%;border:2.5px solid #ff6a4d;display:none}
+#rmask{position:absolute;display:none;background:#fbfaff;border-top:2px solid #7c6cf2;box-shadow:0 -10px 24px rgba(124,108,242,0.35)}
+#hl{position:absolute;display:none;height:3px;border-radius:2px;background:#ff6a4d;box-shadow:0 0 10px rgba(255,106,77,0.6)}
+.idea{border-radius:14px;padding:14px 16px;background:rgba(255,255,255,0.95);color:#1d1b2c;font:500 18px/1.3 -apple-system,'SF Pro Text',sans-serif;box-shadow:0 18px 50px rgba(0,0,0,0.35);backface-visibility:hidden;overflow:hidden}
+.idea .ih,.idea p{opacity:calc(1 - var(--m,0) * 1.6)}
+.idea .ih{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:600;color:#908da0;letter-spacing:0.04em;text-transform:uppercase}
+.idea p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.idea .kl-pf{display:inline-grid;place-items:center;min-width:22px;height:19px;padding:0 4px;border-radius:5px;font:700 11px/1 -apple-system,sans-serif;font-style:normal;color:#fff}
+.idea .p-linkedin{background:#2f6fd1}.idea .p-instagram{background:#d64f86}.idea .p-x{background:#26252f}
+.idea.real{border-radius:calc(14px - 8px * var(--m,0))}
+.idea.loose{background:rgba(255,248,232,0.9);color:#5d5a6e;font-style:italic}
+.tile{border-radius:8px;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.05)}
+.carry{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;background:#fff;border:2px solid #ff6a4d;box-shadow:0 24px 60px rgba(0,0,0,0.35);color:#1d1b2c;font-family:-apple-system,'SF Pro Text',sans-serif}
+.carry small{font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#e8492c}
+.carry b{font-size:28px;font-weight:650;line-height:1}.carry span{font-size:12.5px;color:#5d5a6e}
+.kl-app.kl-clone{display:block;width:auto;height:auto;background:none;overflow:visible;grid-template-columns:none;position:absolute;left:0;top:0}
+.kl-clone>*{width:100%;height:100%}
+.fly,.hero{filter:drop-shadow(0 30px 50px rgba(0,0,0,0.35))}
+.hero{border-radius:14px}
+.lchip>.kl-chip{box-shadow:0 10px 24px rgba(0,0,0,0.25)}
+.lchip.launch>.kl-chip{border:1.5px solid #ff6a4d;background:#fff4f1;box-shadow:0 0 0 3px rgba(255,106,77,0.25),0 12px 28px rgba(255,106,77,0.35)}
+.lshadow{border-radius:6px;background:rgba(29,27,44,0.45);filter:blur(5px)}
+#kl{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+#ov{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+#scrim{position:absolute;inset:0;opacity:0;background:linear-gradient(90deg,rgba(16,15,27,0.92) 0%,rgba(16,15,27,0.78) 30%,rgba(16,15,27,0) 52%)}
+.cap{position:absolute;left:120px;overflow:hidden;padding:6px 0 12px;font-weight:600;font-size:60px;line-height:1.08;letter-spacing:-0.02em;white-space:nowrap;color:#f7f4ee;text-shadow:0 2px 30px rgba(10,9,18,0.5)}
+.cap>span{display:inline-block}
+.cap .c{color:#ff8a6d}
+#lock{position:absolute;left:0;width:1920px;top:700px;display:flex;align-items:center;justify-content:center;gap:26px;font-weight:600;font-size:104px;letter-spacing:-0.035em;line-height:1}
+#lockMark{position:relative;width:70px;height:70px;border-radius:10px 26px 10px 26px;background:linear-gradient(135deg,#ff9a7d,#ff6a4d 55%,#e8492c);box-shadow:0 10px 40px rgba(255,106,77,0.45)}
+#tag{left:0;width:1920px;top:832px;text-align:center;font-weight:500;font-size:38px;letter-spacing:-0.01em;color:rgba(247,244,238,0.86)}
+#cta{position:absolute;left:0;width:1920px;top:924px;text-align:center}
+#cta span{display:inline-block;padding:14px 34px;border-radius:40px;background:#ff6a4d;color:#fff;font:650 22px/1 -apple-system,'SF Pro Text',sans-serif;box-shadow:0 10px 30px rgba(255,106,77,0.4)}
+</style><div id="view"><div id="ground"><div class="floor"></div><div id="winShadow"></div></div><div id="world">
+<div id="win"><div class="bar"><i style="left:16px;background:#ff5f57"></i><i style="left:36px;background:#febc2e"></i><i style="left:56px;background:#28c840"></i><span>Kiteline · Fieldnote workspace · local demo</span></div><div id="appslot"></div><div id="rmask"></div><div id="hl"></div><div id="ripple"></div><svg id="cursor" viewBox="0 0 28 28"><path d="M3 2l18 11.5-8.2 1.7L9 23z" fill="#1d1b2c" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
+</div></div>
+<svg id="kl" width="1920" height="1080"><path id="kline" d="" fill="none" stroke="#ff6a4d" stroke-width="3" stroke-linecap="round" style="opacity:0;filter:drop-shadow(0 0 6px rgba(255,106,77,0.7))"/></svg>
+<div id="ov"><div id="scrim"></div>
+<div class="cap" id="h1a" style="top:452px;opacity:0;"><span>Your ideas are everywhere.</span></div><div class="cap" id="h1b" style="top:452px;opacity:0;"><span>Give them a <span class="c">line.</span></span></div>
+<div class="cap" id="h2a" style="top:418px;opacity:0;"><span>Plan every channel</span></div><div class="cap" id="h2b" style="top:488px;opacity:0;"><span>in one calendar.</span></div>
+<div class="cap" id="h3a" style="top:418px;opacity:0;"><span>A rough idea becomes</span></div><div class="cap" id="h3b" style="top:488px;opacity:0;"><span>a <span class="c">real brief.</span></span></div>
+<div class="cap" id="h4a" style="top:452px;opacity:0;"><span>Edit it. See it <span class="c">live.</span></span></div>
+<div class="cap" id="h5a" style="top:96px;opacity:0;"><span>From idea to scheduled.</span></div><div class="cap" id="h5b" style="top:166px;opacity:0;"><span><span class="c">In one flow.</span></span></div>
+<div id="lock" style="opacity:0"><div id="lockMark"></div>Kiteline</div>
+<div class="cap" id="tag" style="top:832px;opacity:0;"><span>Plan, write and schedule your social posts in one calm flow.</span></div>
+<div id="cta" style="opacity:0"><span>Start planning</span></div></div></div>
+<script>/*
+ * Kiteline core: the post model, calendar dates, the state reducer and the demo AI generator. Pure functions with no
+ * DOM, no clock and no randomness, so the same inputs always give the same state (the launch film relies on it), and
+ * the logic is testable in Node.
+ */
+(function (root) {
+  "use strict";
+
+  var PLATFORMS = {
+    linkedin: { id: "linkedin", name: "LinkedIn", limit: 3000, tag: "in" },
+    instagram: { id: "instagram", name: "Instagram", limit: 2200, tag: "IG" },
+    x: { id: "x", name: "X", limit: 280, tag: "X" },
+  };
+  var MEDIA = ["m1", "m2", "m3", "m4"];
+  var AUDIENCES = {
+    "team-leads": { label: "Team leads", line: "Team leads who run several meetings a day and own the follow-ups." },
+    founders: { label: "Founders", line: "Founders of small companies who have no time to waste on tools." },
+    creators: { label: "Creators", line: "Independent creators who work alone and plan their own week." },
+    customers: { label: "Customers", line: "People who already use the product and want to get more from it." },
+  };
+  var TONES = {
+    confident: { label: "Confident", line: "Confident and direct. Short sentences. No hype words." },
+    friendly: { label: "Friendly", line: "Warm and conversational, like a note to a colleague." },
+    playful: { label: "Playful", line: "Light and witty, one small joke at most." },
+    expert: { label: "Expert", line: "Precise and practical, with one concrete example." },
+  };
+  var GOALS = {
+    launch: { label: "Launch", line: "announce something new and get people to try it" },
+    engage: { label: "Engage", line: "start a conversation and get replies" },
+    educate: { label: "Educate", line: "teach one useful idea the reader can apply today" },
+    convert: { label: "Convert", line: "move interested readers to one clear next step" },
+  };
+  var STRUCTURE = {
+    linkedin: ["A one-line hook that names the reader's problem.", "Two sentences on why it matters now.", "Three short bullets on what is new.", "One clear call to action."],
+    instagram: ["A hook inside the first 125 characters.", "Short lines with breathing room.", "One call to action.", "Three to five relevant hashtags at the end."],
+    x: ["One idea, under 280 characters.", "Lead with the most surprising part.", "End with a short call to action."],
+  };
+  var HOOKS = ["Open by naming the problem in the reader's words.", "Open with a bold, specific statement.", "Open with a before-and-after moment."];
+
+  // ---- dates: ISO strings (YYYY-MM-DD) handled in UTC so no time zone can shift a day
+  function toDate(iso) { var p = iso.split("-"); return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2])); }
+  function iso(d) { return d.toISOString().slice(0, 10); }
+  function addDays(s, n) { var d = toDate(s); d.setUTCDate(d.getUTCDate() + n); return iso(d); }
+  function addMonths(s, n) { var d = toDate(s); return iso(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + n, 1))); }
+  function weekStart(s) { var d = toDate(s), dow = (d.getUTCDay() + 6) % 7; return addDays(s, -dow); } // weeks start on Monday
+  function weekDays(s) { var a = weekStart(s), out = []; for (var i = 0; i < 7; i++) out.push(addDays(a, i)); return out; }
+  /** the 6×7 month grid around s, Monday first */
+  function monthGrid(s) {
+    var first = s.slice(0, 8) + "01", a = weekStart(first), out = [];
+    for (var i = 0; i < 42; i++) out.push(addDays(a, i));
+    return out;
+  }
+  var MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  function monthLabel(s) { var d = toDate(s); return MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear(); }
+  function dayLabel(s) { var d = toDate(s); return DAYS[d.getUTCDay()] + ", " + MONTHS[d.getUTCMonth()].slice(0, 3) + " " + d.getUTCDate(); }
+  function weekLabel(s) { var w = weekDays(s), a = toDate(w[0]), b = toDate(w[6]); return MONTHS[a.getUTCMonth()].slice(0, 3) + " " + a.getUTCDate() + " – " + (a.getUTCMonth() === b.getUTCMonth() ? "" : MONTHS[b.getUTCMonth()].slice(0, 3) + " ") + b.getUTCDate() + ", " + b.getUTCFullYear(); }
+  function timeLabel(hm) { var h = +hm.slice(0, 2), m = hm.slice(3); return (h % 12 || 12) + ":" + m + (h < 12 ? " AM" : " PM"); }
+  function sameMonth(a, b) { return a.slice(0, 7) === b.slice(0, 7); }
+
+  /** characters as a reader counts them (code points, so an emoji is one) */
+  function countChars(text) { return Array.from(text || "").length; }
+  function titleOf(text) { var line = (text || "").split("\n")[0].trim(); return line.length > 60 ? line.slice(0, 57) + "…" : line || "Untitled post"; }
+
+  // ---- the demo AI: a deterministic writer that builds a prompt and a draft from the user's own inputs
+  function productName(idea) {
+    var words = (idea || "").replace(/[^\w\s'-]/g, " ").split(/\s+/).filter(Boolean);
+    for (var i = 1; i < words.length; i++) if (/^[A-Z][a-z]/.test(words[i])) return words[i];
+    return "our new product";
+  }
+  function productKind(idea) { var m = /our new ([^,.;]+)/i.exec(idea || ""); return m ? m[1].trim() : "product"; }
+  function generatePrompt(inp, variant) {
+    var p = PLATFORMS[inp.platform], aud = AUDIENCES[inp.audience], tone = TONES[inp.tone], goal = GOALS[inp.goal];
+    var kw = (inp.keywords || "").split(",").map(function (k) { return k.trim(); }).filter(Boolean);
+    return [
+      "TASK",
+      "Write " + (/^[AEIOUX]/.test(p.name) ? "an " : "a ") + p.name + " post that will " + goal.line + ".",
+      "",
+      "TOPIC",
+      (inp.idea || "").trim() + ".",
+      "",
+      "AUDIENCE",
+      aud.line,
+      "",
+      "TONE",
+      tone.line,
+      "",
+      "STRUCTURE",
+      STRUCTURE[p.id].map(function (s, i) { return i + 1 + ". " + s; }).join("\n"),
+      HOOKS[variant % HOOKS.length],
+      "",
+      "INCLUDE",
+      kw.length ? kw.join(", ") : "The product name and one concrete benefit.",
+      "",
+      "AVOID",
+      "Invented statistics, walls of emoji and vague superlatives. Stay under " + p.limit.toLocaleString("en-US") + " characters.",
+    ].join("\n").replace(/\.\.$/m, ".");
+  }
+  function writeDraft(inp, variant) {
+    var name = productName(inp.idea), kind = productKind(inp.idea), aud = AUDIENCES[inp.audience].label.toLowerCase();
+    var hooks = ["Meet " + name + ", our new " + kind + ".", name + " is here.", "Before " + name + ": scattered notes. After: one clear place."];
+    var hook = hooks[variant % hooks.length];
+    if (inp.platform === "x") return hook + " Built for " + aud + " who want less busywork. Try it this week.";
+    var body = [hook, "", "We built " + name + " for " + aud + " who want less busywork and more time for the work that matters.", ""];
+    if (inp.platform === "linkedin") body.push("What you get:", "• Quick to set up", "• Easy to share with your team", "• Designed for the way " + aud + " work", "", "Try " + name + " this week and tell us what you think.");
+    else body.push("Try it this week. Link in bio.", "", "#" + name.toLowerCase() + " #productivity #teamwork");
+    return body.join("\n");
+  }
+
+  // ---- seed content: the Fieldnote launch month, relative to today
+  function seedPosts(today) {
+    var S = [
+      [-11, "linkedin", "published", "16:00", "m3", "We're hiring a product designer who loves calm software.\n\nRemote within Europe. Link in comments."],
+      [-7, "linkedin", "published", "09:00", "m1", "What we learned shipping 40 releases this year.\n\nThe short version: smaller, more often."],
+      [-5, "instagram", "published", "18:30", "m2", "Behind the scenes at our team offsite.\n\nThree days, one whiteboard, zero slide decks."],
+      [-3, "x", "published", "12:15", "m4", "Small change, big difference: shared notes now sync while you type."],
+      [1, "instagram", "scheduled", "09:30", "m2", "Sneak peek: something new is coming Thursday.\n\nCan you guess what it is?"],
+      [2, "x", "scheduled", "12:00", "m4", "Two days to go. We can't wait to show you."],
+      [4, "linkedin", "scheduled", "08:45", "m3", "Webinar: running meetings people actually want to attend.\n\nFriday, 5 pm CET. Free to join."],
+      [7, "instagram", "draft", "17:00", "m1", "Customer story: how a 12-person studio plans its week."],
+      [8, "linkedin", "scheduled", "10:00", "m2", "Five agenda templates for your weekly one-on-ones."],
+      [10, "x", "scheduled", "15:30", "m4", "Honest question: which meeting would you cancel forever?"],
+      [11, "linkedin", "draft", "11:00", "m3", "Year-end product recap (outline)."],
+      [15, "instagram", "scheduled", "11:00", "m1", "A thank-you note to everyone who sent us feedback this year."],
+      [17, "x", "draft", "09:00", "m4", "Thread idea: what good meeting notes have in common."],
+    ];
+    return S.map(function (s, i) { return { id: "p" + (i + 1), date: addDays(today, s[0]), platform: s[1], status: s[2], time: s[3], media: s[4], text: s[5], prompt: null }; });
+  }
+
+  function initialState(opts) {
+    opts = opts || {};
+    var today = opts.today;
+    return {
+      today: today, view: "month", anchor: today, selected: today, page: "calendar",
+      posts: opts.posts || seedPosts(today), nextId: 100,
+      studio: { date: null, idea: "", platform: "instagram", audience: "customers", tone: "friendly", goal: "launch", keywords: "", prompt: "", variant: 0, copied: false },
+      editing: null, toast: null,
+    };
+  }
+  function postsOn(state, date) {
+    return state.posts.filter(function (p) { return p.date === date; }).sort(function (a, b) { return a.time < b.time ? -1 : 1; });
+  }
+  /** why a post can't be scheduled, or null */
+  function scheduleProblem(state, post) {
+    if (!post.text.trim()) return "Write something first.";
+    if (countChars(post.text) > PLATFORMS[post.platform].limit) return "Too long for " + PLATFORMS[post.platform].name + ".";
+    if (post.date < state.today) return "Pick today or a later date.";
+    return null;
+  }
+
+  function set(o, patch) { var r = {}, k; for (k in o) r[k] = o[k]; for (k in patch) r[k] = patch[k]; return r; }
+  function upsert(posts, post) {
+    var found = false, out = posts.map(function (p) { if (p.id === post.id) { found = true; return post; } return p; });
+    return found ? out : out.concat([post]);
+  }
+
+  /** the one reducer: (state, action) → new state, never mutating */
+  function reduce(s, a) {
+    var t = s.toast ? set(s, { toast: null }) : s; // any action dismisses the last toast
+    switch (a.type) {
+      case "GO": return set(t, { page: a.page });
+      case "SET_VIEW": return set(t, { view: a.view, anchor: t.selected || t.anchor });
+      case "NAV": return set(t, { anchor: t.view === "month" ? addMonths(t.anchor, a.delta) : addDays(t.anchor, 7 * a.delta) });
+      case "TODAY": return set(t, { anchor: t.today, selected: t.today });
+      case "SELECT_DATE": return set(t, { selected: a.date });
+      case "START_POST": return set(t, { page: "studio", selected: a.date, studio: set(t.studio, { date: a.date, prompt: "", copied: false }) });
+      case "STUDIO_SET": var patch = {}; patch[a.field] = a.value; return set(t, { studio: set(t.studio, patch) });
+      case "GENERATE": return (t.studio.idea || "").trim() ? set(t, { studio: set(t.studio, { prompt: generatePrompt(t.studio, t.studio.variant), copied: false }) }) : set(t, { toast: { kind: "error", text: "Describe your idea first." } });
+      case "REGENERATE": var v = t.studio.variant + 1; return set(t, { studio: set(t.studio, { variant: v, prompt: generatePrompt(t.studio, v), copied: false }) });
+      case "COPIED": return set(t, { studio: set(t.studio, { copied: true }), toast: { kind: "ok", text: "Prompt copied." } });
+      case "WRITE_POST":
+        if (!t.studio.prompt) return t;
+        var st = t.studio;
+        return set(t, {
+          page: "editor", nextId: t.nextId + 1,
+          editing: { id: "p" + t.nextId, isNew: true, date: st.date || t.selected || t.today, time: "10:00", platform: st.platform, status: "draft", media: "m1", text: writeDraft(st, st.variant), prompt: { idea: st.idea, audience: st.audience, tone: st.tone, goal: st.goal, keywords: st.keywords, text: st.prompt } },
+        });
+      case "OPEN_POST": var p = t.posts.filter(function (x) { return x.id === a.id; })[0]; return p ? set(t, { page: "editor", selected: p.date, editing: set(p, { isNew: false }) }) : t;
+      case "NEW_BLANK": return set(t, { page: "editor", nextId: t.nextId + 1, editing: { id: "p" + t.nextId, isNew: true, date: t.selected || t.today, time: "10:00", platform: "linkedin", status: "draft", media: "m1", text: "", prompt: null } });
+      case "EDIT": if (!t.editing) return t; var e = {}; e[a.field] = a.value; return set(t, { editing: set(t.editing, e) });
+      case "SAVE_DRAFT":
+        if (!t.editing) return t;
+        var d = set(t.editing, { status: t.editing.status === "published" ? "published" : "draft", isNew: false });
+        return set(t, { posts: upsert(t.posts, strip(d)), editing: d, toast: { kind: "ok", text: "Draft saved." } });
+      case "SCHEDULE":
+        if (!t.editing) return t;
+        var why = scheduleProblem(t, t.editing);
+        if (why) return set(t, { toast: { kind: "error", text: why } });
+        var sp = strip(set(t.editing, { status: "scheduled" }));
+        return set(t, { posts: upsert(t.posts, sp), editing: null, page: "calendar", selected: sp.date, anchor: sp.date, toast: { kind: "ok", text: "Scheduled for " + dayLabel(sp.date) + " at " + timeLabel(sp.time) + ".", post: sp.id } });
+      case "DISMISS": return set(s, { toast: null });
+      default: return t;
+    }
+  }
+  function strip(p) { var r = set(p, {}); delete r.isNew; return r; }
+
+  var api = {
+    PLATFORMS: PLATFORMS, MEDIA: MEDIA, AUDIENCES: AUDIENCES, TONES: TONES, GOALS: GOALS,
+    addDays: addDays, addMonths: addMonths, weekDays: weekDays, monthGrid: monthGrid, toDate: toDate, iso: iso,
+    monthLabel: monthLabel, dayLabel: dayLabel, weekLabel: weekLabel, timeLabel: timeLabel, sameMonth: sameMonth,
+    countChars: countChars, titleOf: titleOf, generatePrompt: generatePrompt, writeDraft: writeDraft, productName: productName,
+    seedPosts: seedPosts, initialState: initialState, postsOn: postsOn, scheduleProblem: scheduleProblem, reduce: reduce,
+  };
+  if (typeof module !== "undefined" && module.exports) module.exports = api;
+  else root.KitelineCore = api;
+})(typeof window !== "undefined" ? window : this);
+
+/*
+ * Kiteline views: state → HTML strings. Every user-supplied string goes through esc(). Interactive elements carry
+ * data-act (what a click does) or data-field (what an input edits); ui.js turns those into reducer actions.
+ */
+(function (root) {
+  "use strict";
+  var K = root.KitelineCore;
+
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function attr(o) { var out = ""; for (var k in o) out += " " + k + '="' + esc(o[k]) + '"'; return out; }
+  /** post text for a preview: escaped, line breaks kept, hashtags tinted, the first line wrapped so it can be pointed at */
+  function richText(text) {
+    var lines = esc(text).split("\n").map(function (l) { return l.replace(/(^|\s)(#[\w-]+)/g, '$1<span class="kl-tag">$2</span>'); });
+    if (lines.length) lines[0] = '<span class="kl-l1">' + lines[0] + "</span>";
+    return lines.join("<br>");
+  }
+  var ICON = {
+    cal: '<svg viewBox="0 0 20 20"><rect x="3" y="4.5" width="14" height="12" rx="2.5"/><path d="M3 8.5h14M7 2.8v3.4M13 2.8v3.4"/></svg>',
+    spark: '<svg viewBox="0 0 20 20"><path d="M10 2.5l1.7 4.6 4.8 1.4-4.8 1.6L10 15l-1.7-4.9-4.8-1.6 4.8-1.4z"/><path d="M15.5 13.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/></svg>',
+    pen: '<svg viewBox="0 0 20 20"><path d="M4 16l1-4 8.5-8.5a2.1 2.1 0 013 3L8 15z"/><path d="M12 5l3 3"/></svg>',
+    left: '<svg viewBox="0 0 20 20"><path d="M12.5 4.5L7 10l5.5 5.5"/></svg>',
+    right: '<svg viewBox="0 0 20 20"><path d="M7.5 4.5L13 10l-5.5 5.5"/></svg>',
+    plus: '<svg viewBox="0 0 20 20"><path d="M10 4v12M4 10h12"/></svg>',
+    copy: '<svg viewBox="0 0 20 20"><rect x="6.5" y="6.5" width="10" height="10" rx="2"/><path d="M13.5 6.5V5a1.5 1.5 0 00-1.5-1.5H5A1.5 1.5 0 003.5 5v7A1.5 1.5 0 005 13.5h1.5"/></svg>',
+    redo: '<svg viewBox="0 0 20 20"><path d="M15.5 9a5.5 5.5 0 10-1.6 4.4"/><path d="M15.8 4.5V9h-4.5"/></svg>',
+    check: '<svg viewBox="0 0 20 20"><path d="M4.5 10.5l3.5 3.5 7.5-8"/></svg>',
+    clock: '<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M10 6v4.3l2.8 1.8"/></svg>',
+  };
+  var STATUS = { draft: "Draft", scheduled: "Scheduled", published: "Published" };
+  function pf(platform) { return '<i class="kl-pf p-' + platform + '">' + K.PLATFORMS[platform].tag + "</i>"; }
+  function pill(status) { return '<span class="kl-pill s-' + status + '">' + (status === "published" ? ICON.check : "") + STATUS[status] + "</span>"; }
+  function shortTime(hm) { return K.timeLabel(hm).replace(":00", "").replace(" AM", "a").replace(" PM", "p"); }
+
+  // ---- shell
+  function sidebar(s, ctx) {
+    var nav = [["calendar", "Calendar", ICON.cal], ["studio", "Prompt studio", ICON.spark], ["editor", "Editor", ICON.pen]];
+    return '<aside class="kl-side"><div class="kl-brand"><span class="kl-mark"><i></i></span>Kiteline</div>' +
+      '<div class="kl-ws"><span class="kl-ws-av">F</span><div><b>Fieldnote</b><small>Marketing workspace</small></div></div><nav>' +
+      nav.map(function (n) { return '<button class="kl-nav' + (s.page === n[0] ? " on" : "") + '"' + attr({ "data-act": "go", "data-page": n[0] }) + ">" + n[2] + n[1] + "</button>"; }).join("") +
+      '</nav><div class="kl-demo"><b>Demo mode</b>AI runs in your browser. Nothing is posted to social networks.' + (ctx.storageOk ? "" : "<em>Changes won't be saved in this browser.</em>") + "</div></aside>";
+  }
+  function toast(s) {
+    if (!s.toast) return '<div class="kl-toast"></div>';
+    return '<div class="kl-toast on ' + s.toast.kind + '" role="status">' + (s.toast.kind === "ok" ? ICON.check : "") + "<span>" + esc(s.toast.text) + '</span><button data-act="dismiss" aria-label="Dismiss">×</button></div>';
+  }
+
+  // ---- calendar
+  function chip(p) {
+    return '<button class="kl-chip s-' + p.status + '"' + attr({ "data-act": "open", "data-post": p.id, title: K.titleOf(p.text) }) + ">" + pf(p.platform) + "<b>" + shortTime(p.time) + "</b><span>" + esc(K.titleOf(p.text)) + "</span></button>";
+  }
+  function month(s) {
+    var head = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(function (d) { return "<span>" + d + "</span>"; }).join("");
+    var cells = K.monthGrid(s.anchor).map(function (d) {
+      var ps = K.postsOn(s, d), cls = "kl-cell" + (K.sameMonth(d, s.anchor) ? "" : " out") + (d === s.selected ? " sel" : "") + (d === s.today ? " today" : "") + (d < s.today ? " past" : "");
+      var list = ps.slice(0, 3).map(chip).join("") + (ps.length > 3 ? '<span class="kl-more">+' + (ps.length - 3) + " more</span>" : "");
+      return '<div class="' + cls + '"' + attr({ "data-act": "select", "data-date": d }) + '><span class="kl-num">' + +d.slice(8) + "</span>" + list + "</div>";
+    }).join("");
+    return '<div class="kl-month"><div class="kl-dow">' + head + '</div><div class="kl-grid">' + cells + "</div></div>";
+  }
+  function postCard(p) {
+    return '<button class="kl-card s-' + p.status + '"' + attr({ "data-act": "open", "data-post": p.id }) + '><div class="kl-card-top">' + pf(p.platform) + "<b>" + K.timeLabel(p.time) + "</b></div><p>" + esc(K.titleOf(p.text)) + "</p>" + pill(p.status) + "</button>";
+  }
+  function week(s) {
+    return '<div class="kl-week">' + K.weekDays(s.anchor).map(function (d) {
+      var dt = K.toDate(d), ps = K.postsOn(s, d);
+      var head = '<button class="kl-wh' + (d === s.selected ? " sel" : "") + (d === s.today ? " today" : "") + '"' + attr({ "data-act": "select", "data-date": d }) + "><span>" + ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][dt.getUTCDay()] + "</span><b>" + dt.getUTCDate() + "</b></button>";
+      var body = ps.map(postCard).join("") + (d >= s.today ? '<button class="kl-add"' + attr({ "data-act": "start", "data-date": d, "aria-label": "Add post on " + K.dayLabel(d) }) + ">" + ICON.plus + "</button>" : "");
+      return '<div class="kl-col' + (d === s.selected ? " sel" : "") + (d < s.today ? " past" : "") + '"' + attr({ "data-date": d }) + ">" + head + '<div class="kl-col-body">' + body + "</div></div>";
+    }).join("") + "</div>";
+  }
+  function dayPanel(s) {
+    var d = s.selected, ps = K.postsOn(s, d), canAdd = d >= s.today;
+    var body = ps.length ? ps.map(postCard).join("") : '<div class="kl-empty"><span class="kl-empty-art"><i></i><i></i><i></i></span><b>Nothing planned yet.</b><small>' + (canAdd ? "Start from an idea and let Kiteline draft it." : "This day has passed.") + "</small></div>";
+    var btn = canAdd ? '<button class="kl-btn primary wide"' + attr({ "data-act": "start", "data-date": d }) + ">" + ICON.plus + (ps.length ? "Add another post" : "Create post for " + K.dayLabel(d)) + "</button>" : "";
+    return '<section class="kl-day"><header><small>Selected day</small><h3>' + K.dayLabel(d) + "</h3><span>" + ps.length + (ps.length === 1 ? " post" : " posts") + '</span></header><div class="kl-day-list">' + body + "</div>" + btn + "</section>";
+  }
+  function calendar(s) {
+    var label = s.view === "month" ? K.monthLabel(s.anchor) : K.weekLabel(s.anchor);
+    return '<header class="kl-head"><div><small>Content calendar</small><h1>' + label + '</h1></div><div class="kl-tools">' +
+      '<div class="kl-seg">' + ["month", "week"].map(function (v) { return '<button class="' + (s.view === v ? "on" : "") + '"' + attr({ "data-act": "view", "data-view": v }) + ">" + (v === "month" ? "Month" : "Week") + "</button>"; }).join("") + "</div>" +
+      '<div class="kl-navbtns"><button class="kl-icon"' + attr({ "data-act": "nav", "data-delta": -1, "aria-label": "Previous" }) + ">" + ICON.left + '</button><button class="kl-btn ghost" data-act="today">Today</button><button class="kl-icon"' + attr({ "data-act": "nav", "data-delta": 1, "aria-label": "Next" }) + ">" + ICON.right + "</button></div>" +
+      '<button class="kl-btn primary"' + attr({ "data-act": "start", "data-date": s.selected >= s.today ? s.selected : s.today }) + ">" + ICON.plus + "New post</button></div></header>" +
+      '<div class="kl-cal">' + (s.view === "month" ? month(s) : week(s)) + dayPanel(s) + "</div>";
+  }
+
+  // ---- prompt studio
+  function chips(field, options, value) {
+    return '<div class="kl-chips">' + Object.keys(options).map(function (k) { return '<button class="kl-opt' + (value === k ? " on" : "") + '"' + attr({ "data-act": "studio", "data-field": field, "data-value": k }) + ">" + esc(options[k].label || options[k].name) + "</button>"; }).join("") + "</div>";
+  }
+  function studio(s) {
+    var st = s.studio, date = st.date || s.selected;
+    var out = st.prompt
+      ? '<textarea class="kl-prompt" data-field="prompt" spellcheck="false">' + esc(st.prompt) + '</textarea><div class="kl-out-act"><button class="kl-btn ghost" data-act="copy">' + (st.copied ? ICON.check + "Copied" : ICON.copy + "Copy") + '</button><button class="kl-btn ghost" data-act="regenerate">' + ICON.redo + 'Regenerate</button><button class="kl-btn primary" data-act="write">' + ICON.pen + "Write post from prompt</button></div>"
+      : '<div class="kl-empty big"><span class="kl-empty-art ai"><i></i><i></i><i></i></span><b>Your prompt will appear here.</b><small>Describe the idea, pick who it is for, then generate.</small></div>';
+    return '<header class="kl-head"><div><small>Prompt studio</small><h1>Turn an idea into a brief</h1></div><div class="kl-tools"><span class="kl-date">' + ICON.cal + "For " + K.dayLabel(date) + '</span><span class="kl-ai-badge">' + ICON.spark + "Demo AI · runs in your browser</span></div></header>" +
+      '<div class="kl-studio"><section class="kl-panel kl-form">' +
+      '<label class="kl-lbl">Your idea</label><textarea class="kl-idea" data-field="idea" rows="3" placeholder="e.g. Announce our new feature to existing customers">' + esc(st.idea) + "</textarea>" +
+      '<label class="kl-lbl">Platform</label>' + chips("platform", K.PLATFORMS, st.platform) +
+      '<label class="kl-lbl">Audience</label>' + chips("audience", K.AUDIENCES, st.audience) +
+      '<label class="kl-lbl">Tone</label>' + chips("tone", K.TONES, st.tone) +
+      '<label class="kl-lbl">Goal</label>' + chips("goal", K.GOALS, st.goal) +
+      '<label class="kl-lbl">Keywords <small>optional, comma separated</small></label><input class="kl-input" data-field="keywords" value="' + esc(st.keywords) + '" placeholder="e.g. async, follow-ups">' +
+      '<button class="kl-btn ai wide" data-act="generate">' + ICON.spark + "Generate prompt</button></section>" +
+      '<section class="kl-panel kl-out' + (st.prompt ? " has" : "") + '"><header><b>Generated prompt</b><small>' + (st.prompt ? "Editable · " + K.PLATFORMS[st.platform].name + " · " + K.AUDIENCES[st.audience].label + " · " + K.TONES[st.tone].label : "Waiting for your idea") + "</small></header>" + out + "</section></div>";
+  }
+
+  // ---- editor and previews
+  function preview(p) {
+    var media = '<div class="kl-media ' + p.media + '"><b>Meet<br>Fieldnote</b><i></i></div>', text = richText(p.text || " ");
+    if (p.platform === "instagram") return '<div class="kl-pv ig"><div class="kl-pv-h"><span class="kl-av">F</span><b>fieldnote.app</b></div>' + media + '<div class="kl-pv-acts"><i></i><i></i><i></i></div><p class="kl-pv-text"><b>fieldnote.app</b> ' + text + "</p></div>";
+    if (p.platform === "x") return '<div class="kl-pv x"><span class="kl-av">F</span><div><div class="kl-pv-h"><b>Fieldnote</b><small>@fieldnote · now</small></div><p class="kl-pv-text">' + text + "</p>" + media + "</div></div>";
+    return '<div class="kl-pv li"><div class="kl-pv-h"><span class="kl-av sq">F</span><div><b>Fieldnote</b><small>Company page · Now</small></div></div><p class="kl-pv-text">' + text + "</p>" + media + '<div class="kl-pv-bar"><span>Like</span><span>Comment</span><span>Repost</span><span>Send</span></div></div>';
+  }
+  function countInfo(p, s) {
+    var n = K.countChars(p.text), lim = K.PLATFORMS[p.platform].limit;
+    return { n: n, lim: lim, over: n > lim, why: K.scheduleProblem(s, p) };
+  }
+  function editor(s) {
+    var p = s.editing;
+    if (!p) return '<header class="kl-head"><div><small>Editor</small><h1>Nothing open</h1></div></header><div class="kl-empty big"><b>Open a post from the calendar, or start a new one.</b><button class="kl-btn primary" data-act="new">' + ICON.plus + "New blank post</button></div>";
+    var c = countInfo(p, s);
+    return '<header class="kl-head"><div><small>Editor · ' + (p.isNew ? "New post" : STATUS[p.status]) + "</small><h1>" + esc(K.titleOf(p.text)) + '</h1></div><div class="kl-tools"><button class="kl-btn ghost" data-act="back">' + ICON.left + "Back to calendar</button></div></header>" +
+      '<div class="kl-editor"><section class="kl-panel kl-edit">' +
+      '<div class="kl-tabs">' + Object.keys(K.PLATFORMS).map(function (k) { return '<button class="' + (p.platform === k ? "on" : "") + '"' + attr({ "data-act": "edit", "data-field": "platform", "data-value": k }) + ">" + pf(k) + K.PLATFORMS[k].name + "</button>"; }).join("") + "</div>" +
+      '<label class="kl-lbl">Caption ' + (p.prompt ? '<small class="kl-from">' + ICON.spark + "Drafted from your prompt</small>" : "") + '</label><textarea class="kl-caption" data-field="text" spellcheck="false">' + esc(p.text) + '</textarea><div class="kl-count' + (c.over ? " over" : "") + '"><span class="kl-count-n">' + c.n.toLocaleString("en-US") + " / " + c.lim.toLocaleString("en-US") + "</span></div>" +
+      '<label class="kl-lbl">Media</label><div class="kl-thumbs">' + K.MEDIA.map(function (m) { return '<button class="kl-thumb ' + m + (p.media === m ? " on" : "") + '"' + attr({ "data-act": "edit", "data-field": "media", "data-value": m, "aria-label": "Media " + m.slice(1) }) + "><i></i></button>"; }).join("") + "</div>" +
+      '<div class="kl-when"><label class="kl-lbl">Date<input type="date" class="kl-input" data-field="date" value="' + p.date + '"></label><label class="kl-lbl">Time<input type="time" class="kl-input" data-field="time" value="' + p.time + '"></label></div>' +
+      '<div class="kl-edit-act"><span class="kl-why">' + esc(c.why || "") + '</span><button class="kl-btn ghost" data-act="save">Save draft</button><button class="kl-btn primary" data-act="schedule"' + (c.why ? " disabled" : "") + ">" + ICON.clock + "Schedule</button></div></section>" +
+      '<section class="kl-preview"><header><b>Preview</b><small>' + K.PLATFORMS[p.platform].name + " · approximate layout</small></header>" + preview(p) + "</section></div>";
+  }
+
+  function app(s, ctx) {
+    var page = s.page === "studio" ? studio(s) : s.page === "editor" ? editor(s) : calendar(s);
+    return sidebar(s, ctx) + '<main class="kl-main kl-page-' + s.page + '">' + page + "</main>" + toast(s);
+  }
+
+  root.KitelineViews = { app: app, preview: preview, countInfo: countInfo, esc: esc, richText: richText };
+})(typeof window !== "undefined" ? window : this);
+
+/*
+ * Kiteline UI: mounts the app into an element, turns clicks and inputs into reducer actions and re-renders.
+ *
+ *   KitelineUI.mount(el, { today, storage, autoDismiss, clipboard }) → { dispatch, getState, el }
+ *
+ * storage: { load() → saved | null, save(saved) } or null for an in-memory session (the launch film uses null).
+ * Typing into a text field updates state without re-rendering the field, so the caret and selection survive; the
+ * caption also patches the live preview and the character count in place.
+ */
+(function (root) {
+  "use strict";
+  var K = root.KitelineCore, Vw = root.KitelineViews;
+
+  function mount(el, opts) {
+    opts = opts || {};
+    var ctx = { storageOk: true }, state = K.initialState({ today: opts.today });
+    if (opts.storage) {
+      try {
+        var saved = opts.storage.load();
+        if (saved && Array.isArray(saved.posts)) state = Object.assign({}, state, { posts: saved.posts, nextId: saved.nextId || state.nextId });
+      } catch (err) {
+        ctx.storageOk = false; // unreadable or blocked storage: run in memory and say so in the sidebar
+      }
+    }
+    var timer = null;
+    el.classList.add("kl-app");
+
+    function persist() {
+      if (!opts.storage || !ctx.storageOk) return;
+      try { opts.storage.save({ posts: state.posts, nextId: state.nextId }); } catch (err) { ctx.storageOk = false; }
+    }
+    function render() {
+      el.innerHTML = Vw.app(state, ctx);
+      if (opts.autoDismiss && state.toast) {
+        clearTimeout(timer);
+        timer = setTimeout(function () { dispatch({ type: "DISMISS" }); }, 3200);
+      }
+    }
+    function patchEditor() {
+      var p = state.editing, c = Vw.countInfo(p, state);
+      var t = el.querySelector(".kl-pv-text");
+      if (t) t.innerHTML = (p.platform === "instagram" ? "<b>fieldnote.app</b> " : "") + Vw.richText(p.text || " ");
+      var n = el.querySelector(".kl-count");
+      n.classList.toggle("over", c.over);
+      n.firstChild.textContent = c.n.toLocaleString("en-US") + " / " + c.lim.toLocaleString("en-US");
+      el.querySelector(".kl-why").textContent = c.why || "";
+      el.querySelector('[data-act="schedule"]').disabled = !!c.why;
+      el.querySelector(".kl-head h1").textContent = K.titleOf(p.text);
+    }
+    function dispatch(action, quiet) {
+      var prev = state;
+      state = K.reduce(state, action);
+      if (state.posts !== prev.posts) persist();
+      if (!quiet) render();
+      return state;
+    }
+
+    el.addEventListener("click", function (e) {
+      var b = e.target.closest("[data-act]");
+      if (!b || !el.contains(b) || b.disabled) return;
+      var d = b.dataset;
+      switch (d.act) {
+        case "go": return dispatch({ type: "GO", page: d.page });
+        case "view": return dispatch({ type: "SET_VIEW", view: d.view });
+        case "nav": return dispatch({ type: "NAV", delta: +d.delta });
+        case "today": return dispatch({ type: "TODAY" });
+        case "select": return dispatch({ type: "SELECT_DATE", date: d.date });
+        case "start": return dispatch({ type: "START_POST", date: d.date });
+        case "studio": return dispatch({ type: "STUDIO_SET", field: d.field, value: d.value });
+        case "generate": return dispatch({ type: "GENERATE" });
+        case "regenerate": return dispatch({ type: "REGENERATE" });
+        case "copy": return copyPrompt();
+        case "write": return dispatch({ type: "WRITE_POST" });
+        case "open": return dispatch({ type: "OPEN_POST", id: d.post });
+        case "new": return dispatch({ type: "NEW_BLANK" });
+        case "edit": return dispatch({ type: "EDIT", field: d.field, value: d.value });
+        case "save": return dispatch({ type: "SAVE_DRAFT" });
+        case "schedule": return dispatch({ type: "SCHEDULE" });
+        case "back": return dispatch({ type: "GO", page: "calendar" });
+        case "dismiss": return dispatch({ type: "DISMISS" });
+        default: return undefined;
+      }
+    });
+    el.addEventListener("input", function (e) {
+      var f = e.target.dataset && e.target.dataset.field;
+      if (!f) return;
+      if (f === "idea" || f === "keywords" || f === "prompt") dispatch({ type: "STUDIO_SET", field: f, value: e.target.value }, true);
+      else if (f === "text") { dispatch({ type: "EDIT", field: "text", value: e.target.value }, true); patchEditor(); }
+    });
+    el.addEventListener("change", function (e) {
+      var f = e.target.dataset && e.target.dataset.field;
+      if ((f === "date" || f === "time") && e.target.value) dispatch({ type: "EDIT", field: f, value: e.target.value });
+    });
+
+    function copyPrompt() {
+      var text = state.studio.prompt, clip = opts.clipboard || (root.navigator && root.navigator.clipboard);
+      if (!clip || !clip.writeText) { state = Object.assign({}, state, { toast: { kind: "error", text: "Copy isn't available here. Select the text instead." } }); render(); return; }
+      clip.writeText(text).then(function () { dispatch({ type: "COPIED" }); }, function () {
+        state = Object.assign({}, state, { toast: { kind: "error", text: "Copy was blocked by the browser." } });
+        render();
+      });
+    }
+
+    render();
+    return { dispatch: dispatch, getState: function () { return state; }, el: el };
+  }
+
+  root.KitelineUI = { mount: mount };
+})(typeof window !== "undefined" ? window : this);
+</script>
+<script>stage.build((tl, S) => {var T = {"DUR":30,"FPS":30,"TODAY":"2026-11-09","hook1":[0.45,2],"hook2":[2.1,3.7],"thread":[0.8,2.4],"land":[2.3,3.5],"tiles":[2.2,3.5],"appIn":[3.55,4.35],"head2":[6.7,8.45],"lift":[8.3,9.35],"reveal":[11.9,12.65],"head3":[12.75,13.85],"promptFly":[13.9,14.55],"head4":[18.4,19.4],"previewFly":[19.6,20.55],"chipsUp":[22,23.2],"planLine":[22.9,24.4],"head5":[22.6,25.4],"settle":[25.6,26.8],"heroIn":[25.8,27.1],"title":26.5,"tag":27,"cta":27.5};
+var ACTIONS = [{"t":4.9,"kind":"click","sel":"[data-act=\"view\"][data-view=\"week\"]"},{"t":5.9,"kind":"click","sel":".kl-wh[data-date=\"2026-11-12\"]"},{"t":8.3,"kind":"click","sel":".kl-day [data-act=\"start\"]","cap":{"thu":".kl-col[data-date=\"2026-11-12\"]"}},{"t":9.25,"kind":"type","sel":"[data-field=\"idea\"]","text":"Introduce Fieldnote, our new meeting-notes app","dur":1.35},{"t":10.85,"kind":"click","sel":"[data-act=\"studio\"][data-field=\"platform\"][data-value=\"linkedin\"]"},{"t":11.15,"kind":"click","sel":"[data-act=\"studio\"][data-field=\"audience\"][data-value=\"team-leads\"]"},{"t":11.45,"kind":"click","sel":"[data-act=\"studio\"][data-field=\"tone\"][data-value=\"confident\"]"},{"t":11.85,"kind":"click","sel":"[data-act=\"generate\"]"},{"t":13.9,"kind":"click","sel":"[data-act=\"write\"]","cap":{"prompt":".kl-out"}},{"t":15,"kind":"focus","sel":"[data-field=\"text\"]"},{"t":15.2,"kind":"retype","sel":"[data-field=\"text\"]","from":"Meet Fieldnote, our new meeting-notes app.","to":"Your meetings deserve better notes. Meet Fieldnote.","dur":1.5},{"t":16.95,"kind":"click","sel":"[data-act=\"edit\"][data-field=\"media\"][data-value=\"m2\"]"},{"t":17.45,"kind":"click","sel":"[data-act=\"edit\"][data-field=\"platform\"][data-value=\"instagram\"]"},{"t":18,"kind":"click","sel":"[data-act=\"edit\"][data-field=\"platform\"][data-value=\"linkedin\"]"},{"t":19.6,"kind":"click","sel":"[data-act=\"schedule\"]","cap":{"preview":".kl-pv"}},{"t":21.4,"kind":"click","sel":"[data-act=\"view\"][data-view=\"month\"]"}];
+var retypeAt = function retypeAt(a, u) {
+  u = Math.max(0, Math.min(1, u));
+  if (u < 0.35) return a.from.slice(0, Math.round(a.from.length * (1 - u / 0.35)));
+  return a.to.slice(0, Math.round(a.to.length * (u - 0.35) / 0.65));
+};
+// ==== film/00-util.js
+// ---- shared helpers: easing, a tiny vector kit, monotone keyframe curves and the CSS-3D projection.
+// Units are CSS pixels in world space, y down. The app window is the plane z = 0, centred on the origin; +z is toward the camera.
+var W = 1920, H = 1080, PERSP = 1600;
+var $ = function (id) { return document.getElementById(id); };
+var clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
+var c01 = function (x) { return clamp(x, 0, 1); };
+var sm = function (x) { x = c01(x); return x * x * (3 - 2 * x); };
+var smr = function (t, a, b) { return sm((t - a) / (b - a)); };
+var smoother = function (x) { x = c01(x); return x * x * x * (x * (x * 6 - 15) + 10); };
+var mix = function (a, b, u) { return a + (b - a) * u; };
+var expOut = function (x) { x = c01(x); return x >= 1 ? 1 : 1 - Math.pow(2, -10 * x); };
+var deg = Math.PI / 180;
+var f2 = function (x) { return x.toFixed(2); };
+
+var V = {
+  add: function (a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; },
+  sub: function (a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; },
+  mul: function (a, s) { return [a[0] * s, a[1] * s, a[2] * s]; },
+  dot: function (a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; },
+  norm: function (a) { var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+};
+
+// Monotone cubic (Fritsch–Carlson) through keyframes: C1-continuous, so speed never jumps at a key, and no
+// overshoot, so the camera never swings past a framing and back.
+function curve(keys) {
+  var n = keys.length, xs = keys.map(function (k) { return k[0]; }), ys = keys.map(function (k) { return k[1]; });
+  var d = [], m = [];
+  for (var i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+  m[0] = 0; m[n - 1] = 0; // start and end at rest
+  for (i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
+    var a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { var tau = 3 / Math.sqrt(s); m[i] = tau * a * d[i]; m[i + 1] = tau * b * d[i]; }
+  }
+  return function (x) {
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[n - 1]) return ys[n - 1];
+    var k = 0; while (x > xs[k + 1]) k++;
+    var h = xs[k + 1] - xs[k], u = (x - xs[k]) / h, u2 = u * u, u3 = u2 * u;
+    return (2 * u3 - 3 * u2 + 1) * ys[k] + (u3 - 2 * u2 + u) * h * m[k] + (-2 * u3 + 3 * u2) * ys[k + 1] + (u3 - u2) * h * m[k + 1];
+  };
+}
+
+// The camera is a pose { yaw, elev, dist, tgt, ox, oy } (degrees, px). The world element gets
+//   translateZ(PERSP - dist) rotateX(-elev) rotateY(yaw) translate3d(-tgt)
+// inside a perspective of PERSP, and the whole view is shifted by (ox, oy) on screen. project() is the same maths,
+// so the overlay's leader lines and the shot check land exactly on what CSS draws.
+function camTransform(c) {
+  return "translateZ(" + f2(PERSP - c.dist) + "px) rotateX(" + (-c.elev).toFixed(3) + "deg) rotateY(" + c.yaw.toFixed(3) + "deg) translate3d(" + f2(-c.tgt[0]) + "px," + f2(-c.tgt[1]) + "px," + f2(-c.tgt[2]) + "px)";
+}
+function toView(p, c) {
+  var q = V.sub(p, c.tgt), a = c.yaw * deg, e = -c.elev * deg;
+  var x1 = Math.cos(a) * q[0] + Math.sin(a) * q[2], z1 = -Math.sin(a) * q[0] + Math.cos(a) * q[2], y1 = q[1]; // rotateY
+  var y2 = Math.cos(e) * y1 - Math.sin(e) * z1, z2 = Math.sin(e) * y1 + Math.cos(e) * z1; // rotateX
+  return [x1, y2, z2 + PERSP - c.dist];
+}
+function project(p, c) {
+  var v = toView(p, c), k = PERSP / (PERSP - v[2]);
+  return { x: W / 2 + c.ox + v[0] * k, y: H / 2 + c.oy + v[1] * k, k: k, behind: v[2] >= PERSP - 1 };
+}
+// where the camera is in the world: the inverse of the two rotations applied to (0, 0, dist)
+function camPos(c) {
+  var a = c.yaw * deg, e = -c.elev * deg;
+  var y = Math.sin(e) * c.dist, z = Math.cos(e) * c.dist; // inverse rotateX of (0,0,dist)
+  return [c.tgt[0] - Math.sin(a) * z, c.tgt[1] + y, c.tgt[2] + Math.cos(a) * z]; // inverse rotateY
+}
+
+// ==== film/10-replay.js
+// ---- the real app, replayed. Every frame mounts a fresh Kiteline (the same core/views/ui code as app/) and
+// performs every scripted action whose time has come: real clicks on real buttons, real input events into real
+// fields. So whatever the viewer sees in the window at time t is what the app actually renders after those
+// actions. That also makes any frame render the same alone, out of order, or as a motion-blur sample.
+var WIN_W = 1440, WIN_H = 900, BAR = 40, APP_H = WIN_H - BAR;
+var winEl = $("win"), hostSlot = $("appslot");
+var app = null, host = null;
+
+// a rect in window coordinates (layout, so 3D transforms on the window don't distort it)
+function layoutRect(el) {
+  var x = 0, y = 0, e = el;
+  while (e && e !== host) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; }
+  return { x: x, y: y + BAR, w: el.offsetWidth, h: el.offsetHeight };
+}
+function q(sel) { return host.querySelector(sel); }
+function snapshot(el) {
+  if (!el) return null;
+  return { html: el.outerHTML, rect: layoutRect(el) };
+}
+
+function replay(t) {
+  // a new host each frame: listeners from the last mount must not stack up
+  host = document.createElement("div");
+  host.className = "appwrap";
+  hostSlot.replaceChildren(host);
+  app = KitelineUI.mount(host, { today: T.TODAY, storage: null });
+  var rec = { at: {}, caps: {}, focus: null };
+  ACTIONS.forEach(function (a, i) {
+    if (t < a.t) return;
+    var el = q(a.sel);
+    if (!el) throw new Error("film action " + i + " at " + a.t + " s: nothing matches " + a.sel);
+    rec.at[i] = layoutRect(el);
+    if (a.cap) Object.keys(a.cap).forEach(function (k) { rec.caps[k] = snapshot(q(a.cap[k])); });
+    var u = a.dur ? c01((t - a.t) / a.dur) : 1;
+    if (a.kind === "click") { el.click(); rec.focus = null; }
+    else if (a.kind === "focus") rec.focus = a.sel;
+    else if (a.kind === "type" || a.kind === "retype") {
+      // retype swaps the caption's first line, which the generated draft always starts with, and keeps the rest
+      el.value = a.kind === "type" ? a.text.slice(0, Math.round(a.text.length * u)) : retypeAt(a, u) + el.value.slice(a.from.length);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      // the exporter captures the DOM, not live form state: mirror the value into the markup so the field shows it
+      if (el.tagName === "TEXTAREA") el.textContent = el.value; else el.setAttribute("value", el.value);
+      rec.focus = a.sel;
+    }
+  });
+  // the field being typed in looks focused (a background tab never shows :focus)
+  if (rec.focus && q(rec.focus)) q(rec.focus).classList.add("kl-focus");
+  return rec;
+}
+
+// ==== film/20-world.js
+// ---- the 3D layer around the real window: idea cards that thread into the calendar, day tiles, the cards that
+// carry content from one screen to the next, the plan lifted off the month, and the hero panels. Where something
+// stands for app content it is built from the app itself: the seed posts, layout rects read from the live DOM,
+// and snapshots of real panels taken by the replay.
+var world = $("world");
+function mk(cls, parent, html) { var e = document.createElement("div"); e.className = cls; if (html != null) e.innerHTML = html; (parent || world).appendChild(e); return e; }
+function w2w(x, y, z) { return [x - WIN_W / 2, y - WIN_H / 2, z || 0]; } // window coords → world
+function place(el, x, y, z, w, h, extra) { // a window-space rect, lifted to z
+  el.style.width = f2(w) + "px"; el.style.height = f2(h) + "px";
+  el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(z || 0) + "px)" + (extra || "");
+}
+var esc = KitelineViews.esc;
+var SEED = KitelineCore.seedPosts(T.TODAY);
+var post = function (id) { return SEED.filter(function (p) { return p.id === id; })[0]; };
+
+// ---- 1 · the ideas: five are the real posts on the calendar (they'll land on their chips), six are loose notes
+var REAL = ["p5", "p6", "p7", "p9", "p10"];
+var LOOSE = ["Reel idea: a day of meetings in 15 seconds?", "Q4 recap: carousel or thread?", "Ask design for launch visuals", "Customer quote from Lena's team", "Poll: worst meeting habit?", "Repost the webinar clip?"];
+var SCATTER = [
+  [-560, -250, 160, -8], [380, -330, -120, 6], [-140, 130, 320, -4], [720, 120, 60, 9], [140, -40, -420, -6],
+  [-1040, -380, -260, 7], [980, -300, -380, -9], [-760, 380, -60, 5], [520, 430, -200, -7], [-300, -520, -500, 8], [1180, 300, -640, -5],
+];
+var ideas = REAL.map(function (id, i) {
+  var p = post(id), e = mk("idea real");
+  e.innerHTML = '<div class="ih"><i class="kl-pf p-' + p.platform + '">' + KitelineCore.PLATFORMS[p.platform].tag + "</i><span>" + KitelineCore.PLATFORMS[p.platform].name + "</span></div><p>" + esc(KitelineCore.titleOf(p.text)) + "</p>";
+  return { el: e, id: id, s: SCATTER[i], k: i };
+}).concat(LOOSE.map(function (txt, j) {
+  var e = mk("idea loose", null, '<div class="ih"><span>Idea</span></div><p>' + esc(txt) + "</p>");
+  return { el: e, s: SCATTER[5 + j], k: 5 + j };
+}));
+var IDEA_W = 330, IDEA_H = 124;
+function ideaDrift(it, t) { return [it.s[0] + 26 * Math.sin(0.5 * t + it.k), it.s[1] + 18 * Math.cos(0.43 * t + it.k * 1.7), it.s[2] + 40 * t]; }
+// where each real idea ends: its chip in the month view, read from the live app
+function poseIdeas(t) {
+  var tiles = [];
+  if (t > T.appIn[1]) { ideas.forEach(function (it) { it.el.style.display = "none"; }); return tiles; } // the hook is over
+  ideas.forEach(function (it, i) {
+    var d = ideaDrift(it, t), e = it.el;
+    if (!it.id) { // loose notes drift back and away once the line passes them by
+      var u = smoother((t - 1.9 - 0.08 * (i - 5)) / 1.3);
+      e.style.opacity = (Math.min(1, t / 0.4 + 0.6) * (1 - u)).toFixed(3);
+      if (u >= 1) { e.style.display = "none"; return; }
+      e.style.display = "block";
+      place(e, d[0] + WIN_W / 2 - IDEA_W / 2, d[1] + WIN_H / 2 - IDEA_H / 2, d[2] - 900 * u * u, IDEA_W, IDEA_H, " rotateY(" + it.s[3] + "deg)");
+      return;
+    }
+    var chip = host.querySelector('.kl-chip[data-post="' + it.id + '"]'), r = chip ? layoutRect(chip) : { x: 0, y: 0, w: 140, h: 22 };
+    var u = smoother((t - T.land[0] - 0.09 * i) / (T.land[1] - T.land[0] - 0.36)), done = t > T.appIn[1];
+    e.style.display = done ? "none" : "block";
+    var cx = mix(d[0] + WIN_W / 2, r.x + r.w / 2, u), cy = mix(d[1] + WIN_H / 2, r.y + r.h / 2, u), z = mix(d[2], 0, u) + 120 * Math.sin(Math.PI * u);
+    var w = mix(IDEA_W, r.w, u), h = mix(IDEA_H, r.h, u);
+    place(e, cx - w / 2, cy - h / 2, z, w, h, " rotateY(" + mix(it.s[3], 0, u).toFixed(2) + "deg)");
+    e.style.setProperty("--m", u.toFixed(3)); // the card's content gives way to a chip as it lands
+    e.style.opacity = (1 - smr(t, T.appIn[0] + 0.25, T.appIn[1])).toFixed(3);
+    tiles.push([cx, cy, z]);
+  });
+  return tiles;
+}
+
+// ---- the day tiles: one per real calendar cell, assembling on the diagonal
+var tileEls = [];
+for (var i = 0; i < 42; i++) tileEls.push(mk("tile"));
+function poseTiles(t) {
+  if (t > T.appIn[1]) { tileEls.forEach(function (e) { e.style.display = "none"; }); return; }
+  var cells = host.querySelectorAll(".kl-cell");
+  tileEls.forEach(function (e, i) {
+    var r = layoutRect(cells[i]), d = (i % 7 + Math.floor(i / 7)) * 0.07, u = smoother((t - T.tiles[0] - d) / 0.6);
+    var out = smr(t, T.appIn[0], T.appIn[1]);
+    e.style.display = u <= 0 || out >= 1 ? "none" : "block";
+    place(e, r.x + 3, r.y + 3, -260 * (1 - u), r.w - 6, r.h - 6);
+    e.style.opacity = (u * (1 - out)).toFixed(3);
+  });
+}
+
+// ---- the carry cards between screens
+var liftCard = mk("carry thu", null, '<small>Thu</small><b>12</b><span>Launch day</span>');
+var promptFly = mk("kl-app kl-clone fly"), previewFly = mk("kl-app kl-clone fly");
+function arc(u) { return Math.sin(Math.PI * c01(u)); }
+function poseCarry(t, rec) {
+  // the Thursday column lifts out of the week and becomes the idea field
+  var a = rec.caps.thu, u1 = smoother((t - T.lift[0]) / 0.45), u2 = smoother((t - T.lift[0] - 0.3) / (T.lift[1] - T.lift[0] - 0.35));
+  if (a && t < T.lift[1]) {
+    var to = layoutRect(host.querySelector('[data-field="idea"]'));
+    place(liftCard, mix(a.rect.x, to.x, u2), mix(a.rect.y, to.y, u2), 150 * u1 * (1 - u2) + 40 * arc(u2), mix(a.rect.w, to.w, u2), mix(Math.min(a.rect.h, 160), to.h, u2));
+    liftCard.style.display = "flex"; liftCard.style.opacity = (1 - smr(t, T.lift[1] - 0.22, T.lift[1])).toFixed(3);
+  } else liftCard.style.display = "none";
+  flyClone(promptFly, rec.caps.prompt, '[data-field="text"]', T.promptFly, t, 0.55);
+  flyClone(previewFly, rec.caps.preview, '.kl-col[data-date="2026-11-12"] .kl-card', T.previewFly, t, 1);
+}
+// a snapshot of a real panel flies from where it was to a target in the current screen, shrinking, then lets go
+function flyClone(el, cap, toSel, span, t, keep) {
+  var target = cap && t >= span[0] && t < span[1] ? host.querySelector(toSel) : null;
+  if (!target) { el.style.display = "none"; return; }
+  if (el.dataset.src !== cap.html) { el.innerHTML = cap.html; el.dataset.src = cap.html; }
+  var u = smoother((t - span[0]) / (span[1] - span[0])), r = cap.rect, to = layoutRect(target);
+  var s = mix(1, to.w / r.w, u), sy = keep === 1 ? s : mix(1, to.h / r.h, u);
+  var x = mix(r.x, to.x, u), y = mix(r.y, to.y, u);
+  el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px";
+  el.style.transformOrigin = "0 0";
+  el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(180 * arc(u)) + "px) scale(" + s.toFixed(4) + "," + sy.toFixed(4) + ")";
+  el.style.opacity = (1 - smr(u, keep === 1 ? 0.88 : 0.55, 1)).toFixed(3);
+}
+
+// ---- 5 · the plan: every chip of the month lifts off its date; the line ties the scheduled ones in order
+var liftLayer = mk("g3");
+function liftAmt(t) { return smoother((t - T.chipsUp[0]) / (T.chipsUp[1] - T.chipsUp[0])) * (1 - smoother((t - T.settle[0]) / (T.settle[1] - T.settle[0]))); }
+function poseLifts(t) {
+  var L = liftAmt(t), pts = [];
+  liftLayer.replaceChildren();
+  if (L <= 0 || host.querySelector(".kl-month") === null) return pts;
+  var chips = Array.prototype.slice.call(host.querySelectorAll(".kl-cell:not(.out) .kl-chip"));
+  chips.forEach(function (c, i) {
+    var r = layoutRect(c), z = L * (46 + 30 * ((i * 7) % 3)), id = c.dataset.post, launch = id === "p100";
+    var sh = mk("lshadow", liftLayer); place(sh, r.x + z * 0.12, r.y + z * 0.25, 0.5, r.w, r.h); sh.style.opacity = (0.5 * L).toFixed(3);
+    var w = mk("kl-app kl-clone lchip" + (launch ? " launch" : ""), liftLayer, c.outerHTML);
+    place(w, r.x, r.y, z, r.w, r.h);
+    c.style.visibility = "hidden";
+    if (c.classList.contains("s-scheduled")) pts.push({ date: c.closest(".kl-cell").dataset.date, time: c.querySelector("b").textContent, p: [r.x + r.w / 2, r.y + r.h / 2, z], launch: launch });
+  });
+  return pts.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+}
+
+// ---- 6 · hero panels: the real prompt and the real preview, floating in front of the window
+var heroPrompt = mk("kl-app kl-clone hero"), heroPreview = mk("kl-app kl-clone hero");
+function poseHero(t, rec) {
+  [[heroPrompt, rec.caps.prompt, [-330, 170, 520], 0.84, 16], [heroPreview, rec.caps.preview, [1230, 130, 600], 1.0, -15]].forEach(function (h, k) {
+    var el = h[0], cap = h[1], u = smoother((t - T.heroIn[0] - 0.15 * k) / (T.heroIn[1] - T.heroIn[0]));
+    if (!cap || u <= 0) { el.style.display = "none"; return; }
+    if (el.dataset.src !== cap.html) { el.innerHTML = cap.html; el.dataset.src = cap.html; }
+    var r = cap.rect, x = mix(r.x, h[2][0], u), y = mix(r.y, h[2][1], u), z = mix(0, h[2][2], u), s = mix(0.3, h[3], u);
+    el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px"; el.style.transformOrigin = "0 0";
+    el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(z) + "px) rotateY(" + (h[4] * u).toFixed(2) + "deg) scale(" + s.toFixed(4) + ")";
+    el.style.opacity = smr(u, 0, 0.35).toFixed(3);
+  });
+}
+
+// ==== film/60-camera.js
+// ---- the camera: one operated move for all 30 seconds, keyed per channel and joined by monotone cubics.
+// dist 1600 with yaw = elev = 0 is the "2D" view: the window frontal at exactly 1:1, so the UI is pixel-sharp while
+// someone uses it. Everything else is the "3D" view around it.
+//   t      yaw  elev  dist  tx   ty   ox   oy      what the frame is doing
+var CAM_KEYS = [
+  [0.0, 28, 12, 2500, 0, 0, 0, 0], //       wide through the field of ideas
+  [2.4, 14, 7, 2050, 0, 0, 0, 0], //        squaring up as the ideas find their days
+  [4.35, 0, 0, 1600, 0, 0, 0, 0], //        frontal 1:1: the real calendar
+  [6.4, 0, 0, 1600, 0, 0, 0, 0],
+  [7.5, -16, 3, 1760, 0, 0, 300, 10], //    turn: the window right, the headline left
+  [8.6, -5, 1, 1640, 0, 0, 100, 0],
+  [9.4, 0, 0, 1600, 0, 0, 0, 0], //         frontal for typing and choosing
+  [11.95, 0, 0, 1600, 0, 0, 0, 0],
+  [12.9, -12, 1, 1360, 330, 0, 250, 0], //  push into the generated prompt
+  [13.8, -4, 0, 1500, 150, 0, 80, 0],
+  [14.5, 0, 0, 1600, 0, 0, 0, 0], //        frontal: the editor
+  [16.9, 0, 0, 1600, 0, 0, 0, 0],
+  [17.7, 0, 0, 1330, 400, 0, 0, 0], //      push to the live preview
+  [18.7, -15, 2, 1460, 300, 0, 330, 0], //  turn for the headline
+  [19.5, 0, 0, 1600, 0, 0, 0, 0], //        frontal: schedule, the card lands, Month
+  [21.7, 0, 0, 1600, 0, 0, 0, 0],
+  [23.1, 16, 30, 2150, 0, 60, 140, 50], //  the board tilts back; the plan lifts off it
+  [25.3, 24, 25, 2200, 0, 60, 140, 50],
+  [26.7, -8, 6, 2700, 0, 40, 0, -150], //   the hero composition
+  [28.8, -11, 7, 2640, 0, 40, 0, -150],
+  [30.0, -11, 7, 2640, 0, 40, 0, -150],
+];
+var CH = [1, 2, 4, 5, 6, 7].map(function (j) { return curve(CAM_KEYS.map(function (k) { return [k[0], k[j]]; })); });
+var LOGD = curve(CAM_KEYS.map(function (k) { return [k[0], Math.log(k[3])]; })); // distance moves in log space
+function camAt(t) {
+  return { yaw: CH[0](t), elev: CH[1](t), dist: Math.exp(LOGD(t)), tgt: [CH[2](t), CH[3](t), 0], ox: CH[4](t), oy: CH[5](t) };
+}
+var PROBES = [[0, 0, 0], [-720, -450, 0], [720, -450, 0], [-720, 450, 0], [720, 450, 0]];
+function motionOf(from, to) {
+  var a = camAt(from), b = camAt(to), far = 0;
+  PROBES.forEach(function (p) { var pa = project(p, a), pb = project(p, b); far = Math.max(far, Math.hypot(pb.x - pa.x, pb.y - pa.y)); });
+  return far;
+}
+
+// ==== film/70-overlay.js
+// ---- motion graphics: the cursor and its clicks (inside the window plane), the coral kite line, the prompt reveal,
+// the preview highlight, the landing, and the headlines. Set from t every frame.
+var cursor = $("cursor"), ripple = $("ripple"), mask = $("rmask"), hl = $("hl");
+var HOME = { x: 1180, y: 760 };
+function centre(r, kind) { return kind === "type" || kind === "retype" || kind === "focus" ? { x: r.x + Math.min(40, r.w / 2), y: r.y + Math.min(26, r.h / 2) } : { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+function poseCursor(t, rec) {
+  var prev = -1, next = -1;
+  ACTIONS.forEach(function (a, i) { if (a.t <= t) prev = i; else if (next < 0) next = i; });
+  var from = prev >= 0 ? centre(rec.at[prev], ACTIONS[prev].kind) : HOME, at = from;
+  if (next >= 0) {
+    var el = host.querySelector(ACTIONS[next].sel);
+    if (el) {
+      var to = centre(layoutRect(el), ACTIONS[next].kind), a0 = Math.max(prev >= 0 ? ACTIONS[prev].t + (ACTIONS[prev].dur || 0) + 0.12 : 0, ACTIONS[next].t - 0.7);
+      var u = smoother((t - a0) / (ACTIONS[next].t - 0.06 - a0)), lift = 30 * Math.sin(Math.PI * u);
+      at = { x: mix(from.x, to.x, u), y: mix(from.y, to.y, u) - lift };
+    }
+  }
+  var press = 0;
+  ACTIONS.forEach(function (a) { if (a.kind === "click") press = Math.max(press, Math.exp(-Math.pow((t - a.t) / 0.07, 2))); });
+  cursor.style.transform = "translate(" + f2(at.x) + "px," + f2(at.y) + "px) scale(" + (1 - 0.14 * press).toFixed(3) + ")";
+  cursor.style.opacity = (smr(t, 4.45, 4.75) * (1 - smr(t, 21.7, 22.1))).toFixed(3);
+  // the click ring at the last click
+  var c = -1;
+  ACTIONS.forEach(function (a, i) { if (a.kind === "click" && a.t <= t && t - a.t < 0.5) c = i; });
+  if (c >= 0) {
+    var p = centre(rec.at[c], "click"), k = (t - ACTIONS[c].t) / 0.5;
+    ripple.style.display = "block";
+    ripple.style.transform = "translate(" + f2(p.x) + "px," + f2(p.y) + "px) scale(" + (0.3 + 1.4 * expOut(k)).toFixed(3) + ")";
+    ripple.style.opacity = (0.9 * (1 - k)).toFixed(3);
+  } else ripple.style.display = "none";
+}
+
+// the generated prompt is revealed top to bottom behind a lilac edge (the app shows it all at once; this is the film's
+// wipe over the real text, not a fake loading state)
+function poseReveal(t) {
+  var pr = host.querySelector(".kl-prompt"), u = smoother((t - T.reveal[0]) / (T.reveal[1] - T.reveal[0]));
+  if (!pr || u >= 1 || t < T.reveal[0]) { mask.style.display = "none"; return; }
+  var r = layoutRect(pr), top = r.y + 2 + (r.h - 4) * u;
+  mask.style.display = "block";
+  mask.style.left = r.x + 2 + "px"; mask.style.width = r.w - 4 + "px"; mask.style.top = f2(top) + "px"; mask.style.height = f2(r.y + r.h - 2 - top) + "px";
+}
+// a coral bar under the preview's first line while it is being rewritten
+function poseHighlight(t) {
+  var l1 = host.querySelector(".kl-pv-text .kl-l1"), on = smr(t, 15.25, 15.5) * (1 - smr(t, 17.3, 17.6));
+  if (!l1 || on <= 0) { hl.style.display = "none"; return; }
+  var r = layoutRect(l1);
+  hl.style.display = "block"; hl.style.left = r.x + "px"; hl.style.top = r.y + r.h + 1 + "px"; hl.style.width = Math.max(8, r.w) + "px";
+  hl.style.opacity = on.toFixed(3);
+}
+// the scheduled card is revealed as the flying preview lands on it, with a short coral glow
+function poseLanding(t) {
+  var card = host.querySelector('.kl-col[data-date="2026-11-12"] .kl-card');
+  if (!card) return;
+  if (t < T.previewFly[1] - 0.12) card.style.visibility = "hidden";
+  else card.style.boxShadow = "0 0 0 2px rgba(255,106,77," + (0.9 * Math.exp(-(t - T.previewFly[1]) * 2)).toFixed(3) + "), 0 8px 24px rgba(255,106,77," + (0.35 * Math.exp(-(t - T.previewFly[1]) * 2)).toFixed(3) + ")";
+}
+
+// ---- the kite line: one coral stroke through 3D points, projected to the screen, drawn up to a share
+var line = $("kline");
+function drawLine(worldPts, c, share, alpha) {
+  if (worldPts.length < 2 || share <= 0 || alpha <= 0) { line.style.opacity = 0; return; }
+  var P = worldPts.map(function (p) { return project(p, c); }), d = "M" + f2(P[0].x) + " " + f2(P[0].y);
+  for (var i = 0; i < P.length - 1; i++) { // Catmull-Rom → cubic Bézier, so the line flows through every point
+    var p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    d += " C" + f2(p1.x + (p2.x - p0.x) / 6) + " " + f2(p1.y + (p2.y - p0.y) / 6) + " " + f2(p2.x - (p3.x - p1.x) / 6) + " " + f2(p2.y - (p3.y - p1.y) / 6) + " " + f2(p2.x) + " " + f2(p2.y);
+  }
+  line.setAttribute("d", d);
+  var len = line.getTotalLength();
+  line.style.strokeDasharray = f2(len) + " " + f2(len + 10);
+  line.style.strokeDashoffset = f2(len * (1 - c01(share)));
+  line.style.opacity = c01(alpha).toFixed(3);
+}
+function poseLine(t, c, ideaPts, planPts) {
+  if (t < T.appIn[1]) {
+    var pts = [[-1700, 900, 300]].concat(ideaPts); // the line comes in from below the frame, like a kite string
+    drawLine(pts, c, smoother((t - T.thread[0]) / (T.thread[1] - T.thread[0])), 1 - smr(t, 3.1, 3.7));
+  } else if (t < T.reveal[1] + 0.6) {
+    var g = host.querySelector('[data-act="generate"]'), o = host.querySelector(".kl-prompt");
+    if (!g || !o || t < T.reveal[0] - 0.1) { line.style.opacity = 0; return; }
+    var a = layoutRect(g), b = layoutRect(o);
+    drawLine([w2w(a.x + a.w - 30, a.y + a.h / 2, 0), w2w(a.x + a.w + 40, a.y - 60, 60), w2w(b.x + 30, b.y + 40, 30), w2w(b.x + 30, b.y + b.h * 0.6, 0)], c,
+      smoother((t - T.reveal[0] + 0.1) / 0.55), 1 - smr(t, T.reveal[1] + 0.1, T.reveal[1] + 0.5));
+  } else if (planPts.length > 1) {
+    drawLine(planPts.map(function (p) { return w2w(p.p[0], p.p[1], p.p[2] + 2); }), c, smoother((t - T.planLine[0]) / (T.planLine[1] - T.planLine[0])), 1 - smr(t, T.settle[0], T.settle[0] + 0.6));
+  } else line.style.opacity = 0;
+}
+
+// ---- headlines: a line rises through its mask and drifts up as it leaves; one visual language for all of them
+function lineIO(id, span, t) {
+  var e = $(id), sp = e.firstElementChild, u = smoother((t - span[0]) / 0.6), v = sm((t - span[1]) / 0.45);
+  e.style.opacity = t < span[0] || t > span[1] + 0.45 ? 0 : 1;
+  sp.style.transform = "translateY(" + ((1 - u) * 108 - v * 22).toFixed(2) + "%)";
+  sp.style.opacity = (u * (1 - v)).toFixed(3);
+}
+function fadeIO(id, tin, tout, t, dy) {
+  var e = $(id), u = smoother((t - tin) / 0.55), v = sm((t - tout) / 0.45);
+  e.style.opacity = (u * (1 - v)).toFixed(3);
+  e.style.transform = "translateY(" + ((1 - u) * (dy || 16) - v * 10).toFixed(2) + "px)";
+}
+var HEADS = [["h1a", T.hook1], ["h1b", T.hook2], ["h2a", T.head2], ["h2b", [T.head2[0] + 0.12, T.head2[1] + 0.05]], ["h3a", T.head3], ["h3b", [T.head3[0] + 0.12, T.head3[1] + 0.05]],
+  ["h4a", T.head4], ["h5a", T.head5], ["h5b", [T.head5[0] + 0.25, T.head5[1] + 0.05]], ["tag", [T.tag, 99]]];
+function poseType(t) {
+  HEADS.forEach(function (h) { lineIO(h[0], h[1], t); });
+  // a soft scrim behind headlines that sit over the UI
+  var scr = Math.max(smr(t, T.head2[0] - 0.2, T.head2[0] + 0.3) * (1 - smr(t, T.head2[1], T.head2[1] + 0.5)), smr(t, T.head3[0] - 0.2, T.head3[0] + 0.3) * (1 - smr(t, T.head3[1], T.head3[1] + 0.5)), smr(t, T.head4[0] - 0.2, T.head4[0] + 0.3) * (1 - smr(t, T.head4[1], T.head4[1] + 0.5)));
+  $("scrim").style.opacity = scr.toFixed(3);
+  var u = smoother((t - T.title) / 0.9);
+  $("lock").style.opacity = u.toFixed(3);
+  $("lock").style.transform = "translateY(" + f2((1 - u) * 26) + "px)";
+  $("lockMark").style.transform = "rotate(" + f2(45 - 30 * (1 - u)) + "deg) scale(" + (0.6 + 0.4 * u).toFixed(3) + ")";
+  fadeIO("cta", T.cta, 99, t, 10);
+}
+
+// ==== film/90-main.js
+// ---- the frame: replay the app to t, then pose the camera, the 3D layer and the overlay around it
+function paint(t) {
+  var c = camAt(t);
+  $("view").style.transform = "translate(" + f2(c.ox) + "px," + f2(c.oy) + "px)";
+  world.style.transform = $("ground").style.transform = camTransform(c);
+  var rec = replay(t);
+  winEl.style.opacity = smr(t, T.appIn[0], T.appIn[1]).toFixed(3);
+  $("winShadow").style.opacity = (0.15 + 0.85 * smr(t, T.appIn[0], T.appIn[1])).toFixed(3);
+  var ideaPts = poseIdeas(t).map(function (p) { return w2w(p[0], p[1], p[2]); });
+  poseTiles(t);
+  poseCarry(t, rec);
+  var planPts = poseLifts(t);
+  poseHero(t, rec);
+  poseCursor(t, rec);
+  poseReveal(t);
+  poseHighlight(t);
+  poseLanding(t);
+  poseLine(t, c, ideaPts, planPts);
+}
+// the picture moves with the camera (motion blur sizes its samples from it); the type is held to the frame grid
+tl.frame(paint, { motion: motionOf });
+tl.frame(poseType, { hold: true });
+
+// the subject the shot check keeps in frame: the app window
+tl.subject("the app window", function (t) { var c = camAt(t), s = project([0, 0, 0], c); return { x: s.x, y: s.y, r: 300 * s.k }; }, { minPx: 120 });
+tl.rest(28.8, T.DUR);
+
+tl.label("ideas", T.thread[0]).label("land", T.land[0]).label("app", T.appIn[0]).label("week", 4.9).label("select", 5.9).label("create", 8.3)
+  .label("type", 9.25).label("generate", 11.85).label("write", 13.9).label("edit", 15.2).label("platform", 17.45).label("schedule", 19.6)
+  .label("month", 21.4).label("plan", T.chipsUp[0]).label("hero", T.heroIn[0]).label("lockup", T.title);
+ACTIONS.forEach(function (a, i) { if (a.kind === "click") tl.hit("click" + i, a.t, { kind: "click" }); });
+tl.hit("land", T.previewFly[1], { kind: "land" }).hit("lockup", T.title, { kind: "land" });
+});</script>

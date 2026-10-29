@@ -38,7 +38,7 @@ miraiclip-export doctor                                      # browser and ffmpe
 - `--workers N` renders through `renderDistributed` with a `localRunner` of N browsers (needs `ffmpeg` to join). Several WebGL scenes share one GPU, so expect less than N× on a single machine.
 - `--motion-blur` turns on the default shutter (180°). It is slower: use it for the final.
 
-In this repo, `pnpm mc …` runs the same CLI from source in the folder you call it from. Before any render it checks the generated stage bundles and the export harness against their sources and rebuilds what is stale, so a render never uses old code. `pnpm doctor` runs those checks on their own.
+In this repo, `pnpm mc …` runs the same CLI from source in the folder you call it from. Before any render it checks the generated stage bundles and the export harness against their sources and rebuilds what is stale, so a render never uses old code. `pnpm preflight` runs those checks on their own.
 
 ## Try it
 

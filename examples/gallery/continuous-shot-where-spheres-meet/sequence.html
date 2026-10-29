@@ -1,0 +1,470 @@
+<div class="stage" data-libs="stage three three-kit" data-duration="30" data-fps="30" data-stage-version="2" data-frame-timeout="60" style="width:1920px;height:1080px;background:#05070d;overflow:hidden"><style>
+#ov{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;color:#f2f6ff;-webkit-font-smoothing:antialiased}
+#shade{position:absolute;left:0;top:0;width:1100px;height:1080px;background:linear-gradient(90deg,rgba(5,7,13,0.66),rgba(5,7,13,0.32) 45%,rgba(5,7,13,0))}
+#ov .cap{position:absolute;left:120px;overflow:hidden;padding:4px 0 10px;font-weight:600;font-size:54px;line-height:1.12;letter-spacing:-0.01em;white-space:nowrap;text-shadow:0 2px 28px rgba(5,7,13,0.7)}
+#ov .cap>span{display:inline-block}
+#ov .k{font-weight:500;font-size:19px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(214,228,255,0.78)}
+#ov .v{font-weight:500;font-size:22px;color:rgba(242,246,255,0.88);margin-top:4px}
+#lab{position:absolute;white-space:nowrap;text-shadow:0 2px 18px rgba(5,7,13,0.8)}
+#math{position:absolute;left:120px;top:150px;text-shadow:0 2px 24px rgba(5,7,13,0.7)}
+#math .row{display:flex;align-items:baseline;gap:18px;margin-top:6px}
+#math .num{font-weight:600;font-size:56px;font-variant-numeric:tabular-nums;color:#3fd8ff;line-height:1.05}
+#math .op{font-weight:500;font-size:24px;color:rgba(214,228,255,0.8)}
+#foot{position:absolute;left:120px;top:560px;font-weight:500;font-size:22px;color:rgba(214,228,255,0.78)}
+#c_ttl{font-size:84px;letter-spacing:-0.02em}
+#c_sub{font-weight:500;font-size:30px;letter-spacing:0;color:rgba(242,246,255,0.84)}
+</style><canvas id="c" width="1920" height="1080" style="position:absolute;left:0;top:0;width:1920px;height:1080px"></canvas><div id="ov"><div id="shade"></div>
+<svg width="1920" height="1080" style="position:absolute;left:0;top:0;overflow:visible"><polyline id="ld" points="" fill="none" stroke="rgba(214,240,255,0.9)" stroke-width="1.6" style="opacity:0"/><circle id="ldot" cx="0" cy="0" r="4.5" fill="#f2f6ff" style="opacity:0"/></svg>
+<div id="lab" style="opacity:0"><div class="k">GPS satellite</div><div class="v">20,200 km up · broadcasting the time</div></div>
+<div class="cap" id="c_h1" style="top:420px;opacity:0"><span>Your phone never tells space where it is.</span></div><div class="cap" id="c_h2" style="top:490px;opacity:0"><span>It only listens.</span></div>
+<div class="cap" id="c_set" style="top:452px;opacity:0"><span>Satellites broadcast one thing: the exact time.</span></div>
+<div class="cap" id="c_m1" style="top:452px;opacity:0"><span>The delay says how far away it is.</span></div>
+<div class="cap" id="c_m2" style="top:452px;opacity:0"><span>So you’re somewhere on this sphere.</span></div>
+<div class="cap" id="c_t1" style="top:452px;opacity:0"><span>Two spheres meet in a circle.</span></div>
+<div class="cap" id="c_t2" style="top:452px;opacity:0"><span>A third leaves two points. Only one is on Earth.</span></div>
+<div class="cap" id="c_rev" style="top:452px;opacity:0"><span>Three distances. One place: you.</span></div>
+<div class="cap" id="c_ttl" style="top:760px;opacity:0"><span>Where the spheres meet.</span></div><div class="cap" id="c_sub" style="top:868px;opacity:0"><span>GPS finds you without ever hearing from you.</span></div>
+<div id="math" style="opacity:0"><div class="k">Signal delay from satellite 1</div>
+<div class="row"><div class="num" id="mDelay">0.000 s</div></div>
+<div class="row" id="mDist" style="opacity:0"><div class="op">× speed of light =</div><div class="num" id="mDistV">0 km</div></div></div>
+<div id="foot" style="opacity:0">A fourth satellite keeps the phone’s clock exact.</div>
+</div></div>
+<script>stage.build((tl, S) => {var T = {"DUR":30,"FPS":30,"hook1In":0.4,"hook2In":1.6,"hookOut":3.8,"pulseLands":[0.7,1.5,2.3,3.1],"zoomStart":3.6,"zoomEnd":9.4,"setupIn":4.6,"setupOut":8.8,"earthFade":[5.2,6.8],"altLabel":[7.4,9.6],"focus":9.6,"packet":[9.9,11.1],"sphere1":[11.2,12.4],"mech1In":9.8,"mech1Out":12.1,"mech2In":12.4,"mech2Out":14.8,"mathIn":10,"mathOut":14.8,"sphere2":[15,16.2],"circle":[15.8,17],"sphere3":[17.6,18.6],"points":18.6,"ghost":19.4,"tr1In":15.4,"tr1Out":17.6,"tr2In":18,"tr2Out":20.9,"restFrom":20.2,"restTo":20.9,"dive":[21,26.2],"revIn":21.6,"revOut":25.4,"footIn":22.2,"footOut":25.4,"converge":26,"title":26.4,"sub":27.1};
+// ==== film/00-setup.js
+// ---- the shared world: ThreeKit helpers, the frame, and the geometry every scene draws from.
+// Units: Earth's radius is 10, so one unit is 637.1 km. Satellites orbit at 41.7 (26,566 km from the centre).
+var K = ThreeKit;
+var W = 1920, H = 1080;
+var clamp = K.clamp, c01 = K.c01, sm = K.sm, smr = K.smr, smoother = K.smoother, mix = K.mix, logMix = K.logMix;
+var V = function (x, y, z) { return new THREE.Vector3(x, y, z); };
+var rng = S.rand(2027);
+var GROUND = new THREE.Color(0x05070d);
+var KM_PER_UNIT = 637.1, C_KM_S = 299792.458;
+var fatLines = function (segs, opts) { opts.resolution = [W, H]; return K.fatLines(segs, opts); };
+
+var RE = 10, RS = 41.7;
+// "you": a point on the surface, and its local frame (n up, e east, u north)
+var N = V(0.35, 0.55, 0.76).normalize(), P = N.clone().multiplyScalar(RE);
+var E = V(0, 1, 0).cross(N).normalize(), U = N.clone().cross(E).normalize();
+// the three satellites that answer, in the sky above you; each has its own colour
+var SAT_DIRS = [[-0.48, 0.22], [0.52, 0.30], [0.04, -0.56]];
+var SATS = SAT_DIRS.map(function (d) { return N.clone().add(E.clone().multiplyScalar(d[0])).add(U.clone().multiplyScalar(d[1])).normalize().multiplyScalar(RS); });
+var COLORS = [new THREE.Color(0x3fd8ff), new THREE.Color(0xff6f8e), new THREE.Color(0xffc35a)];
+var RADII = SATS.map(function (s) { return s.distanceTo(P); });
+var DELAYS = RADII.map(function (r) { return r * KM_PER_UNIT / C_KM_S; }); // seconds
+
+// sphere 1 ∩ sphere 2: a circle through P
+var CIRCLE = (function () {
+  var d = SATS[1].clone().sub(SATS[0]), D = d.length(); d.divideScalar(D);
+  var a = (RADII[0] * RADII[0] - RADII[1] * RADII[1] + D * D) / (2 * D);
+  var c = SATS[0].clone().addScaledVector(d, a), r = Math.sqrt(Math.max(0, RADII[0] * RADII[0] - a * a));
+  var x = P.clone().sub(c).normalize(), y = d.clone().cross(x).normalize(); // x points at P, so the circle starts at you
+  return { c: c, r: r, n: d, x: x, y: y };
+})();
+// spheres 1 ∩ 2 ∩ 3: P and its mirror image across the plane of the three satellites
+var GHOST = (function () {
+  var nrm = SATS[1].clone().sub(SATS[0]).cross(SATS[2].clone().sub(SATS[0])).normalize();
+  return P.clone().addScaledVector(nrm, -2 * P.clone().sub(SATS[0]).dot(nrm));
+})();
+function circlePoint(a) { return CIRCLE.c.clone().addScaledVector(CIRCLE.x, Math.cos(a) * CIRCLE.r).addScaledVector(CIRCLE.y, Math.sin(a) * CIRCLE.r); }
+// where the circle meets sphere 3, besides P: the ghost, by construction
+
+// ==== film/10-city.js
+// ---- 1 & 6 · the city map around you: a street grid, dark glass blocks, the blue dot and its accuracy halo.
+// Built in local units (one unit is about 64 m) on the plane tangent to Earth at P, and scaled into the world.
+var CITY_SCALE = 1e-4, CITY_R = 90;
+var city = new THREE.Group();
+city.position.copy(P);
+city.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(E, N, U.clone().negate())); // x east, y up
+city.scale.setScalar(CITY_SCALE);
+
+// the ground: dark, fading into the night at its edge so the map has no rim
+var groundMat = new THREE.ShaderMaterial({
+  uniforms: { uFade: { value: 1 } }, transparent: true, depthWrite: false,
+  vertexShader: "varying vec2 vP; void main(){ vP=position.xy; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+  fragmentShader: "uniform float uFade; varying vec2 vP; void main(){ float r=length(vP)/" + CITY_R.toFixed(1) + "; vec3 c=mix(vec3(0.018,0.026,0.048),vec3(0.012,0.018,0.034),r); gl_FragColor=vec4(c,uFade*(1.0-smoothstep(0.55,1.0,r)));\n#include <colorspace_fragment>\n}",
+});
+var ground = new THREE.Mesh(new THREE.CircleGeometry(CITY_R, 96), groundMat); ground.renderOrder = -1; // first: it writes no depth, so streets, the dot and its rings layer on top
+ground.rotation.x = -Math.PI / 2; city.add(ground);
+
+// streets: a grid turned 18°, plus two avenues; dim amber, brighter for the avenues
+var GRID_A = 18 * Math.PI / 180, ca = Math.cos(GRID_A), sa = Math.sin(GRID_A);
+var rot = function (x, z) { return V(x * ca - z * sa, 0.02, x * sa + z * ca); };
+var streetSegs = [], avenueSegs = [];
+for (var k = -16; k <= 16; k++) {
+  var o = k * 4, half = Math.sqrt(Math.max(0, 70 * 70 - o * o));
+  if (half < 4) continue;
+  streetSegs.push([rot(o, -half), rot(o, half), 0, 0], [rot(-half, o), rot(half, o), 0, 0]);
+}
+[[V(-66, 0.03, -30), V(64, 0.03, 34)], [V(-40, 0.03, 58), V(42, 0.03, -56)]].forEach(function (a) { avenueSegs.push([a[0], a[1], 0, 0]); });
+var streets = fatLines(streetSegs, { width: 1.6, hot: 0.55, tail: 0.55, color: 0xff9a4a, hotColor: 0xff9a4a, headLen: 1 });
+var avenues = fatLines(avenueSegs, { width: 2.6, hot: 1.0, tail: 1.0, color: 0xffc070, hotColor: 0xffc070, headLen: 1 });
+city.add(streets); city.add(avenues);
+
+// blocks: dark glass towers inside the grid cells, clear of the streets and of the dot
+var BLD = [];
+for (var gx = -15; gx < 15; gx++) for (var gz = -15; gz < 15; gz++) {
+  var cx = gx * 4 + 2, cz = gz * 4 + 2;
+  if (cx * cx + cz * cz > 62 * 62) continue;
+  for (var b = 0; b < 2; b++) {
+    var lx = cx + (rng() - 0.5) * 1.6, lz = cz + (rng() - 0.5) * 1.6;
+    if (lx * lx + lz * lz < 3.2 * 3.2) continue;
+    var hgt = 0.4 + Math.pow(rng(), 2.2) * (6 - Math.hypot(lx, lz) * 0.06);
+    BLD.push({ p: rot(lx, lz), w: 0.9 + rng() * 1.1, d: 0.9 + rng() * 1.1, h: Math.max(0.3, hgt), lit: rng() });
+  }
+}
+var bldMat = new THREE.MeshStandardMaterial({ color: 0x0a1120, metalness: 0.55, roughness: 0.4, emissive: 0xffffff, envMapIntensity: 0.18 });
+bldMat.onBeforeCompile = function (sh) {
+  // lit windows: a fine grid on the walls, only on some buildings (the per-instance colour sets how many)
+  sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vLocal;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvLocal = position;");
+  sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vLocal;")
+    .replace("vec3 totalEmissiveRadiance = emissive;", "vec2 wg = fract(vec2(vLocal.x * 6.0 + vLocal.z * 6.0, vLocal.y * 9.0)); float cell = fract(sin(dot(floor(vec2(vLocal.x * 6.0 + vLocal.z * 6.0, vLocal.y * 9.0)), vec2(12.9898, 78.233))) * 43758.5453); float win = step(0.45, wg.x) * step(0.4, wg.y) * step(vLocal.y, 0.98) * step(0.62, cell); vec3 totalEmissiveRadiance = emissive * vColor * win;")
+    .replace("#include <color_fragment>", "");
+};
+var blds = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), bldMat, BLD.length);
+blds.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(BLD.length * 3), 3);
+var M4 = new THREE.Matrix4(), Q = new THREE.Quaternion().setFromAxisAngle(V(0, 1, 0), -GRID_A);
+var BLD_EM = BLD.map(function (bd, i) {
+  M4.compose(bd.p, Q, V(bd.w, bd.h, bd.d)); blds.setMatrixAt(i, M4);
+  return bd.lit > 0.4 ? [0.55 * bd.lit, 0.36 * bd.lit, 0.17 * bd.lit] : [0, 0, 0];
+});
+city.add(blds);
+
+// you: a blue dot, a white rim, an accuracy halo, a glow, and the rings it breathes out
+var dot = new THREE.Mesh(new THREE.CircleGeometry(0.55, 48), new THREE.MeshBasicMaterial({ color: 0x4f9dff, toneMapped: false, transparent: true }));
+var rim = new THREE.Mesh(new THREE.RingGeometry(0.55, 0.72, 48), new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false, transparent: true }));
+var halo = new THREE.Mesh(new THREE.CircleGeometry(3.0, 64), new THREE.MeshBasicMaterial({ color: 0x4f9dff, transparent: true, opacity: 0.14, depthWrite: false, toneMapped: false }));
+[dot, rim, halo].forEach(function (m, i) { m.rotation.x = -Math.PI / 2; m.position.y = 0.06 + i * 0.002; city.add(m); });
+var RINGS = [0, 1, 2].map(function () {
+  var r = new THREE.Mesh(new THREE.RingGeometry(0.95, 1.0, 64), new THREE.MeshBasicMaterial({ color: 0x9fd0ff, transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }));
+  r.rotation.x = -Math.PI / 2; r.position.y = 0.07; city.add(r); return r;
+});
+var dotGlow = K.glowSprite(K.glowTexture([[0, "rgba(220,240,255,0.9)"], [0.15, "rgba(110,175,255,0.45)"], [1, "rgba(60,120,255,0)"]]), 5);
+dotGlow.position.y = 0.3; city.add(dotGlow);
+
+function poseCity(t, D) {
+  var fade = 1 - smr(t, 5.6, 7.0), back = smr(t, 23.2, 24.8); // leaves as Earth arrives; returns for the landing
+  var k = Math.max(fade, back);
+  city.visible = k > 0.001;
+  groundMat.uniforms.uFade.value = k;
+  streets.material.uniforms.uOpacity.value = k; avenues.material.uniforms.uOpacity.value = k;
+  var IC = blds.instanceColor.array;
+  for (var i = 0; i < BLD_EM.length; i++) { IC[i * 3] = BLD_EM[i][0] * k; IC[i * 3 + 1] = BLD_EM[i][1] * k; IC[i * 3 + 2] = BLD_EM[i][2] * k; }
+  blds.instanceColor.needsUpdate = true;
+  bldMat.color.setScalar(k).multiply(new THREE.Color(0x0a1120));
+  // the dot breathes; after the landing three rings close in on it
+  var breathe = 1 + 0.08 * Math.sin(t * 2 * Math.PI / 1.6);
+  dot.scale.setScalar(breathe); rim.scale.setScalar(breathe);
+  [dot, rim].forEach(function (m) { m.material.opacity = k; });
+  halo.material.opacity = 0.14 * k; dotGlow.material.opacity = 0.9 * k;
+  RINGS.forEach(function (r, i) {
+    var conv = smr(t, T.converge + i * 0.25, T.converge + 1.4 + i * 0.25);
+    var rad = t < T.converge ? 1 + ((t * 0.6 + i / 3) % 1) * 3.2 : mix(5.5 - i * 0.6, 0.8, conv);
+    // the breathing rings fade out just before the converging ones fade in, so the switch happens at zero
+    var a = t < T.converge ? (1 - ((t * 0.6 + i / 3) % 1)) * 0.5 * (1 - smr(t, T.converge - 0.4, T.converge)) : 0.7 * smr(t, T.converge, T.converge + 0.35) * (1 - conv * 0.6);
+    r.scale.setScalar(rad); r.material.opacity = a * k;
+    r.material.color.copy(t < T.converge ? new THREE.Color(0x9fd0ff) : COLORS[i]);
+  });
+}
+
+// ==== film/20-earth.js
+// ---- 2 · night Earth: dark land and sea, warm city lights (brightest where you are), a thin blue rim.
+// Where the city map lies on it, Earth is pushed back in depth so the map always draws on top.
+var earthU = { uFade: { value: 0 }, uP: { value: N.clone() }, uKey: { value: V(-0.6, 0.5, -0.62).normalize() } };
+var earthMat = new THREE.ShaderMaterial({
+  uniforms: earthU,
+  vertexShader: "varying vec3 vO; varying vec3 vN; varying vec3 vW; void main(){ vO=normalize(position); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }",
+  fragmentShader: K.NOISE_GLSL + "\nuniform float uFade; uniform vec3 uP; uniform vec3 uKey; varying vec3 vO; varying vec3 vN; varying vec3 vW;\n" +
+    "void main(){" +
+    " float h=fbm(vO*1.8+vec3(2.0,0.3,1.1)); float land=smoothstep(0.04,0.09,h);" +
+    " vec3 col=mix(vec3(0.006,0.012,0.03),vec3(0.018,0.022,0.03),land);" +
+    " float lights=smoothstep(0.55,0.8,fbm(vO*38.0)*0.5+0.5)*land; float cities=smoothstep(0.1,0.5,fbm(vO*6.0+4.0))*land;" +
+    " float home=exp(-pow(distance(vO,uP)/0.0012,2.0));" +
+    " col+=vec3(1.0,0.66,0.32)*(lights*cities*0.6+home*0.12+exp(-pow(distance(vO,uP)/0.05,2.0))*lights*0.5);" +
+    " vec3 n=normalize(vN), v=normalize(cameraPosition-vW); float fr=pow(1.0-max(dot(n,v),0.0),3.0);" +
+    " col+=vec3(0.02,0.04,0.08)*max(dot(n,uKey),0.0)+vec3(0.25,0.5,1.0)*fr*0.35;" +
+    " gl_FragColor=vec4(col*uFade,1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}",
+});
+// pushed back in depth, so the city's ground, streets and blocks, lying on the same surface, always win
+earthMat.polygonOffset = true; earthMat.polygonOffsetFactor = 4; earthMat.polygonOffsetUnits = 8;
+var earth = new THREE.Mesh(new THREE.SphereGeometry(RE, 160, 120), earthMat);
+var atmoU = { uFade: { value: 0 } };
+var atmo = new THREE.Mesh(new THREE.SphereGeometry(RE * 1.035, 128, 96), new THREE.ShaderMaterial({
+  uniforms: atmoU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+  vertexShader: "varying vec3 vN; varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }",
+  fragmentShader: "uniform float uFade; varying vec3 vN; varying vec3 vW; void main(){ vec3 n=normalize(vN), v=normalize(cameraPosition-vW); float fr=pow(1.0-max(dot(n,v),0.0),4.0); gl_FragColor=vec4(vec3(0.25,0.55,1.0)*fr*0.9*uFade,1.0); }",
+}));
+
+function poseEarth(t, camPos) {
+  var f = Math.max(smr(t, T.earthFade[0], T.earthFade[1]), 0) * (1 - smr(t, 24.4, 25.6));
+  earth.visible = atmo.visible = f > 0.001;
+  earthU.uFade.value = f;
+  // the rim is only seen from outside its shell: it grows in as the camera climbs past it, so crossing it never pops
+  atmoU.uFade.value = f * smr(camPos.length(), RE * 1.035, RE * 1.2);
+}
+
+// ==== film/30-sats.js
+// ---- 2–3 · the satellites: gold-foil bodies with solar wings, broadcasting the time as expanding shells,
+// the threads their signals follow down to you, and the stamped pulses that travel them.
+function cellTexture() {
+  var c = document.createElement("canvas"); c.width = 256; c.height = 96;
+  var g = c.getContext("2d"); g.fillStyle = "#0a1a3c"; g.fillRect(0, 0, 256, 96);
+  g.strokeStyle = "#3a5a9a"; g.lineWidth = 2;
+  for (var x = 0; x <= 256; x += 21.3) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, 96); g.stroke(); }
+  for (var y = 0; y <= 96; y += 24) { g.beginPath(); g.moveTo(0, y); g.lineTo(256, y); g.stroke(); }
+  var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+var foil = new THREE.MeshStandardMaterial({ color: 0xd8a640, metalness: 0.92, roughness: 0.34 });
+var panelMat = new THREE.MeshStandardMaterial({ map: cellTexture(), metalness: 0.4, roughness: 0.25, color: 0xffffff });
+var strutMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b2, metalness: 0.8, roughness: 0.4 });
+var SAT_GEO = {
+  body: new THREE.RoundedBoxGeometry(0.62, 0.62, 0.95, 2, 0.06),
+  panel: new THREE.BoxGeometry(1.7, 0.03, 0.62),
+  strut: new THREE.CylinderGeometry(0.025, 0.025, 0.5, 8),
+  dish: new THREE.ConeGeometry(0.22, 0.22, 24, 1, true),
+};
+function makeSat() {
+  var g = new THREE.Group();
+  g.add(new THREE.Mesh(SAT_GEO.body, foil));
+  [-1, 1].forEach(function (s) {
+    var p = new THREE.Mesh(SAT_GEO.panel, panelMat); p.position.x = s * 1.32; g.add(p);
+    var st = new THREE.Mesh(SAT_GEO.strut, strutMat); st.rotation.z = Math.PI / 2; st.position.x = s * 0.5; g.add(st);
+  });
+  var d = new THREE.Mesh(SAT_GEO.dish, strutMat); d.rotation.x = Math.PI / 2; d.position.z = 0.6; g.add(d); // faces Earth (+z)
+  g.scale.setScalar(1.6);
+  return g;
+}
+var satGroup = new THREE.Group();
+var BG_DIRS = [];
+for (var bi = 0; bi < 9; bi++) {
+  var dd = V(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1).normalize();
+  if (dd.dot(N) > 0.55) dd.addScaledVector(N, -1.2).normalize(); // keep clear of the three that answer
+  BG_DIRS.push(dd);
+}
+var satObjs = SATS.concat(BG_DIRS.map(function (d) { return d.clone().multiplyScalar(RS); })).map(function (pos, i) {
+  var s = makeSat(); s.position.copy(pos); s.lookAt(0, 0, 0); s.rotateZ(i * 0.9); satGroup.add(s); return s;
+});
+
+// broadcast shells: three per satellite, expanding and fading, additive rims so they never sort
+var shellMat = function (col) {
+  return new THREE.ShaderMaterial({
+    uniforms: { uCol: { value: col }, uA: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+    vertexShader: "varying vec3 vN; varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }",
+    fragmentShader: "uniform vec3 uCol; uniform float uA; varying vec3 vN; varying vec3 vW; void main(){ float fr=pow(1.0-abs(dot(normalize(vN),normalize(cameraPosition-vW))),2.6); gl_FragColor=vec4(uCol*fr*uA,1.0); }",
+  });
+};
+var shellGeo = new THREE.SphereGeometry(1, 64, 40);
+var SHELLS = [];
+SATS.forEach(function (s, i) { for (var k = 0; k < 3; k++) { var m = new THREE.Mesh(shellGeo, shellMat(COLORS[i])); m.position.copy(s); satGroup.add(m); SHELLS.push({ m: m, sat: i, phase: k / 3 }); } });
+
+// threads: the straight paths from each satellite to you; packets slide down them
+var THREADS = SATS.map(function (s, i) {
+  var pts = []; for (var k = 0; k <= 60; k++) pts.push(P.clone().lerp(s, Math.pow(k / 60, 2)));
+  return fatLines(K.polySegs(pts).segs, { width: 2.2, headLen: 1, hot: 1, tail: 1, color: COLORS[i], hotColor: COLORS[i] });
+});
+var PACKETS = SATS.map(function (s, i) {
+  return K.glowSprite(K.glowTexture([[0, "rgba(255,255,255,1)"], [0.2, "rgba(255,255,255,0.5)"], [1, "rgba(255,255,255,0)"]]), 1);
+});
+PACKETS.forEach(function (p, i) { p.material.color.copy(COLORS[i]); });
+
+function poseSats(t) {
+  var on = smr(t, 6.4, 8.0) * (1 - smr(t, 22.4, 23.6));
+  satGroup.visible = on > 0.001;
+  satObjs.forEach(function (s) { s.visible = on > 0.001; });
+  var shellOn = smr(t, 6.6, 7.6) * (1 - smr(t, 14.4, 15.4)) * 0.9;
+  SHELLS.forEach(function (sh) {
+    var u = ((t * 0.42 + sh.phase) % 1), r = 1.5 + u * 34;
+    sh.m.scale.setScalar(r); sh.m.material.uniforms.uA.value = shellOn * Math.pow(1 - u, 1.4) * (sh.sat === 0 ? 1 : mix(1, 0.35, smr(t, 9.6, 10.4)));
+  });
+  // threads: present from the start (they're what the hook shows), quieter while the spheres speak
+  THREADS.forEach(function (th, i) {
+    var focus = t > 9.6 && t < 15 ? (i === 0 ? 1 : 0.25) : 1;
+    th.material.uniforms.uOpacity.value = 0.75 * focus * (1 - 0.6 * smr(t, 15, 16) * (1 - smr(t, 20.9, 21.6)));
+  });
+}
+// a packet's position: in the hook, short falls into the dot (city scale); in the mechanism, the whole trip
+function posePackets(t) {
+  PACKETS.forEach(function (p, i) {
+    var pos = null, size = 1;
+    T.pulseLands.forEach(function (tl, k) {
+      if (i !== k % 3) return;
+      var u = (tl - t) / 0.7;
+      if (u > 0 && u < 1) { pos = P.clone().addScaledVector(SATS[i].clone().sub(P).normalize(), 0.0028 * Math.pow(u, 1.6)); size = 0.00028; } // city scale: ~28 units up, ~2.8 wide
+    });
+    if (i === 0 && t > T.packet[0] && t < T.packet[1] + 0.15) {
+      var f = c01((t - T.packet[0]) / (T.packet[1] - T.packet[0]));
+      pos = SATS[0].clone().lerp(P, smoother(f)); size = 2.4;
+    }
+    p.visible = !!pos;
+    if (pos) { p.position.copy(pos); p.scale.setScalar(size); }
+  });
+}
+
+// ==== film/40-spheres.js
+// ---- 3–4 · the distance spheres: each grows out of its satellite until it passes exactly through you. Two meet
+// in a circle (drawn from you around); three meet in two points, and the one out in space fades.
+var sphereMat = function (col) {
+  return new THREE.ShaderMaterial({
+    uniforms: { uCol: { value: col }, uA: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, side: THREE.DoubleSide,
+    vertexShader: "varying vec3 vN; varying vec3 vW; varying vec3 vO; void main(){ vO=normalize(position); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }",
+    fragmentShader: "uniform vec3 uCol; uniform float uA; varying vec3 vN; varying vec3 vW; varying vec3 vO;\n" +
+      "void main(){ float fr=pow(1.0-abs(dot(normalize(vN),normalize(cameraPosition-vW))),2.2);" +
+      " float lat=asin(clamp(vO.y,-1.0,1.0)), lon=atan(vO.z,vO.x);" +
+      " float gl=smoothstep(0.93,0.985,abs(fract(lat*5.73)-0.5)*2.0);" + // a line every 10° of latitude
+      " float gn=smoothstep(0.93,0.985,abs(fract(lon*2.865)-0.5)*2.0);" + // and every 20° of longitude
+      " float grid=max(gl,gn)*0.35;" +
+      " gl_FragColor=vec4(uCol*(fr*0.9+grid*(0.25+fr))*uA,1.0); }",
+  });
+};
+var sphereGeo = new THREE.SphereGeometry(1, 128, 80);
+var SPHERES = SATS.map(function (s, i) { var m = new THREE.Mesh(sphereGeo, sphereMat(COLORS[i])); m.position.copy(s); m.visible = false; return m; });
+var GROW = [T.sphere1, T.sphere2, T.sphere3];
+
+// the circle where spheres 1 and 2 meet: it starts at you and draws round
+var circlePts = []; for (var ci = 0; ci <= 200; ci++) circlePts.push(circlePoint(ci / 200 * Math.PI * 2));
+var circle = fatLines(K.polySegs(circlePts).segs, { width: 3.2, headLen: 0.06, hot: 2.4, tail: 1.1, color: 0xe8f4ff, hotColor: 0xffffff });
+var youPoint = K.glowSprite(K.GLOW.hot, 3.2), ghostPoint = K.glowSprite(K.GLOW.hot, 3.2);
+[youPoint, ghostPoint].forEach(function (p) { p.material.color.set(0xcfe6ff); p.visible = false; });
+youPoint.position.copy(P); ghostPoint.position.copy(GHOST);
+
+function poseSpheres(t) {
+  var out = 1 - smr(t, 21.6, 23.4); // the dive leaves them behind
+  SPHERES.forEach(function (m, i) {
+    var g = smoother((t - GROW[i][0]) / (GROW[i][1] - GROW[i][0]));
+    m.visible = g > 0.001 && out > 0.001;
+    m.scale.setScalar(Math.max(0.01, RADII[i] * g));
+    // a sphere is brightest as it forms, then steps back so the next one and the intersections read
+    var a = 0.55 * g * out * (1 - 0.45 * smr(t, GROW[i][1] + 0.6, GROW[i][1] + 1.6));
+    if (i === 0) a *= 1 - 0.3 * smr(t, T.circle[0], T.circle[1]);
+    m.material.uniforms.uA.value = a;
+  });
+  var cOn = t >= T.circle[0];
+  circle.visible = cOn && out > 0.001;
+  circle.material.uniforms.uHead.value = smoother((t - T.circle[0]) / (T.circle[1] - T.circle[0]));
+  circle.material.uniforms.uOpacity.value = out * (1 - 0.5 * smr(t, T.sphere3[1], T.sphere3[1] + 0.6));
+  var pOn = smr(t, T.points, T.points + 0.25);
+  var flash = t > T.points ? 1 + 1.5 * Math.exp(-(t - T.points) * 5) : 1;
+  youPoint.visible = ghostPoint.visible = pOn > 0.001 && out > 0.001;
+  youPoint.material.opacity = pOn * out; youPoint.scale.setScalar(3.2 * flash);
+  ghostPoint.material.opacity = pOn * out * (1 - 0.8 * smr(t, T.ghost, T.ghost + 0.6)); ghostPoint.scale.setScalar(3.2 * flash);
+}
+
+// ==== film/60-camera.js
+// ---- the camera: one take, as smooth curves of four numbers around your local "up" (N):
+// distance D (log-eased: ×70,000 out, then home again), tilt from up, orbit around up, and the point it aims at.
+var deg = Math.PI / 180;
+// the orbit's drift (5°/s) eases to a stop for the declared rest and picks up after it; integrated once, so the
+// angle is smooth however the rate changes
+var AZ_TABLE = (function () {
+  var out = [0], dt = 0.001, acc = 0;
+  for (var i = 1; i <= T.DUR / dt + 1; i++) {
+    var t = i * dt, w = 1 - smr(t, T.restFrom - 0.6, T.restFrom) + smr(t, T.restTo, T.restTo + 0.6);
+    acc += 5 * c01(w) * dt; out.push(acc);
+  }
+  return out;
+})();
+function azDrift(t) { var x = clamp(t, 0, T.DUR) * 1000, i = Math.floor(x); return mix(AZ_TABLE[i], AZ_TABLE[Math.min(i + 1, AZ_TABLE.length - 1)], x - i); }
+
+var HIGH = 14; // how far above you the aim rises when the satellites are in view
+function camAt(t) {
+  var logD = Math.log(0.0017) + (Math.log(85) - Math.log(0.0017)) * smoother((t - T.zoomStart) / (T.zoomEnd - T.zoomStart))
+    + Math.log(125 / 85) * smr(t, 9.6, 14.5)
+    + (Math.log(0.0016) - Math.log(125)) * smoother((t - T.dive[0]) / (T.dive[1] - T.dive[0]));
+  var D = Math.exp(logD);
+  var el = (42 + 38 * smr(t, 4.4, 9.2) - 40 * smr(t, 21.4, 25.8)) * deg;
+  var az = (-30 + azDrift(t) + 40 * smr(t, 14.6, 20.0)) * deg;
+  // the aim rises above you in proportion to how far out the camera is, so you stay in frame at every distance
+  var target = P.clone().addScaledVector(N, HIGH * 1.2 * D / Math.sqrt(D * D + 85 * 85));
+  target.add(SATS[0].clone().sub(P.clone().addScaledVector(N, HIGH)).multiplyScalar(0.3 * smr(t, 9.6, 11.0) * (1 - smr(t, 14.2, 15.6))));
+  var dir = N.clone().multiplyScalar(Math.cos(el)).add(E.clone().multiplyScalar(Math.cos(az) * Math.sin(el))).add(U.clone().multiplyScalar(Math.sin(az) * Math.sin(el)));
+  var p = target.clone().addScaledVector(dir, D);
+  // the subject sits right of centre: the type has the left third
+  var fwd = target.clone().sub(p).normalize(), right = fwd.clone().cross(N).normalize();
+  return { p: p, q: target.clone().addScaledVector(right, -D * 0.18), fov: 40 - 4 * smr(t, 25, 30), up: N.clone() };
+}
+function placeCamera(cam, t) { return K.place(cam, camAt(t), { maxNear: 0.5, far: 3000 }).position; }
+
+// ==== film/70-overlay.js
+// ---- motion graphics: captions, the satellite label pinned to satellite 1, the delay → distance maths, and the
+// lockup. Painted as a held frame (tl.frame hold), so motion blur never doubles a digit.
+var $ = function (id) { return document.getElementById(id); };
+var CAPTIONS = [
+  ["c_h1", T.hook1In, T.hookOut], ["c_h2", T.hook2In, T.hookOut + 0.08],
+  ["c_set", T.setupIn, T.setupOut],
+  ["c_m1", T.mech1In, T.mech1Out], ["c_m2", T.mech2In, T.mech2Out],
+  ["c_t1", T.tr1In, T.tr1Out], ["c_t2", T.tr2In, T.tr2Out],
+  ["c_rev", T.revIn, T.revOut],
+  ["c_ttl", T.title, 99], ["c_sub", T.sub, 99],
+];
+var fmt = function (n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); };
+
+function poseLabel(t, cam) {
+  var u = smoother((t - T.altLabel[0]) / 0.45), out = sm((t - T.altLabel[1]) / 0.4), ld = $("ld"), dot = $("ldot"), box = $("lab");
+  // the leader runs away from the nearer edge, so the label never leaves the frame
+  var s = K.toScreen(SATS[0], cam, W, H), dir = s.x > W * 0.62 ? -1 : 1, e = { x: s.x + 90 * dir, y: s.y + 80 }, f = { x: e.x + 70 * dir, y: e.y };
+  ld.setAttribute("points", [s, e, f].map(function (p) { return p.x.toFixed(1) + "," + p.y.toFixed(1); }).join(" "));
+  var len = 90 * Math.SQRT2 + 70;
+  ld.style.strokeDasharray = len.toFixed(1); ld.style.strokeDashoffset = (len * (1 - u)).toFixed(1); ld.style.opacity = (1 - out).toFixed(3);
+  dot.setAttribute("cx", s.x.toFixed(1)); dot.setAttribute("cy", s.y.toFixed(1)); dot.style.opacity = (smoother((t - T.altLabel[0]) / 0.2) * (1 - out)).toFixed(3);
+  var tu = smoother((t - T.altLabel[0] - 0.3) / 0.45);
+  box.style.left = (f.x + 16 * dir).toFixed(1) + "px"; box.style.top = (f.y - 30).toFixed(1) + "px";
+  box.style.transform = dir < 0 ? "translateX(-100%)" : "none"; box.style.textAlign = dir < 0 ? "right" : "left";
+  box.style.opacity = (tu * (1 - out)).toFixed(3);
+}
+// the maths for satellite 1: the delay counts up while the pulse travels; the distance follows the sphere
+function poseMath(t) {
+  K.fadeIO($("math"), T.mathIn, T.mathOut, t);
+  var travel = c01((t - T.packet[0]) / (T.packet[1] - T.packet[0]));
+  $("mDelay").textContent = (DELAYS[0] * travel).toFixed(3) + " s";
+  var grow = c01((t - T.sphere1[0]) / (T.sphere1[1] - T.sphere1[0]));
+  $("mDist").style.opacity = smoother((t - T.sphere1[0]) / 0.4).toFixed(3);
+  $("mDistV").textContent = fmt(Math.floor(RADII[0] * KM_PER_UNIT * smoother(grow) / 10) * 10) + " km";
+}
+function poseOverlay(t, cam) {
+  CAPTIONS.forEach(function (c) { K.lineIO($(c[0]), c[1], c[2], t); });
+  poseLabel(t, cam); poseMath(t);
+  K.fadeIO($("foot"), T.footIn, T.footOut, t, 10);
+}
+
+// ==== film/90-main.js
+// ---- the renderer, the scene and the frame: everything drawn from t alone
+var renderer = K.renderer(document.getElementById("c"), W, H, { exposure: 1.05 });
+var scene = new THREE.Scene();
+scene.background = GROUND;
+var pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new THREE.RoomEnvironment(), 0.04).texture; // reflections for the foil and glass
+scene.add(new THREE.HemisphereLight(0x8fb4ff, 0x0a0c14, 0.16));
+var key = new THREE.DirectionalLight(0xdfe8ff, 1.6); key.position.copy(earthU.uKey.value).multiplyScalar(100); scene.add(key);
+var moon = new THREE.DirectionalLight(0x9fb8ff, 0.65); moon.position.copy(N).add(E.clone().multiplyScalar(0.6)).multiplyScalar(50); scene.add(moon);
+scene.add(earth); scene.add(atmo); scene.add(city); scene.add(satGroup);
+THREADS.forEach(function (l) { scene.add(l); });
+PACKETS.forEach(function (p) { scene.add(p); });
+SPHERES.forEach(function (m) { scene.add(m); });
+scene.add(circle); scene.add(youPoint); scene.add(ghostPoint);
+
+var cam = new THREE.PerspectiveCamera(40, W / H, 0.001, 3000);
+var LINES = [streets, avenues, circle].concat(THREADS);
+function draw(t) {
+  placeCamera(cam, t);
+  poseCity(t); poseEarth(t, cam.position); poseSats(t); posePackets(t); poseSpheres(t);
+  LINES.forEach(function (l) { l.userData.update(cam); });
+  renderer.render(scene, cam);
+}
+tl.frame(draw, { motion: K.motionOf(camAt) });
+var labelCam = new THREE.PerspectiveCamera(40, W / H, 0.001, 3000);
+tl.frame(function (t) { placeCamera(labelCam, t); poseOverlay(t, labelCam); }, { hold: true });
+
+// what the shot check keeps in frame: you at both ends, satellite 1 while it speaks, then the meeting point
+tl.subject("you (the blue dot)", K.subjectOf(camAt, function (t) { return t < 5 || t > 25.8 ? P : null; }, { w: W, h: H, radius: 0.6 * CITY_SCALE }), { minPx: 6 });
+tl.subject("you, on the way up", K.subjectOf(camAt, function (t) { return t >= 5 && t < 9.6 ? P : null; }, { w: W, h: H }));
+tl.subject("satellite 1", K.subjectOf(camAt, function (t) { return t > 9.6 && t < 15 ? SATS[0] : null; }, { w: W, h: H, radius: 2 }), { minPx: 8 });
+tl.subject("the meeting point", K.subjectOf(camAt, function (t) { return t >= 15 && t <= 25.8 ? P : null; }, { w: W, h: H }));
+tl.rest(T.restFrom, T.restTo);
+
+tl.label("hook", 0.4).label("listens", T.hook2In).label("rise", T.zoomStart).label("orbit", 7.4).label("delay", T.focus)
+  .label("sphere", T.sphere1[0]).label("circle", T.sphere2[0]).label("points", T.sphere3[0]).label("rest", T.restFrom)
+  .label("dive", T.dive[0]).label("home", 25.0).label("lockup", T.title);
+T.pulseLands.forEach(function (x, i) { tl.hit("pulse" + i, x, { kind: "click", pan: (i % 3 - 1) * 0.3 }); });
+tl.hit("rise", T.zoomStart, { kind: "whoosh" }).hit("received", T.packet[1], { kind: "click" }).hit("sphere1", T.sphere1[1], { kind: "land" })
+  .hit("circle", T.circle[1], { kind: "click" }).hit("points", T.points, { kind: "impact" }).hit("dive", T.dive[0], { kind: "whoosh" }).hit("home", 25.6, { kind: "land" });
+});</script>
