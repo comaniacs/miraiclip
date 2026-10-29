@@ -1,0 +1,733 @@
+<div class="stage" data-libs="stage three" data-duration="30" data-stage-version="2" data-frame-timeout="60" style="width:1920px;height:1080px;background:#07060a;overflow:hidden"><style>
+#ov{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;color:#fff6ea;-webkit-font-smoothing:antialiased}
+#ov .cap{position:absolute;left:120px;overflow:hidden;padding:4px 0 10px;font-weight:600;font-size:56px;line-height:1.12;letter-spacing:-0.01em;white-space:nowrap;text-shadow:0 2px 28px rgba(7,6,10,0.65)}
+#ov .cap>span{display:inline-block;will-change:transform}
+#ov .k{font-weight:500;font-size:19px;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,236,214,0.78)}
+#ov .num{font-weight:600;font-size:64px;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.05;margin-top:6px}
+#ov .foot{font-weight:500;font-size:19px;color:rgba(255,236,214,0.6);margin-top:8px;font-variant-numeric:tabular-nums}
+#ov .box{position:absolute;left:120px;top:150px;text-shadow:0 2px 24px rgba(7,6,10,0.7)}
+#shade{position:absolute;left:0;top:0;width:1100px;height:1080px;background:linear-gradient(90deg,rgba(7,6,10,0.62),rgba(7,6,10,0.35) 45%,rgba(7,6,10,0))}
+#lab{position:absolute;white-space:nowrap;text-shadow:0 2px 18px rgba(7,6,10,0.8)}
+#lab .lv{font-weight:500;font-size:22px;color:rgba(255,246,234,0.86);margin-top:4px}
+#bar{position:absolute;left:120px;top:842px;width:1040px}
+#bar .row{display:flex;justify-content:space-between;align-items:baseline}
+#barTrack{position:relative;height:8px;margin-top:14px;background:rgba(255,236,214,0.12);border-radius:4px}
+#barFill{position:absolute;left:0;top:0;bottom:0;right:3px;border-radius:4px;transform-origin:0 50%;background:linear-gradient(90deg,#ff7a1e,#ffb347 70%,#ffd27a)}
+#barTick{position:absolute;right:0;top:-14px;width:3px;height:36px;border-radius:2px;background:#5aa9ff;box-shadow:0 0 14px #4f9dff;transform-origin:50% 50%}
+#barYou{color:#8cc4ff}
+#barNote{text-align:right;margin-top:14px;font-weight:500;font-size:19px;color:rgba(255,236,214,0.9)}
+#c_t1{font-size:88px;letter-spacing:-0.02em}
+#c_t2{font-weight:500;font-size:30px;letter-spacing:0;color:rgba(255,246,234,0.82)}
+</style><canvas id="c" width="1920" height="1080" style="position:absolute;left:0;top:0;width:1920px;height:1080px"></canvas><div id="ov">
+<div id="shade"></div>
+<svg width="1920" height="1080" style="position:absolute;left:0;top:0;overflow:visible"><polyline id="ld" points="" fill="none" stroke="rgba(255,240,220,0.9)" stroke-width="1.6" style="opacity:0"/><circle id="ldot" cx="0" cy="0" r="4.5" fill="#fff6ea" style="opacity:0"/></svg>
+<div id="lab" style="opacity:0"><div class="k" id="labK"></div><div class="lv" id="labV"></div></div>
+<div class="cap" id="c_h1" style="top:420px;opacity:0"><span>Every ray of sunlight</span></div><div class="cap" id="c_h2" style="top:490px;opacity:0"><span>begins as a prisoner.</span></div>
+<div class="cap" id="c_set" style="top:452px;opacity:0"><span>Absorbed. Re-emitted. Over and over.</span></div>
+<div class="cap" id="c_m1" style="top:452px;opacity:0"><span>Each bounce sends it somewhere random.</span></div>
+<div class="cap" id="c_m2" style="top:452px;opacity:0"><span>Then rising plasma carries it up.</span></div>
+<div class="cap" id="c_free" style="top:452px;opacity:0"><span>Then it breaks free.</span></div>
+<div class="cap" id="c_rev" style="top:452px;opacity:0"><span>You only see the last eight minutes.</span></div>
+<div class="cap" id="c_t1" style="top:780px;opacity:0"><span>Sunlight is old light.</span></div><div class="cap" id="c_t2" style="top:892px;opacity:0"><span>It left the Sun’s core before the first cities were built.</span></div>
+<div class="box" id="yrs" style="opacity:0"><div class="k">Years to escape</div><div class="num" id="yrsV">0</div><div class="foot">estimates range 10,000 – 170,000 years</div></div>
+<div class="box" id="clk" style="opacity:0"><div class="k">Time to Earth</div><div class="num" id="clkV">0:00</div><div class="foot" id="clkKm">0 km</div></div>
+<div id="bar" style="opacity:0"><div class="row"><div class="k">Inside the Sun · ~100,000 years</div><div class="k" id="barYou" style="opacity:0">To you · 8 minutes</div></div>
+<div id="barTrack"><div id="barFill"></div><div id="barTick" style="opacity:0"></div></div><div id="barNote" style="opacity:0">the last 8 minutes are too thin to draw at this scale</div></div>
+</div></div>
+<script>stage.build((tl, S) => {var T = {"DUR":30,"FPS":30,"hook1In":0.5,"hook2In":1.5,"hookOut":3.9,"zoomStart":4,"zoomEnd":9.4,"setupIn":4.8,"setupOut":8.4,"sunFade":[7.6,8.9],"starsFade":[8.6,10.2],"coreLabel":[8,9.5],"walkStart":9,"walkEnd":13.2,"convEnd":14.1,"restEnd":14.9,"radLabel":[9.6,12.9],"convLabel":[13,14.3],"mech1In":9.4,"mech1Out":12.8,"mech2In":13,"mech2Out":14.6,"yearsOut":14.7,"breakout":15,"rideStart":16.4,"approach":19.4,"landing":21,"freeIn":15.8,"freeOut":18.6,"clockIn":15.6,"clockOut":20.9,"revealIn":22,"revealOut":25.6,"barIn":21.8,"barTick":23.4,"barOut":25.8,"title":26.4,"sub":27.1};
+var T_COLL = [0.32,0.98,1.58,2.31,2.92,3.55,4.018,4.4392,4.8183,5.1595,5.4665,5.7429,5.9916,6.2154,6.4169,6.5982,6.7614,6.9082,7.0404,7.1594,7.2664,7.3628,7.4495,7.5276,7.5978,7.661,7.7179,7.7691,7.8152,7.8567,7.894,7.9276,7.9579,7.9851,8.0096,8.0316,8.0514,8.0693,8.0854,8.1014,8.1174,8.1334,8.1494,8.1654,8.1814,8.1974,8.2134,8.2294,8.2454,8.2614,8.2774,8.2934,8.3094,8.3254,8.3414,8.3574,8.3734,8.3894,8.4054,8.4214,8.4374,8.4534,8.4694,8.4854,8.5014,8.5174,8.5334,8.5494,8.5654,8.5814,8.5974,8.6134,8.6294,8.6454,8.6614,8.6774,8.6934,8.7094,8.7254,8.7414,8.7574,8.7734,8.7894,8.8054,8.8214,8.8374,8.8534,8.8694,8.8854,8.9014];
+// ==== film/00-util.js
+// ---- shared helpers: easing, a seeded random, colours, a glow sprite texture and GLSL noise
+var W = 1920, H = 1080;
+var clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
+var c01 = function (x) { return clamp(x, 0, 1); };
+var sm = function (x) { x = c01(x); return x * x * (3 - 2 * x); };
+var smr = function (t, a, b) { return sm((t - a) / (b - a)); };
+var smoother = function (x) { x = c01(x); return x * x * x * (x * (x * 6 - 15) + 10); };
+var mix = function (a, b, u) { return a + (b - a) * u; };
+var expOut = function (x) { x = c01(x); return 1 - Math.pow(2, -10 * x); };
+var logMix = function (a, b, u) { return Math.exp(mix(Math.log(a), Math.log(b), u)); };
+var V = function (x, y, z) { return new THREE.Vector3(x, y, z); };
+var rng = S.rand(1729);
+var GROUND = new THREE.Color(0x07060a);
+
+// a soft round glow for additive sprites: hot centre, long falloff
+function glowTexture(stops) {
+  var c = document.createElement("canvas"); c.width = c.height = 256;
+  var g = c.getContext("2d"), gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  stops.forEach(function (s) { gr.addColorStop(s[0], s[1]); });
+  g.fillStyle = gr; g.fillRect(0, 0, 256, 256);
+  var t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+var GLOW_HOT = glowTexture([[0, "rgba(255,255,250,1)"], [0.08, "rgba(255,240,200,0.9)"], [0.25, "rgba(255,170,80,0.32)"], [0.6, "rgba(255,110,30,0.06)"], [1, "rgba(255,90,20,0)"]]);
+var GLOW_SOFT = glowTexture([[0, "rgba(255,200,140,0.55)"], [0.35, "rgba(255,130,50,0.18)"], [1, "rgba(255,90,20,0)"]]);
+var GLOW_BLUE = glowTexture([[0, "rgba(160,205,255,0.5)"], [0.4, "rgba(80,150,255,0.14)"], [1, "rgba(60,120,255,0)"]]);
+function glowSprite(tex, size) {
+  var m = new THREE.SpriteMaterial({ map: tex, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true, transparent: true, toneMapped: false });
+  var s = new THREE.Sprite(m); s.scale.setScalar(size); return s;
+}
+
+// 3D simplex noise (Stefan Gustavson / Ashima Arts, MIT) plus fbm, shared by the Sun and Earth shaders
+var GLSL_NOISE = [
+  "vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}",
+  "vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}",
+  "vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}",
+  "vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}",
+  "float snoise(vec3 v){",
+  " const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0);",
+  " vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);",
+  " vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g; vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);",
+  " vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy; i=mod289(i);",
+  " vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));",
+  " float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx; vec4 j=p-49.0*floor(p*ns.z*ns.z);",
+  " vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_); vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy; vec4 h=1.0-abs(x)-abs(y);",
+  " vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw); vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0; vec4 sh=-step(h,vec4(0.0));",
+  " vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;",
+  " vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);",
+  " vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3))); p0*=norm.x; p1*=norm.y; p2*=norm.z; p3*=norm.w;",
+  " vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0); m=m*m;",
+  " return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));}",
+  "float fbm(vec3 p){float a=0.5,s=0.0;for(int i=0;i<5;i++){s+=a*snoise(p);p*=2.03;a*=0.5;}return s;}",
+].join("\n");
+
+// ---- constant-pixel-width lines. One instance per segment; each segment carries its arc position (s0, s1) so a
+// line can be drawn up to a moving head with a hot tip and a cooler tail. Additive, so overlapping tangles glow.
+// `streak` offsets every segment's end, which turns points into speed streaks.
+function fatLines(segs, opts) {
+  var n = segs.length;
+  var g = new THREE.InstancedBufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute([0, -1, 0, 1, -1, 0, 1, 1, 0, 0, 1, 0], 3));
+  g.setIndex([0, 1, 2, 0, 2, 3]);
+  var A = new Float32Array(n * 3), B = new Float32Array(n * 3), Sx = new Float32Array(n * 2);
+  segs.forEach(function (s, i) {
+    A[i * 3] = s[0].x; A[i * 3 + 1] = s[0].y; A[i * 3 + 2] = s[0].z;
+    B[i * 3] = s[1].x; B[i * 3 + 1] = s[1].y; B[i * 3 + 2] = s[1].z;
+    Sx[i * 2] = s[2]; Sx[i * 2 + 1] = s[3];
+  });
+  g.setAttribute("iA", new THREE.InstancedBufferAttribute(A, 3));
+  g.setAttribute("iB", new THREE.InstancedBufferAttribute(B, 3));
+  g.setAttribute("iS", new THREE.InstancedBufferAttribute(Sx, 2));
+  g.instanceCount = n;
+  var u = {
+    uWidth: { value: opts.width || 3 }, uRes: { value: new THREE.Vector2(W, H) }, uNear: { value: 0.01 },
+    uHead: { value: 1 }, uHeadLen: { value: opts.headLen || 0.1 }, uHot: { value: opts.hot || 2.2 }, uTail: { value: opts.tail || 0.55 },
+    uColor: { value: new THREE.Color(opts.color || 0xffa040) }, uHotColor: { value: new THREE.Color(opts.hotColor || 0xfff0d0) },
+    uOpacity: { value: 1 }, uStreak: { value: new THREE.Vector3() },
+  };
+  var m = new THREE.ShaderMaterial({
+    uniforms: u, transparent: true, depthWrite: false, depthTest: opts.depthTest !== false, blending: opts.normal ? THREE.NormalBlending : THREE.AdditiveBlending, toneMapped: false,
+    vertexShader: [
+      "attribute vec3 iA; attribute vec3 iB; attribute vec2 iS;",
+      "uniform float uWidth; uniform vec2 uRes; uniform float uNear; uniform vec3 uStreak;",
+      "varying float vSide; varying float vS;",
+      "void main(){",
+      " vec4 a=modelViewMatrix*vec4(iA,1.0); vec4 b=modelViewMatrix*vec4(iB+uStreak,1.0);",
+      " float s0=iS.x, s1=iS.y;",
+      // clip the segment against the near plane so lines that pass the camera stay whole
+      " if(a.z>-uNear&&b.z>-uNear){gl_Position=vec4(2.0,2.0,2.0,1.0);return;}",
+      " if(a.z>-uNear){float k=(-uNear-a.z)/(b.z-a.z);a=mix(a,b,k);s0=mix(s0,s1,k);}",
+      " if(b.z>-uNear){float k=(-uNear-b.z)/(a.z-b.z);b=mix(b,a,k);s1=mix(s1,s0,k);}",
+      " vec4 ca=projectionMatrix*a; vec4 cb=projectionMatrix*b;",
+      " vec2 sa=ca.xy/ca.w*uRes*0.5, sb=cb.xy/cb.w*uRes*0.5; vec2 d=sb-sa; float L=length(d); d=L>1e-4?d/L:vec2(1.0,0.0);",
+      " vec2 nrm=vec2(-d.y,d.x);",
+      " vec4 c=mix(ca,cb,position.x);",
+      " vec2 off=nrm*position.y*uWidth*0.5+d*(position.x*2.0-1.0)*uWidth*0.5;",
+      " c.xy+=off/(uRes*0.5)*c.w;",
+      " gl_Position=c; vSide=position.y; vS=mix(s0,s1,position.x);",
+      "}",
+    ].join("\n"),
+    fragmentShader: [
+      "uniform float uHead; uniform float uHeadLen; uniform float uHot; uniform float uTail; uniform vec3 uColor; uniform vec3 uHotColor; uniform float uOpacity;",
+      "varying float vSide; varying float vS;",
+      "void main(){",
+      " if(vS>uHead) discard;",
+      " float edge=1.0-smoothstep(0.25,1.0,abs(vSide));",
+      " float k=clamp((uHead-vS)/uHeadLen,0.0,1.0);",
+      " vec3 col=mix(uHotColor*uHot,uColor*uTail,smoothstep(0.0,1.0,k));",
+      " gl_FragColor=vec4(col,edge*uOpacity);",
+      "}",
+    ].join("\n"),
+  });
+  var mesh = new THREE.Mesh(g, m); mesh.frustumCulled = false;
+  return mesh;
+}
+// a polyline (array of Vector3) to segments with arc-length positions 0..1
+function polySegs(pts) {
+  var L = [0];
+  for (var i = 1; i < pts.length; i++) L.push(L[i - 1] + pts[i].distanceTo(pts[i - 1]));
+  var tot = L[L.length - 1] || 1, out = [];
+  for (var j = 1; j < pts.length; j++) out.push([pts[j - 1], pts[j], L[j - 1] / tot, L[j] / tot]);
+  return { segs: out, len: L.map(function (x) { return x / tot; }) };
+}
+
+// ==== film/20-micro.js
+// ---- 1 · the micro world: plasma particles, the photon, its collisions and its trail.
+// Built in local units (a 60-unit cloud) and scaled by MICRO_SCALE into the Sun's core, so the zoom out is one camera.
+var MICRO_SCALE = 0.001, MC = V(0.08, 0, 0.08); // sits just inside the cutaway gap, at the Sun's centre
+var micro = new THREE.Group(); micro.position.copy(MC); micro.scale.setScalar(MICRO_SCALE);
+
+// the path: one straight flight per collision, bouncing off the surface of the particle it hits
+var COLL = T_COLL, NC = COLL.length;
+var PV = [], PN = [], PR = [];
+(function buildPath() {
+  var p = V(0, 0, 0), dir = V(0.35, 0.15, -1).normalize();
+  for (var k = 0; k < NC; k++) {
+    var len = k < 6 ? 10 + rng() * 3 : 6.5 + rng() * 5;
+    p = p.clone().addScaledVector(dir, len); PV.push(p);
+    var nd = V(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1).normalize();
+    if (p.length() > 34) nd.addScaledVector(p.clone().normalize(), -1.3).normalize(); // stay inside the cloud
+    if (nd.dot(dir) > 0.6) nd.addScaledVector(dir, -1).normalize(); // a visible change of course
+    PN.push(nd.clone().sub(dir).normalize()); // the contact normal: out - in
+    PR.push(k < 6 ? 1.35 : 0.9 + rng() * 0.4);
+    dir = nd;
+  }
+})();
+var P_START = PV[0].clone().addScaledVector(V(0.35, 0.15, -1).normalize(), -5.5);
+var PATH = [P_START].concat(PV), PSEG = polySegs(PATH);
+
+// the photon's position: still for a beat at each collision in the hook (absorbed), then off in a new direction
+function photonLocal(t) {
+  if (t <= COLL[0]) return P_START.clone().lerp(PV[0], t / COLL[0]);
+  var k = 0; while (k < NC - 1 && COLL[k + 1] <= t) k++;
+  if (k >= NC - 1) return PV[NC - 1].clone();
+  var dur = COLL[k + 1] - COLL[k], hold = k < 6 ? Math.min(0.12, dur * 0.2) : 0;
+  return PV[k].clone().lerp(PV[k + 1], c01((t - COLL[k] - hold) / (dur - hold)));
+}
+function photonArc(t) {
+  if (t <= COLL[0]) return PSEG.len[1] * t / COLL[0];
+  var k = 0; while (k < NC - 1 && COLL[k + 1] <= t) k++;
+  if (k >= NC - 1) return 1;
+  var dur = COLL[k + 1] - COLL[k], hold = k < 6 ? Math.min(0.12, dur * 0.2) : 0;
+  return mix(PSEG.len[k + 1], PSEG.len[k + 2], c01((t - COLL[k] - hold) / (dur - hold)));
+}
+function lastCollision(t) { var k = -1; while (k < NC - 1 && COLL[k + 1] <= t) k++; return k; }
+
+// the particles: one sits at every collision, the rest fill the cloud but keep out of the photon's way
+var PART = [];
+for (var k0 = 0; k0 < NC; k0++) PART.push({ p: PV[k0].clone().addScaledVector(PN[k0], -PR[k0]), r: PR[k0], hit: COLL[k0], hue: 0.5 });
+(function fill() {
+  var tries = 0, segA = PATH.slice(0, -1), segB = PATH.slice(1), tmp = V(0, 0, 0), ab = V(0, 0, 0);
+  while (PART.length < 1700 && tries < 40000) {
+    tries++;
+    var q = V(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1).multiplyScalar(62);
+    if (q.length() > 62) continue;
+    var small = rng() < 0.3, r = small ? 0.26 + rng() * 0.16 : 0.6 + rng() * 0.6, ok = true;
+    for (var s = 0; s < segA.length && ok; s++) {
+      ab.subVectors(segB[s], segA[s]); var u = c01(tmp.subVectors(q, segA[s]).dot(ab) / ab.lengthSq());
+      if (tmp.copy(segA[s]).addScaledVector(ab, u).distanceTo(q) < r + 1.8) ok = false;
+    }
+    if (ok) PART.push({ p: q, r: r, hit: -1, hue: small ? 1 : rng() * 0.6 });
+  }
+})();
+var NP = PART.length;
+var partGeo = new THREE.SphereGeometry(1, 20, 14);
+var partMat = new THREE.MeshStandardMaterial({ color: 0xff7a2a, roughness: 0.32, metalness: 0.25, emissive: 0xffffff, emissiveIntensity: 1 });
+partMat.onBeforeCompile = function (sh) { // the per-particle colour drives the glow, the lit colour stays shared
+  sh.fragmentShader = sh.fragmentShader.replace("vec3 totalEmissiveRadiance = emissive;", "vec3 totalEmissiveRadiance = emissive * vColor;").replace("#include <color_fragment>", "");
+};
+var parts = new THREE.InstancedMesh(partGeo, partMat, NP); parts.frustumCulled = false;
+parts.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(NP * 3), 3);
+var BASE_EM = [], M4 = new THREE.Matrix4();
+PART.forEach(function (pt, i) {
+  M4.makeScale(pt.r, pt.r, pt.r).setPosition(pt.p); parts.setMatrixAt(i, M4);
+  var c = pt.hue === 1 ? [0.10, 0.075, 0.05] : [0.045 + pt.hue * 0.03, 0.012 + pt.hue * 0.008, 0.003];
+  BASE_EM.push(c);
+});
+micro.add(parts);
+
+// the photon: a hot core, a halo, and the light it throws on the plasma around it
+var photonCore = glowSprite(GLOW_HOT, 2.6), photonHalo = glowSprite(GLOW_SOFT, 13), flash = glowSprite(GLOW_HOT, 9);
+[photonCore, photonHalo, flash].forEach(function (s) { s.material.fog = false; micro.add(s); });
+var photonLight = new THREE.PointLight(0xffd9a8, 0, 0, 2); micro.add(photonLight);
+var trail = fatLines(PSEG.segs, { width: 2.6, headLen: 0.035, hot: 2.4, tail: 0.5, color: 0xff9a40, hotColor: 0xfff2d6 });
+micro.add(trail);
+
+function poseMicro(t, camDist) {
+  var on = t < 9.6;
+  micro.visible = on; if (!on) return;
+  var p = photonLocal(t), kc = lastCollision(t), since = kc >= 0 ? t - COLL[kc] : 9;
+  var absorbed = kc >= 0 && kc < 6 ? 1 - smr(since, 0.0, 0.14) * 1 : 0; // the photon dims while it is absorbed
+  var fadeOut = 1 - smr(t, 6.6, 8.6);
+  photonCore.position.copy(p); photonHalo.position.copy(p);
+  photonCore.material.opacity = 1 - 0.7 * absorbed; photonHalo.material.opacity = (0.9 - 0.5 * absorbed) * mix(1, 0.6, smr(t, 4, 8));
+  photonCore.scale.setScalar(2.6 * mix(1, 3.5, smr(t, 4.5, 8.5))); // keeps the spark readable while the world shrinks
+  photonLight.position.copy(p); photonLight.intensity = 4e-3 * fadeOut; // world units: the cloud is scaled to 1/1000
+  flash.position.copy(kc >= 0 ? PV[kc] : p); flash.material.opacity = kc >= 0 && kc < 40 ? Math.exp(-since * 9) : 0;
+  // collision glow: a particle flares when it absorbs the photon and cools over half a second
+  var IC = parts.instanceColor.array;
+  for (var i = 0; i < NP; i++) {
+    var b = BASE_EM[i], h = PART[i].hit, f = h >= 0 && t >= h ? Math.exp(-(t - h) * 4.5) * 1.4 : 0;
+    IC[i * 3] = (b[0] + f * 0.6) * fadeOut; IC[i * 3 + 1] = (b[1] + f * 0.28) * fadeOut; IC[i * 3 + 2] = (b[2] + f * 0.08) * fadeOut;
+  }
+  parts.instanceColor.needsUpdate = true;
+  partMat.color.setRGB(1.0 * fadeOut, 0.48 * fadeOut, 0.17 * fadeOut);
+  trail.material.uniforms.uHead.value = photonArc(t);
+  trail.material.uniforms.uTail.value = mix(0.5, 0.9, smr(t, 4.5, 8.0));
+  trail.material.uniforms.uOpacity.value = 1 - smr(t, 8.8, 9.5);
+  trail.material.uniforms.uWidth.value = mix(2.6, 1.6, smr(t, 5, 8));
+}
+// where the camera follows in the hook: the photon, smoothed over half a second so bounces don't jerk the frame
+function photonWorldSmoothed(t) {
+  var acc = V(0, 0, 0), n = 10;
+  for (var i = 0; i < n; i++) acc.add(photonLocal(Math.max(0, t - 0.55 * i / (n - 1))));
+  return acc.multiplyScalar(MICRO_SCALE / n).add(MC);
+}
+
+// ==== film/30-sun.js
+// ---- 2–3 · the Sun: a sphere with its front half cut away (z > 0), its layers drawn on the z = 0 cut face,
+// and the thread: the photon's random walk across that face, then one convection roll to the surface.
+var R = 10, PHI_EXIT = 35 * Math.PI / 180;
+var DIR = V(Math.cos(PHI_EXIT), Math.sin(PHI_EXIT), 0); // the way out, and the way to Earth
+var EXIT = DIR.clone().multiplyScalar(R);
+var sun = new THREE.Group();
+
+var sunUniforms = { uTime: { value: 0 }, uFade: { value: 0 }, uGround: { value: GROUND }, uDim: { value: V(0, 0, 0) } };
+var SHADE_TAIL = "#include <tonemapping_fragment>\n#include <colorspace_fragment>\n";
+var surfMat = new THREE.ShaderMaterial({
+  uniforms: sunUniforms,
+  vertexShader: "varying vec3 vP; varying vec3 vN; varying vec3 vV; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vP=position; vN=normalize(mat3(modelMatrix)*normal); vV=normalize(cameraPosition-w.xyz); gl_Position=projectionMatrix*viewMatrix*w; }",
+  fragmentShader: GLSL_NOISE + "\nuniform float uTime; uniform float uFade; uniform vec3 uGround; varying vec3 vP; varying vec3 vN; varying vec3 vV;\n" +
+    "void main(){ vec3 q=normalize(vP);" +
+    " float g=fbm(q*7.0+vec3(0.0,uTime*0.04,0.0)); float cell=1.0-abs(snoise(q*22.0+vec3(uTime*0.05)));" +
+    " vec3 col=mix(vec3(0.95,0.28,0.04),vec3(1.0,0.58,0.16),0.5+0.5*g); col*=0.85+0.3*cell;" +
+    " float mu=max(dot(normalize(vN),normalize(vV)),0.0); col*=0.35+0.65*pow(mu,0.5); col*=1.05;" +
+    " gl_FragColor=vec4(mix(uGround,col,uFade),1.0);\n" + SHADE_TAIL + "}",
+});
+var surface = new THREE.Mesh(new THREE.SphereGeometry(R, 160, 120, Math.PI, Math.PI), surfMat);
+sun.add(surface);
+// the front half, put back while the Sun is behind the camera on the ride, so from Earth it is whole again
+var frontHalf = new THREE.Mesh(new THREE.SphereGeometry(R, 160, 120, 0, Math.PI), surfMat);
+frontHalf.visible = false; sun.add(frontHalf);
+
+// the cut faces: core, radiative and convective bands, with a thin hot line at each boundary
+var faceMat = new THREE.ShaderMaterial({
+  uniforms: sunUniforms, side: THREE.DoubleSide,
+  vertexShader: "varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; gl_Position=projectionMatrix*viewMatrix*w; }",
+  fragmentShader: GLSL_NOISE + "\nuniform float uTime; uniform float uFade; uniform vec3 uGround; uniform vec3 uDim; varying vec3 vW;\n" +
+    "float band(float r,float a,float b){return smoothstep(a-0.012,a+0.012,r)*(1.0-smoothstep(b-0.012,b+0.012,r));}\n" +
+    "void main(){ float r=length(vW)/" + R.toFixed(1) + "; vec2 f=vec2(vW.x+vW.z,vW.y); float ang=atan(f.y,f.x);" +
+    " vec3 core=mix(vec3(1.0,0.90,0.70)*1.5,vec3(1.0,0.62,0.26)*1.0,smoothstep(0.0,0.25,r));" +
+    " float grain=fbm(vec3(f*0.5,1.3))*0.5+0.5; float stri=0.0;" +
+    " vec3 rad=mix(vec3(0.72,0.26,0.06),vec3(0.42,0.10,0.025),(r-0.25)/0.45)*(0.8+0.25*grain+0.12*stri);" +
+    " float cells=fbm(vec3(f*0.42,uTime*0.12)); float ridge=1.0-abs(snoise(vec3(f*0.6,uTime*0.08+7.0)));" +
+    " vec3 conv=mix(vec3(0.52,0.11,0.03),vec3(0.85,0.30,0.07),smoothstep(-0.4,0.5,cells))*(0.8+0.25*ridge*ridge);" +
+    " vec3 col=core*band(r,-1.0,0.25)*(1.0-0.35*uDim.x)+rad*band(r,0.25,0.70)*(1.0-0.45*uDim.y)+conv*band(r,0.70,1.01)*(1.0-0.45*uDim.z);" +
+    " float lines=exp(-pow((r-0.25)/0.005,2.0))+exp(-pow((r-0.70)/0.005,2.0))+0.7*exp(-pow((r-0.995)/0.006,2.0));" +
+    " col+=vec3(1.0,0.78,0.5)*0.55*lines;" +
+    " gl_FragColor=vec4(mix(uGround,col,uFade),1.0);\n" + SHADE_TAIL + "}",
+});
+var face = new THREE.Mesh(new THREE.CircleGeometry(R, 192), faceMat); // the z = 0 cut face
+sun.add(face);
+
+var corona = glowSprite(GLOW_SOFT, R * 4.2); corona.material.fog = false; sun.add(corona);
+var sunPoint = glowSprite(GLOW_HOT, 1); sunPoint.material.fog = false; sun.add(sunPoint);
+var coreGlow = glowSprite(GLOW_HOT, 7); coreGlow.material.fog = false; coreGlow.material.depthTest = false; coreGlow.position.set(0, 0, 0.6); // in the scene, not the Sun group: it blooms before the Sun appears
+
+// the thread: a 2D random walk biased gently outward, then one convection roll up to EXIT
+var THREAD = [MC.clone()], WALK_N;
+(function walk() {
+  var x = 0.18, y = 0.02, z = 0.05, step = 0.16;
+  THREAD.push(V(x, y, z));
+  for (var i = 0; i < 6000; i++) {
+    var a = rng() * Math.PI * 2, r = Math.hypot(x, y), phi = Math.atan2(y, x);
+    var dx = Math.cos(a) * step, dy = Math.sin(a) * step;
+    var bias = 0.32 * step;
+    dx += Math.cos(phi) * bias; dy += Math.sin(phi) * bias;
+    if (r > 3) { var pull = (PHI_EXIT - 0.18 - phi) * 0.25 * step; dx += -Math.sin(phi) * pull * r * 0.3; dy += Math.cos(phi) * pull * r * 0.3; }
+    x += dx; y += dy;
+    THREAD.push(V(x, y, z));
+    if (Math.hypot(x, y) >= 6.95) break;
+  }
+  WALK_N = THREAD.length - 1;
+  var pe = THREAD[WALK_N], pr = Math.hypot(pe.x, pe.y), pphi = Math.atan2(pe.y, pe.x);
+  var polar = function (rr, ph) { return V(rr * Math.cos(ph), rr * Math.sin(ph), z); };
+  var roll = new THREE.CatmullRomCurve3([pe, polar(pr + 0.55, pphi - 0.13), polar(8.4, pphi - 0.02), polar(9.35, PHI_EXIT - 0.05), polar(R, PHI_EXIT)], false, "centripetal");
+  for (var k = 1; k <= 70; k++) THREAD.push(roll.getPoint(k / 70));
+})();
+var TSEG = polySegs(THREAD);
+var thread = fatLines(TSEG.segs, { width: 3.0, headLen: 0.05, hot: 1.6, tail: 1.0, color: 0xfff1d8, hotColor: 0xffffff, normal: true });
+sun.add(thread);
+var head = glowSprite(GLOW_HOT, 1.0), headHalo = glowSprite(GLOW_SOFT, 3.2);
+[head, headHalo].forEach(function (s) { s.material.fog = false; sun.add(s); });
+
+// how far along the thread at time t, as a vertex index (fractional)
+function threadIndex(t) {
+  if (t < T.walkStart) return 1;
+  if (t < T.walkEnd) { var u = (t - T.walkStart) / (T.walkEnd - T.walkStart); return 1 + (WALK_N - 1) * (0.25 * sm(u) + 0.75 * u); }
+  return WALK_N + (THREAD.length - 1 - WALK_N) * expOut((t - T.walkEnd) / (T.convEnd - T.walkEnd));
+}
+function threadPoint(t) {
+  var fi = threadIndex(t), i = Math.min(Math.floor(fi), THREAD.length - 2);
+  return { p: THREAD[i].clone().lerp(THREAD[i + 1], fi - i), s: mix(TSEG.len[i], TSEG.len[i + 1], fi - i) };
+}
+// share of the 100,000 years spent so far: the walk is the whole of it, convection is a rounding error
+function yearsShare(t) { return c01((threadIndex(t) - 1) / (WALK_N - 1)); }
+
+function poseSun(t, camPos) {
+  var fade = smr(t, T.sunFade[0], T.sunFade[1]);
+  sun.visible = fade > 0;
+  sunUniforms.uFade.value = fade; sunUniforms.uTime.value = t;
+  // the zone being talked about stays bright, the other two step back
+  var hiC = smr(t, 8.0, 8.4) * (1 - smr(t, 9.4, 9.8)), hiR = smr(t, 9.6, 10.0) * (1 - smr(t, 12.9, 13.3)), hiV = smr(t, 13.0, 13.4) * (1 - smr(t, 14.3, 14.7));
+  sunUniforms.uDim.value.set((hiR + hiV), (hiC + hiV), (hiC + hiR));
+  // the corona sits behind the Sun as seen from the camera, so it never cuts through the face; far away it grows
+  // so the Sun still reads as a glowing point beside Earth
+  var far = camPos.length();
+  corona.position.copy(camPos).normalize().multiplyScalar(-R * 1.2);
+  corona.scale.setScalar(R * 4.2 * Math.max(1, far / 140));
+  corona.material.opacity = fade * 0.85;
+  frontHalf.visible = t > 18.0; face.visible = t <= 18.0;
+  // from far away the Sun is one hot point: the same spark the film opened on
+  sunPoint.position.copy(camPos).normalize().multiplyScalar(R * 1.15);
+  sunPoint.scale.setScalar(far * 0.075); sunPoint.material.opacity = c01((far - 160) / 220); coreGlow.material.opacity = smr(t, 6.2, 8.0) * (0.9 - 0.5 * smr(t, 9.0, 11.0)) * (1 - smr(t, T.breakout, T.breakout + 1.0)); // the core blooms round the shrinking tangle
+  var tp = threadPoint(t), on = t >= T.walkStart - 0.4;
+  thread.visible = on;
+  thread.material.uniforms.uHead.value = tp.s;
+  thread.material.uniforms.uOpacity.value = smr(t, T.walkStart - 0.4, T.walkStart) * mix(1, 0.4, smr(t, T.breakout, T.breakout + 0.6));
+  var rest = t > T.convEnd && t < T.breakout ? 0.5 + 0.5 * Math.cos((t - T.convEnd) * Math.PI * 2 / 0.8) : 1; // the pulse during the rest
+  head.visible = headHalo.visible = on && t < T.breakout + 0.05;
+  head.position.copy(tp.p); headHalo.position.copy(tp.p);
+  head.material.opacity = smr(t, T.walkStart - 0.4, T.walkStart); headHalo.material.opacity = 0.9 * head.material.opacity;
+  head.scale.setScalar(1.0 * mix(0.8, 1.25, rest)); headHalo.scale.setScalar(3.2 * mix(0.85, 1.3, rest));
+}
+
+// ==== film/40-space.js
+// ---- 4 · space: the stars, the straight beam from the Sun's surface to Earth, and the dust that shows its speed
+var EARTH_DIST = 600, RE = 1.6;
+var PE = DIR.clone().multiplyScalar(EARTH_DIST);
+var LAND = PE.clone().addScaledVector(DIR, -RE); // where the light lands, facing the Sun
+var BEAM_LEN = LAND.distanceTo(EXIT);
+
+// the photon's distance along the beam: a slow release from the surface, then exponential acceleration to Earth
+function beamS(t) {
+  if (t <= T.breakout) return 0;
+  var u = c01((t - T.breakout) / (T.landing - T.breakout)), k = 4.5;
+  return BEAM_LEN * (Math.exp(k * u) - 1) / (Math.exp(k) - 1);
+}
+function beamPoint(t) { return EXIT.clone().addScaledVector(DIR, beamS(t)); }
+
+var beamPts = [];
+for (var bi = 0; bi <= 400; bi++) beamPts.push(EXIT.clone().addScaledVector(DIR, BEAM_LEN * Math.pow(bi / 400, 2)));
+var BSEG = polySegs(beamPts);
+// arc position along the beam for a distance s (the samples are spaced as u^2)
+function beamArc(s) { var u = Math.sqrt(c01(s / BEAM_LEN)), i = Math.min(399, Math.floor(u * 400)); return mix(BSEG.len[i], BSEG.len[i + 1], u * 400 - i); }
+var beam = fatLines(BSEG.segs, { width: 3.2, headLen: 0.004, hot: 3.0, tail: 0.95, color: 0xffc070, hotColor: 0xfff8ee });
+var beamHead = glowSprite(GLOW_HOT, 1.1), beamHalo = glowSprite(GLOW_SOFT, 4.5), burst = glowSprite(GLOW_HOT, 9);
+[beamHead, beamHalo, burst].forEach(function (s) { s.material.fog = false; });
+
+// stars: a fixed shell, round points of constant pixel size
+var STAR_N = 2600, starPos = new Float32Array(STAR_N * 3), starAttr = new Float32Array(STAR_N * 2);
+for (var si = 0; si < STAR_N; si++) {
+  var sv = V(rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1).normalize().multiplyScalar(3200).add(V(300, 200, 0));
+  starPos[si * 3] = sv.x; starPos[si * 3 + 1] = sv.y; starPos[si * 3 + 2] = sv.z;
+  starAttr[si * 2] = 1.2 + Math.pow(rng(), 6) * 2.6; starAttr[si * 2 + 1] = 0.25 + rng() * 0.75;
+}
+var starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+starGeo.setAttribute("aS", new THREE.BufferAttribute(starAttr, 2));
+var starMat = new THREE.ShaderMaterial({
+  uniforms: { uFade: { value: 0 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false,
+  vertexShader: "attribute vec2 aS; varying float vB; void main(){ vB=aS.y; gl_PointSize=aS.x; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+  fragmentShader: "uniform float uFade; varying float vB; void main(){ float d=length(gl_PointCoord-0.5)*2.0; float a=1.0-smoothstep(0.4,1.0,d); gl_FragColor=vec4(vec3(1.0,0.95,0.88)*vB*a*uFade*0.8,1.0); }",
+});
+var stars = new THREE.Points(starGeo, starMat); stars.frustumCulled = false;
+
+// dust: short streaks along the beam whose length follows the camera's speed, like a shutter would see them
+var DUST = [];
+for (var di = 0; di < 1800; di++) {
+  var along = 14 + rng() * (EARTH_DIST - 26), ang = rng() * Math.PI * 2, rr = 0.9 + Math.pow(rng(), 0.7) * 9;
+  var dp = DIR.clone().multiplyScalar(along).add(V(0, 0, 1).multiplyScalar(Math.cos(ang) * rr)).add(V(-DIR.y, DIR.x, 0).multiplyScalar(Math.sin(ang) * rr));
+  DUST.push([dp, dp, 0, 0]);
+}
+var dust = fatLines(DUST, { width: 1.4, headLen: 1, hot: 0.45, tail: 0.45, color: 0xffe2c0, hotColor: 0xffe2c0 });
+
+function poseSpace(t, camSpeed) {
+  starMat.uniforms.uFade.value = smr(t, T.starsFade[0], T.starsFade[1]);
+  var s = beamS(t), on = t >= T.breakout;
+  beam.visible = on;
+  beam.material.uniforms.uHead.value = beamArc(s);
+  beam.material.uniforms.uHeadLen.value = 0.004 + 0.03 * smr(t, 16, 20);
+  var hp = beamPoint(t);
+  beamHead.visible = beamHalo.visible = on && t < T.landing + 0.02;
+  beamHead.position.copy(hp); beamHalo.position.copy(hp);
+  beamHead.material.opacity = smr(t, T.breakout, T.breakout + 0.15);
+  beamHalo.material.opacity = 0.9 * beamHead.material.opacity;
+  burst.visible = t >= T.breakout && t < T.breakout + 1.5;
+  burst.position.copy(EXIT); burst.material.opacity = Math.exp(-(t - T.breakout) * 3.2);
+  burst.scale.setScalar(9 * (1 + (t - T.breakout) * 1.2));
+  var len = clamp(camSpeed * 0.022, 0, 6);
+  dust.visible = t > 15.6 && t < 21.4;
+  dust.material.uniforms.uStreak.value.copy(DIR).multiplyScalar(-len);
+  dust.material.uniforms.uOpacity.value = smr(t, 15.6, 16.6) * (1 - smr(t, 20.2, 21.2)) * 0.9;
+}
+
+// ==== film/50-earth.js
+// ---- 5 · Earth: procedural oceans, land and clouds lit only by the Sun, a fresnel atmosphere, and the ring of light
+// that spreads from where the beam lands
+var SUN_L = DIR.clone().negate(); // direction from Earth to the Sun
+var earthU = {
+  uL: { value: SUN_L }, uTime: { value: 0 }, uHit: { value: LAND.clone().sub(PE).normalize() }, uRing: { value: -1 }, uCenter: { value: PE },
+};
+var earthMat = new THREE.ShaderMaterial({
+  uniforms: earthU,
+  vertexShader: "varying vec3 vN; varying vec3 vO; varying vec3 vW; void main(){ vO=normalize(position); vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }",
+  fragmentShader: GLSL_NOISE + "\nuniform vec3 uL; uniform float uTime; uniform vec3 uHit; uniform float uRing; varying vec3 vN; varying vec3 vO; varying vec3 vW;\n" +
+    "void main(){ vec3 n=normalize(vN); float a=uTime*0.03; mat2 rot=mat2(cos(a),-sin(a),sin(a),cos(a)); vec3 o=vO; o.xz=rot*o.xz;" +
+    " float h=fbm(o*1.7+vec3(3.1,1.7,0.4)); float land=smoothstep(0.06,0.10,h); float coast=smoothstep(-0.06,0.06,h)*(1.0-land);" +
+    " vec3 ocean=mix(vec3(0.008,0.035,0.11),vec3(0.02,0.10,0.24),coast*0.8+0.2);" +
+    " float veg=fbm(o*4.0+7.0)*0.5+0.5; vec3 ground=mix(vec3(0.30,0.24,0.13),vec3(0.07,0.15,0.05),smoothstep(0.35,0.7,veg));" +
+    " float ice=smoothstep(0.80,0.88,abs(o.y)+0.05*fbm(o*6.0)); ground=mix(ground,vec3(0.85,0.88,0.9),ice); ocean=mix(ocean,vec3(0.8,0.85,0.9),ice);" +
+    " vec3 base=mix(ocean,ground,land);" +
+    " vec3 oc=o; oc.xz=mat2(cos(a*0.6),-sin(a*0.6),sin(a*0.6),cos(a*0.6))*vO.xz; float cl=smoothstep(0.12,0.5,fbm(oc*2.2+vec3(1.0,uTime*0.01,5.0))*0.5+0.5-0.36);" +
+    " base=mix(base,vec3(0.9,0.92,0.95),cl*0.7);" +
+    " float ndl=dot(n,uL); float day=smoothstep(-0.06,0.22,ndl); float lam=max(ndl,0.0);" +
+    " vec3 v=normalize(cameraPosition-vW); vec3 hv=normalize(uL+v); float spec=pow(max(dot(n,hv),0.0),60.0)*(1.0-land)*(1.0-cl)*0.9;" +
+    " vec3 col=base*(0.05+1.35*lam)*day+vec3(1.0,0.9,0.75)*spec*day;" +
+    " col+=vec3(0.002,0.004,0.01)*(1.0-day);" +
+    " float dh=acos(clamp(dot(normalize(vO),uHit),-1.0,1.0)); float ring=uRing<0.0?0.0:exp(-pow((dh-uRing)/0.035,2.0))*exp(-uRing*2.2)*2.5+exp(-dh*dh/0.004)*exp(-uRing*3.0)*3.0*step(0.0,uRing);" +
+    " col+=vec3(1.0,0.82,0.55)*ring;" +
+    " gl_FragColor=vec4(col,1.0);\n" + SHADE_TAIL + "}",
+});
+var earth = new THREE.Mesh(new THREE.SphereGeometry(RE, 160, 120), earthMat);
+earth.position.copy(PE);
+var atmoMat = new THREE.ShaderMaterial({
+  uniforms: earthU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.FrontSide, toneMapped: false,
+  vertexShader: "varying vec3 vN; varying vec3 vW; void main(){ vec4 w=modelMatrix*vec4(position,1.0); vW=w.xyz; vN=normalize(mat3(modelMatrix)*normal); gl_Position=projectionMatrix*viewMatrix*w; }",
+  fragmentShader: "uniform vec3 uL; varying vec3 vN; varying vec3 vW;\n" +
+    "void main(){ vec3 n=normalize(vN); vec3 v=normalize(cameraPosition-vW); float fr=pow(1.0-max(dot(n,v),0.0),2.6);" +
+    " float lit=smoothstep(-0.35,0.45,dot(n,uL)); float fwd=pow(max(dot(-v,uL),0.0),5.0);" +
+    " vec3 col=vec3(0.28,0.55,1.0)*fr*(0.06+1.25*lit)+vec3(1.0,0.72,0.45)*pow(fr,1.6)*fwd*1.6;" +
+    " gl_FragColor=vec4(col,1.0); }",
+});
+var atmo = new THREE.Mesh(new THREE.SphereGeometry(RE * 1.05, 128, 96), atmoMat);
+atmo.position.copy(PE);
+var earthGlow = glowSprite(GLOW_BLUE, RE * 9); earthGlow.position.copy(PE); earthGlow.material.fog = false;
+
+function poseEarth(t, camPos) {
+  var far = camPos.distanceTo(PE);
+  var on = t > 16.0;
+  earth.visible = atmo.visible = earthGlow.visible = on;
+  earthU.uTime.value = t;
+  earthU.uRing.value = t < T.landing ? -1 : (t - T.landing) * 0.55;
+  earthGlow.material.opacity = c01((far - 25) / 120) * 0.9; // a blue point from far away, gone up close
+}
+
+// ==== film/60-camera.js
+// ---- the camera: three shots blended into one take. Each is a pure function of t returning a position, a point to
+// look at, a field of view and an up vector.
+var Z = V(0, 0, 1), NUP = V(-DIR.y, DIR.x, 0), YUP = V(0, 1, 0);
+var deg = Math.PI / 180;
+
+// A · the core and the Sun: one log zoom from 0.022 to 40 units, an orbit that slows to a drift, the subject held
+// right of centre so the type has the left third
+function camSun(t) {
+  var az = (t < 9.4 ? 26.8 + 27 * Math.pow(1 - t / 9.4, 2) : 26.8 - 6 * sm((t - 9.4) / 5.6)) * deg;
+  var el = (17 + 4 * smr(t, 5, 12)) * deg;
+  var dir = V(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
+  var D = logMix(0.018, 48, smoother((t - T.zoomStart) / (T.zoomEnd - T.zoomStart))) * logMix(1, 42 / 48, smr(t, 9.0, 14.1));
+  var w = smr(t, 4.6, 8.4), q = photonWorldSmoothed(t).lerp(V(0, 0, 0), w);
+  if (t > T.walkStart) q.add(threadPoint(t).p.multiplyScalar(0.12 * smr(t, T.walkStart, 11)));
+  var p = q.clone().addScaledVector(dir, D);
+  var fwd = q.clone().sub(p).normalize(), right = fwd.clone().cross(YUP).normalize();
+  return { p: p, q: q.clone().addScaledVector(right, -D * mix(0.2, 0.3, smr(t, 6, 9))), fov: mix(40, 38, smr(t, 6, 12)), up: YUP.clone() };
+}
+
+// B · the ride: the camera orbits the photon while it flies, always looking at it. It starts ahead, the Sun
+// straight behind the spark; swings round its side; and ends behind it, where the aim leads off down the beam to Earth
+function camRide(t) {
+  var h = beamPoint(t), th = Math.PI * smr(t, 15.4, 17.6), k = smr(t, 16.6, 18.0);
+  var p = h.clone().addScaledVector(DIR, Math.cos(th) * mix(4.0, 4.5, k)).addScaledVector(Z, Math.sin(th) * 4.0 + 1.8 * k).addScaledVector(NUP, mix(1.0, 0.9, k));
+  return { p: p, q: h.clone().addScaledVector(DIR, 14 * smr(t, 17.2, 18.6)), fov: mix(38, 50, smr(t, 16.0, 18.4)), up: YUP.clone() };
+}
+
+// C · Earth: an approach that starts at the ride's own speed, an orbit from the dayside round toward the night
+// side, then a pull back until the Sun is a point beside a lit crescent
+var C0 = (function () {
+  var rel = camRide(T.approach).p.sub(PE), De = rel.length(); rel.divideScalar(De);
+  var c1 = rel.dot(SUN_L), c2 = rel.dot(Z), c3 = rel.dot(NUP);
+  var tNext = camRide(T.approach + 0.01).p.distanceTo(PE);
+  return { De: De, a: Math.atan2(c2, c1), el: Math.asin(c3), rate: (Math.log(tNext) - Math.log(De)) / 0.01 };
+})();
+var APPROACH_DUR = 2.6, DE_NEAR = 8.6;
+function hermite(u, m0) { u = c01(u); var u2 = u * u, u3 = u2 * u; return (-2 * u3 + 3 * u2) + m0 * (u3 - 2 * u2 + u); }
+function camEarth(t) {
+  var dl = Math.log(DE_NEAR) - Math.log(C0.De), m0 = C0.rate * APPROACH_DUR / dl;
+  var De = Math.exp(Math.log(C0.De) + dl * hermite((t - T.approach) / APPROACH_DUR, m0)) * logMix(1, 19 / DE_NEAR, smr(t, 25.6, 30.8));
+  var a = C0.a + (32 * deg - C0.a) * smr(t, T.approach, 22.0) + 48 * deg * smr(t, 21.4, 26.4) + 62 * deg * smr(t, 25.4, 31.0);
+  var el = C0.el + (8 * deg - C0.el) * smr(t, T.approach, 22.0) + 10 * deg * smr(t, 25.4, 31.0);
+  var dir = SUN_L.clone().multiplyScalar(Math.cos(a)).addScaledVector(Z, Math.sin(a)).multiplyScalar(Math.cos(el)).addScaledVector(NUP, Math.sin(el));
+  var p = PE.clone().addScaledVector(dir, De);
+  var fwd = PE.clone().sub(p).normalize(), right = fwd.clone().cross(YUP).normalize();
+  var look = PE.clone().addScaledVector(right, -De * 0.3).sub(p).normalize();
+  // the closing frame: aim between the Sun and Earth so both share it
+  var toSun = p.clone().negate().normalize(), toEarth = PE.clone().sub(p).normalize();
+  var bis = toSun.clone().multiplyScalar(0.42).add(toEarth.multiplyScalar(0.58)).normalize();
+  look.lerp(bis, smr(t, 25.6, 29.4)).normalize();
+  return { p: p, q: p.clone().addScaledVector(look, De), fov: mix(50, 40, smr(t, T.approach, 22.0)) - 4 * smr(t, 25.6, 30), up: YUP.clone().lerp(NUP, 0.45 * smr(t, 25.6, 30)).normalize() };
+}
+
+function blendCam(a, b, w, wLook) {
+  // blend what each shot looks at, then aim from where the camera really is, so the aim never drifts off both
+  var p = a.p.clone().lerp(b.p, w), q = a.q.clone().lerp(b.q, wLook === undefined ? w : wLook);
+  return { p: p, q: q, fov: mix(a.fov, b.fov, w), up: a.up.clone().lerp(b.up, w).normalize() };
+}
+function camAt(t) {
+  if (t < T.breakout) return camSun(t);
+  if (t < T.rideStart) { // the aim turns to the escaping photon first, then the camera follows it out
+    var u = (t - T.breakout) / (T.rideStart - T.breakout);
+    return blendCam(camSun(t), camRide(t), smoother(u), smoother(u / 0.4));
+  }
+  if (t < T.approach) return camRide(t);
+  if (t < T.approach + 0.9) return blendCam(camRide(t), camEarth(t), smoother((t - T.approach) / 0.9));
+  return camEarth(t);
+}
+function placeCamera(cam, t) {
+  var c = camAt(t);
+  cam.fov = c.fov; cam.position.copy(c.p); cam.up.copy(c.up); cam.lookAt(c.q);
+  var dist = c.p.distanceTo(c.q) || 1;
+  cam.near = clamp(Math.min(dist, nearestThing(c.p)) * 0.02, 1e-5, 0.4); cam.far = 8000;
+  cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+  return c;
+}
+// the closest thing the camera might be looking past: the photon in the core, the beam on the ride, Earth's surface
+function nearestThing(p) {
+  return Math.min(p.distanceTo(MC) + 1e-4, p.distanceTo(PE) - RE, Math.max(0.05, distToBeam(p)), Math.max(0.05, p.length() - R));
+}
+function distToBeam(p) { var r = p.clone().sub(EXIT), s = clamp(r.dot(DIR), 0, BEAM_LEN); return r.addScaledVector(DIR, -s).length(); }
+
+// ==== film/70-overlay.js
+// ---- motion graphics: captions, leader labels pinned to the 3D cut face, counters, the comparison bar and the lockup.
+// Every style is set from t on every frame, so any frame can be rendered alone.
+var $ = function (id) { return document.getElementById(id); };
+
+// a line rises through its mask on the way in and drifts up as it fades on the way out
+function lineIO(id, tin, tout, t) {
+  var el = $(id), sp = el.firstElementChild;
+  var u = smoother((t - tin) / 0.6), v = sm((t - tout) / 0.45);
+  el.style.opacity = t < tin || t > tout + 0.45 ? 0 : 1;
+  sp.style.transform = "translateY(" + ((1 - u) * 105 - v * 18).toFixed(2) + "%)";
+  sp.style.opacity = (u * (1 - v)).toFixed(3);
+  sp.style.letterSpacing = (mix(0.04, -0.01, u)).toFixed(4) + "em";
+}
+function fadeIO(id, tin, tout, t, dy) {
+  var el = $(id), u = smoother((t - tin) / 0.5), v = sm((t - tout) / 0.45);
+  el.style.opacity = (u * (1 - v)).toFixed(3);
+  el.style.transform = "translateY(" + ((1 - u) * (dy || 16) - v * 10).toFixed(2) + "px)";
+}
+var CAPTIONS = [
+  ["c_h1", T.hook1In, T.hookOut], ["c_h2", T.hook2In, T.hookOut + 0.08],
+  ["c_set", T.setupIn, T.setupOut],
+  ["c_m1", T.mech1In, T.mech1Out], ["c_m2", T.mech2In, T.mech2Out],
+  ["c_free", T.freeIn, T.freeOut],
+  ["c_rev", T.revealIn, T.revealOut],
+  ["c_t1", T.title, 99], ["c_t2", T.sub, 99],
+];
+
+// zone labels: a dot on the cut face, an elbow leader, and the words at its end
+var LABELS = [
+  { at: T.coreLabel, k: "THE CORE", v: "15 million °C", r: 1.6, a: -42 },
+  { at: T.radLabel, k: "RADIATIVE ZONE", v: "light random-walks out", r: 5.0, a: -40 },
+  { at: T.convLabel, k: "CONVECTIVE ZONE", v: "boiling plasma rises", r: 8.6, a: -38 },
+];
+var proj = V(0, 0, 0);
+function toScreen(v, cam) { proj.copy(v).project(cam); return { x: (proj.x + 1) / 2 * W, y: (1 - proj.y) / 2 * H }; }
+function poseLabel(t, cam) {
+  var L = null;
+  LABELS.forEach(function (l) { if (t >= l.at[0] - 0.05 && t <= l.at[1] + 0.5) L = l; });
+  var ld = $("ld"), dot = $("ldot"), box = $("lab");
+  if (!L) { ld.style.opacity = dot.style.opacity = box.style.opacity = 0; return; }
+  var a = L.a * deg, s = toScreen(V(L.r * Math.cos(a), L.r * Math.sin(a), 0.05), cam);
+  var e = { x: s.x + 80, y: s.y + 90 }, f = { x: e.x + 70, y: e.y };
+  ld.setAttribute("points", s.x.toFixed(1) + "," + s.y.toFixed(1) + " " + e.x.toFixed(1) + "," + e.y.toFixed(1) + " " + f.x.toFixed(1) + "," + f.y.toFixed(1));
+  var len = 80 * Math.SQRT2 + 70, u = smoother((t - L.at[0]) / 0.45), out = sm((t - L.at[1]) / 0.4);
+  ld.style.strokeDasharray = len.toFixed(1); ld.style.strokeDashoffset = (len * (1 - u)).toFixed(1);
+  ld.style.opacity = (1 - out).toFixed(3);
+  dot.setAttribute("cx", s.x.toFixed(1)); dot.setAttribute("cy", s.y.toFixed(1));
+  dot.style.opacity = (smoother((t - L.at[0]) / 0.2) * (1 - out)).toFixed(3);
+  $("labK").textContent = L.k; $("labV").textContent = L.v;
+  var tu = smoother((t - L.at[0] - 0.3) / 0.45);
+  box.style.left = (f.x + 16).toFixed(1) + "px"; box.style.top = (f.y - 30).toFixed(1) + "px";
+  box.style.opacity = (tu * (1 - out)).toFixed(3); box.style.transform = "translateX(" + ((1 - tu) * -10).toFixed(2) + "px)";
+}
+
+var fmt = function (n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ","); };
+function poseCounters(t) {
+  // digits change on frame boundaries only, so motion-blur sub-samples inside one frame never ghost two numbers
+  var tq = Math.floor(t * T.FPS + 1e-6) / T.FPS;
+  fadeIO("yrs", T.walkStart + 0.2, T.yearsOut, t);
+  var share = yearsShare(tq), y = 100000 * share;
+  $("yrsV").textContent = share >= 1 ? "~100,000" : fmt(Math.floor(y / 100) * 100);
+  fadeIO("clk", T.clockIn, T.clockOut, t);
+  var f = c01(beamS(tq) / BEAM_LEN), secs = 500 * f;
+  $("clkV").textContent = Math.floor(secs / 60) + ":" + String(Math.floor(secs % 60)).padStart(2, "0");
+  $("clkKm").textContent = (150 * f).toFixed(f >= 1 ? 0 : 1) + " of 150 million km";
+}
+function poseBar(t) {
+  fadeIO("bar", T.barIn, T.barOut, t, 12);
+  var u = smoother((t - T.barIn - 0.2) / 1.2);
+  $("barFill").style.transform = "scaleX(" + u.toFixed(4) + ")";
+  var k = smoother((t - T.barTick) / 0.35);
+  $("barTick").style.opacity = k.toFixed(3); $("barTick").style.transform = "scaleY(" + mix(0.2, 1, k).toFixed(3) + ")";
+  $("barYou").style.opacity = smoother((t - T.barTick - 0.15) / 0.4).toFixed(3);
+  $("barNote").style.opacity = (0.75 * smoother((t - T.barTick - 0.6) / 0.5)).toFixed(3);
+}
+function poseOverlay(t, cam) {
+  CAPTIONS.forEach(function (c) { lineIO(c[0], c[1], c[2], t); });
+  poseLabel(t, cam); poseCounters(t); poseBar(t);
+}
+
+// ==== film/90-main.js
+// ---- the renderer, the scene and the frame: everything drawn from t alone
+var cv = document.getElementById("c");
+var renderer = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.0;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+var scene = new THREE.Scene();
+scene.background = GROUND;
+scene.fog = new THREE.Fog(GROUND, 1, 2);
+scene.add(new THREE.AmbientLight(0xffb070, 0.05));
+var fill = new THREE.DirectionalLight(0xff9a50, 0.35); fill.position.set(-1, 2, 1); scene.add(fill); // a warm top light to shape the plasma
+scene.add(stars); scene.add(sun); scene.add(coreGlow); scene.add(micro);
+scene.add(beam); scene.add(beamHead); scene.add(beamHalo); scene.add(burst); scene.add(dust);
+scene.add(earth); scene.add(atmo); scene.add(earthGlow);
+
+var cam = new THREE.PerspectiveCamera(40, W / H, 0.001, 8000);
+var LINES = [trail, thread, beam, dust];
+
+function draw(t) {
+  var c = placeCamera(cam, t);
+  var dt = 1 / 60, speed = camAt(t + dt).p.distanceTo(camAt(Math.max(0, t - dt)).p) / (2 * dt);
+  // depth haze only in the core, where the plasma should fall away into the dark
+  var D = c.p.distanceTo(MC);
+  if (t < 8.6) { scene.fog.near = D * 0.9; scene.fog.far = D * 3.4; } else { scene.fog.near = 1e7; scene.fog.far = 2e7; }
+  poseMicro(t, D); poseSun(t, c.p); poseSpace(t, speed); poseEarth(t, c.p);
+  LINES.forEach(function (l) { l.material.uniforms.uNear.value = cam.near; });
+  renderer.render(scene, cam);
+  poseOverlay(t, cam);
+}
+
+// how far the picture moves between two instants, for the exporter's motion blur: probe points around what the
+// camera looks at, seen from both poses
+var probe = new THREE.PerspectiveCamera(40, W / H, 0.001, 8000), pv = V(0, 0, 0);
+function motion(from, to) {
+  var a = camAt(from), d = a.p.distanceTo(a.q), f = a.q.clone().sub(a.p).normalize();
+  var side = f.clone().cross(YUP).normalize(), up = side.clone().cross(f);
+  var pts = [V(0, 0, 0), side.clone().multiplyScalar(d * 0.4), up.clone().multiplyScalar(d * 0.3), f.clone().multiplyScalar(-d * 0.5)].map(function (o) { return a.q.clone().add(o); });
+  placeCamera(probe, from); var A = pts.map(function (p) { return pv.copy(p).project(probe).clone(); });
+  placeCamera(probe, to);
+  var far = 0;
+  pts.forEach(function (p, i) { var b = pv.copy(p).project(probe); far = Math.max(far, Math.hypot((b.x - A[i].x) * W / 2, (b.y - A[i].y) * H / 2)); });
+  return far;
+}
+tl.frame(draw, { motion: motion });
+
+// beats and sound moments
+tl.label("hook", 0.32).label("prisoner", T.hook2In).label("zoom", T.zoomStart).label("core", T.coreLabel[0]).label("walk", T.walkStart)
+  .label("convection", T.walkEnd).label("rest", T.convEnd).label("breakout", T.breakout).label("ride", T.rideStart)
+  .label("approach", T.approach).label("landing", T.landing).label("tick", T.barTick).label("lockup", T.title);
+COLL.slice(0, 6).forEach(function (c, i) { tl.hit("collide" + i, c, { kind: "click", pan: (i % 2 ? 0.25 : -0.25) }); });
+tl.hit("zoom", T.zoomStart, { kind: "whoosh" }).hit("breakout", T.breakout, { kind: "impact" }).hit("ride", 15.2, { kind: "whoosh" })
+  .hit("landing", T.landing, { kind: "impact" }).hit("tick", T.barTick, { kind: "click" }).hit("lockup", T.title, { kind: "land" });
+});</script>
