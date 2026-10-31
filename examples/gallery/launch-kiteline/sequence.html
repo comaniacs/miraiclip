@@ -205,13 +205,11 @@
 }
 
 
-.stage{background:radial-gradient(ellipse 60% 55% at 18% 12%,rgba(255,106,77,0.20),rgba(255,106,77,0) 70%),radial-gradient(ellipse 55% 55% at 88% 92%,rgba(124,108,242,0.20),rgba(124,108,242,0) 70%),linear-gradient(180deg,#171627,#100f1b);color:#f7f4ee}
+.stage{color:#f7f4ee}
 #view{position:absolute;left:0;top:0;width:1920px;height:1080px;perspective:1600px;perspective-origin:960px 540px}
 #ground,#world{position:absolute;left:960px;top:540px;width:0;height:0;transform-style:preserve-3d}
 #world>div:not(#win),.g3>div{position:absolute;left:0;top:0}
 .g3{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
-.floor{position:absolute;left:-3000px;top:-3000px;width:6000px;height:6000px;transform:translateY(560px) rotateX(90deg);background:radial-gradient(circle,rgba(255,255,255,0.13) 1.4px,transparent 1.6px) 0 0/48px 48px;-webkit-mask:radial-gradient(circle at 50% 50%,#000 0 18%,transparent 48%);mask:radial-gradient(circle at 50% 50%,#000 0 18%,transparent 48%)}
-#winShadow{position:absolute;left:-800px;top:-260px;width:1600px;height:520px;transform:translateY(559px) rotateX(90deg);border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,0.6),rgba(0,0,0,0))}
 #win{position:absolute;left:-720px;top:-450px;width:1440px;height:900px;border-radius:16px;overflow:hidden;background:#fbfaf7;box-shadow:0 0 0 1px rgba(255,255,255,0.10),0 50px 140px rgba(0,0,0,0.55),0 12px 40px rgba(0,0,0,0.35)}
 #win *{transition:none!important;animation:none!important;caret-color:transparent}
 .bar{position:absolute;left:0;top:0;width:1440px;height:40px;background:#ece9e3;border-bottom:1px solid #ddd8cf;display:flex;align-items:center;justify-content:center;font:600 13px -apple-system,'SF Pro Text',sans-serif;color:#7d7a8c}
@@ -219,11 +217,23 @@
 .bar span{padding:5px 16px;border-radius:7px;background:#f7f5f1}
 #appslot{position:absolute;left:0;top:40px;width:1440px;height:860px}
 .appwrap{width:100%;height:100%}
-.kl-app .kl-focus{border-color:#ff6a4d;box-shadow:0 0 0 3px rgba(255,106,77,0.15)}
+.appwrap .is-focused{border-color:#ff6a4d;box-shadow:0 0 0 3px #ff6a4d26}
 #cursor{position:absolute;left:0;top:0;width:28px;height:28px;transform-origin:0 0;filter:drop-shadow(0 3px 5px rgba(0,0,0,0.35))}
 #ripple{position:absolute;left:-24px;top:-24px;width:48px;height:48px;border-radius:50%;border:2.5px solid #ff6a4d;display:none}
 #rmask{position:absolute;display:none;background:#fbfaff;border-top:2px solid #7c6cf2;box-shadow:0 -10px 24px rgba(124,108,242,0.35)}
-#hl{position:absolute;display:none;height:3px;border-radius:2px;background:#ff6a4d;box-shadow:0 0 10px rgba(255,106,77,0.6)}
+#hl{position:absolute;display:none;height:3px;border-radius:2px;background:#ff6a4d;box-shadow:0 0 10px #ff6a4d99}
+.clone{position:absolute;left:0;top:0}
+.clone>*{width:100%;height:100%}
+#kl{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+#ov{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+#scrim{position:absolute;inset:0;opacity:0;background:linear-gradient(90deg,rgba(16,15,27,0.92) 0%,rgba(16,15,27,0.78) 30%,rgba(16,15,27,0) 52%)}
+.cap{position:absolute;left:120px;overflow:hidden;padding:6px 0 12px;font-weight:600;font-size:60px;line-height:1.08;letter-spacing:-0.02em;white-space:nowrap;color:#f7f4ee;text-shadow:0 2px 30px rgba(10,9,18,0.5)}
+.cap>span{display:inline-block}
+
+
+.stage{background:radial-gradient(ellipse 60% 55% at 18% 12%,rgba(255,106,77,0.20),rgba(255,106,77,0) 70%),radial-gradient(ellipse 55% 55% at 88% 92%,rgba(124,108,242,0.20),rgba(124,108,242,0) 70%),linear-gradient(180deg,#171627,#100f1b)}
+.floor{position:absolute;left:-3000px;top:-3000px;width:6000px;height:6000px;transform:translateY(560px) rotateX(90deg);background:radial-gradient(circle,rgba(255,255,255,0.13) 1.4px,transparent 1.6px) 0 0/48px 48px;-webkit-mask:radial-gradient(circle at 50% 50%,#000 0 18%,transparent 48%);mask:radial-gradient(circle at 50% 50%,#000 0 18%,transparent 48%)}
+#winShadow{position:absolute;left:-800px;top:-260px;width:1600px;height:520px;transform:translateY(559px) rotateX(90deg);border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,0.6),rgba(0,0,0,0))}
 .idea{border-radius:14px;padding:14px 16px;background:rgba(255,255,255,0.95);color:#1d1b2c;font:500 18px/1.3 -apple-system,'SF Pro Text',sans-serif;box-shadow:0 18px 50px rgba(0,0,0,0.35);backface-visibility:hidden;overflow:hidden}
 .idea .ih,.idea p{opacity:calc(1 - var(--m,0) * 1.6)}
 .idea .ih{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;font-weight:600;color:#908da0;letter-spacing:0.04em;text-transform:uppercase}
@@ -236,28 +246,20 @@
 .carry{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;background:#fff;border:2px solid #ff6a4d;box-shadow:0 24px 60px rgba(0,0,0,0.35);color:#1d1b2c;font-family:-apple-system,'SF Pro Text',sans-serif}
 .carry small{font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#e8492c}
 .carry b{font-size:28px;font-weight:650;line-height:1}.carry span{font-size:12.5px;color:#5d5a6e}
-.kl-app.kl-clone{display:block;width:auto;height:auto;background:none;overflow:visible;grid-template-columns:none;position:absolute;left:0;top:0}
-.kl-clone>*{width:100%;height:100%}
+.kl-app.clone{display:block;width:auto;height:auto;background:none;overflow:visible;grid-template-columns:none}
 .fly,.hero{filter:drop-shadow(0 30px 50px rgba(0,0,0,0.35))}
 .hero{border-radius:14px}
 .lchip>.kl-chip{box-shadow:0 10px 24px rgba(0,0,0,0.25)}
 .lchip.launch>.kl-chip{border:1.5px solid #ff6a4d;background:#fff4f1;box-shadow:0 0 0 3px rgba(255,106,77,0.25),0 12px 28px rgba(255,106,77,0.35)}
 .lshadow{border-radius:6px;background:rgba(29,27,44,0.45);filter:blur(5px)}
-#kl{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
-#ov{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
-#scrim{position:absolute;inset:0;opacity:0;background:linear-gradient(90deg,rgba(16,15,27,0.92) 0%,rgba(16,15,27,0.78) 30%,rgba(16,15,27,0) 52%)}
-.cap{position:absolute;left:120px;overflow:hidden;padding:6px 0 12px;font-weight:600;font-size:60px;line-height:1.08;letter-spacing:-0.02em;white-space:nowrap;color:#f7f4ee;text-shadow:0 2px 30px rgba(10,9,18,0.5)}
-.cap>span{display:inline-block}
 .cap .c{color:#ff8a6d}
-#lock{position:absolute;left:0;width:1920px;top:700px;display:flex;align-items:center;justify-content:center;gap:26px;font-weight:600;font-size:104px;letter-spacing:-0.035em;line-height:1}
+#lock{position:absolute;left:0;width:1920px;top:700px;display:flex;align-items:center;justify-content:center;gap:26px;font-weight:600;font-size:104px;letter-spacing:-0.035em;line-height:1;color:#f7f4ee}
 #lockMark{position:relative;width:70px;height:70px;border-radius:10px 26px 10px 26px;background:linear-gradient(135deg,#ff9a7d,#ff6a4d 55%,#e8492c);box-shadow:0 10px 40px rgba(255,106,77,0.45)}
 #tag{left:0;width:1920px;top:832px;text-align:center;font-weight:500;font-size:38px;letter-spacing:-0.01em;color:rgba(247,244,238,0.86)}
 #cta{position:absolute;left:0;width:1920px;top:924px;text-align:center}
 #cta span{display:inline-block;padding:14px 34px;border-radius:40px;background:#ff6a4d;color:#fff;font:650 22px/1 -apple-system,'SF Pro Text',sans-serif;box-shadow:0 10px 30px rgba(255,106,77,0.4)}
-</style><div id="view"><div id="ground"><div class="floor"></div><div id="winShadow"></div></div><div id="world">
-<div id="win"><div class="bar"><i style="left:16px;background:#ff5f57"></i><i style="left:36px;background:#febc2e"></i><i style="left:56px;background:#28c840"></i><span>Kiteline · Fieldnote workspace · local demo</span></div><div id="appslot"></div><div id="rmask"></div><div id="hl"></div><div id="ripple"></div><svg id="cursor" viewBox="0 0 28 28"><path d="M3 2l18 11.5-8.2 1.7L9 23z" fill="#1d1b2c" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></div>
-</div></div>
-<svg id="kl" width="1920" height="1080"><path id="kline" d="" fill="none" stroke="#ff6a4d" stroke-width="3" stroke-linecap="round" style="opacity:0;filter:drop-shadow(0 0 6px rgba(255,106,77,0.7))"/></svg>
+</style><div id="view"><div id="ground"><div class="floor"></div><div id="winShadow"></div></div><div id="world"><div id="win"><div class="bar"><i style="left:16px;background:#ff5f57"></i><i style="left:36px;background:#febc2e"></i><i style="left:56px;background:#28c840"></i><span>Kiteline · Fieldnote workspace · local demo</span></div><div id="appslot"></div><div id="rmask"></div><div id="hl"></div><div id="ripple"></div><svg id="cursor" viewBox="0 0 28 28"><path d="M3 2l18 11.5-8.2 1.7L9 23z" fill="#1d1b2c" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg></div></div></div>
+<svg id="kl" width="1920" height="1080"><path id="kline" d="" fill="none" stroke="#ff6a4d" stroke-width="3" stroke-linecap="round" style="opacity:0;filter:drop-shadow(0 0 6px #ff6a4db3)"/></svg>
 <div id="ov"><div id="scrim"></div>
 <div class="cap" id="h1a" style="top:452px;opacity:0;"><span>Your ideas are everywhere.</span></div><div class="cap" id="h1b" style="top:452px;opacity:0;"><span>Give them a <span class="c">line.</span></span></div>
 <div class="cap" id="h2a" style="top:418px;opacity:0;"><span>Plan every channel</span></div><div class="cap" id="h2b" style="top:488px;opacity:0;"><span>in one calendar.</span></div>
@@ -723,17 +725,18 @@
   root.KitelineUI = { mount: mount };
 })(typeof window !== "undefined" ? window : this);
 </script>
-<script>stage.build((tl, S) => {var T = {"DUR":30,"FPS":30,"TODAY":"2026-11-09","hook1":[0.45,2],"hook2":[2.1,3.7],"thread":[0.8,2.4],"land":[2.3,3.5],"tiles":[2.2,3.5],"appIn":[3.55,4.35],"head2":[6.7,8.45],"lift":[8.3,9.35],"reveal":[11.9,12.65],"head3":[12.75,13.85],"promptFly":[13.9,14.55],"head4":[18.4,19.4],"previewFly":[19.6,20.55],"chipsUp":[22,23.2],"planLine":[22.9,24.4],"head5":[22.6,25.4],"settle":[25.6,26.8],"heroIn":[25.8,27.1],"title":26.5,"tag":27,"cta":27.5};
+<script>stage.build((tl, S) => {var W = 1920;
+var H = 1080;
+var PERSP = 1600;
+var WIN_W = 1440;
+var WIN_H = 900;
+var BAR = 40;
+var T = {"DUR":30,"FPS":30,"TODAY":"2026-11-09","hook1":[0.45,2],"hook2":[2.1,3.7],"thread":[0.8,2.4],"land":[2.3,3.5],"tiles":[2.2,3.5],"appIn":[3.55,4.35],"head2":[6.7,8.45],"lift":[8.3,9.35],"reveal":[11.9,12.65],"head3":[12.75,13.85],"promptFly":[13.9,14.55],"head4":[18.4,19.4],"previewFly":[19.6,20.55],"chipsUp":[22,23.2],"planLine":[22.9,24.4],"head5":[22.6,25.4],"settle":[25.6,26.8],"heroIn":[25.8,27.1],"title":26.5,"tag":27,"cta":27.5};
 var ACTIONS = [{"t":4.9,"kind":"click","sel":"[data-act=\"view\"][data-view=\"week\"]"},{"t":5.9,"kind":"click","sel":".kl-wh[data-date=\"2026-11-12\"]"},{"t":8.3,"kind":"click","sel":".kl-day [data-act=\"start\"]","cap":{"thu":".kl-col[data-date=\"2026-11-12\"]"}},{"t":9.25,"kind":"type","sel":"[data-field=\"idea\"]","text":"Introduce Fieldnote, our new meeting-notes app","dur":1.35},{"t":10.85,"kind":"click","sel":"[data-act=\"studio\"][data-field=\"platform\"][data-value=\"linkedin\"]"},{"t":11.15,"kind":"click","sel":"[data-act=\"studio\"][data-field=\"audience\"][data-value=\"team-leads\"]"},{"t":11.45,"kind":"click","sel":"[data-act=\"studio\"][data-field=\"tone\"][data-value=\"confident\"]"},{"t":11.85,"kind":"click","sel":"[data-act=\"generate\"]"},{"t":13.9,"kind":"click","sel":"[data-act=\"write\"]","cap":{"prompt":".kl-out"}},{"t":15,"kind":"focus","sel":"[data-field=\"text\"]"},{"t":15.2,"kind":"retype","sel":"[data-field=\"text\"]","from":"Meet Fieldnote, our new meeting-notes app.","to":"Your meetings deserve better notes. Meet Fieldnote.","dur":1.5},{"t":16.95,"kind":"click","sel":"[data-act=\"edit\"][data-field=\"media\"][data-value=\"m2\"]"},{"t":17.45,"kind":"click","sel":"[data-act=\"edit\"][data-field=\"platform\"][data-value=\"instagram\"]"},{"t":18,"kind":"click","sel":"[data-act=\"edit\"][data-field=\"platform\"][data-value=\"linkedin\"]"},{"t":19.6,"kind":"click","sel":"[data-act=\"schedule\"]","cap":{"preview":".kl-pv"}},{"t":21.4,"kind":"click","sel":"[data-act=\"view\"][data-view=\"month\"]"}];
-var retypeAt = function retypeAt(a, u) {
-  u = Math.max(0, Math.min(1, u));
-  if (u < 0.35) return a.from.slice(0, Math.round(a.from.length * (1 - u / 0.35)));
-  return a.to.slice(0, Math.round(a.to.length * (u - 0.35) / 0.65));
-};
-// ==== film/00-util.js
-// ---- shared helpers: easing, a tiny vector kit, monotone keyframe curves and the CSS-3D projection.
-// Units are CSS pixels in world space, y down. The app window is the plane z = 0, centred on the origin; +z is toward the camera.
-var W = 1920, H = 1080, PERSP = 1600;
+// ==== kit/film-core.js
+// ---- app-film kit · film-core: easing, a tiny vector kit, monotone keyframe curves and the CSS-3D projection.
+// The build defines W, H and PERSP before this file. Units are CSS pixels in world space, y down; +z is toward the
+// camera. Everything is a pure function of its inputs so frames are deterministic.
 var $ = function (id) { return document.getElementById(id); };
 var clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
 var c01 = function (x) { return clamp(x, 0, 1); };
@@ -778,7 +781,8 @@ function curve(keys) {
 // The camera is a pose { yaw, elev, dist, tgt, ox, oy } (degrees, px). The world element gets
 //   translateZ(PERSP - dist) rotateX(-elev) rotateY(yaw) translate3d(-tgt)
 // inside a perspective of PERSP, and the whole view is shifted by (ox, oy) on screen. project() is the same maths,
-// so the overlay's leader lines and the shot check land exactly on what CSS draws.
+// so overlay lines and the shot check land exactly on what CSS draws. dist = PERSP at yaw = elev = 0 shows the
+// plane z = 0 at exactly 1:1 pixels.
 function camTransform(c) {
   return "translateZ(" + f2(PERSP - c.dist) + "px) rotateX(" + (-c.elev).toFixed(3) + "deg) rotateY(" + c.yaw.toFixed(3) + "deg) translate3d(" + f2(-c.tgt[0]) + "px," + f2(-c.tgt[1]) + "px," + f2(-c.tgt[2]) + "px)";
 }
@@ -795,76 +799,210 @@ function project(p, c) {
 // where the camera is in the world: the inverse of the two rotations applied to (0, 0, dist)
 function camPos(c) {
   var a = c.yaw * deg, e = -c.elev * deg;
-  var y = Math.sin(e) * c.dist, z = Math.cos(e) * c.dist; // inverse rotateX of (0,0,dist)
-  return [c.tgt[0] - Math.sin(a) * z, c.tgt[1] + y, c.tgt[2] + Math.cos(a) * z]; // inverse rotateY
+  var y = Math.sin(e) * c.dist, z = Math.cos(e) * c.dist;
+  return [c.tgt[0] - Math.sin(a) * z, c.tgt[1] + y, c.tgt[2] + Math.cos(a) * z];
+}
+
+// One camera from keys [t, yaw, elev, dist, tx, ty, ox, oy]: each channel a monotone cubic, distance in log space so
+// push-ins feel constant-speed. probes (world points) size motion blur and check declared rests.
+function filmCamera(keys, probes) {
+  var CH = [1, 2, 4, 5, 6, 7].map(function (j) { return curve(keys.map(function (k) { return [k[0], k[j]]; })); });
+  var LOGD = curve(keys.map(function (k) { return [k[0], Math.log(k[3])]; }));
+  function camAt(t) { return { yaw: CH[0](t), elev: CH[1](t), dist: Math.exp(LOGD(t)), tgt: [CH[2](t), CH[3](t), 0], ox: CH[4](t), oy: CH[5](t) }; }
+  function motionOf(from, to) {
+    var a = camAt(from), b = camAt(to), far = 0;
+    probes.forEach(function (p) { var pa = project(p, a), pb = project(p, b); far = Math.max(far, Math.hypot(pb.x - pa.x, pb.y - pa.y)); });
+    return far;
+  }
+  return { camAt: camAt, motionOf: motionOf };
+}
+
+// ==== kit/replay.js
+// ---- app-film kit · replay: the real app, replayed. Every frame mounts a fresh app and performs every scripted
+// action whose time has come: real clicks on real elements and real input events into real fields. So the window
+// shows what the app actually renders after those actions, and any frame renders the same alone, out of order, or
+// as a motion-blur sample.
+//
+//   var R = appReplay({ slot, bar, mount: function (host) { ... }, actions: ACTIONS });
+//   var rec = R.replay(t);   // rec.at[i]: the target rect of action i when it ran; rec.caps[key]: snapshots
+//   R.rect(el), R.q(sel), R.host()
+//
+// Action kinds: click | type { text, dur } | retype { from, to, dur } | focus. cap: { key: selector } snapshots
+// elements (outerHTML + rect) just before the action. The exporter captures the DOM, not live form state, so typed
+// values are mirrored into the markup; the focused field gets .is-focused (a background tab never shows :focus).
+function retypeAt(a, u) { // backspace the old text (35 % of the time), then type the new
+  u = c01(u);
+  if (u < 0.35) return a.from.slice(0, Math.round(a.from.length * (1 - u / 0.35)));
+  return a.to.slice(0, Math.round(a.to.length * (u - 0.35) / 0.65));
+}
+function appReplay(opts) {
+  var slot = opts.slot, bar = opts.bar || 0, host = null;
+  function rect(el) { // layout rect in window coordinates: 3D transforms on the window don't distort it
+    var x = 0, y = 0, e = el;
+    while (e && e !== host) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; }
+    return { x: x, y: y + bar, w: el.offsetWidth, h: el.offsetHeight };
+  }
+  function q(sel) { return host.querySelector(sel); }
+  function mirror(el) { if (el.tagName === "TEXTAREA") el.textContent = el.value; else el.setAttribute("value", el.value); }
+  function replay(t) {
+    host = document.createElement("div"); // a new host each frame, so listeners from the last mount can't stack up
+    host.className = "appwrap";
+    slot.replaceChildren(host);
+    opts.mount(host);
+    var rec = { at: {}, caps: {}, focus: null };
+    opts.actions.forEach(function (a, i) {
+      if (t < a.t) return;
+      var el = q(a.sel);
+      if (!el) throw new Error("film action " + i + " at " + a.t + " s: nothing matches " + a.sel);
+      rec.at[i] = rect(el);
+      if (a.cap) Object.keys(a.cap).forEach(function (k) { var c = q(a.cap[k]); rec.caps[k] = c ? { html: c.outerHTML, rect: rect(c) } : null; });
+      var u = a.dur ? c01((t - a.t) / a.dur) : 1;
+      if (a.kind === "click") { el.click(); rec.focus = null; }
+      else if (a.kind === "focus") rec.focus = a.sel;
+      else if (a.kind === "type" || a.kind === "retype") {
+        // retype swaps the field's leading text (a.from), which it must start with, and keeps the rest
+        el.value = a.kind === "type" ? a.text.slice(0, Math.round(a.text.length * u)) : retypeAt(a, u) + el.value.slice(a.from.length);
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+        mirror(el);
+        rec.focus = a.sel;
+      } else throw new Error("film action " + i + ": unknown kind " + a.kind);
+    });
+    if (rec.focus && q(rec.focus)) q(rec.focus).classList.add("is-focused");
+    return rec;
+  }
+  return { replay: replay, rect: rect, q: q, host: function () { return host; } };
+}
+
+// ==== kit/overlay.js
+// ---- app-film kit · overlay: placing things around the app window, carrying snapshots between screens, the cursor
+// and its clicks, the accent line through 3D points, reveal wipes, underlines and masked headlines. All set from t.
+// The build defines WIN_W and WIN_H (the window size); the window is the plane z = 0, centred on the origin.
+function w2w(x, y, z) { return [x - WIN_W / 2, y - WIN_H / 2, z || 0]; } // window coords → world
+/** a window-space rect, lifted to z (and optionally rotated/scaled by extra) */
+function place(el, x, y, z, w, h, extra) {
+  el.style.width = f2(w) + "px"; el.style.height = f2(h) + "px";
+  el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(z || 0) + "px)" + (extra || "");
+}
+function mk(cls, parent, html) { var e = document.createElement("div"); e.className = cls; if (html != null) e.innerHTML = html; parent.appendChild(e); return e; }
+function arc(u) { return Math.sin(Math.PI * c01(u)); }
+function setHtml(el, html) { if (el.dataset.src !== html) { el.innerHTML = html; el.dataset.src = html; } }
+
+/**
+ * A snapshot of a real panel ({ html, rect } from the replay) flies from where it was to `to` (a rect, or null to
+ * hide), arcing toward the camera and fading as it lands. keep = 1 scales uniformly (by width); else it squashes to
+ * the target's height and fades by the middle.
+ */
+function flyClone(el, cap, to, span, t, keep) {
+  if (!cap || !to || t < span[0] || t >= span[1]) { el.style.display = "none"; return; }
+  setHtml(el, cap.html);
+  var u = smoother((t - span[0]) / (span[1] - span[0])), r = cap.rect;
+  var s = mix(1, to.w / r.w, u), sy = keep === 1 ? s : mix(1, to.h / r.h, u);
+  el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px"; el.style.transformOrigin = "0 0";
+  el.style.transform = "translate3d(" + f2(mix(r.x, to.x, u) - WIN_W / 2) + "px," + f2(mix(r.y, to.y, u) - WIN_H / 2) + "px," + f2(180 * arc(u)) + "px) scale(" + s.toFixed(4) + "," + sy.toFixed(4) + ")";
+  el.style.opacity = (1 - smr(u, keep === 1 ? 0.88 : 0.55, 1)).toFixed(3);
+}
+/** a snapshot that leaves the window and floats at a hero position { x, y, z, scale, rotY } */
+function heroClone(el, cap, to, u) {
+  if (!cap || u <= 0) { el.style.display = "none"; return; }
+  setHtml(el, cap.html);
+  var r = cap.rect;
+  el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px"; el.style.transformOrigin = "0 0";
+  el.style.transform = "translate3d(" + f2(mix(r.x, to.x, u) - WIN_W / 2) + "px," + f2(mix(r.y, to.y, u) - WIN_H / 2) + "px," + f2(mix(0, to.z, u)) + "px) rotateY(" + (to.rotY * u).toFixed(2) + "deg) scale(" + mix(0.3, to.scale, u).toFixed(4) + ")";
+  el.style.opacity = smr(u, 0, 0.35).toFixed(3);
+}
+
+// ---- the cursor: it travels to each action's target just before the action, arcing a little, presses on clicks,
+// and leaves a ring where it clicked. opts: { home: {x, y}, visible: [in, out] }
+function actionPoint(r, kind) { return kind === "type" || kind === "retype" || kind === "focus" ? { x: r.x + Math.min(40, r.w / 2), y: r.y + Math.min(26, r.h / 2) } : { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+function poseCursor(cursor, ripple, t, rec, R, actions, opts) {
+  var prev = -1, next = -1;
+  actions.forEach(function (a, i) { if (a.t <= t) prev = i; else if (next < 0) next = i; });
+  var from = prev >= 0 ? actionPoint(rec.at[prev], actions[prev].kind) : opts.home, at = from;
+  if (next >= 0) {
+    var el = R.q(actions[next].sel);
+    if (el) {
+      var to = actionPoint(R.rect(el), actions[next].kind), a0 = Math.max(prev >= 0 ? actions[prev].t + (actions[prev].dur || 0) + 0.12 : 0, actions[next].t - 0.7);
+      var u = smoother((t - a0) / (actions[next].t - 0.06 - a0));
+      at = { x: mix(from.x, to.x, u), y: mix(from.y, to.y, u) - 30 * Math.sin(Math.PI * u) };
+    }
+  }
+  var press = 0;
+  actions.forEach(function (a) { if (a.kind === "click") press = Math.max(press, Math.exp(-Math.pow((t - a.t) / 0.07, 2))); });
+  cursor.style.transform = "translate(" + f2(at.x) + "px," + f2(at.y) + "px) scale(" + (1 - 0.14 * press).toFixed(3) + ")";
+  cursor.style.opacity = (smr(t, opts.visible[0], opts.visible[0] + 0.3) * (1 - smr(t, opts.visible[1], opts.visible[1] + 0.4))).toFixed(3);
+  var c = -1;
+  actions.forEach(function (a, i) { if (a.kind === "click" && a.t <= t && t - a.t < 0.5) c = i; });
+  if (c >= 0) {
+    var p = actionPoint(rec.at[c], "click"), k = (t - actions[c].t) / 0.5;
+    ripple.style.display = "block";
+    ripple.style.transform = "translate(" + f2(p.x) + "px," + f2(p.y) + "px) scale(" + (0.3 + 1.4 * expOut(k)).toFixed(3) + ")";
+    ripple.style.opacity = (0.9 * (1 - k)).toFixed(3);
+  } else ripple.style.display = "none";
+}
+
+/** a wipe over a real element's rect, top to bottom, with a glowing edge (the app shows it all at once) */
+function revealMask(mask, r, u) {
+  if (!r || u <= 0 || u >= 1) { mask.style.display = "none"; return; }
+  var top = r.y + 2 + (r.h - 4) * u;
+  mask.style.display = "block";
+  mask.style.left = r.x + 2 + "px"; mask.style.width = r.w - 4 + "px"; mask.style.top = f2(top) + "px"; mask.style.height = f2(r.y + r.h - 2 - top) + "px";
+}
+/** an accent bar under a real element's rect */
+function underline(bar, r, on) {
+  if (!r || on <= 0) { bar.style.display = "none"; return; }
+  bar.style.display = "block"; bar.style.left = r.x + "px"; bar.style.top = r.y + r.h + 1 + "px"; bar.style.width = Math.max(8, r.w) + "px";
+  bar.style.opacity = on.toFixed(3);
+}
+
+// ---- the accent line: one stroke through 3D points, projected, smoothed (Catmull-Rom → Bézier), drawn up to a share
+function drawLine(path, worldPts, c, share, alpha) {
+  if (worldPts.length < 2 || share <= 0 || alpha <= 0) { path.style.opacity = 0; return; }
+  var P = worldPts.map(function (p) { return project(p, c); }), d = "M" + f2(P[0].x) + " " + f2(P[0].y);
+  for (var i = 0; i < P.length - 1; i++) {
+    var p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    d += " C" + f2(p1.x + (p2.x - p0.x) / 6) + " " + f2(p1.y + (p2.y - p0.y) / 6) + " " + f2(p2.x - (p3.x - p1.x) / 6) + " " + f2(p2.y - (p3.y - p1.y) / 6) + " " + f2(p2.x) + " " + f2(p2.y);
+  }
+  path.setAttribute("d", d);
+  var len = path.getTotalLength();
+  path.style.strokeDasharray = f2(len) + " " + f2(len + 10);
+  path.style.strokeDashoffset = f2(len * (1 - c01(share)));
+  path.style.opacity = c01(alpha).toFixed(3);
+}
+
+// ---- headlines: one visual language for every line. A line rises through its mask and drifts up as it leaves.
+function lineIO(id, span, t) {
+  var e = $(id), sp = e.firstElementChild, u = smoother((t - span[0]) / 0.6), v = sm((t - span[1]) / 0.45);
+  e.style.opacity = t < span[0] || t > span[1] + 0.45 ? 0 : 1;
+  sp.style.transform = "translateY(" + ((1 - u) * 108 - v * 22).toFixed(2) + "%)";
+  sp.style.opacity = (u * (1 - v)).toFixed(3);
+}
+function fadeIO(id, tin, tout, t, dy) {
+  var e = $(id), u = smoother((t - tin) / 0.55), v = sm((t - tout) / 0.45);
+  e.style.opacity = (u * (1 - v)).toFixed(3);
+  e.style.transform = "translateY(" + ((1 - u) * (dy || 16) - v * 10).toFixed(2) + "px)";
+}
+/** how much a scrim behind headlines should show: the max over the spans that sit over the UI */
+function scrimAt(t, spans) {
+  return spans.reduce(function (m, s) { return Math.max(m, smr(t, s[0] - 0.2, s[0] + 0.3) * (1 - smr(t, s[1], s[1] + 0.5))); }, 0);
 }
 
 // ==== film/10-replay.js
-// ---- the real app, replayed. Every frame mounts a fresh Kiteline (the same core/views/ui code as app/) and
-// performs every scripted action whose time has come: real clicks on real buttons, real input events into real
-// fields. So whatever the viewer sees in the window at time t is what the app actually renders after those
-// actions. That also makes any frame render the same alone, out of order, or as a motion-blur sample.
-var WIN_W = 1440, WIN_H = 900, BAR = 40, APP_H = WIN_H - BAR;
-var winEl = $("win"), hostSlot = $("appslot");
-var app = null, host = null;
-
-// a rect in window coordinates (layout, so 3D transforms on the window don't distort it)
-function layoutRect(el) {
-  var x = 0, y = 0, e = el;
-  while (e && e !== host) { x += e.offsetLeft; y += e.offsetTop; e = e.offsetParent; }
-  return { x: x, y: y + BAR, w: el.offsetWidth, h: el.offsetHeight };
-}
-function q(sel) { return host.querySelector(sel); }
-function snapshot(el) {
-  if (!el) return null;
-  return { html: el.outerHTML, rect: layoutRect(el) };
-}
-
-function replay(t) {
-  // a new host each frame: listeners from the last mount must not stack up
-  host = document.createElement("div");
-  host.className = "appwrap";
-  hostSlot.replaceChildren(host);
-  app = KitelineUI.mount(host, { today: T.TODAY, storage: null });
-  var rec = { at: {}, caps: {}, focus: null };
-  ACTIONS.forEach(function (a, i) {
-    if (t < a.t) return;
-    var el = q(a.sel);
-    if (!el) throw new Error("film action " + i + " at " + a.t + " s: nothing matches " + a.sel);
-    rec.at[i] = layoutRect(el);
-    if (a.cap) Object.keys(a.cap).forEach(function (k) { rec.caps[k] = snapshot(q(a.cap[k])); });
-    var u = a.dur ? c01((t - a.t) / a.dur) : 1;
-    if (a.kind === "click") { el.click(); rec.focus = null; }
-    else if (a.kind === "focus") rec.focus = a.sel;
-    else if (a.kind === "type" || a.kind === "retype") {
-      // retype swaps the caption's first line, which the generated draft always starts with, and keeps the rest
-      el.value = a.kind === "type" ? a.text.slice(0, Math.round(a.text.length * u)) : retypeAt(a, u) + el.value.slice(a.from.length);
-      el.dispatchEvent(new Event("input", { bubbles: true }));
-      // the exporter captures the DOM, not live form state: mirror the value into the markup so the field shows it
-      if (el.tagName === "TEXTAREA") el.textContent = el.value; else el.setAttribute("value", el.value);
-      rec.focus = a.sel;
-    }
-  });
-  // the field being typed in looks focused (a background tab never shows :focus)
-  if (rec.focus && q(rec.focus)) q(rec.focus).classList.add("kl-focus");
-  return rec;
-}
+// ---- the real Kiteline app, replayed by the kit: every frame mounts the same core/views/ui code as app/ and performs
+// the ACTIONS from timeline.mjs on its real elements (see _lib/app-film/browser/replay.js)
+var winEl = $("win"), world = $("world");
+var R = appReplay({ slot: $("appslot"), bar: BAR, actions: ACTIONS, mount: function (host) { KitelineUI.mount(host, { today: T.TODAY, storage: null }); } });
+var host = null; // the current frame's app root, set by paint()
+var layoutRect = R.rect;
 
 // ==== film/20-world.js
 // ---- the 3D layer around the real window: idea cards that thread into the calendar, day tiles, the cards that
 // carry content from one screen to the next, the plan lifted off the month, and the hero panels. Where something
 // stands for app content it is built from the app itself: the seed posts, layout rects read from the live DOM,
-// and snapshots of real panels taken by the replay.
-var world = $("world");
-function mk(cls, parent, html) { var e = document.createElement("div"); e.className = cls; if (html != null) e.innerHTML = html; (parent || world).appendChild(e); return e; }
-function w2w(x, y, z) { return [x - WIN_W / 2, y - WIN_H / 2, z || 0]; } // window coords → world
-function place(el, x, y, z, w, h, extra) { // a window-space rect, lifted to z
-  el.style.width = f2(w) + "px"; el.style.height = f2(h) + "px";
-  el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(z || 0) + "px)" + (extra || "");
-}
+// and snapshots of real panels taken by the replay. place / flyClone / heroClone come from the kit.
 var esc = KitelineViews.esc;
 var SEED = KitelineCore.seedPosts(T.TODAY);
 var post = function (id) { return SEED.filter(function (p) { return p.id === id; })[0]; };
+function wmk(cls, html) { return mk(cls, world, html); }
 
 // ---- 1 · the ideas: five are the real posts on the calendar (they'll land on their chips), six are loose notes
 var REAL = ["p5", "p6", "p7", "p9", "p10"];
@@ -874,19 +1012,18 @@ var SCATTER = [
   [-1040, -380, -260, 7], [980, -300, -380, -9], [-760, 380, -60, 5], [520, 430, -200, -7], [-300, -520, -500, 8], [1180, 300, -640, -5],
 ];
 var ideas = REAL.map(function (id, i) {
-  var p = post(id), e = mk("idea real");
+  var p = post(id), e = wmk("idea real");
   e.innerHTML = '<div class="ih"><i class="kl-pf p-' + p.platform + '">' + KitelineCore.PLATFORMS[p.platform].tag + "</i><span>" + KitelineCore.PLATFORMS[p.platform].name + "</span></div><p>" + esc(KitelineCore.titleOf(p.text)) + "</p>";
   return { el: e, id: id, s: SCATTER[i], k: i };
 }).concat(LOOSE.map(function (txt, j) {
-  var e = mk("idea loose", null, '<div class="ih"><span>Idea</span></div><p>' + esc(txt) + "</p>");
-  return { el: e, s: SCATTER[5 + j], k: 5 + j };
+  return { el: wmk("idea loose", '<div class="ih"><span>Idea</span></div><p>' + esc(txt) + "</p>"), s: SCATTER[5 + j], k: 5 + j };
 }));
 var IDEA_W = 330, IDEA_H = 124;
 function ideaDrift(it, t) { return [it.s[0] + 26 * Math.sin(0.5 * t + it.k), it.s[1] + 18 * Math.cos(0.43 * t + it.k * 1.7), it.s[2] + 40 * t]; }
 // where each real idea ends: its chip in the month view, read from the live app
 function poseIdeas(t) {
-  var tiles = [];
-  if (t > T.appIn[1]) { ideas.forEach(function (it) { it.el.style.display = "none"; }); return tiles; } // the hook is over
+  var pts = [];
+  if (t > T.appIn[1]) { ideas.forEach(function (it) { it.el.style.display = "none"; }); return pts; } // the hook is over
   ideas.forEach(function (it, i) {
     var d = ideaDrift(it, t), e = it.el;
     if (!it.id) { // loose notes drift back and away once the line passes them by
@@ -898,21 +1035,21 @@ function poseIdeas(t) {
       return;
     }
     var chip = host.querySelector('.kl-chip[data-post="' + it.id + '"]'), r = chip ? layoutRect(chip) : { x: 0, y: 0, w: 140, h: 22 };
-    var u = smoother((t - T.land[0] - 0.09 * i) / (T.land[1] - T.land[0] - 0.36)), done = t > T.appIn[1];
-    e.style.display = done ? "none" : "block";
-    var cx = mix(d[0] + WIN_W / 2, r.x + r.w / 2, u), cy = mix(d[1] + WIN_H / 2, r.y + r.h / 2, u), z = mix(d[2], 0, u) + 120 * Math.sin(Math.PI * u);
-    var w = mix(IDEA_W, r.w, u), h = mix(IDEA_H, r.h, u);
-    place(e, cx - w / 2, cy - h / 2, z, w, h, " rotateY(" + mix(it.s[3], 0, u).toFixed(2) + "deg)");
-    e.style.setProperty("--m", u.toFixed(3)); // the card's content gives way to a chip as it lands
+    var v = smoother((t - T.land[0] - 0.09 * i) / (T.land[1] - T.land[0] - 0.36));
+    e.style.display = "block";
+    var cx = mix(d[0] + WIN_W / 2, r.x + r.w / 2, v), cy = mix(d[1] + WIN_H / 2, r.y + r.h / 2, v), z = mix(d[2], 0, v) + 120 * Math.sin(Math.PI * v);
+    var w = mix(IDEA_W, r.w, v), h = mix(IDEA_H, r.h, v);
+    place(e, cx - w / 2, cy - h / 2, z, w, h, " rotateY(" + mix(it.s[3], 0, v).toFixed(2) + "deg)");
+    e.style.setProperty("--m", v.toFixed(3)); // the card's content gives way to a chip as it lands
     e.style.opacity = (1 - smr(t, T.appIn[0] + 0.25, T.appIn[1])).toFixed(3);
-    tiles.push([cx, cy, z]);
+    pts.push(w2w(cx, cy, z));
   });
-  return tiles;
+  return pts;
 }
 
 // ---- the day tiles: one per real calendar cell, assembling on the diagonal
 var tileEls = [];
-for (var i = 0; i < 42; i++) tileEls.push(mk("tile"));
+for (var i = 0; i < 42; i++) tileEls.push(wmk("tile"));
 function poseTiles(t) {
   if (t > T.appIn[1]) { tileEls.forEach(function (e) { e.style.display = "none"; }); return; }
   var cells = host.querySelectorAll(".kl-cell");
@@ -926,65 +1063,43 @@ function poseTiles(t) {
 }
 
 // ---- the carry cards between screens
-var liftCard = mk("carry thu", null, '<small>Thu</small><b>12</b><span>Launch day</span>');
-var promptFly = mk("kl-app kl-clone fly"), previewFly = mk("kl-app kl-clone fly");
-function arc(u) { return Math.sin(Math.PI * c01(u)); }
+var liftCard = wmk("carry thu", "<small>Thu</small><b>12</b><span>Launch day</span>");
+var promptFly = wmk("kl-app clone fly"), previewFly = wmk("kl-app clone fly");
+function rectOf(sel) { var e = host.querySelector(sel); return e ? layoutRect(e) : null; }
 function poseCarry(t, rec) {
   // the Thursday column lifts out of the week and becomes the idea field
   var a = rec.caps.thu, u1 = smoother((t - T.lift[0]) / 0.45), u2 = smoother((t - T.lift[0] - 0.3) / (T.lift[1] - T.lift[0] - 0.35));
   if (a && t < T.lift[1]) {
-    var to = layoutRect(host.querySelector('[data-field="idea"]'));
+    var to = rectOf('[data-field="idea"]');
     place(liftCard, mix(a.rect.x, to.x, u2), mix(a.rect.y, to.y, u2), 150 * u1 * (1 - u2) + 40 * arc(u2), mix(a.rect.w, to.w, u2), mix(Math.min(a.rect.h, 160), to.h, u2));
     liftCard.style.display = "flex"; liftCard.style.opacity = (1 - smr(t, T.lift[1] - 0.22, T.lift[1])).toFixed(3);
   } else liftCard.style.display = "none";
-  flyClone(promptFly, rec.caps.prompt, '[data-field="text"]', T.promptFly, t, 0.55);
-  flyClone(previewFly, rec.caps.preview, '.kl-col[data-date="2026-11-12"] .kl-card', T.previewFly, t, 1);
-}
-// a snapshot of a real panel flies from where it was to a target in the current screen, shrinking, then lets go
-function flyClone(el, cap, toSel, span, t, keep) {
-  var target = cap && t >= span[0] && t < span[1] ? host.querySelector(toSel) : null;
-  if (!target) { el.style.display = "none"; return; }
-  if (el.dataset.src !== cap.html) { el.innerHTML = cap.html; el.dataset.src = cap.html; }
-  var u = smoother((t - span[0]) / (span[1] - span[0])), r = cap.rect, to = layoutRect(target);
-  var s = mix(1, to.w / r.w, u), sy = keep === 1 ? s : mix(1, to.h / r.h, u);
-  var x = mix(r.x, to.x, u), y = mix(r.y, to.y, u);
-  el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px";
-  el.style.transformOrigin = "0 0";
-  el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(180 * arc(u)) + "px) scale(" + s.toFixed(4) + "," + sy.toFixed(4) + ")";
-  el.style.opacity = (1 - smr(u, keep === 1 ? 0.88 : 0.55, 1)).toFixed(3);
+  flyClone(promptFly, rec.caps.prompt, rectOf('[data-field="text"]'), T.promptFly, t, 0.55);
+  flyClone(previewFly, rec.caps.preview, rectOf('.kl-col[data-date="2026-11-12"] .kl-card'), T.previewFly, t, 1);
 }
 
 // ---- 5 · the plan: every chip of the month lifts off its date; the line ties the scheduled ones in order
-var liftLayer = mk("g3");
+var liftLayer = wmk("g3");
 function liftAmt(t) { return smoother((t - T.chipsUp[0]) / (T.chipsUp[1] - T.chipsUp[0])) * (1 - smoother((t - T.settle[0]) / (T.settle[1] - T.settle[0]))); }
 function poseLifts(t) {
   var L = liftAmt(t), pts = [];
   liftLayer.replaceChildren();
   if (L <= 0 || host.querySelector(".kl-month") === null) return pts;
-  var chips = Array.prototype.slice.call(host.querySelectorAll(".kl-cell:not(.out) .kl-chip"));
-  chips.forEach(function (c, i) {
-    var r = layoutRect(c), z = L * (46 + 30 * ((i * 7) % 3)), id = c.dataset.post, launch = id === "p100";
+  Array.prototype.slice.call(host.querySelectorAll(".kl-cell:not(.out) .kl-chip")).forEach(function (c, i) {
+    var r = layoutRect(c), z = L * (46 + 30 * ((i * 7) % 3)), launch = c.dataset.post === "p100";
     var sh = mk("lshadow", liftLayer); place(sh, r.x + z * 0.12, r.y + z * 0.25, 0.5, r.w, r.h); sh.style.opacity = (0.5 * L).toFixed(3);
-    var w = mk("kl-app kl-clone lchip" + (launch ? " launch" : ""), liftLayer, c.outerHTML);
-    place(w, r.x, r.y, z, r.w, r.h);
+    place(mk("kl-app clone lchip" + (launch ? " launch" : ""), liftLayer, c.outerHTML), r.x, r.y, z, r.w, r.h);
     c.style.visibility = "hidden";
-    if (c.classList.contains("s-scheduled")) pts.push({ date: c.closest(".kl-cell").dataset.date, time: c.querySelector("b").textContent, p: [r.x + r.w / 2, r.y + r.h / 2, z], launch: launch });
+    if (c.classList.contains("s-scheduled")) pts.push({ date: c.closest(".kl-cell").dataset.date, p: w2w(r.x + r.w / 2, r.y + r.h / 2, z + 2) });
   });
-  return pts.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+  return pts.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; }).map(function (p) { return p.p; });
 }
 
 // ---- 6 · hero panels: the real prompt and the real preview, floating in front of the window
-var heroPrompt = mk("kl-app kl-clone hero"), heroPreview = mk("kl-app kl-clone hero");
+var heroPrompt = wmk("kl-app clone hero"), heroPreview = wmk("kl-app clone hero");
 function poseHero(t, rec) {
-  [[heroPrompt, rec.caps.prompt, [-330, 170, 520], 0.84, 16], [heroPreview, rec.caps.preview, [1230, 130, 600], 1.0, -15]].forEach(function (h, k) {
-    var el = h[0], cap = h[1], u = smoother((t - T.heroIn[0] - 0.15 * k) / (T.heroIn[1] - T.heroIn[0]));
-    if (!cap || u <= 0) { el.style.display = "none"; return; }
-    if (el.dataset.src !== cap.html) { el.innerHTML = cap.html; el.dataset.src = cap.html; }
-    var r = cap.rect, x = mix(r.x, h[2][0], u), y = mix(r.y, h[2][1], u), z = mix(0, h[2][2], u), s = mix(0.3, h[3], u);
-    el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px"; el.style.transformOrigin = "0 0";
-    el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(z) + "px) rotateY(" + (h[4] * u).toFixed(2) + "deg) scale(" + s.toFixed(4) + ")";
-    el.style.opacity = smr(u, 0, 0.35).toFixed(3);
-  });
+  heroClone(heroPrompt, rec.caps.prompt, { x: -330, y: 170, z: 520, scale: 0.84, rotY: 16 }, smoother((t - T.heroIn[0]) / (T.heroIn[1] - T.heroIn[0])));
+  heroClone(heroPreview, rec.caps.preview, { x: 1230, y: 130, z: 600, scale: 1.0, rotY: -15 }, smoother((t - T.heroIn[0] - 0.15) / (T.heroIn[1] - T.heroIn[0])));
 }
 
 // ==== film/60-camera.js
@@ -1015,125 +1130,45 @@ var CAM_KEYS = [
   [28.8, -11, 7, 2640, 0, 40, 0, -150],
   [30.0, -11, 7, 2640, 0, 40, 0, -150],
 ];
-var CH = [1, 2, 4, 5, 6, 7].map(function (j) { return curve(CAM_KEYS.map(function (k) { return [k[0], k[j]]; })); });
-var LOGD = curve(CAM_KEYS.map(function (k) { return [k[0], Math.log(k[3])]; })); // distance moves in log space
-function camAt(t) {
-  return { yaw: CH[0](t), elev: CH[1](t), dist: Math.exp(LOGD(t)), tgt: [CH[2](t), CH[3](t), 0], ox: CH[4](t), oy: CH[5](t) };
-}
-var PROBES = [[0, 0, 0], [-720, -450, 0], [720, -450, 0], [-720, 450, 0], [720, 450, 0]];
-function motionOf(from, to) {
-  var a = camAt(from), b = camAt(to), far = 0;
-  PROBES.forEach(function (p) { var pa = project(p, a), pb = project(p, b); far = Math.max(far, Math.hypot(pb.x - pa.x, pb.y - pa.y)); });
-  return far;
-}
+// the kit joins the keys (monotone cubics, distance in log space); the probes size motion blur and check the rest
+var CAM = filmCamera(CAM_KEYS, [[0, 0, 0], [-720, -450, 0], [720, -450, 0], [-720, 450, 0], [720, 450, 0]]);
+var camAt = CAM.camAt, motionOf = CAM.motionOf;
 
 // ==== film/70-overlay.js
-// ---- motion graphics: the cursor and its clicks (inside the window plane), the coral kite line, the prompt reveal,
-// the preview highlight, the landing, and the headlines. Set from t every frame.
-var cursor = $("cursor"), ripple = $("ripple"), mask = $("rmask"), hl = $("hl");
-var HOME = { x: 1180, y: 760 };
-function centre(r, kind) { return kind === "type" || kind === "retype" || kind === "focus" ? { x: r.x + Math.min(40, r.w / 2), y: r.y + Math.min(26, r.h / 2) } : { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
-function poseCursor(t, rec) {
-  var prev = -1, next = -1;
-  ACTIONS.forEach(function (a, i) { if (a.t <= t) prev = i; else if (next < 0) next = i; });
-  var from = prev >= 0 ? centre(rec.at[prev], ACTIONS[prev].kind) : HOME, at = from;
-  if (next >= 0) {
-    var el = host.querySelector(ACTIONS[next].sel);
-    if (el) {
-      var to = centre(layoutRect(el), ACTIONS[next].kind), a0 = Math.max(prev >= 0 ? ACTIONS[prev].t + (ACTIONS[prev].dur || 0) + 0.12 : 0, ACTIONS[next].t - 0.7);
-      var u = smoother((t - a0) / (ACTIONS[next].t - 0.06 - a0)), lift = 30 * Math.sin(Math.PI * u);
-      at = { x: mix(from.x, to.x, u), y: mix(from.y, to.y, u) - lift };
-    }
-  }
-  var press = 0;
-  ACTIONS.forEach(function (a) { if (a.kind === "click") press = Math.max(press, Math.exp(-Math.pow((t - a.t) / 0.07, 2))); });
-  cursor.style.transform = "translate(" + f2(at.x) + "px," + f2(at.y) + "px) scale(" + (1 - 0.14 * press).toFixed(3) + ")";
-  cursor.style.opacity = (smr(t, 4.45, 4.75) * (1 - smr(t, 21.7, 22.1))).toFixed(3);
-  // the click ring at the last click
-  var c = -1;
-  ACTIONS.forEach(function (a, i) { if (a.kind === "click" && a.t <= t && t - a.t < 0.5) c = i; });
-  if (c >= 0) {
-    var p = centre(rec.at[c], "click"), k = (t - ACTIONS[c].t) / 0.5;
-    ripple.style.display = "block";
-    ripple.style.transform = "translate(" + f2(p.x) + "px," + f2(p.y) + "px) scale(" + (0.3 + 1.4 * expOut(k)).toFixed(3) + ")";
-    ripple.style.opacity = (0.9 * (1 - k)).toFixed(3);
-  } else ripple.style.display = "none";
-}
-
-// the generated prompt is revealed top to bottom behind a lilac edge (the app shows it all at once; this is the film's
-// wipe over the real text, not a fake loading state)
-function poseReveal(t) {
-  var pr = host.querySelector(".kl-prompt"), u = smoother((t - T.reveal[0]) / (T.reveal[1] - T.reveal[0]));
-  if (!pr || u >= 1 || t < T.reveal[0]) { mask.style.display = "none"; return; }
-  var r = layoutRect(pr), top = r.y + 2 + (r.h - 4) * u;
-  mask.style.display = "block";
-  mask.style.left = r.x + 2 + "px"; mask.style.width = r.w - 4 + "px"; mask.style.top = f2(top) + "px"; mask.style.height = f2(r.y + r.h - 2 - top) + "px";
-}
-// a coral bar under the preview's first line while it is being rewritten
-function poseHighlight(t) {
-  var l1 = host.querySelector(".kl-pv-text .kl-l1"), on = smr(t, 15.25, 15.5) * (1 - smr(t, 17.3, 17.6));
-  if (!l1 || on <= 0) { hl.style.display = "none"; return; }
-  var r = layoutRect(l1);
-  hl.style.display = "block"; hl.style.left = r.x + "px"; hl.style.top = r.y + r.h + 1 + "px"; hl.style.width = Math.max(8, r.w) + "px";
-  hl.style.opacity = on.toFixed(3);
-}
-// the scheduled card is revealed as the flying preview lands on it, with a short coral glow
-function poseLanding(t) {
+// ---- motion graphics specific to this film: the cursor's visible span, the prompt reveal, the preview highlight,
+// the landing glow, the three uses of the coral line, the headlines and the lockup. The mechanics are the kit's.
+var cursor = $("cursor"), ripple = $("ripple"), line = $("kline");
+function poseMarks(t, rec) {
+  poseCursor(cursor, ripple, t, rec, R, ACTIONS, { home: { x: 1180, y: 760 }, visible: [4.45, 21.7] });
+  // the generated prompt is revealed top to bottom (the app shows it all at once; this is the film's wipe over it)
+  revealMask($("rmask"), rectOf(".kl-prompt"), t < T.reveal[0] ? 0 : smoother((t - T.reveal[0]) / (T.reveal[1] - T.reveal[0])));
+  // a coral bar under the preview's first line while it is being rewritten
+  underline($("hl"), rectOf(".kl-pv-text .kl-l1"), smr(t, 15.25, 15.5) * (1 - smr(t, 17.3, 17.6)));
+  // the scheduled card is revealed as the flying preview lands on it, with a short coral glow
   var card = host.querySelector('.kl-col[data-date="2026-11-12"] .kl-card');
-  if (!card) return;
-  if (t < T.previewFly[1] - 0.12) card.style.visibility = "hidden";
-  else card.style.boxShadow = "0 0 0 2px rgba(255,106,77," + (0.9 * Math.exp(-(t - T.previewFly[1]) * 2)).toFixed(3) + "), 0 8px 24px rgba(255,106,77," + (0.35 * Math.exp(-(t - T.previewFly[1]) * 2)).toFixed(3) + ")";
+  if (card && t < T.previewFly[1] - 0.12) card.style.visibility = "hidden";
+  else if (card) { var g = Math.exp(-(t - T.previewFly[1]) * 2); card.style.boxShadow = "0 0 0 2px rgba(255,106,77," + (0.9 * g).toFixed(3) + "), 0 8px 24px rgba(255,106,77," + (0.35 * g).toFixed(3) + ")"; }
 }
 
-// ---- the kite line: one coral stroke through 3D points, projected to the screen, drawn up to a share
-var line = $("kline");
-function drawLine(worldPts, c, share, alpha) {
-  if (worldPts.length < 2 || share <= 0 || alpha <= 0) { line.style.opacity = 0; return; }
-  var P = worldPts.map(function (p) { return project(p, c); }), d = "M" + f2(P[0].x) + " " + f2(P[0].y);
-  for (var i = 0; i < P.length - 1; i++) { // Catmull-Rom → cubic Bézier, so the line flows through every point
-    var p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
-    d += " C" + f2(p1.x + (p2.x - p0.x) / 6) + " " + f2(p1.y + (p2.y - p0.y) / 6) + " " + f2(p2.x - (p3.x - p1.x) / 6) + " " + f2(p2.y - (p3.y - p1.y) / 6) + " " + f2(p2.x) + " " + f2(p2.y);
-  }
-  line.setAttribute("d", d);
-  var len = line.getTotalLength();
-  line.style.strokeDasharray = f2(len) + " " + f2(len + 10);
-  line.style.strokeDashoffset = f2(len * (1 - c01(share)));
-  line.style.opacity = c01(alpha).toFixed(3);
-}
+// the coral line: threads the ideas in the hook, runs from Generate into the prompt, then ties the plan together
 function poseLine(t, c, ideaPts, planPts) {
   if (t < T.appIn[1]) {
-    var pts = [[-1700, 900, 300]].concat(ideaPts); // the line comes in from below the frame, like a kite string
-    drawLine(pts, c, smoother((t - T.thread[0]) / (T.thread[1] - T.thread[0])), 1 - smr(t, 3.1, 3.7));
+    drawLine(line, [[-1700, 900, 300]].concat(ideaPts), c, smoother((t - T.thread[0]) / (T.thread[1] - T.thread[0])), 1 - smr(t, 3.1, 3.7)); // in from below the frame, like a kite string
   } else if (t < T.reveal[1] + 0.6) {
-    var g = host.querySelector('[data-act="generate"]'), o = host.querySelector(".kl-prompt");
-    if (!g || !o || t < T.reveal[0] - 0.1) { line.style.opacity = 0; return; }
-    var a = layoutRect(g), b = layoutRect(o);
-    drawLine([w2w(a.x + a.w - 30, a.y + a.h / 2, 0), w2w(a.x + a.w + 40, a.y - 60, 60), w2w(b.x + 30, b.y + 40, 30), w2w(b.x + 30, b.y + b.h * 0.6, 0)], c,
+    var a = rectOf('[data-act="generate"]'), b = rectOf(".kl-prompt");
+    if (!a || !b || t < T.reveal[0] - 0.1) { line.style.opacity = 0; return; }
+    drawLine(line, [w2w(a.x + a.w - 30, a.y + a.h / 2, 0), w2w(a.x + a.w + 40, a.y - 60, 60), w2w(b.x + 30, b.y + 40, 30), w2w(b.x + 30, b.y + b.h * 0.6, 0)], c,
       smoother((t - T.reveal[0] + 0.1) / 0.55), 1 - smr(t, T.reveal[1] + 0.1, T.reveal[1] + 0.5));
   } else if (planPts.length > 1) {
-    drawLine(planPts.map(function (p) { return w2w(p.p[0], p.p[1], p.p[2] + 2); }), c, smoother((t - T.planLine[0]) / (T.planLine[1] - T.planLine[0])), 1 - smr(t, T.settle[0], T.settle[0] + 0.6));
+    drawLine(line, planPts, c, smoother((t - T.planLine[0]) / (T.planLine[1] - T.planLine[0])), 1 - smr(t, T.settle[0], T.settle[0] + 0.6));
   } else line.style.opacity = 0;
 }
 
-// ---- headlines: a line rises through its mask and drifts up as it leaves; one visual language for all of them
-function lineIO(id, span, t) {
-  var e = $(id), sp = e.firstElementChild, u = smoother((t - span[0]) / 0.6), v = sm((t - span[1]) / 0.45);
-  e.style.opacity = t < span[0] || t > span[1] + 0.45 ? 0 : 1;
-  sp.style.transform = "translateY(" + ((1 - u) * 108 - v * 22).toFixed(2) + "%)";
-  sp.style.opacity = (u * (1 - v)).toFixed(3);
-}
-function fadeIO(id, tin, tout, t, dy) {
-  var e = $(id), u = smoother((t - tin) / 0.55), v = sm((t - tout) / 0.45);
-  e.style.opacity = (u * (1 - v)).toFixed(3);
-  e.style.transform = "translateY(" + ((1 - u) * (dy || 16) - v * 10).toFixed(2) + "px)";
-}
 var HEADS = [["h1a", T.hook1], ["h1b", T.hook2], ["h2a", T.head2], ["h2b", [T.head2[0] + 0.12, T.head2[1] + 0.05]], ["h3a", T.head3], ["h3b", [T.head3[0] + 0.12, T.head3[1] + 0.05]],
   ["h4a", T.head4], ["h5a", T.head5], ["h5b", [T.head5[0] + 0.25, T.head5[1] + 0.05]], ["tag", [T.tag, 99]]];
 function poseType(t) {
   HEADS.forEach(function (h) { lineIO(h[0], h[1], t); });
-  // a soft scrim behind headlines that sit over the UI
-  var scr = Math.max(smr(t, T.head2[0] - 0.2, T.head2[0] + 0.3) * (1 - smr(t, T.head2[1], T.head2[1] + 0.5)), smr(t, T.head3[0] - 0.2, T.head3[0] + 0.3) * (1 - smr(t, T.head3[1], T.head3[1] + 0.5)), smr(t, T.head4[0] - 0.2, T.head4[0] + 0.3) * (1 - smr(t, T.head4[1], T.head4[1] + 0.5)));
-  $("scrim").style.opacity = scr.toFixed(3);
+  $("scrim").style.opacity = scrimAt(t, [T.head2, T.head3, T.head4]).toFixed(3); // only where a headline sits over the UI
   var u = smoother((t - T.title) / 0.9);
   $("lock").style.opacity = u.toFixed(3);
   $("lock").style.transform = "translateY(" + f2((1 - u) * 26) + "px)";
@@ -1147,18 +1182,16 @@ function paint(t) {
   var c = camAt(t);
   $("view").style.transform = "translate(" + f2(c.ox) + "px," + f2(c.oy) + "px)";
   world.style.transform = $("ground").style.transform = camTransform(c);
-  var rec = replay(t);
+  var rec = R.replay(t);
+  host = R.host();
   winEl.style.opacity = smr(t, T.appIn[0], T.appIn[1]).toFixed(3);
   $("winShadow").style.opacity = (0.15 + 0.85 * smr(t, T.appIn[0], T.appIn[1])).toFixed(3);
-  var ideaPts = poseIdeas(t).map(function (p) { return w2w(p[0], p[1], p[2]); });
+  var ideaPts = poseIdeas(t);
   poseTiles(t);
   poseCarry(t, rec);
   var planPts = poseLifts(t);
   poseHero(t, rec);
-  poseCursor(t, rec);
-  poseReveal(t);
-  poseHighlight(t);
-  poseLanding(t);
+  poseMarks(t, rec);
   poseLine(t, c, ideaPts, planPts);
 }
 // the picture moves with the camera (motion blur sizes its samples from it); the type is held to the frame grid

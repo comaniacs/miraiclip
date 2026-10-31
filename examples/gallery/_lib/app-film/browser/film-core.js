@@ -1,6 +1,6 @@
-// ---- shared helpers: easing, a tiny vector kit, monotone keyframe curves and the CSS-3D projection.
-// Units are CSS pixels in world space, y down. The app window is the plane z = 0, centred on the origin; +z is toward the camera.
-var W = 1920, H = 1080, PERSP = 1600;
+// ---- app-film kit · film-core: easing, a tiny vector kit, monotone keyframe curves and the CSS-3D projection.
+// The build defines W, H and PERSP before this file. Units are CSS pixels in world space, y down; +z is toward the
+// camera. Everything is a pure function of its inputs so frames are deterministic.
 var $ = function (id) { return document.getElementById(id); };
 var clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
 var c01 = function (x) { return clamp(x, 0, 1); };
@@ -45,7 +45,8 @@ function curve(keys) {
 // The camera is a pose { yaw, elev, dist, tgt, ox, oy } (degrees, px). The world element gets
 //   translateZ(PERSP - dist) rotateX(-elev) rotateY(yaw) translate3d(-tgt)
 // inside a perspective of PERSP, and the whole view is shifted by (ox, oy) on screen. project() is the same maths,
-// so the overlay's leader lines and the shot check land exactly on what CSS draws.
+// so overlay lines and the shot check land exactly on what CSS draws. dist = PERSP at yaw = elev = 0 shows the
+// plane z = 0 at exactly 1:1 pixels.
 function camTransform(c) {
   return "translateZ(" + f2(PERSP - c.dist) + "px) rotateX(" + (-c.elev).toFixed(3) + "deg) rotateY(" + c.yaw.toFixed(3) + "deg) translate3d(" + f2(-c.tgt[0]) + "px," + f2(-c.tgt[1]) + "px," + f2(-c.tgt[2]) + "px)";
 }
@@ -62,6 +63,20 @@ function project(p, c) {
 // where the camera is in the world: the inverse of the two rotations applied to (0, 0, dist)
 function camPos(c) {
   var a = c.yaw * deg, e = -c.elev * deg;
-  var y = Math.sin(e) * c.dist, z = Math.cos(e) * c.dist; // inverse rotateX of (0,0,dist)
-  return [c.tgt[0] - Math.sin(a) * z, c.tgt[1] + y, c.tgt[2] + Math.cos(a) * z]; // inverse rotateY
+  var y = Math.sin(e) * c.dist, z = Math.cos(e) * c.dist;
+  return [c.tgt[0] - Math.sin(a) * z, c.tgt[1] + y, c.tgt[2] + Math.cos(a) * z];
+}
+
+// One camera from keys [t, yaw, elev, dist, tx, ty, ox, oy]: each channel a monotone cubic, distance in log space so
+// push-ins feel constant-speed. probes (world points) size motion blur and check declared rests.
+function filmCamera(keys, probes) {
+  var CH = [1, 2, 4, 5, 6, 7].map(function (j) { return curve(keys.map(function (k) { return [k[0], k[j]]; })); });
+  var LOGD = curve(keys.map(function (k) { return [k[0], Math.log(k[3])]; }));
+  function camAt(t) { return { yaw: CH[0](t), elev: CH[1](t), dist: Math.exp(LOGD(t)), tgt: [CH[2](t), CH[3](t), 0], ox: CH[4](t), oy: CH[5](t) }; }
+  function motionOf(from, to) {
+    var a = camAt(from), b = camAt(to), far = 0;
+    probes.forEach(function (p) { var pa = project(p, a), pb = project(p, b); far = Math.max(far, Math.hypot(pb.x - pa.x, pb.y - pa.y)); });
+    return far;
+  }
+  return { camAt: camAt, motionOf: motionOf };
 }

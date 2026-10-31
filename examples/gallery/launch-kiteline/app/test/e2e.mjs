@@ -1,35 +1,14 @@
 // End-to-end test of the real website in Chrome: every step of the workflow through the UI, as a user would do it.
 //   node app/test/e2e.mjs [--shots dir]
-// Uses playwright-core from the repo and the installed Google Chrome. Exits non-zero on the first failed check.
-import path from "node:path";
-import fs from "node:fs";
+// Uses the app-film kit's openApp (playwright-core from the repo, the installed Google Chrome). Exits non-zero on the
+// first failed check.
 import assert from "node:assert/strict";
-import { createRequire } from "node:module";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { openApp } from "../../../_lib/app-film/e2e.mjs";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const require = createRequire(path.join(here, "../../../../../packages/server-export/package.json"));
-const { chromium } = require("playwright-core");
-const page0 = pathToFileURL(path.join(here, "../index.html")).href + "?today=2026-11-09&reset";
-const si = process.argv.indexOf("--shots"), shots = si > 0 ? process.argv[si + 1] : null;
-if (shots) fs.mkdirSync(shots, { recursive: true });
-
-const browser = await chromium.launch({ channel: "chrome" });
-const ctx = await browser.newContext({ viewport: { width: 1440, height: 860 } });
-await ctx.grantPermissions(["clipboard-read", "clipboard-write"], { origin: "null" }).catch(() => {}); // file:// has no origin to grant
-const page = await ctx.newPage();
-const errors = [];
-page.on("pageerror", (e) => errors.push(e.message));
-let n = 0;
-async function check(name, fn) {
-  await fn();
-  n++;
-  console.log(`PASS  ${n}. ${name}`);
-  if (shots) await page.screenshot({ path: path.join(shots, `${String(n).padStart(2, "0")}.png`) });
-}
-const text = (sel) => page.locator(sel).first().innerText();
-
-await page.goto(page0);
+const page0 = new URL("../index.html?today=2026-11-09&reset", import.meta.url);
+const si = process.argv.indexOf("--shots");
+const t = await openApp(page0, { shots: si > 0 ? process.argv[si + 1] : null });
+const { page, text } = t, check = t.check;
 
 await check("calendar navigation changes the displayed range", async () => {
   assert.equal(await text(".kl-head h1"), "November 2026");
@@ -80,7 +59,7 @@ await check("the prompt can be edited, regenerated and copied", async () => {
   await page.locator(".kl-prompt").fill(before + "\nMention the free trial.");
   await page.click('[data-act="copy"]');
   await page.waitForSelector(".kl-toast.on");
-  const msg = await text(".kl-toast span");
+  const msg = await text(".kl-toast");
   assert.ok(/Prompt copied\.|Copy (isn't available|was blocked)/.test(msg), msg); // file:// may block the clipboard; either way the user is told
 });
 
@@ -107,8 +86,8 @@ await check("editing the caption updates the live preview and the count", async 
 
 await check("saving a draft keeps the edits, after a reload too", async () => {
   await page.click('[data-act="save"]');
-  assert.equal(await text(".kl-toast span"), "Draft saved.");
-  await page.goto(page0.replace("&reset", ""));
+  assert.equal(await text(".kl-toast"), "Draft saved.");
+  await page.goto(t.url.replace("&reset", ""));
   await page.click('[data-act="view"][data-view="week"]');
   const chip = page.locator('.kl-col[data-date="2026-11-12"] .kl-card');
   assert.equal(await chip.count(), 1);
@@ -120,7 +99,7 @@ await check("saving a draft keeps the edits, after a reload too", async () => {
 await check("scheduling updates status and calendar placement", async () => {
   await page.locator('[data-field="time"]').fill("10:00");
   await page.click('[data-act="schedule"]');
-  assert.equal(await text(".kl-toast span"), "Scheduled for Thu, Nov 12 at 10:00 AM.");
+  assert.equal(await text(".kl-toast"), "Scheduled for Thu, Nov 12 at 10:00 AM.");
   const card = page.locator('.kl-col[data-date="2026-11-12"] .kl-card');
   assert.equal(await card.count(), 1);
   assert.match(await card.innerText(), /10:00 AM/);
@@ -147,13 +126,11 @@ await check("errors are shown, not swallowed: empty idea and past date", async (
   await page.click('.kl-nav[data-page="studio"]');
   await page.fill('[data-field="idea"]', "");
   await page.click('[data-act="generate"]');
-  assert.equal(await text(".kl-toast span"), "Describe your idea first.");
+  assert.equal(await text(".kl-toast"), "Describe your idea first.");
   await page.click('.kl-nav[data-page="calendar"]');
   await page.click('.kl-cell[data-date="2026-11-02"] .kl-chip');
   await page.locator('[data-field="date"]').fill("2026-11-01");
   assert.match(await text(".kl-why"), /Pick today or a later date\./);
 });
 
-assert.deepEqual(errors, [], "page errors");
-console.log(`\nall ${n} checks passed, no page errors`);
-await browser.close();
+await t.done();

@@ -1,6 +1,7 @@
 // The one timeline for the Kiteline launch film. The picture (film/*.js) replays ACTIONS on the real app every frame,
 // and the score (audio.mjs) puts a click or typing sound on the same actions, so UI, motion and sound can't drift.
 // Times are seconds; 30 s at 30 fps is 900 frames.
+import { retypeAt, keyTimes, validateActions } from "../_lib/app-film/timeline.mjs";
 
 export const T = {
   DUR: 30,
@@ -63,22 +64,6 @@ export const ACTIONS = [
   { t: 21.4, kind: "click", sel: '[data-act="view"][data-view="month"]' },
 ];
 
-// the text a retype shows at progress u: backspace the old first line (35 % of the time), then type the new one
-export function retypeAt(a, u) {
-  u = Math.max(0, Math.min(1, u));
-  if (u < 0.35) return a.from.slice(0, Math.round(a.from.length * (1 - u / 0.35)));
-  return a.to.slice(0, Math.round(a.to.length * (u - 0.35) / 0.65));
-}
-// the key presses in a type or retype action, for the typing sounds
-export function keyTimes() {
-  const out = [];
-  ACTIONS.forEach((a) => {
-    if (a.kind === "type") for (let k = 1; k <= a.text.length; k++) out.push(a.t + a.dur * k / a.text.length);
-    if (a.kind === "retype") {
-      const del = Math.round(a.from.length / 4); // backspace held: fewer, faster ticks
-      for (let k = 1; k <= del; k++) out.push(a.t + 0.35 * a.dur * k / del);
-      for (let k = 1; k <= a.to.length; k++) out.push(a.t + a.dur * (0.35 + 0.65 * k / a.to.length));
-    }
-  });
-  return out.map((t) => +t.toFixed(4));
-}
+validateActions(ACTIONS, T.DUR);
+export { retypeAt };
+export const KEYS = keyTimes(ACTIONS); // every key press, for the typing sounds

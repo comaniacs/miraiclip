@@ -1,0 +1,501 @@
+<div class="stage" data-libs="stage" data-duration="30" data-fps="30" data-stage-version="2" data-frame-timeout="60" style="width:1920px;height:1080px;overflow:hidden"><style>
+*{box-sizing:border-box;margin:0}
+.stage{background:radial-gradient(ellipse 70% 60% at 50% 42%,#1d2130 0%,#11131b 55%,#0b0c11 100%);color:#f5f1e8}
+#view{position:absolute;left:0;top:0;width:1920px;height:1080px;perspective:1400px;perspective-origin:960px 540px}
+#ground,#world{position:absolute;left:960px;top:540px;width:0;height:0;transform-style:preserve-3d}
+.g3{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+#world>div,.g3>div{position:absolute}
+.table{position:absolute;left:-5000px;top:-5000px;width:10000px;height:10000px;transform:translateY(32px) rotateX(90deg);background:radial-gradient(circle at 50% 50%,rgba(70,78,104,0.55) 0%,rgba(30,34,48,0.5) 14%,rgba(14,16,22,0) 34%)}
+.bookshadow{position:absolute;left:-1750px;top:-680px;width:3500px;height:1360px;transform:translateY(31px) rotateX(90deg);border-radius:40px;background:rgba(0,0,0,0.55);filter:blur(30px)}
+.page{background:linear-gradient(90deg,rgba(0,0,0,0.10),rgba(0,0,0,0) 6%),repeating-linear-gradient(17deg,rgba(120,100,70,0.025) 0 2px,transparent 2px 7px),#f2ede3;backface-visibility:hidden;overflow:hidden}
+.page.left{background:linear-gradient(270deg,rgba(0,0,0,0.12),rgba(0,0,0,0) 6%),repeating-linear-gradient(-17deg,rgba(120,100,70,0.025) 0 2px,transparent 2px 7px),#f0ebe0}
+.page svg{position:absolute;left:0;top:0;overflow:visible}
+.pool{position:absolute;inset:0;background:radial-gradient(ellipse 60% 70% at 45% 45%,rgba(255,250,235,0.35),rgba(255,250,235,0) 70%)}
+.dim{position:absolute;inset:0;background:#0f1424;opacity:0}
+.creases path,.creases line{fill:none;stroke:rgba(80,70,55,0.35);stroke-width:2;stroke-dasharray:6 6}
+.creases .st{stroke:rgba(80,70,55,0.22);stroke-width:2}
+.creases .first{stroke:#ff5b3a;stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 8px rgba(255,91,58,0.9))}
+.plan line{stroke:rgba(40,70,140,0.22);stroke-width:2}
+.plan rect{fill:rgba(40,70,140,0.05);stroke:#2c4a8c;stroke-width:3}
+.plan rect.hot{stroke:#ff5b3a;fill:rgba(255,91,58,0.12)}
+.plan .mark{fill:#ff5b3a;fill-opacity:0;stroke:#ff5b3a;stroke-width:6;stroke-linejoin:round}
+.plan .mark.fold{fill:#c43d24}
+.plan-label{font:600 22px 'Avenir Next','Helvetica Neue',Arial,sans-serif;letter-spacing:0.24em;fill:rgba(44,74,140,0.6)}
+.edge{background:repeating-linear-gradient(180deg,#e9e3d6 0 2px,#d6cfbf 2px 3px);backface-visibility:hidden}
+.cover{background:radial-gradient(ellipse at 40% 35%,#26315a,#1b2440 60%,#151c33),#1b2440;backface-visibility:hidden;box-shadow:inset 0 0 0 10px #172039,inset 0 0 0 12px rgba(255,91,58,0.35)}
+.cover-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif}
+.cover-in svg path{fill:#ff5b3a}.cover-in svg path.fold{fill:#b8371f}
+.cover-in b{font-weight:600;font-size:150px;letter-spacing:0.18em;color:#f2d9c4;text-shadow:0 2px 0 rgba(0,0,0,0.35)}
+.cover-in span{font-weight:500;font-size:46px;color:rgba(242,217,196,0.75)}
+.face{backface-visibility:hidden;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(90,80,60,0.18)}
+.face .wins{position:absolute;left:14%;right:14%;top:12%;bottom:10%;background-image:linear-gradient(rgba(60,56,48,0.28) 0 16px,transparent 16px),linear-gradient(90deg,rgba(242,237,227,1) 0 8px,transparent 8px);background-blend-mode:normal;opacity:0.85}
+.face .glow{position:absolute;left:14%;right:14%;top:12%;bottom:10%;opacity:var(--glow,0);background-image:linear-gradient(rgba(255,180,92,1) 0 16px,transparent 16px),linear-gradient(90deg,rgba(0,0,0,0) 0 8px,transparent 8px);background-size:inherit;filter:drop-shadow(0 0 6px rgba(255,170,80,0.9))}
+.face.roof{box-shadow:inset 0 0 0 2px rgba(90,80,60,0.2)}
+.shadow{position:absolute;border-radius:10px;background:rgba(40,30,20,0.55);filter:blur(10px);opacity:0}
+.wing{left:-70px;top:0;width:140px;height:64px;transform-origin:50% 0;background:linear-gradient(180deg,#fbf8f1,#e7e1d4);clip-path:polygon(0 0,100% 0,18% 100%)}
+#kl{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+#ov{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.cap{position:absolute;left:120px;overflow:hidden;padding:6px 0 12px;font-weight:600;font-size:64px;line-height:1.08;letter-spacing:-0.02em;white-space:nowrap;color:#f5f1e8;text-shadow:0 2px 30px rgba(8,9,14,0.6)}
+.cap>span{display:inline-block}.cap .c{color:#ff7a5c}
+#h1a,#h1b{color:#1c2030;text-shadow:none}#h1b .c{color:#e8492c}
+#arclab{position:absolute;left:0;top:0;opacity:0;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;text-shadow:0 2px 16px rgba(8,9,14,0.8)}
+#arclab small{display:block;font-weight:600;font-size:18px;letter-spacing:0.26em;color:#ffb39f}
+#arclab b{font-weight:600;font-size:52px;color:#fff;font-variant-numeric:tabular-nums}
+#tag{left:0;width:1920px;top:900px;text-align:center;font-size:44px;font-weight:500;color:rgba(245,241,232,0.9)}
+#cta{position:absolute;left:0;width:1920px;top:982px;text-align:center}
+#cta span{display:inline-block;padding:13px 34px;border-radius:40px;background:#ff5b3a;color:#fff;font-weight:600;font-size:22px;letter-spacing:0.04em;box-shadow:0 10px 30px rgba(255,91,58,0.4)}
+</style>
+<div id="view"><div id="ground"><div class="table"></div><div class="bookshadow"></div></div><div id="world"></div></div>
+<svg id="kl" width="1920" height="1080"><path id="arc" d="" fill="none" stroke="#ffb39f" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round" style="opacity:0"/><path id="kline" d="" fill="none" stroke="#ff5b3a" stroke-width="3.5" stroke-linecap="round" style="opacity:0;filter:drop-shadow(0 0 7px rgba(255,91,58,0.8))"/></svg>
+<div id="ov">
+<div class="cap" id="h1a" style="top:430px;opacity:0;"><span>Every world</span></div><div class="cap" id="h1b" style="top:500px;opacity:0;"><span>starts <span class="c">flat.</span></span></div>
+<div class="cap" id="h2a" style="top:120px;opacity:0;"><span>Fold by fold,</span></div><div class="cap" id="h2b" style="top:190px;opacity:0;"><span>it takes shape.</span></div>
+<div class="cap" id="h3a" style="top:120px;opacity:0;"><span>Every crease,</span></div><div class="cap" id="h3b" style="top:190px;opacity:0;"><span>a <span class="c">plan.</span></span></div>
+<div class="cap" id="h4a" style="top:120px;opacity:0;"><span>Every plan,</span></div><div class="cap" id="h4b" style="top:190px;opacity:0;"><span>a <span class="c">place.</span></span></div>
+<div class="cap" id="h5a" style="top:120px;opacity:0;"><span>From flat plans</span></div><div class="cap" id="h5b" style="top:190px;opacity:0;"><span>to <span class="c">living worlds.</span></span></div>
+<div id="arclab"><small>FOLD</small><b id="arcv">0°</b></div>
+<div class="cap" id="tag" style="top:900px;opacity:0;"><span>Foldwork turns flat plans into worlds you can walk through.</span></div>
+<div id="cta" style="opacity:0"><span>Unfold yours</span></div></div></div>
+<script>stage.build((tl, S) => {var W = 1920, H = 1080, PERSP = 1400, WIN_W = 0, WIN_H = 0;
+var T = {"DUR":30,"FPS":30,"crease":[0.3,1.9],"first":[2,3.4],"hook":[0.5,3.6],"grid":[4,6],"wave":[4.4,8.2],"intro":[4.6,8.4],"tower":[10.2,12.6],"disc":[11,14.4],"dusk":[15,18],"birds":[15.6,21.5],"trans":[16.2,20.4],"mark":[21.6,24.4],"reveal":[22,25.6],"fold":[25.8,27.2],"close":[26.6,28.4],"tag":28,"cta":28.5};
+var CITY = [[760,40,150,110,210],[1040,-120,120,120,330],[560,-150,130,100,170],[950,200,140,100,150],[600,230,110,90,120],[1180,120,130,110,240],[380,20,120,100,140],[1250,-250,140,110,190],[800,-300,160,100,120],[420,-330,110,90,200],[1420,30,110,120,130],[230,260,120,90,100],[1400,330,120,90,160],[260,-170,100,90,120],[1100,380,130,80,110],[560,420,140,70,90]];
+var popTimes = function popTimes() {
+  const [x0, z0] = CITY[0], rest = CITY.map((c, i) => ({ i, d: Math.hypot(c[0] - x0, c[1] - z0) })).filter((o) => o.i > 1).sort((a, b) => a.d - b.d);
+  const out = [];
+  out[0] = T.first[0]; out[1] = T.tower[0];
+  rest.forEach((o, k) => { out[o.i] = +(T.wave[0] + (T.wave[1] - T.wave[0] - 0.8) * k / (rest.length - 1)).toFixed(3); });
+  return out;
+};
+// ---- app-film kit · film-core: easing, a tiny vector kit, monotone keyframe curves and the CSS-3D projection.
+// The build defines W, H and PERSP before this file. Units are CSS pixels in world space, y down; +z is toward the
+// camera. Everything is a pure function of its inputs so frames are deterministic.
+var $ = function (id) { return document.getElementById(id); };
+var clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
+var c01 = function (x) { return clamp(x, 0, 1); };
+var sm = function (x) { x = c01(x); return x * x * (3 - 2 * x); };
+var smr = function (t, a, b) { return sm((t - a) / (b - a)); };
+var smoother = function (x) { x = c01(x); return x * x * x * (x * (x * 6 - 15) + 10); };
+var mix = function (a, b, u) { return a + (b - a) * u; };
+var expOut = function (x) { x = c01(x); return x >= 1 ? 1 : 1 - Math.pow(2, -10 * x); };
+var deg = Math.PI / 180;
+var f2 = function (x) { return x.toFixed(2); };
+
+var V = {
+  add: function (a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; },
+  sub: function (a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; },
+  mul: function (a, s) { return [a[0] * s, a[1] * s, a[2] * s]; },
+  dot: function (a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; },
+  norm: function (a) { var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+};
+
+// Monotone cubic (Fritsch–Carlson) through keyframes: C1-continuous, so speed never jumps at a key, and no
+// overshoot, so the camera never swings past a framing and back.
+function curve(keys) {
+  var n = keys.length, xs = keys.map(function (k) { return k[0]; }), ys = keys.map(function (k) { return k[1]; });
+  var d = [], m = [];
+  for (var i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+  m[0] = 0; m[n - 1] = 0; // start and end at rest
+  for (i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
+    var a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { var tau = 3 / Math.sqrt(s); m[i] = tau * a * d[i]; m[i + 1] = tau * b * d[i]; }
+  }
+  return function (x) {
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[n - 1]) return ys[n - 1];
+    var k = 0; while (x > xs[k + 1]) k++;
+    var h = xs[k + 1] - xs[k], u = (x - xs[k]) / h, u2 = u * u, u3 = u2 * u;
+    return (2 * u3 - 3 * u2 + 1) * ys[k] + (u3 - 2 * u2 + u) * h * m[k] + (-2 * u3 + 3 * u2) * ys[k + 1] + (u3 - u2) * h * m[k + 1];
+  };
+}
+
+// The camera is a pose { yaw, elev, dist, tgt, ox, oy } (degrees, px). The world element gets
+//   translateZ(PERSP - dist) rotateX(-elev) rotateY(yaw) translate3d(-tgt)
+// inside a perspective of PERSP, and the whole view is shifted by (ox, oy) on screen. project() is the same maths,
+// so overlay lines and the shot check land exactly on what CSS draws. dist = PERSP at yaw = elev = 0 shows the
+// plane z = 0 at exactly 1:1 pixels.
+function camTransform(c) {
+  return "translateZ(" + f2(PERSP - c.dist) + "px) rotateX(" + (-c.elev).toFixed(3) + "deg) rotateY(" + c.yaw.toFixed(3) + "deg) translate3d(" + f2(-c.tgt[0]) + "px," + f2(-c.tgt[1]) + "px," + f2(-c.tgt[2]) + "px)";
+}
+function toView(p, c) {
+  var q = V.sub(p, c.tgt), a = c.yaw * deg, e = -c.elev * deg;
+  var x1 = Math.cos(a) * q[0] + Math.sin(a) * q[2], z1 = -Math.sin(a) * q[0] + Math.cos(a) * q[2], y1 = q[1]; // rotateY
+  var y2 = Math.cos(e) * y1 - Math.sin(e) * z1, z2 = Math.sin(e) * y1 + Math.cos(e) * z1; // rotateX
+  return [x1, y2, z2 + PERSP - c.dist];
+}
+function project(p, c) {
+  var v = toView(p, c), k = PERSP / (PERSP - v[2]);
+  return { x: W / 2 + c.ox + v[0] * k, y: H / 2 + c.oy + v[1] * k, k: k, behind: v[2] >= PERSP - 1 };
+}
+// where the camera is in the world: the inverse of the two rotations applied to (0, 0, dist)
+function camPos(c) {
+  var a = c.yaw * deg, e = -c.elev * deg;
+  var y = Math.sin(e) * c.dist, z = Math.cos(e) * c.dist;
+  return [c.tgt[0] - Math.sin(a) * z, c.tgt[1] + y, c.tgt[2] + Math.cos(a) * z];
+}
+
+// One camera from keys [t, yaw, elev, dist, tx, ty, ox, oy]: each channel a monotone cubic, distance in log space so
+// push-ins feel constant-speed. probes (world points) size motion blur and check declared rests.
+function filmCamera(keys, probes) {
+  var CH = [1, 2, 4, 5, 6, 7].map(function (j) { return curve(keys.map(function (k) { return [k[0], k[j]]; })); });
+  var LOGD = curve(keys.map(function (k) { return [k[0], Math.log(k[3])]; }));
+  function camAt(t) { return { yaw: CH[0](t), elev: CH[1](t), dist: Math.exp(LOGD(t)), tgt: [CH[2](t), CH[3](t), 0], ox: CH[4](t), oy: CH[5](t) }; }
+  function motionOf(from, to) {
+    var a = camAt(from), b = camAt(to), far = 0;
+    probes.forEach(function (p) { var pa = project(p, a), pb = project(p, b); far = Math.max(far, Math.hypot(pb.x - pa.x, pb.y - pa.y)); });
+    return far;
+  }
+  return { camAt: camAt, motionOf: motionOf };
+}
+
+// ---- app-film kit · overlay: placing things around the app window, carrying snapshots between screens, the cursor
+// and its clicks, the accent line through 3D points, reveal wipes, underlines and masked headlines. All set from t.
+// The build defines WIN_W and WIN_H (the window size); the window is the plane z = 0, centred on the origin.
+function w2w(x, y, z) { return [x - WIN_W / 2, y - WIN_H / 2, z || 0]; } // window coords → world
+/** a window-space rect, lifted to z (and optionally rotated/scaled by extra) */
+function place(el, x, y, z, w, h, extra) {
+  el.style.width = f2(w) + "px"; el.style.height = f2(h) + "px";
+  el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(z || 0) + "px)" + (extra || "");
+}
+function mk(cls, parent, html) { var e = document.createElement("div"); e.className = cls; if (html != null) e.innerHTML = html; parent.appendChild(e); return e; }
+function arc(u) { return Math.sin(Math.PI * c01(u)); }
+function setHtml(el, html) { if (el.dataset.src !== html) { el.innerHTML = html; el.dataset.src = html; } }
+
+/**
+ * A snapshot of a real panel ({ html, rect } from the replay) flies from where it was to `to` (a rect, or null to
+ * hide), arcing toward the camera and fading as it lands. keep = 1 scales uniformly (by width); else it squashes to
+ * the target's height and fades by the middle.
+ */
+function flyClone(el, cap, to, span, t, keep) {
+  if (!cap || !to || t < span[0] || t >= span[1]) { el.style.display = "none"; return; }
+  setHtml(el, cap.html);
+  var u = smoother((t - span[0]) / (span[1] - span[0])), r = cap.rect;
+  var s = mix(1, to.w / r.w, u), sy = keep === 1 ? s : mix(1, to.h / r.h, u);
+  el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px"; el.style.transformOrigin = "0 0";
+  el.style.transform = "translate3d(" + f2(mix(r.x, to.x, u) - WIN_W / 2) + "px," + f2(mix(r.y, to.y, u) - WIN_H / 2) + "px," + f2(180 * arc(u)) + "px) scale(" + s.toFixed(4) + "," + sy.toFixed(4) + ")";
+  el.style.opacity = (1 - smr(u, keep === 1 ? 0.88 : 0.55, 1)).toFixed(3);
+}
+/** a snapshot that leaves the window and floats at a hero position { x, y, z, scale, rotY } */
+function heroClone(el, cap, to, u) {
+  if (!cap || u <= 0) { el.style.display = "none"; return; }
+  setHtml(el, cap.html);
+  var r = cap.rect;
+  el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px"; el.style.transformOrigin = "0 0";
+  el.style.transform = "translate3d(" + f2(mix(r.x, to.x, u) - WIN_W / 2) + "px," + f2(mix(r.y, to.y, u) - WIN_H / 2) + "px," + f2(mix(0, to.z, u)) + "px) rotateY(" + (to.rotY * u).toFixed(2) + "deg) scale(" + mix(0.3, to.scale, u).toFixed(4) + ")";
+  el.style.opacity = smr(u, 0, 0.35).toFixed(3);
+}
+
+// ---- the cursor: it travels to each action's target just before the action, arcing a little, presses on clicks,
+// and leaves a ring where it clicked. opts: { home: {x, y}, visible: [in, out] }
+function actionPoint(r, kind) { return kind === "type" || kind === "retype" || kind === "focus" ? { x: r.x + Math.min(40, r.w / 2), y: r.y + Math.min(26, r.h / 2) } : { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+function poseCursor(cursor, ripple, t, rec, R, actions, opts) {
+  var prev = -1, next = -1;
+  actions.forEach(function (a, i) { if (a.t <= t) prev = i; else if (next < 0) next = i; });
+  var from = prev >= 0 ? actionPoint(rec.at[prev], actions[prev].kind) : opts.home, at = from;
+  if (next >= 0) {
+    var el = R.q(actions[next].sel);
+    if (el) {
+      var to = actionPoint(R.rect(el), actions[next].kind), a0 = Math.max(prev >= 0 ? actions[prev].t + (actions[prev].dur || 0) + 0.12 : 0, actions[next].t - 0.7);
+      var u = smoother((t - a0) / (actions[next].t - 0.06 - a0));
+      at = { x: mix(from.x, to.x, u), y: mix(from.y, to.y, u) - 30 * Math.sin(Math.PI * u) };
+    }
+  }
+  var press = 0;
+  actions.forEach(function (a) { if (a.kind === "click") press = Math.max(press, Math.exp(-Math.pow((t - a.t) / 0.07, 2))); });
+  cursor.style.transform = "translate(" + f2(at.x) + "px," + f2(at.y) + "px) scale(" + (1 - 0.14 * press).toFixed(3) + ")";
+  cursor.style.opacity = (smr(t, opts.visible[0], opts.visible[0] + 0.3) * (1 - smr(t, opts.visible[1], opts.visible[1] + 0.4))).toFixed(3);
+  var c = -1;
+  actions.forEach(function (a, i) { if (a.kind === "click" && a.t <= t && t - a.t < 0.5) c = i; });
+  if (c >= 0) {
+    var p = actionPoint(rec.at[c], "click"), k = (t - actions[c].t) / 0.5;
+    ripple.style.display = "block";
+    ripple.style.transform = "translate(" + f2(p.x) + "px," + f2(p.y) + "px) scale(" + (0.3 + 1.4 * expOut(k)).toFixed(3) + ")";
+    ripple.style.opacity = (0.9 * (1 - k)).toFixed(3);
+  } else ripple.style.display = "none";
+}
+
+/** a wipe over a real element's rect, top to bottom, with a glowing edge (the app shows it all at once) */
+function revealMask(mask, r, u) {
+  if (!r || u <= 0 || u >= 1) { mask.style.display = "none"; return; }
+  var top = r.y + 2 + (r.h - 4) * u;
+  mask.style.display = "block";
+  mask.style.left = r.x + 2 + "px"; mask.style.width = r.w - 4 + "px"; mask.style.top = f2(top) + "px"; mask.style.height = f2(r.y + r.h - 2 - top) + "px";
+}
+/** an accent bar under a real element's rect */
+function underline(bar, r, on) {
+  if (!r || on <= 0) { bar.style.display = "none"; return; }
+  bar.style.display = "block"; bar.style.left = r.x + "px"; bar.style.top = r.y + r.h + 1 + "px"; bar.style.width = Math.max(8, r.w) + "px";
+  bar.style.opacity = on.toFixed(3);
+}
+
+// ---- the accent line: one stroke through 3D points, projected, smoothed (Catmull-Rom → Bézier), drawn up to a share
+function drawLine(path, worldPts, c, share, alpha) {
+  if (worldPts.length < 2 || share <= 0 || alpha <= 0) { path.style.opacity = 0; return; }
+  var P = worldPts.map(function (p) { return project(p, c); }), d = "M" + f2(P[0].x) + " " + f2(P[0].y);
+  for (var i = 0; i < P.length - 1; i++) {
+    var p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    d += " C" + f2(p1.x + (p2.x - p0.x) / 6) + " " + f2(p1.y + (p2.y - p0.y) / 6) + " " + f2(p2.x - (p3.x - p1.x) / 6) + " " + f2(p2.y - (p3.y - p1.y) / 6) + " " + f2(p2.x) + " " + f2(p2.y);
+  }
+  path.setAttribute("d", d);
+  var len = path.getTotalLength();
+  path.style.strokeDasharray = f2(len) + " " + f2(len + 10);
+  path.style.strokeDashoffset = f2(len * (1 - c01(share)));
+  path.style.opacity = c01(alpha).toFixed(3);
+}
+
+// ---- headlines: one visual language for every line. A line rises through its mask and drifts up as it leaves.
+function lineIO(id, span, t) {
+  var e = $(id), sp = e.firstElementChild, u = smoother((t - span[0]) / 0.6), v = sm((t - span[1]) / 0.45);
+  e.style.opacity = t < span[0] || t > span[1] + 0.45 ? 0 : 1;
+  sp.style.transform = "translateY(" + ((1 - u) * 108 - v * 22).toFixed(2) + "%)";
+  sp.style.opacity = (u * (1 - v)).toFixed(3);
+}
+function fadeIO(id, tin, tout, t, dy) {
+  var e = $(id), u = smoother((t - tin) / 0.55), v = sm((t - tout) / 0.45);
+  e.style.opacity = (u * (1 - v)).toFixed(3);
+  e.style.transform = "translateY(" + ((1 - u) * (dy || 16) - v * 10).toFixed(2) + "px)";
+}
+/** how much a scrim behind headlines should show: the max over the spans that sit over the UI */
+function scrimAt(t, spans) {
+  return spans.reduce(function (m, s) { return Math.max(m, smr(t, s[0] - 0.2, s[0] + 0.3) * (1 - smr(t, s[1], s[1] + 0.5))); }, 0);
+}
+
+// ==== film/10-book.js
+// ---- the book and the city. Coordinates: px, y down; the book lies on y = 0 with the spine on the z axis.
+// Right page x 0…1600, left page x −1600…0, both z −550…550. Everything is set from t; nothing is carried over.
+var world = $("world");
+function el(cls, parent, css, html) { var e = document.createElement("div"); e.className = cls; if (css) e.style.cssText = css; if (html) e.innerHTML = html; (parent || world).appendChild(e); return e; }
+var PW = 1600, PH = 1100, BLOCK = 30;
+
+// ---- the right half: page (with the crease lines) and the edge of the book block under it
+var rightPage = el("page right", world, "left:0;top:" + -PH / 2 + "px;width:" + PW + "px;height:" + PH + "px;transform:rotateX(90deg)");
+var creaseSvg = '<svg class="creases" width="' + PW + '" height="' + PH + '" viewBox="0 0 ' + PW + " " + PH + '">';
+CITY.forEach(function (c, i) { // each building's fold lines: its base front edge and back edge, then the roof line
+  var x0 = c[0] - c[2] / 2, x1 = c[0] + c[2] / 2, zf = c[1] + PH / 2 + c[3] / 2, zb = c[1] + PH / 2 - c[3] / 2;
+  creaseSvg += '<path class="cr" data-i="' + i + '" d="M' + x0 + " " + zf + "H" + x1 + "M" + x0 + " " + zb + "H" + x1 + '"/>';
+});
+// the streets: a few long creases the city stands between
+var STREETS = [[0, 470, PW, 470], [0, 690, PW, 690], [470, 0, 470, PH], [880, 0, 880, PH], [1330, 0, 1330, PH]];
+STREETS.forEach(function (s, k) { creaseSvg += '<line class="st" data-k="' + k + '" x1="' + s[0] + '" y1="' + s[1] + '" x2="' + s[2] + '" y2="' + s[3] + '"/>'; });
+creaseSvg += '<path class="first" d="M' + (CITY[0][0] - 260) + " " + (CITY[0][1] + PH / 2 + CITY[0][3] / 2) + "H" + (CITY[0][0] + 260) + '"/></svg>';
+rightPage.innerHTML = '<div class="pool"></div>' + creaseSvg + '<div class="dim" id="dim"></div>';
+function blockFace(parent, x, z, w, rotY) { return el("edge", parent, "left:" + -w / 2 + "px;top:0;width:" + w + "px;height:" + BLOCK + "px;transform:translate3d(" + x + "px,0px," + z + "px) rotateY(" + rotY + "deg)"); }
+blockFace(world, PW / 2, PH / 2, PW, 0); blockFace(world, PW, 0, PH, 90); blockFace(world, PW / 2, -PH / 2, PW, 180);
+
+// ---- the left half, hinged on the spine: the plan on its page, the cover underneath, the block's edges
+var leftHalf = el("g3 lefthalf", world, "transform-origin:0 0");
+var plan = '<svg class="plan" width="' + PW + '" height="' + PH + '" viewBox="0 0 ' + PW + " " + PH + '">';
+plan += '<g class="grid">' + STREETS.map(function (s) { return '<line x1="' + s[0] + '" y1="' + s[1] + '" x2="' + s[2] + '" y2="' + s[3] + '"/>'; }).join("") + "</g>";
+CITY.forEach(function (c, i) { plan += '<rect data-i="' + i + '" x="' + (c[0] - c[2] / 2) + '" y="' + (c[1] + PH / 2 - c[3] / 2) + '" width="' + c[2] + '" height="' + c[3] + '"/>'; });
+// the Foldwork mark: a square whose top-right corner is folded down along the diagonal
+var MARK = "M690 410H860L910 460V640H690Z", MARK_FOLD = "M860 410V460H910";
+plan += '<path class="mark" d="' + MARK + '"/><path class="mark fold" d="' + MARK_FOLD + '"/><text class="plan-label" x="80" y="1040">FOLDWORK · PLAN 01 · RIVERSIDE</text></svg>';
+var leftPage = el("page left", leftHalf, "left:" + -PW + "px;top:" + -PH / 2 + "px;width:" + PW + "px;height:" + PH + "px;transform:rotateX(90deg)", plan + '<div class="dim" id="dimL"></div>');
+var cover = el("cover", leftHalf, "left:" + -PW + "px;top:" + -PH / 2 + "px;width:" + PW + "px;height:" + PH + "px;transform:translateY(" + BLOCK + "px) rotateX(-90deg)",
+  '<div class="cover-in"><svg class="foil" width="300" height="300" viewBox="660 380 280 290"><path d="' + MARK + '"/><path class="fold" d="' + MARK_FOLD + 'Z"/></svg><b>FOLDWORK</b><span>Every world starts flat.</span></div>');
+blockFace(leftHalf, -PW / 2, PH / 2, PW, 0); blockFace(leftHalf, -PW, 0, PH, -90); blockFace(leftHalf, -PW / 2, -PH / 2, PW, 180);
+
+// ---- the buildings: a pop-up box shears flat like the real mechanism. Front and back hinge on their base edges,
+// the roof stays level and slides back, the sides become parallelograms. One matrix3d does it:
+//   x' = x;  y' = y·cos a;  z' = z + y·sin a   (a = 0 standing, a → 90° flat; y is up-negative)
+var POP = popTimes();
+var buildings = CITY.map(function (c, i) {
+  var g = el("g3 bld"), w = c[2], d = c[3], h = c[4], f = {};
+  var win = function (len) { return '<i class="wins" style="background-size:' + (len > 120 ? 26 : 22) + 'px 30px"></i><i class="glow"></i>'; };
+  f.front = el("face", g, "left:" + -w / 2 + "px;top:" + -h + "px;width:" + w + "px;height:" + h + "px;transform:translateZ(" + d / 2 + "px)", win(w));
+  f.back = el("face", g, "left:" + -w / 2 + "px;top:" + -h + "px;width:" + w + "px;height:" + h + "px;transform:translateZ(" + -d / 2 + "px) rotateY(180deg)", win(w));
+  f.left = el("face", g, "left:" + -d / 2 + "px;top:" + -h + "px;width:" + d + "px;height:" + h + "px;transform:translateX(" + -w / 2 + "px) rotateY(-90deg)", win(d));
+  f.right = el("face", g, "left:" + -d / 2 + "px;top:" + -h + "px;width:" + d + "px;height:" + h + "px;transform:translateX(" + w / 2 + "px) rotateY(90deg)", win(d));
+  f.roof = el("face roof", g, "left:" + -w / 2 + "px;top:" + -d / 2 + "px;width:" + w + "px;height:" + d + "px;transform:translateY(" + -h + "px) rotateX(90deg)");
+  var shadow = el("shadow", rightPage, "left:" + (c[0] - w / 2 - 10) + "px;top:" + (c[1] + PH / 2 - d / 2 - 10) + "px;width:" + (w + 20) + "px;height:" + (d + 20) + "px");
+  return { g: g, f: f, c: c, t0: POP[i], shadow: shadow, slow: i === 1 };
+});
+/** a paper spring: 0 → 1 with one soft overshoot */
+function spring(u) { u = Math.max(0, u); return u >= 2.5 ? 1 : 1 - Math.exp(-6 * u) * Math.cos(7.5 * u); }
+function foldAngle(b, t) { // 88° flat → 0° standing, and back down at the end in a wave from the far side
+  var dur = b.slow ? T.tower[1] - T.tower[0] : 0.9, up = spring((t - b.t0) / dur * (b.slow ? 1.4 : 2.2));
+  var a = mix(88, 0, up), down = smoother((t - T.fold[0] - (1 - b.c[0] / PW) * 0.7) / 0.7);
+  return mix(a, 88, down);
+}
+
+// ==== film/20-pose.js
+// ---- light, shading, drawing, birds and the closing book, all as functions of t
+Array.prototype.forEach.call(document.querySelectorAll(".creases path,.creases line,.plan rect,.plan .mark,.plan line"), function (p) { p.setAttribute("pathLength", "1"); });
+function draw(elm, u) { elm.style.strokeDasharray = "1 1.02"; elm.style.strokeDashoffset = (1 - c01(u)).toFixed(4); }
+
+// the light: a warm-white key high front-left by day; at dusk it swings low from the right and turns amber
+var PAPER = [242, 237, 227];
+function duskAt(t) { return smoother((t - T.dusk[0]) / (T.dusk[1] - T.dusk[0])) * (1 - smr(t, T.fold[0] + 0.4, T.close[1])); }
+function light(t) {
+  var k = duskAt(t), key = V.norm([mix(-0.45, 0.8, k), mix(-0.82, -0.32, k), mix(0.38, 0.3, k)]);
+  return { key: key, kd: mix(0.62, 0.5, k), amb: mix(0.4, 0.2, k), tint: [1, mix(1, 0.8, k), mix(1, 0.58, k)], fill: V.norm([0.6, -0.4, -0.6]), dusk: k };
+}
+function shade(n, L) {
+  var d = Math.max(0, V.dot(n, L.key)), f = Math.max(0, V.dot(n, L.fill)) * 0.14;
+  var k = L.amb + L.kd * d;
+  return "rgb(" + Math.round(Math.min(255, PAPER[0] * k * L.tint[0] + 40 * f)) + "," + Math.round(Math.min(255, PAPER[1] * k * L.tint[1] + 60 * f)) + "," + Math.round(Math.min(255, PAPER[2] * k * L.tint[2] + 110 * f)) + ")";
+}
+
+function poseCity(t) {
+  var L = light(t);
+  buildings.forEach(function (b, i) {
+    var appear = smr(t, b.t0 - 0.35, b.t0 - 0.05), gone = t > T.close[0] + 0.6;
+    if (appear <= 0 || gone) { b.g.style.display = "none"; b.shadow.style.opacity = 0; return; }
+    b.g.style.display = "block";
+    var a = foldAngle(b, t) * deg, s = Math.sin(a), c = Math.cos(a);
+    b.g.style.transform = "matrix3d(1,0,0,0,0," + c.toFixed(5) + "," + s.toFixed(5) + ",0,0,0,1,0," + b.c[0] + ",-1," + b.c[1] + ",1)";
+    b.g.style.opacity = appear.toFixed(3);
+    b.f.front.style.backgroundColor = shade([0, -s, c], L);
+    b.f.back.style.backgroundColor = shade([0, s, -c], L);
+    b.f.left.style.backgroundColor = shade([-1, 0, 0], L);
+    b.f.right.style.backgroundColor = shade([1, 0, 0], L);
+    b.f.roof.style.backgroundColor = shade([0, -1, 0], L);
+    // windows glow in a wave from the river side as the light goes
+    var glow = smr(t, T.dusk[0] + 0.6 + 0.12 * ((i * 7) % 16), T.dusk[0] + 1.4 + 0.12 * ((i * 7) % 16)) * (1 - smr(t, T.fold[0], T.fold[0] + 0.8));
+    b.g.style.setProperty("--glow", glow.toFixed(3));
+    b.shadow.style.opacity = (0.5 * appear * c * (1 - 0.5 * L.dusk)).toFixed(3); // a standing fold casts more contact shadow
+  });
+  $("dim").style.opacity = $("dimL").style.opacity = (0.62 * L.dusk).toFixed(3);
+  rightPage.querySelector(".pool").style.opacity = (1 - 0.6 * L.dusk).toFixed(3);
+  return L;
+}
+
+// the creases: the first line of light, the streets, and each building's fold lines just before it stands
+var firstLine = rightPage.querySelector(".first"), streetEls = rightPage.querySelectorAll(".st"), creaseEls = rightPage.querySelectorAll(".cr");
+var planRects = leftPage.querySelectorAll(".plan rect"), planGrid = leftPage.querySelectorAll(".plan .grid line"), markEls = leftPage.querySelectorAll(".plan .mark");
+function poseLines(t) {
+  draw(firstLine, smoother((t - T.crease[0]) / (T.crease[1] - T.crease[0])));
+  firstLine.style.opacity = (1 - smr(t, T.first[1], T.first[1] + 1.2)).toFixed(3);
+  Array.prototype.forEach.call(streetEls, function (e, k) { draw(e, smoother((t - T.grid[0] - 0.25 * k) / 1.0)); });
+  Array.prototype.forEach.call(planGrid, function (e, k) { draw(e, smoother((t - T.grid[0] - 0.25 * k) / 1.0)); });
+  Array.prototype.forEach.call(creaseEls, function (e, i) { draw(e, smoother((t - POP[i] + 0.7) / 0.5)); });
+  Array.prototype.forEach.call(planRects, function (e, i) {
+    draw(e, smoother((t - POP[i] + 0.5) / 0.6));
+    e.classList.toggle("hot", i === 1 && t > T.disc[0] && t < T.disc[1] + 0.3);
+  });
+  var m = smoother((t - T.mark[0]) / (T.mark[1] - T.mark[0]));
+  Array.prototype.forEach.call(markEls, function (e) { draw(e, m); e.style.fillOpacity = (0.9 * smr(t, T.mark[1] - 0.4, T.mark[1] + 0.3)).toFixed(3); });
+}
+
+// ---- the paper birds: they lie folded on the left page, lift, and fly through the city along one path
+var BIRD_PATH = [[-1380, -3, 380], [-1100, -160, 260], [-500, -300, 80], [300, -380, -60], [900, -330, 120], [1400, -460, -80], [2100, -760, -320]];
+var birds = [0, 1, 2].map(function (k) {
+  var g = el("g3 bird");
+  el("wing", g, "transform:rotateX(90deg)"); el("wing l", g, "transform:rotateX(-90deg)");
+  return { g: g, k: k, t0: T.birds[0] + 0.45 * k, off: [k * -70, k * 34, (k - 1) * 120] };
+});
+var bx = curve(BIRD_PATH.map(function (p, i) { return [i, p[0]]; })), by = curve(BIRD_PATH.map(function (p, i) { return [i, p[1]]; })), bz = curve(BIRD_PATH.map(function (p, i) { return [i, p[2]]; }));
+function birdAt(b, t) { // position along the path; before take-off it rests on its spot of the left page
+  var u = c01((t - b.t0) / 5.0) * (BIRD_PATH.length - 1), lift = smr(t, b.t0, b.t0 + 0.5);
+  return [bx(u) + b.off[0], by(u) + b.off[1] * lift, bz(u) + b.off[2]];
+}
+function poseBirds(t) {
+  birds.forEach(function (b) {
+    var p = birdAt(b, t), q = birdAt(b, t + 0.05), v = V.sub(q, p), flying = t > b.t0;
+    var gone = t > b.t0 + 5.0 || t > T.fold[0];
+    b.g.style.display = gone ? "none" : "block";
+    if (gone) return;
+    var head = flying && Math.hypot(v[0], v[2]) > 0.01 ? Math.atan2(-v[2], v[0]) : 0.4, pitch = flying ? Math.atan2(v[1], Math.hypot(v[0], v[2]) + 1e-6) : 0;
+    var flap = flying ? 34 * Math.sin(2 * Math.PI * 3.1 * (t - b.t0) + b.k) * smr(t, b.t0, b.t0 + 0.4) : 0;
+    b.g.style.transform = "translate3d(" + f2(p[0]) + "px," + f2(p[1]) + "px," + f2(p[2]) + "px) rotateY(" + (head / deg).toFixed(2) + "deg) rotateZ(" + (pitch / deg).toFixed(2) + "deg)";
+    var w = b.g.children;
+    w[0].style.transform = "rotateX(" + (90 + flap).toFixed(2) + "deg)";
+    w[1].style.transform = "rotateX(" + (-90 - flap).toFixed(2) + "deg)";
+    b.g.style.opacity = (1 - smr(t, b.t0 + 4.4, b.t0 + 5.0)).toFixed(3);
+  });
+}
+
+// ---- the book closes: the left half swings over the spine, its cover comes up with the mark
+function poseBook(t) {
+  var u = smoother((t - T.close[0]) / (T.close[1] - T.close[0]));
+  var ang = 180 * u - 3 * Math.sin(Math.PI * c01((t - T.close[1]) / 0.35)) * (t > T.close[1] ? 1 : 0); // a small settle as it lands
+  leftHalf.style.transform = "rotateZ(" + ang.toFixed(3) + "deg)";
+  // whichever side faces up is the one drawn: Chrome doesn't cull the cover's back face reliably (its rotated
+  // content escapes backface-visibility), so the swap is explicit, at the moment the half stands on edge
+  cover.style.visibility = ang > 90 ? "visible" : "hidden";
+  leftPage.style.visibility = ang > 90 ? "hidden" : "visible";
+}
+
+// ==== film/60-camera.js
+// ---- one camera move for the whole film: [t, yaw, elev, dist, tx, ty, ox, oy], joined by the kit's monotone
+// cubics (distance in log space). It starts as a macro over a blank page and never stops until the held last frame.
+var CAM = filmCamera([
+  [0.0, 0, 88, 760, 790, 0, 0, 0], //        top-down macro: the blank page, the first crease
+  [3.4, 10, 64, 1150, 800, -60, 0, 0], //    tilting off as the first fold stands
+  [6.4, 24, 38, 2050, 760, -60, 0, 40], //   wide 3/4: the city folds up in a wave
+  [8.8, 34, 26, 2250, 720, -70, 0, 40],
+  [10.4, 52, 9, 1050, 900, -110, 140, 30], // dive to street level, toward the tower
+  [12.7, 66, 7, 900, 1000, -150, 160, 20],
+  [14.8, 88, 13, 1350, 900, -150, 0, 20], //  out of the streets as the light starts to warm
+  [17.6, 118, 22, 1900, 500, -200, 0, 20], // tracking the birds up and over
+  [20.6, 150, 46, 2700, 200, -80, 0, 30],
+  [23.4, 180, 76, 3400, 0, 0, 0, 30], //      the whole spread from above: the plan and the place
+  [25.8, 192, 62, 3150, 300, 0, 0, 0],
+  [28.6, 206, 40, 2650, 800, -20, 0, -110], // the closed book, the hero
+  [30.0, 206, 40, 2650, 800, -20, 0, -110],
+], [[800, 0, 0], [0, 0, -550], [1600, 0, 550], [-800, 0, 0], [800, -300, 0]]);
+var camAt = CAM.camAt;
+
+// ==== film/70-overlay.js
+// ---- motion graphics: the fold annotation (an angle arc and a counter pinned to the tower's hinge), the coral line
+// (plan → tower in the discovery, the birds' trail in the transformation), and the type. lineIO / fadeIO / drawLine
+// come from the kit.
+var line = $("kline"), arcPath = $("arc"), arcLab = $("arclab");
+function poseAnnotation(t, c) {
+  var b = buildings[1], on = smr(t, T.tower[0] - 0.2, T.tower[0] + 0.3) * (1 - smr(t, T.disc[1] - 0.3, T.disc[1] + 0.2));
+  if (on <= 0) { arcPath.style.opacity = 0; arcLab.style.opacity = 0; return; }
+  var a = foldAngle(b, t) * deg, open = Math.PI / 2 - a, R = 110, H = [b.c[0] + b.c[2] / 2, 0, b.c[1] - b.c[3] / 2];
+  var pts = [];
+  for (var k = 0; k <= 16; k++) { var th = open * k / 16; pts.push(project([H[0], -R * Math.sin(th), H[2] - R * Math.cos(th)], c)); }
+  arcPath.setAttribute("d", "M" + pts.map(function (p) { return f2(p.x) + " " + f2(p.y); }).join(" L"));
+  arcPath.style.opacity = on.toFixed(3);
+  var mid = project([H[0] + 30, -R * 1.25 * Math.sin(open / 2), H[2] - R * 1.25 * Math.cos(open / 2)], c);
+  arcLab.style.transform = "translate(" + f2(mid.x + 14) + "px," + f2(mid.y - 30) + "px)";
+  arcLab.style.opacity = on.toFixed(3);
+  $("arcv").textContent = Math.round(clamp(open / deg, 0, 99)) + "°";
+}
+function poseLine(t, c) {
+  var tw = buildings[1], a = foldAngle(tw, t) * deg;
+  if (t > T.tower[0] && t < T.disc[1] + 0.5) { // from the tower's rectangle on the plan to the real tower's roof
+    var from = [tw.c[0] - PW, 0, tw.c[1]], top = [tw.c[0], -tw.c[4] * Math.cos(a), tw.c[1] - tw.c[4] * Math.sin(a)];
+    drawLine(line, [from, [(from[0] + top[0]) / 2, -520, tw.c[1]], top], c, smoother((t - T.tower[0] - 0.4) / 1.2), 1 - smr(t, T.disc[1] - 0.2, T.disc[1] + 0.4));
+  } else if (t > T.birds[0] && t < T.birds[1]) { // the lead bird's trail
+    var pts = [];
+    for (var k = 12; k >= 0; k--) pts.push(birdAt(birds[0], Math.max(T.birds[0], t - k * 0.11)));
+    drawLine(line, pts, c, 1, smr(t, T.birds[0] + 0.3, T.birds[0] + 0.8) * (1 - smr(t, T.birds[1] - 0.8, T.birds[1])));
+  } else line.style.opacity = 0;
+}
+function poseType(t) {
+  lineIO("h1a", T.hook, t); lineIO("h1b", [T.hook[0] + 0.2, T.hook[1] + 0.05], t);
+  lineIO("h2a", T.intro, t); lineIO("h2b", [T.intro[0] + 0.2, T.intro[1] + 0.05], t);
+  lineIO("h3a", T.disc, t); lineIO("h3b", [T.disc[0] + 0.2, T.disc[1] + 0.05], t);
+  lineIO("h4a", T.trans, t); lineIO("h4b", [T.trans[0] + 0.2, T.trans[1] + 0.05], t);
+  lineIO("h5a", T.reveal, t); lineIO("h5b", [T.reveal[0] + 0.2, T.reveal[1] + 0.05], t);
+  lineIO("tag", [T.tag, 99], t);
+  fadeIO("cta", T.cta, 99, t, 10);
+}
+
+// ==== film/90-main.js
+// ---- the frame: camera, book, city, birds, overlay, all from t
+function paint(t) {
+  var c = camAt(t);
+  $("view").style.transform = "translate(" + f2(c.ox) + "px," + f2(c.oy) + "px)";
+  world.style.transform = $("ground").style.transform = camTransform(c);
+  poseCity(t); poseLines(t); poseBirds(t); poseBook(t);
+  poseAnnotation(t, c); poseLine(t, c);
+}
+tl.frame(paint, { motion: CAM.motionOf });
+tl.frame(poseType, { hold: true });
+
+// the subject the shot check keeps in frame: the first fold, then the tower, then the book
+tl.subject("the city", function (t) {
+  var c = camAt(t), p = t < 9.6 ? [CITY[0][0], -80, CITY[0][1]] : t < 14.8 ? [CITY[1][0], -120, CITY[1][1]] : [t < 26 ? 400 : 800, -40, 0];
+  var s = project(p, c); return { x: s.x, y: s.y, r: 120 * s.k };
+}, { minPx: 30 });
+tl.rest(28.8, T.DUR);
+tl.label("crease", T.crease[0]).label("first", T.first[0]).label("grid", T.grid[0]).label("wave", T.wave[0]).label("dive", 9.4).label("tower", T.tower[0])
+  .label("dusk", T.dusk[0]).label("birds", T.birds[0]).label("mark", T.mark[0]).label("reveal", T.reveal[0]).label("fold", T.fold[0]).label("close", T.close[0]);
+POP.forEach(function (p, i) { tl.hit("fold" + i, p, { kind: "click" }); });
+tl.hit("close", T.close[1], { kind: "impact" });
+});</script>

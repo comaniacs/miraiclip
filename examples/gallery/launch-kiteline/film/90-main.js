@@ -3,18 +3,16 @@ function paint(t) {
   var c = camAt(t);
   $("view").style.transform = "translate(" + f2(c.ox) + "px," + f2(c.oy) + "px)";
   world.style.transform = $("ground").style.transform = camTransform(c);
-  var rec = replay(t);
+  var rec = R.replay(t);
+  host = R.host();
   winEl.style.opacity = smr(t, T.appIn[0], T.appIn[1]).toFixed(3);
   $("winShadow").style.opacity = (0.15 + 0.85 * smr(t, T.appIn[0], T.appIn[1])).toFixed(3);
-  var ideaPts = poseIdeas(t).map(function (p) { return w2w(p[0], p[1], p[2]); });
+  var ideaPts = poseIdeas(t);
   poseTiles(t);
   poseCarry(t, rec);
   var planPts = poseLifts(t);
   poseHero(t, rec);
-  poseCursor(t, rec);
-  poseReveal(t);
-  poseHighlight(t);
-  poseLanding(t);
+  poseMarks(t, rec);
   poseLine(t, c, ideaPts, planPts);
 }
 // the picture moves with the camera (motion blur sizes its samples from it); the type is held to the frame grid

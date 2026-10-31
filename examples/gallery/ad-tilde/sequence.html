@@ -1,0 +1,442 @@
+<div class="stage" data-libs="stage" data-duration="30" data-fps="30" data-stage-version="2" data-frame-timeout="60" style="width:1920px;height:1080px;overflow:hidden"><style>
+*{box-sizing:border-box;margin:0}
+.stage{background:radial-gradient(ellipse 60% 70% at 55% 40%,#0d3a44 0%,#072a32 45%,#041a20 100%);color:#fff6e4}
+#view{position:absolute;left:0;top:0;width:1920px;height:1080px;perspective:1400px;perspective-origin:960px 540px}
+#ground,#world{position:absolute;left:960px;top:540px;width:0;height:0;transform-style:preserve-3d}
+.g3{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+#world>div,.g3>div{position:absolute}
+.floor{position:absolute;left:-2500px;top:-2500px;width:5000px;height:5000px;transform:translateY(1px) rotateX(90deg);background:radial-gradient(circle,rgba(0,0,0,0.75) 0 4.5%,rgba(0,0,0,0) 9%)}
+#floorglow{position:absolute;left:-2500px;top:-2500px;width:5000px;height:5000px;transform:translateY(2px) rotateX(90deg);background:radial-gradient(circle,rgba(120,220,220,0.18) 0%,rgba(40,140,150,0.08) 12%,rgba(0,0,0,0) 26%)}
+.strip{backface-visibility:hidden}
+.al{background-image:repeating-linear-gradient(0deg,rgba(255,255,255,0.05) 0 1px,rgba(0,0,0,0.04) 1px 3px)}
+.rim{box-shadow:inset 0 2px 0 rgba(255,255,255,0.4)}
+.lid{border-radius:50%;background:repeating-radial-gradient(circle,rgba(255,255,255,0.06) 0 1px,rgba(0,0,0,0.06) 1px 3px),conic-gradient(from 30deg,#c9ced3,#7f878e 25%,#d9dde0 50%,#80888f 75%,#c9ced3);box-shadow:inset 0 0 0 10px #9aa2a8,inset 0 0 0 13px #c9ced3}
+.lid .tab{position:absolute;left:88px;top:46px;width:80px;height:118px;border-radius:40px;background:linear-gradient(160deg,#e3e6e8,#8d959b);box-shadow:inset 0 0 0 14px rgba(0,0,0,0.0),0 2px 4px rgba(0,0,0,0.4)}
+.lid .tab::after{content:"";position:absolute;left:24px;top:18px;width:32px;height:40px;border-radius:16px;background:#5b6268}
+.lid .hole{position:absolute;left:96px;top:150px;width:64px;height:44px;border-radius:22px 22px 30px 30px;background:linear-gradient(#6b7378,#9aa2a8)}
+.lstrip{overflow:hidden;backface-visibility:hidden;clip-path:inset(0)}
+.lstrip .shade{position:absolute;inset:0;background:#02161b}
+.label{position:absolute;top:0;background:linear-gradient(180deg,#ffd23f 0%,#ffc72a 100%);font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;color:#173d43}
+.label .sun{position:absolute;left:354.38049069205874px;top:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,#ff8a5c 0 55%,#ff6b4a 56% 100%);opacity:0.9}
+.label .wave{position:absolute;left:0;right:0;height:60px;background:radial-gradient(40px 26px at 40px 0,transparent 98%,#ff6b4a 100%) 0 0/80px 60px repeat-x}
+.label .w1{bottom:44px}.label .w2{bottom:0;background-color:#173d43;background-image:none;height:44px}
+.label b,.label span{position:absolute;transform:translateX(-50%);white-space:nowrap}
+.label .lw{top:150px;font-weight:700;font-size:96px;letter-spacing:0.14em;color:#173d43}
+.label .ls{top:258px;font-weight:600;font-size:22px;letter-spacing:0.32em}
+.label .lm{top:110px;font-weight:600;font-size:18px;letter-spacing:0.08em;color:#fff6e4}
+.label .lb{top:290px;font-weight:700;font-size:16px;letter-spacing:0.2em;color:#fff6e4}
+.bubble{border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,0.95) 0 8%,rgba(255,255,255,0) 14%),radial-gradient(circle,rgba(170,240,240,0.05) 0 58%,rgba(200,250,250,0.55) 70%,rgba(255,255,255,0.15) 74%,rgba(255,255,255,0) 76%);backface-visibility:hidden}
+.bubble.hero{box-shadow:0 0 40px rgba(150,240,240,0.35)}
+.popring{border-radius:50%;border:3px solid rgba(220,255,255,0.9);box-shadow:0 0 30px rgba(180,255,255,0.8)}
+.slice{border-radius:50%;backface-visibility:visible;opacity:0}
+.slice::before{content:"";position:absolute;inset:7%;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,0.85) 0 2.5deg,transparent 2.5deg 36deg),radial-gradient(circle,#fffbe5 0 9%,transparent 10%)}
+.slice.lemon{background:radial-gradient(circle,#fff3a6 0 52%,#ffe259 70%,#fff8d0 80% 86%,#f5c400 88% 100%)}
+.slice.lime{background:radial-gradient(circle,#e8ffb0 0 52%,#b8e84a 70%,#f2ffd8 80% 86%,#4e9a1e 88% 100%)}
+#kl{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+#ov{position:absolute;left:0;top:0;width:1920px;height:1080px;pointer-events:none;font-family:'Avenir Next','Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.cap{position:absolute;left:130px;overflow:hidden;padding:6px 0 12px;font-weight:600;font-size:64px;line-height:1.08;letter-spacing:-0.02em;white-space:nowrap;color:#fff6e4;text-shadow:0 2px 30px rgba(2,20,24,0.6)}
+.cap>span{display:inline-block}.cap .c{color:#ffd23f}
+.fact{position:absolute;left:1420px;font-weight:600;color:#fff6e4;opacity:0}
+.fact small{display:block;font-size:18px;letter-spacing:0.3em;color:#ffd23f}
+#f1{top:300px;font-size:120px;line-height:1}#f1 em{font-style:normal;font-size:40px;margin-left:14px}
+#f2{top:450px;font-size:40px}#f3{top:510px;font-size:40px}#f4{top:600px;font-size:28px;color:#ffd23f;letter-spacing:0.04em}
+#lock{position:absolute;left:130px;top:350px;font-weight:700;font-size:150px;letter-spacing:0.16em;color:#ffd23f;opacity:0}
+#lockw{position:absolute;left:136px;top:530px;overflow:visible}
+#tag{top:600px;font-size:44px;font-weight:500;color:rgba(255,246,228,0.92)}
+#cta{position:absolute;left:130px;top:700px;opacity:0}
+#cta span{display:inline-block;padding:14px 34px;border-radius:40px;background:#ff6b4a;color:#fff;font-weight:600;font-size:24px;box-shadow:0 10px 30px rgba(255,107,74,0.4)}
+</style>
+<div id="view"><div id="ground"><div class="floor"></div><div id="floorglow"></div></div><div id="world"></div></div>
+<svg id="kl" width="1920" height="1080"><path id="kline" d="" fill="none" stroke="#ff6b4a" stroke-width="5" stroke-linecap="round" style="opacity:0;filter:drop-shadow(0 0 8px rgba(255,107,74,0.8))"/></svg>
+<div id="ov">
+<div class="cap" id="i1" style="top:380px;opacity:0;font-size:48px;color:rgba(255,246,228,0.85)"><span>Sparkling citrus water.</span></div>
+<div class="cap" id="i2" style="top:440px;opacity:0;"><span><span class="c">Pure fizz.</span> Nothing else.</span></div>
+<div class="cap" id="f0" style="top:140px;opacity:0;left:1420px"><span>Nothing <span class="c">to hide.</span></span></div>
+<div class="fact" id="f1"><small>INGREDIENTS</small><span id="f1n">0</span><em>only</em></div>
+<div class="fact" id="f2">Spring water</div><div class="fact" id="f3">Lemon · Lime</div><div class="fact" id="f4">0 g sugar · 0 sweeteners</div>
+<div class="cap" id="e1" style="top:120px;opacity:0;"><span>Bright. Crisp. <span class="c">Honest.</span></span></div>
+<div id="lock">TILDE</div>
+<svg id="lockw" width="560" height="60" viewBox="0 0 560 60"><path id="lockwave" pathLength="1" d="M4 30 C 74 -6, 144 66, 214 30 S 354 -6, 424 30 S 520 60, 556 26" fill="none" stroke="#ff6b4a" stroke-width="8" stroke-linecap="round" style="stroke-dasharray:1 1.02;stroke-dashoffset:1"/></svg>
+<div class="cap" id="tag" style="top:600px;opacity:0;"><span>Nothing to hide. <span class="c">Everything to taste.</span></span></div>
+<div id="cta"><span>Find it chilled</span></div></div></div>
+<script>stage.build((tl, S) => {var W = 1920, H = 1080, PERSP = 1400, WIN_W = 0, WIN_H = 0;
+var T = {"DUR":30,"FPS":30,"pop":3.6,"light":[3.6,5.2],"intro":[5,8.6],"word":[5.6,8.6],"peel":[9.2,10.8],"slide":[10.6,11.6],"facts":[11.2,14.6],"wrap":[14.6,16],"citrus":[15.4,22],"exp":[16.6,20.4],"burst":[21.2,22.6],"wave":[21.6,24.4],"title":25.6,"tag":26.3,"cta":26.9,"rest":[28.6,30],"BPM":112};
+// ---- app-film kit · film-core: easing, a tiny vector kit, monotone keyframe curves and the CSS-3D projection.
+// The build defines W, H and PERSP before this file. Units are CSS pixels in world space, y down; +z is toward the
+// camera. Everything is a pure function of its inputs so frames are deterministic.
+var $ = function (id) { return document.getElementById(id); };
+var clamp = function (x, a, b) { return Math.max(a, Math.min(b, x)); };
+var c01 = function (x) { return clamp(x, 0, 1); };
+var sm = function (x) { x = c01(x); return x * x * (3 - 2 * x); };
+var smr = function (t, a, b) { return sm((t - a) / (b - a)); };
+var smoother = function (x) { x = c01(x); return x * x * x * (x * (x * 6 - 15) + 10); };
+var mix = function (a, b, u) { return a + (b - a) * u; };
+var expOut = function (x) { x = c01(x); return x >= 1 ? 1 : 1 - Math.pow(2, -10 * x); };
+var deg = Math.PI / 180;
+var f2 = function (x) { return x.toFixed(2); };
+
+var V = {
+  add: function (a, b) { return [a[0] + b[0], a[1] + b[1], a[2] + b[2]]; },
+  sub: function (a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; },
+  mul: function (a, s) { return [a[0] * s, a[1] * s, a[2] * s]; },
+  dot: function (a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; },
+  norm: function (a) { var l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+};
+
+// Monotone cubic (Fritsch–Carlson) through keyframes: C1-continuous, so speed never jumps at a key, and no
+// overshoot, so the camera never swings past a framing and back.
+function curve(keys) {
+  var n = keys.length, xs = keys.map(function (k) { return k[0]; }), ys = keys.map(function (k) { return k[1]; });
+  var d = [], m = [];
+  for (var i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+  m[0] = 0; m[n - 1] = 0; // start and end at rest
+  for (i = 1; i < n - 1; i++) m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+  for (i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = m[i + 1] = 0; continue; }
+    var a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { var tau = 3 / Math.sqrt(s); m[i] = tau * a * d[i]; m[i + 1] = tau * b * d[i]; }
+  }
+  return function (x) {
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[n - 1]) return ys[n - 1];
+    var k = 0; while (x > xs[k + 1]) k++;
+    var h = xs[k + 1] - xs[k], u = (x - xs[k]) / h, u2 = u * u, u3 = u2 * u;
+    return (2 * u3 - 3 * u2 + 1) * ys[k] + (u3 - 2 * u2 + u) * h * m[k] + (-2 * u3 + 3 * u2) * ys[k + 1] + (u3 - u2) * h * m[k + 1];
+  };
+}
+
+// The camera is a pose { yaw, elev, dist, tgt, ox, oy } (degrees, px). The world element gets
+//   translateZ(PERSP - dist) rotateX(-elev) rotateY(yaw) translate3d(-tgt)
+// inside a perspective of PERSP, and the whole view is shifted by (ox, oy) on screen. project() is the same maths,
+// so overlay lines and the shot check land exactly on what CSS draws. dist = PERSP at yaw = elev = 0 shows the
+// plane z = 0 at exactly 1:1 pixels.
+function camTransform(c) {
+  return "translateZ(" + f2(PERSP - c.dist) + "px) rotateX(" + (-c.elev).toFixed(3) + "deg) rotateY(" + c.yaw.toFixed(3) + "deg) translate3d(" + f2(-c.tgt[0]) + "px," + f2(-c.tgt[1]) + "px," + f2(-c.tgt[2]) + "px)";
+}
+function toView(p, c) {
+  var q = V.sub(p, c.tgt), a = c.yaw * deg, e = -c.elev * deg;
+  var x1 = Math.cos(a) * q[0] + Math.sin(a) * q[2], z1 = -Math.sin(a) * q[0] + Math.cos(a) * q[2], y1 = q[1]; // rotateY
+  var y2 = Math.cos(e) * y1 - Math.sin(e) * z1, z2 = Math.sin(e) * y1 + Math.cos(e) * z1; // rotateX
+  return [x1, y2, z2 + PERSP - c.dist];
+}
+function project(p, c) {
+  var v = toView(p, c), k = PERSP / (PERSP - v[2]);
+  return { x: W / 2 + c.ox + v[0] * k, y: H / 2 + c.oy + v[1] * k, k: k, behind: v[2] >= PERSP - 1 };
+}
+// where the camera is in the world: the inverse of the two rotations applied to (0, 0, dist)
+function camPos(c) {
+  var a = c.yaw * deg, e = -c.elev * deg;
+  var y = Math.sin(e) * c.dist, z = Math.cos(e) * c.dist;
+  return [c.tgt[0] - Math.sin(a) * z, c.tgt[1] + y, c.tgt[2] + Math.cos(a) * z];
+}
+
+// One camera from keys [t, yaw, elev, dist, tx, ty, ox, oy]: each channel a monotone cubic, distance in log space so
+// push-ins feel constant-speed. probes (world points) size motion blur and check declared rests.
+function filmCamera(keys, probes) {
+  var CH = [1, 2, 4, 5, 6, 7].map(function (j) { return curve(keys.map(function (k) { return [k[0], k[j]]; })); });
+  var LOGD = curve(keys.map(function (k) { return [k[0], Math.log(k[3])]; }));
+  function camAt(t) { return { yaw: CH[0](t), elev: CH[1](t), dist: Math.exp(LOGD(t)), tgt: [CH[2](t), CH[3](t), 0], ox: CH[4](t), oy: CH[5](t) }; }
+  function motionOf(from, to) {
+    var a = camAt(from), b = camAt(to), far = 0;
+    probes.forEach(function (p) { var pa = project(p, a), pb = project(p, b); far = Math.max(far, Math.hypot(pb.x - pa.x, pb.y - pa.y)); });
+    return far;
+  }
+  return { camAt: camAt, motionOf: motionOf };
+}
+
+// ---- app-film kit · overlay: placing things around the app window, carrying snapshots between screens, the cursor
+// and its clicks, the accent line through 3D points, reveal wipes, underlines and masked headlines. All set from t.
+// The build defines WIN_W and WIN_H (the window size); the window is the plane z = 0, centred on the origin.
+function w2w(x, y, z) { return [x - WIN_W / 2, y - WIN_H / 2, z || 0]; } // window coords → world
+/** a window-space rect, lifted to z (and optionally rotated/scaled by extra) */
+function place(el, x, y, z, w, h, extra) {
+  el.style.width = f2(w) + "px"; el.style.height = f2(h) + "px";
+  el.style.transform = "translate3d(" + f2(x - WIN_W / 2) + "px," + f2(y - WIN_H / 2) + "px," + f2(z || 0) + "px)" + (extra || "");
+}
+function mk(cls, parent, html) { var e = document.createElement("div"); e.className = cls; if (html != null) e.innerHTML = html; parent.appendChild(e); return e; }
+function arc(u) { return Math.sin(Math.PI * c01(u)); }
+function setHtml(el, html) { if (el.dataset.src !== html) { el.innerHTML = html; el.dataset.src = html; } }
+
+/**
+ * A snapshot of a real panel ({ html, rect } from the replay) flies from where it was to `to` (a rect, or null to
+ * hide), arcing toward the camera and fading as it lands. keep = 1 scales uniformly (by width); else it squashes to
+ * the target's height and fades by the middle.
+ */
+function flyClone(el, cap, to, span, t, keep) {
+  if (!cap || !to || t < span[0] || t >= span[1]) { el.style.display = "none"; return; }
+  setHtml(el, cap.html);
+  var u = smoother((t - span[0]) / (span[1] - span[0])), r = cap.rect;
+  var s = mix(1, to.w / r.w, u), sy = keep === 1 ? s : mix(1, to.h / r.h, u);
+  el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px"; el.style.transformOrigin = "0 0";
+  el.style.transform = "translate3d(" + f2(mix(r.x, to.x, u) - WIN_W / 2) + "px," + f2(mix(r.y, to.y, u) - WIN_H / 2) + "px," + f2(180 * arc(u)) + "px) scale(" + s.toFixed(4) + "," + sy.toFixed(4) + ")";
+  el.style.opacity = (1 - smr(u, keep === 1 ? 0.88 : 0.55, 1)).toFixed(3);
+}
+/** a snapshot that leaves the window and floats at a hero position { x, y, z, scale, rotY } */
+function heroClone(el, cap, to, u) {
+  if (!cap || u <= 0) { el.style.display = "none"; return; }
+  setHtml(el, cap.html);
+  var r = cap.rect;
+  el.style.display = "block"; el.style.width = r.w + "px"; el.style.height = r.h + "px"; el.style.transformOrigin = "0 0";
+  el.style.transform = "translate3d(" + f2(mix(r.x, to.x, u) - WIN_W / 2) + "px," + f2(mix(r.y, to.y, u) - WIN_H / 2) + "px," + f2(mix(0, to.z, u)) + "px) rotateY(" + (to.rotY * u).toFixed(2) + "deg) scale(" + mix(0.3, to.scale, u).toFixed(4) + ")";
+  el.style.opacity = smr(u, 0, 0.35).toFixed(3);
+}
+
+// ---- the cursor: it travels to each action's target just before the action, arcing a little, presses on clicks,
+// and leaves a ring where it clicked. opts: { home: {x, y}, visible: [in, out] }
+function actionPoint(r, kind) { return kind === "type" || kind === "retype" || kind === "focus" ? { x: r.x + Math.min(40, r.w / 2), y: r.y + Math.min(26, r.h / 2) } : { x: r.x + r.w / 2, y: r.y + r.h / 2 }; }
+function poseCursor(cursor, ripple, t, rec, R, actions, opts) {
+  var prev = -1, next = -1;
+  actions.forEach(function (a, i) { if (a.t <= t) prev = i; else if (next < 0) next = i; });
+  var from = prev >= 0 ? actionPoint(rec.at[prev], actions[prev].kind) : opts.home, at = from;
+  if (next >= 0) {
+    var el = R.q(actions[next].sel);
+    if (el) {
+      var to = actionPoint(R.rect(el), actions[next].kind), a0 = Math.max(prev >= 0 ? actions[prev].t + (actions[prev].dur || 0) + 0.12 : 0, actions[next].t - 0.7);
+      var u = smoother((t - a0) / (actions[next].t - 0.06 - a0));
+      at = { x: mix(from.x, to.x, u), y: mix(from.y, to.y, u) - 30 * Math.sin(Math.PI * u) };
+    }
+  }
+  var press = 0;
+  actions.forEach(function (a) { if (a.kind === "click") press = Math.max(press, Math.exp(-Math.pow((t - a.t) / 0.07, 2))); });
+  cursor.style.transform = "translate(" + f2(at.x) + "px," + f2(at.y) + "px) scale(" + (1 - 0.14 * press).toFixed(3) + ")";
+  cursor.style.opacity = (smr(t, opts.visible[0], opts.visible[0] + 0.3) * (1 - smr(t, opts.visible[1], opts.visible[1] + 0.4))).toFixed(3);
+  var c = -1;
+  actions.forEach(function (a, i) { if (a.kind === "click" && a.t <= t && t - a.t < 0.5) c = i; });
+  if (c >= 0) {
+    var p = actionPoint(rec.at[c], "click"), k = (t - actions[c].t) / 0.5;
+    ripple.style.display = "block";
+    ripple.style.transform = "translate(" + f2(p.x) + "px," + f2(p.y) + "px) scale(" + (0.3 + 1.4 * expOut(k)).toFixed(3) + ")";
+    ripple.style.opacity = (0.9 * (1 - k)).toFixed(3);
+  } else ripple.style.display = "none";
+}
+
+/** a wipe over a real element's rect, top to bottom, with a glowing edge (the app shows it all at once) */
+function revealMask(mask, r, u) {
+  if (!r || u <= 0 || u >= 1) { mask.style.display = "none"; return; }
+  var top = r.y + 2 + (r.h - 4) * u;
+  mask.style.display = "block";
+  mask.style.left = r.x + 2 + "px"; mask.style.width = r.w - 4 + "px"; mask.style.top = f2(top) + "px"; mask.style.height = f2(r.y + r.h - 2 - top) + "px";
+}
+/** an accent bar under a real element's rect */
+function underline(bar, r, on) {
+  if (!r || on <= 0) { bar.style.display = "none"; return; }
+  bar.style.display = "block"; bar.style.left = r.x + "px"; bar.style.top = r.y + r.h + 1 + "px"; bar.style.width = Math.max(8, r.w) + "px";
+  bar.style.opacity = on.toFixed(3);
+}
+
+// ---- the accent line: one stroke through 3D points, projected, smoothed (Catmull-Rom → Bézier), drawn up to a share
+function drawLine(path, worldPts, c, share, alpha) {
+  if (worldPts.length < 2 || share <= 0 || alpha <= 0) { path.style.opacity = 0; return; }
+  var P = worldPts.map(function (p) { return project(p, c); }), d = "M" + f2(P[0].x) + " " + f2(P[0].y);
+  for (var i = 0; i < P.length - 1; i++) {
+    var p0 = P[Math.max(0, i - 1)], p1 = P[i], p2 = P[i + 1], p3 = P[Math.min(P.length - 1, i + 2)];
+    d += " C" + f2(p1.x + (p2.x - p0.x) / 6) + " " + f2(p1.y + (p2.y - p0.y) / 6) + " " + f2(p2.x - (p3.x - p1.x) / 6) + " " + f2(p2.y - (p3.y - p1.y) / 6) + " " + f2(p2.x) + " " + f2(p2.y);
+  }
+  path.setAttribute("d", d);
+  var len = path.getTotalLength();
+  path.style.strokeDasharray = f2(len) + " " + f2(len + 10);
+  path.style.strokeDashoffset = f2(len * (1 - c01(share)));
+  path.style.opacity = c01(alpha).toFixed(3);
+}
+
+// ---- headlines: one visual language for every line. A line rises through its mask and drifts up as it leaves.
+function lineIO(id, span, t) {
+  var e = $(id), sp = e.firstElementChild, u = smoother((t - span[0]) / 0.6), v = sm((t - span[1]) / 0.45);
+  e.style.opacity = t < span[0] || t > span[1] + 0.45 ? 0 : 1;
+  sp.style.transform = "translateY(" + ((1 - u) * 108 - v * 22).toFixed(2) + "%)";
+  sp.style.opacity = (u * (1 - v)).toFixed(3);
+}
+function fadeIO(id, tin, tout, t, dy) {
+  var e = $(id), u = smoother((t - tin) / 0.55), v = sm((t - tout) / 0.45);
+  e.style.opacity = (u * (1 - v)).toFixed(3);
+  e.style.transform = "translateY(" + ((1 - u) * (dy || 16) - v * 10).toFixed(2) + "px)";
+}
+/** how much a scrim behind headlines should show: the max over the spans that sit over the UI */
+function scrimAt(t, spans) {
+  return spans.reduce(function (m, s) { return Math.max(m, smr(t, s[0] - 0.2, s[0] + 0.3) * (1 - smr(t, s[1], s[1] + 0.5))); }, 0);
+}
+
+// ==== film/10-can.js
+// ---- the can: brushed aluminium cylinders of shaded strips, and a printed label of 48 strips that each show one
+// slice of the same label design, so the print wraps seamlessly and can peel off, flatten into a card and wrap back.
+// Coordinates: px, y down; the can stands on y = 0, its axis on the y axis, 440 px tall.
+var world = $("world");
+function el(cls, parent, css, html) { var e = document.createElement("div"); e.className = cls; if (css) e.style.cssText = css; if (html) e.innerHTML = html; parent.appendChild(e); return e; }
+var can = el("g3", world), N = 48, R = 150;
+function cylinder(R, y0, y1, n, cls) {
+  var h = y0 - y1, w = 2 * Math.PI * R / n + 0.8, out = [];
+  for (var i = 0; i < n; i++) {
+    var th = i * 360 / n;
+    out.push({ el: el("strip " + cls, can, "left:" + f2(-w / 2) + "px;top:" + f2(-h / 2) + "px;width:" + f2(w) + "px;height:" + h + "px;transform:translateY(" + f2((y0 + y1) / 2) + "px) rotateY(" + th + "deg) translateZ(" + R + "px)"), th: th * deg, R: R, y: (y0 + y1) / 2 });
+  }
+  return out;
+}
+var metal = [].concat(cylinder(138, 0, -12, 40, "al"), cylinder(R, -12, -404, N, "al"), cylinder(140, -404, -424, 40, "al"), cylinder(128, -424, -440, 40, "al rim"));
+var lid = el("lid", can, "left:-128px;top:-128px;width:256px;height:256px;transform:translateY(-440px) rotateX(90deg)", '<i class="tab"></i><i class="hole"></i>');
+
+// the label: one design, sliced into strips. Strip i (i = −N/2 … N/2−1) sits at angle i·360/N and shows the design
+// from x = (i + N/2)·w, so the design's centre (the wordmark) faces +z.
+var LW = 2 * Math.PI * (R + 1), SW = LW / N, LY0 = -40, LY1 = -380, LH = LY0 - LY1;
+var LABEL = '<div class="label" style="width:' + f2(LW) + 'px;height:' + LH + 'px">' +
+  '<i class="sun"></i><i class="wave w1"></i><i class="wave w2"></i>' +
+  '<b class="lw" style="left:' + f2(LW / 2) + 'px">TILDE</b><span class="ls" style="left:' + f2(LW / 2) + 'px">SPARKLING CITRUS</span>' +
+  '<span class="lm" style="left:' + f2(LW / 2) + 'px">lemon · lime · spring water</span>' +
+  '<span class="lb" style="left:' + f2(LW * 0.04) + 'px">330 ml · 0 g sugar</span><span class="lb" style="left:' + f2(LW * 0.96) + 'px">NOTHING TO HIDE</span></div>';
+var labelGroup = el("g3", can), label = [];
+for (var i = -N / 2; i < N / 2; i++) {
+  var s = el("lstrip", labelGroup, "left:" + f2(-SW / 2 - 0.4) + "px;top:" + f2(-LH / 2) + "px;width:" + f2(SW + 0.8) + "px;height:" + LH + "px", LABEL + '<i class="shade"></i>');
+  s.firstChild.style.left = f2(-(i + N / 2) * SW) + "px";
+  label.push({ el: s, i: i, th: i * 360 / N * deg, shade: s.lastChild });
+}
+
+// ---- light: the key comes on with the pop and sweeps from above-left to the front; a cool rim stays behind right
+function keyAmt(t) { return mix(0.04, 1, smr(t, T.light[0], T.light[0] + 1.3)); } // a sweep, not a switch: faster reads as a cut
+// the key travels with the camera, like a product-shoot key on the camera rig: always 35° to camera-left once lit
+function keyDir(t, c) { var a = (mix(-160, -35, smoother((t - T.light[0]) / (T.light[1] - T.light[0]))) - c.yaw) * deg; return V.norm([Math.sin(a) * 0.75, -0.55, Math.cos(a) * 0.75]); }
+var RIM = V.norm([0.7, -0.3, -0.65]);
+
+// the label's peel: each strip's progress, the seam (back) first, the front last; it slides left once flat
+function peelAt(lb, t) {
+  var off = (N / 2 - Math.abs(lb.i)) / (N / 2) * 0.55;
+  var out = smoother((t - T.peel[0] - off) / (T.peel[1] - T.peel[0] - 0.55)), back = smoother((t - T.wrap[0] - (0.55 - off)) / (T.wrap[1] - T.wrap[0] - 0.55));
+  return out * (1 - back);
+}
+function slideAt(t) { return smoother((t - T.slide[0]) / (T.slide[1] - T.slide[0])) * (1 - smoother((t - T.wrap[0] + 0.3) / 0.8)); }
+
+function poseCan(t, c, spin) {
+  can.style.transform = "rotateY(" + spin.toFixed(3) + "deg)";
+  var cam = camPos(c), ka = keyAmt(t), kd = keyDir(t, c), sp = spin * deg;
+  metal.forEach(function (s) {
+    var a = s.th + sp, n = [Math.sin(a), 0, Math.cos(a)], p = [n[0] * s.R, s.y, n[2] * s.R], v = V.norm(V.sub(cam, p));
+    if (V.dot(n, v) < -0.1) return;
+    var dif = Math.max(0, V.dot(n, kd)) * ka, h = V.norm(V.add(kd, v)), hr = V.norm(V.add(RIM, v));
+    var spec = Math.pow(Math.max(0, V.dot(n, h)), 40) * 1.1 * ka + Math.pow(Math.max(0, V.dot(n, hr)), 30) * 0.6 * ka + Math.pow(Math.max(0, V.dot(n, h)), 4) * 0.2 * ka;
+    var k = 0.08 + 0.55 * dif, g = [150 * k + 255 * spec, 160 * k + 250 * spec, 165 * k + 245 * spec];
+    s.el.style.backgroundColor = "rgb(" + g.map(function (x) { return Math.round(clamp(x, 0, 255)); }).join(",") + ")";
+  });
+  lid.style.opacity = 1;
+  lid.style.filter = "brightness(" + (0.25 + 0.85 * ka).toFixed(3) + ")";
+  var sl = slideAt(t);
+  labelGroup.style.transform = "translateX(" + f2(-720 * sl) + "px) translateZ(" + f2(40 * sl) + "px)";
+  label.forEach(function (lb) {
+    var u = peelAt(lb, t), x = lb.i * SW, th = (1 - u) * lb.th, rz = (R + 1) + u * 30;
+    lb.el.style.transform = "translateY(" + (LY0 + LY1) / 2 + "px) translateX(" + f2(u * x) + "px) rotateY(" + (th / deg).toFixed(3) + "deg) translateZ(" + f2(rz) + "px)";
+    var a = th + sp, n = [Math.sin(a), 0, Math.cos(a)], dif = Math.max(0, V.dot(n, kd)) * ka;
+    // Chrome lets the printed design inside a strip escape backface-visibility, so a strip facing away from the
+    // camera is hidden explicitly (its centre, rotated and slid like the strip, seen from the camera)
+    var ctr = [Math.cos(sp) * (u * x - 720 * sl) + Math.sin(a) * rz, (LY0 + LY1) / 2, -Math.sin(sp) * (u * x - 720 * sl) + Math.cos(a) * rz];
+    lb.el.style.visibility = V.dot(n, V.sub(cam, ctr)) > 0 ? "visible" : "hidden";
+    lb.shade.style.opacity = clamp(0.9 - 0.95 * (0.18 + 0.82 * dif), 0, 0.92).toFixed(3);
+  });
+}
+
+// ==== film/20-world.js
+// ---- bubbles (camera-facing glass discs), the hero bubble and its pop, and the citrus slices that orbit the can
+function hash(n) { var x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+function face(c) { return " rotateY(" + (-c.yaw).toFixed(2) + "deg) rotateX(" + c.elev.toFixed(2) + "deg)"; } // turn a plane to the camera
+
+// the hero bubble: rises from below the frame, wobbling, and pops at the lid at T.pop
+var hero = el("bubble hero", world, "left:-46px;top:-46px;width:92px;height:92px"), ring = el("popring", world, "left:-60px;top:-60px;width:120px;height:120px");
+function heroAt(t) { var u = c01(t / T.pop); return [16 * Math.sin(t * 2.3), mix(260, -452, 1 - Math.pow(1 - u, 1.6)), 210 - 200 * smoother(u) + 10 * Math.cos(t * 1.7)]; }
+
+// the stream: 46 small bubbles rising around the can on loops; they appear with the light
+var stream = [];
+for (var k = 0; k < 46; k++) {
+  var sz = 10 + 26 * hash(k), b = el("bubble", world, "left:" + f2(-sz / 2) + "px;top:" + f2(-sz / 2) + "px;width:" + f2(sz) + "px;height:" + f2(sz) + "px");
+  stream.push({ el: b, a: hash(k + 50) * 2 * Math.PI, r: 190 + 260 * hash(k + 90), speed: 120 + 160 * hash(k + 130), ph: hash(k + 170) * 700 });
+}
+function poseBubbles(t, c) {
+  var f = face(c), p = heroAt(t), popU = c01((t - T.pop) / 0.5);
+  hero.style.display = t < T.pop ? "block" : "none";
+  hero.style.transform = "translate3d(" + f2(p[0]) + "px," + f2(p[1]) + "px," + f2(p[2]) + "px)" + f + " scale(" + (1 - 0.25 * smr(t, T.pop - 0.15, T.pop)).toFixed(3) + ")";
+  ring.style.display = t >= T.pop && popU < 1 ? "block" : "none";
+  ring.style.transform = "translate3d(0px,-452px,10px)" + f + " scale(" + (0.6 + 4.5 * expOut(popU)).toFixed(3) + ")";
+  ring.style.opacity = (1 - popU).toFixed(3);
+  var vis = smr(t, T.pop + 0.2, T.pop + 1.6) * (1 - 0.4 * smr(t, T.facts[0], T.facts[0] + 0.5) * (1 - smr(t, T.wrap[0], T.wrap[1]))), boost = 1 + 1.6 * Math.exp(-Math.pow((t - T.burst[0] - 0.6) / 0.7, 2));
+  stream.forEach(function (s, i) {
+    var y = 60 - ((s.ph + s.speed * t * boost) % 760), a = s.a + 0.12 * t;
+    s.el.style.transform = "translate3d(" + f2(Math.cos(a) * s.r) + "px," + f2(y) + "px," + f2(Math.sin(a) * s.r) + "px)" + f;
+    s.el.style.opacity = (vis * smr(-y, 0, 80) * (1 - smr(-y, 620, 700))).toFixed(3);
+  });
+}
+
+// the citrus: three lemon and three lime slices drop in, orbit and tumble, then settle out of frame
+var SLICES = [0, 1, 2, 3, 4, 5].map(function (k) {
+  var lime = k % 2, sz = lime ? 130 : 160, e = el("slice " + (lime ? "lime" : "lemon"), world, "left:" + -sz / 2 + "px;top:" + -sz / 2 + "px;width:" + sz + "px;height:" + sz + "px");
+  return { el: e, k: k, a0: k * 60 * deg, r: 330 + 50 * (k % 3), y: -110 - 60 * k, t0: T.citrus[0] + 0.18 * k };
+});
+function poseCitrus(t) {
+  SLICES.forEach(function (s) {
+    var din = smoother((t - s.t0) / 0.9), dout = smoother((t - T.citrus[1] - 0.1 * s.k) / 1.0);
+    if (din <= 0 || dout >= 1) { s.el.style.display = "none"; return; }
+    s.el.style.display = "block";
+    var a = s.a0 + 0.55 * (t - s.t0), y = mix(-900, s.y, din) - 700 * dout * dout;
+    s.el.style.transform = "translate3d(" + f2(Math.cos(a) * s.r) + "px," + f2(y) + "px," + f2(Math.sin(a) * s.r) + "px) rotateY(" + f2(-a / deg + 90) + "deg) rotateX(" + f2(25 * Math.sin(t * 1.3 + s.k)) + "deg) rotateZ(" + f2(40 * t + s.k * 30) + "deg)";
+    s.el.style.opacity = (din * (1 - dout)).toFixed(3);
+  });
+}
+
+// ==== film/60-camera.js
+// ---- one camera take: [t, yaw, elev, dist, tx, ty, ox, oy] through the kit's monotone curves
+var CAM = filmCamera([
+  [0.0, 0, 4, 520, 0, 120, 0, 0], //         macro on the rising bubble
+  [3.6, 6, 10, 560, 0, -440, 0, 0], //       at the lid as it pops
+  [5.4, 16, 26, 1150, 0, -380, 120, 0], //   pulling back and down the can
+  [8.6, -10, 10, 1500, 0, -230, 330, 20], // 3/4, the can right, the name left
+  [10.4, 0, 5, 1700, -320, -220, 0, 20], // frontal and wide: the label peels into a card
+  [14.4, 6, 6, 1760, -320, -220, 0, 20],
+  [16.4, 40, -4, 1250, 0, -250, 0, 0], //   low orbit through the citrus
+  [20.4, 118, 4, 1220, 0, -250, 0, 0],
+  [23.0, 172, 22, 1650, 0, -260, 0, 0], //  rising for the climax
+  [25.8, 196, 10, 1500, 0, -230, 340, 20], // hero: the can right, the lockup left
+  [28.6, 200, 9, 1480, 0, -230, 340, 20],
+  [30.0, 200, 9, 1480, 0, -230, 340, 20],
+], [[0, -220, 0], [150, -440, 0], [-150, 0, 0], [0, -220, 300]]);
+var camAt = CAM.camAt;
+// the can turns to show itself in the introduction, and otherwise keeps its label toward the camera
+function spinAt(t, c) { return -c.yaw + 35 * Math.sin(Math.PI * c01((t - 4.4) / 4.6)) + 40 * Math.sin(Math.PI * c01((t - 15.6) / 8.6)); }
+
+// ==== film/70-overlay.js
+// ---- motion graphics: headlines, the ingredient card's counters, the tilde wave round the can, and the lockup
+var wave = $("kline");
+function poseWave(t, c) { // a coral tilde wave circling the can at its waist, drawn once round, then letting go
+  var u = smoother((t - T.wave[0]) / (T.wave[1] - T.wave[0])), out = smr(t, T.wave[1] - 0.2, T.wave[1] + 0.6);
+  if (u <= 0 || out >= 1) { wave.style.opacity = 0; return; }
+  var pts = [];
+  for (var k = 0; k <= 72; k++) { var a = k / 72 * 2 * Math.PI + 0.5; pts.push([Math.cos(a) * 250, -230 + 34 * Math.sin(3 * a + 2 * t), Math.sin(a) * 250]); }
+  drawLine(wave, pts, c, u, 1 - out);
+}
+function poseType(t) {
+  lineIO("i1", T.intro, t); lineIO("i2", [T.word[0], T.word[1]], t);
+  lineIO("f0", T.facts, t);
+  ["f1", "f2", "f3", "f4"].forEach(function (id, k) { fadeIO(id, T.facts[0] + 0.45 + 0.35 * k, T.facts[1], t, 18); });
+  $("f1n").textContent = Math.round(3 * smoother((t - T.facts[0] - 0.45) / 0.7));
+  lineIO("e1", T.exp, t);
+  var u = smoother((t - T.title) / 0.9);
+  $("lock").style.opacity = u.toFixed(3); $("lock").style.letterSpacing = mix(0.5, 0.16, u).toFixed(3) + "em";
+  $("lockwave").style.strokeDashoffset = (1 - smoother((t - T.title - 0.2) / 1.0)).toFixed(3);
+  lineIO("tag", [T.tag, 99], t);
+  fadeIO("cta", T.cta, 99, t, 10);
+}
+
+// ==== film/90-main.js
+// ---- the frame
+function paint(t) {
+  var c = camAt(t);
+  $("view").style.transform = "translate(" + f2(c.ox) + "px," + f2(c.oy) + "px)";
+  world.style.transform = $("ground").style.transform = camTransform(c);
+  poseCan(t, c, spinAt(t, c));
+  poseBubbles(t, c); poseCitrus(t); poseWave(t, c);
+  $("floorglow").style.opacity = keyAmt(t).toFixed(3);
+}
+tl.frame(paint, { motion: CAM.motionOf });
+tl.frame(poseType, { hold: true });
+tl.subject("the can", function (t) {
+  var c = camAt(t), p = t < T.pop ? heroAt(t) : [0, -230, 0], s = project(p, c);
+  return { x: s.x, y: s.y, r: (t < T.pop ? 46 : 150) * s.k };
+}, { minPx: 20 });
+tl.rest(T.rest[0], T.rest[1]);
+tl.label("rise", 0.2).label("pop", T.pop).label("intro", T.intro[0]).label("peel", T.peel[0]).label("facts", T.facts[0]).label("wrap", T.wrap[0])
+  .label("citrus", T.citrus[0]).label("burst", T.burst[0]).label("wave", T.wave[0]).label("lockup", T.title);
+tl.hit("pop", T.pop, { kind: "impact" }).hit("burst", T.burst[0], { kind: "impact" }).hit("lockup", T.title, { kind: "land" });
+});</script>

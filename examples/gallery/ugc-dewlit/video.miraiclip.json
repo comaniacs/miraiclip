@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "settings": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30
+  },
+  "assets": {},
+  "tracks": {
+    "presenter": {
+      "id": "presenter",
+      "kind": "video",
+      "name": "presenter",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    },
+    "overlay": {
+      "id": "overlay",
+      "kind": "video",
+      "name": "overlay",
+      "muted": false,
+      "solo": false,
+      "locked": false
+    }
+  },
+  "trackOrder": [
+    "presenter",
+    "overlay"
+  ],
+  "clips": {
+    "p1": {
+      "kind": "html",
+      "id": "p1",
+      "trackId": "presenter",
+      "startUs": 0,
+      "durationUs": 4000000,
+      "template": "<div style=\"position:absolute;inset:0;background:\n radial-gradient(ellipse 60% 45% at 0% 30%,rgba(255,244,226,0.95),rgba(255,244,226,0) 70%),\n linear-gradient(90deg,rgba(255,255,255,0.0) 0 62%,rgba(160,150,140,0.10) 62% 63%,rgba(255,255,255,0) 63%),\n repeating-linear-gradient(0deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),repeating-linear-gradient(90deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),\n linear-gradient(180deg,#efe8df,#e4dbd0 70%,#d9cec1);font-family:'SF Pro Display','Avenir Next','Helvetica Neue',Arial,sans-serif;color:#3a332e;overflow:hidden\">\n  <div style=\"position:absolute;left:150px;top:1220px;width:780px;height:240px;border-radius:30px;background:#f6f2ec;box-shadow:0 30px 60px rgba(60,40,30,0.18)\"></div>\n  <div style=\"position:absolute;left:210px;top:380px;width:660px;height:1100px;border:6px dashed rgba(58,51,46,0.35);border-radius:330px 330px 120px 120px\"></div>\n  <div style=\"position:absolute;left:380px;top:470px;width:320px;height:400px;border-radius:50%;border:6px dashed rgba(58,51,46,0.35)\"></div>\n  <div style=\"position:absolute;left:70px;right:70px;top:560px;padding:34px 40px;border-radius:28px;background:rgba(43,42,46,0.88);color:#f6f2ec\">\n    <div style=\"font-weight:700;font-size:30px;letter-spacing:0.18em;color:#e8c4b8\">PRESENTER PLACEHOLDER · SHOT 1 · 0.0–4.0 s</div>\n    <div style=\"font-weight:600;font-size:40px;margin-top:14px\">Selfie MCU · vanity · window light left</div>\n    <div style=\"font-weight:400;font-size:34px;margin-top:8px;opacity:0.85\">Mid-thought, half-laugh, eyebrows up</div>\n    <div style=\"font-weight:500;font-size:34px;margin-top:18px;font-style:italic;opacity:0.9\">“Okay, I wasn't gonna post about this yet, but…”</div>\n    <div style=\"font-size:26px;margin-top:18px;opacity:0.6\">Replace this clip with phone footage (or a disclosed AI avatar), 4.0 s, 1080×1920.</div>\n  </div></div>",
+      "params": {},
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    },
+    "p2": {
+      "kind": "html",
+      "id": "p2",
+      "trackId": "presenter",
+      "startUs": 4000000,
+      "durationUs": 4000000,
+      "template": "<div style=\"position:absolute;inset:0;background:\n radial-gradient(ellipse 60% 45% at 0% 30%,rgba(255,244,226,0.95),rgba(255,244,226,0) 70%),\n linear-gradient(90deg,rgba(255,255,255,0.0) 0 62%,rgba(160,150,140,0.10) 62% 63%,rgba(255,255,255,0) 63%),\n repeating-linear-gradient(0deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),repeating-linear-gradient(90deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),\n linear-gradient(180deg,#efe8df,#e4dbd0 70%,#d9cec1);font-family:'SF Pro Display','Avenir Next','Helvetica Neue',Arial,sans-serif;color:#3a332e;overflow:hidden\">\n  <div style=\"position:absolute;left:150px;top:1220px;width:780px;height:240px;border-radius:30px;background:#f6f2ec;box-shadow:0 30px 60px rgba(60,40,30,0.18)\"></div>\n  <div style=\"position:absolute;left:210px;top:380px;width:660px;height:1100px;border:6px dashed rgba(58,51,46,0.35);border-radius:330px 330px 120px 120px\"></div>\n  <div style=\"position:absolute;left:380px;top:470px;width:320px;height:400px;border-radius:50%;border:6px dashed rgba(58,51,46,0.35)\"></div>\n  <div style=\"position:absolute;left:70px;right:70px;top:560px;padding:34px 40px;border-radius:28px;background:rgba(43,42,46,0.88);color:#f6f2ec\">\n    <div style=\"font-weight:700;font-size:30px;letter-spacing:0.18em;color:#e8c4b8\">PRESENTER PLACEHOLDER · SHOT 2 · 4.0–8.0 s</div>\n    <div style=\"font-weight:600;font-size:40px;margin-top:14px\">Selfie MCU · lifts bottle beside cheek</div>\n    <div style=\"font-weight:400;font-size:34px;margin-top:8px;opacity:0.85\">Turns label to lens, curious</div>\n    <div style=\"font-weight:500;font-size:34px;margin-top:18px;font-style:italic;opacity:0.9\">“this is the Cloud Milk Serum from Dewlit. I've had it about a week.”</div>\n    <div style=\"font-size:26px;margin-top:18px;opacity:0.6\">Replace this clip with phone footage (or a disclosed AI avatar), 4.0 s, 1080×1920.</div>\n  </div></div>",
+      "params": {},
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    },
+    "p3": {
+      "kind": "html",
+      "id": "p3",
+      "trackId": "presenter",
+      "startUs": 8000000,
+      "durationUs": 7000000,
+      "template": "<div style=\"position:absolute;inset:0;background:\n radial-gradient(ellipse 60% 45% at 0% 30%,rgba(255,244,226,0.95),rgba(255,244,226,0) 70%),\n linear-gradient(90deg,rgba(255,255,255,0.0) 0 62%,rgba(160,150,140,0.10) 62% 63%,rgba(255,255,255,0) 63%),\n repeating-linear-gradient(0deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),repeating-linear-gradient(90deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),\n linear-gradient(180deg,#efe8df,#e4dbd0 70%,#d9cec1);font-family:'SF Pro Display','Avenir Next','Helvetica Neue',Arial,sans-serif;color:#3a332e;overflow:hidden\">\n  <div style=\"position:absolute;left:150px;top:1220px;width:780px;height:240px;border-radius:30px;background:#f6f2ec;box-shadow:0 30px 60px rgba(60,40,30,0.18)\"></div>\n  <div style=\"position:absolute;left:210px;top:380px;width:660px;height:1100px;border:6px dashed rgba(58,51,46,0.35);border-radius:330px 330px 120px 120px\"></div>\n  <div style=\"position:absolute;left:380px;top:470px;width:320px;height:400px;border-radius:50%;border:6px dashed rgba(58,51,46,0.35)\"></div>\n  <div style=\"position:absolute;left:70px;right:70px;top:560px;padding:34px 40px;border-radius:28px;background:rgba(43,42,46,0.88);color:#f6f2ec\">\n    <div style=\"font-weight:700;font-size:30px;letter-spacing:0.18em;color:#e8c4b8\">PRESENTER PLACEHOLDER · SHOT 3 · 8.0–15.0 s</div>\n    <div style=\"font-weight:600;font-size:40px;margin-top:14px\">Close-up hands over sink</div>\n    <div style=\"font-weight:400;font-size:34px;margin-top:8px;opacity:0.85\">Unscrews dropper · 2 drops on fingertips</div>\n    <div style=\"font-weight:500;font-size:34px;margin-top:18px;font-style:italic;opacity:0.9\">“Look at the texture. It's literally milky… and really light.”</div>\n    <div style=\"font-size:26px;margin-top:18px;opacity:0.6\">Replace this clip with phone footage (or a disclosed AI avatar), 7.0 s, 1080×1920.</div>\n  </div></div>",
+      "params": {},
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    },
+    "p4": {
+      "kind": "html",
+      "id": "p4",
+      "trackId": "presenter",
+      "startUs": 15000000,
+      "durationUs": 6000000,
+      "template": "<div style=\"position:absolute;inset:0;background:\n radial-gradient(ellipse 60% 45% at 0% 30%,rgba(255,244,226,0.95),rgba(255,244,226,0) 70%),\n linear-gradient(90deg,rgba(255,255,255,0.0) 0 62%,rgba(160,150,140,0.10) 62% 63%,rgba(255,255,255,0) 63%),\n repeating-linear-gradient(0deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),repeating-linear-gradient(90deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),\n linear-gradient(180deg,#efe8df,#e4dbd0 70%,#d9cec1);font-family:'SF Pro Display','Avenir Next','Helvetica Neue',Arial,sans-serif;color:#3a332e;overflow:hidden\">\n  <div style=\"position:absolute;left:150px;top:1220px;width:780px;height:240px;border-radius:30px;background:#f6f2ec;box-shadow:0 30px 60px rgba(60,40,30,0.18)\"></div>\n  <div style=\"position:absolute;left:210px;top:380px;width:660px;height:1100px;border:6px dashed rgba(58,51,46,0.35);border-radius:330px 330px 120px 120px\"></div>\n  <div style=\"position:absolute;left:380px;top:470px;width:320px;height:400px;border-radius:50%;border:6px dashed rgba(58,51,46,0.35)\"></div>\n  <div style=\"position:absolute;left:70px;right:70px;top:560px;padding:34px 40px;border-radius:28px;background:rgba(43,42,46,0.88);color:#f6f2ec\">\n    <div style=\"font-weight:700;font-size:30px;letter-spacing:0.18em;color:#e8c4b8\">PRESENTER PLACEHOLDER · SHOT 4 · 15.0–21.0 s</div>\n    <div style=\"font-weight:600;font-size:40px;margin-top:14px\">Mirror / over-the-shoulder</div>\n    <div style=\"font-weight:400;font-size:34px;margin-top:8px;opacity:0.85\">Presses serum into cheeks · small shrug</div>\n    <div style=\"font-weight:500;font-size:34px;margin-top:18px;font-style:italic;opacity:0.9\">“Two drops, pat it in, done. That's honestly it.”</div>\n    <div style=\"font-size:26px;margin-top:18px;opacity:0.6\">Replace this clip with phone footage (or a disclosed AI avatar), 6.0 s, 1080×1920.</div>\n  </div></div>",
+      "params": {},
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    },
+    "p5": {
+      "kind": "html",
+      "id": "p5",
+      "trackId": "presenter",
+      "startUs": 21000000,
+      "durationUs": 5000000,
+      "template": "<div style=\"position:absolute;inset:0;background:\n radial-gradient(ellipse 60% 45% at 0% 30%,rgba(255,244,226,0.95),rgba(255,244,226,0) 70%),\n linear-gradient(90deg,rgba(255,255,255,0.0) 0 62%,rgba(160,150,140,0.10) 62% 63%,rgba(255,255,255,0) 63%),\n repeating-linear-gradient(0deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),repeating-linear-gradient(90deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),\n linear-gradient(180deg,#efe8df,#e4dbd0 70%,#d9cec1);font-family:'SF Pro Display','Avenir Next','Helvetica Neue',Arial,sans-serif;color:#3a332e;overflow:hidden\">\n  <div style=\"position:absolute;left:150px;top:1220px;width:780px;height:240px;border-radius:30px;background:#f6f2ec;box-shadow:0 30px 60px rgba(60,40,30,0.18)\"></div>\n  <div style=\"position:absolute;left:210px;top:380px;width:660px;height:1100px;border:6px dashed rgba(58,51,46,0.35);border-radius:330px 330px 120px 120px\"></div>\n  <div style=\"position:absolute;left:380px;top:470px;width:320px;height:400px;border-radius:50%;border:6px dashed rgba(58,51,46,0.35)\"></div>\n  <div style=\"position:absolute;left:70px;right:70px;top:560px;padding:34px 40px;border-radius:28px;background:rgba(43,42,46,0.88);color:#f6f2ec\">\n    <div style=\"font-weight:700;font-size:30px;letter-spacing:0.18em;color:#e8c4b8\">PRESENTER PLACEHOLDER · SHOT 5 · 21.0–26.0 s</div>\n    <div style=\"font-weight:600;font-size:40px;margin-top:14px\">Selfie MCU · bottle near jaw</div>\n    <div style=\"font-weight:400;font-size:34px;margin-top:8px;opacity:0.85\">Sincere half-smile · sets bottle down</div>\n    <div style=\"font-weight:500;font-size:34px;margin-top:18px;font-style:italic;opacity:0.9\">“It's just easy. I keep reaching for it.”</div>\n    <div style=\"font-size:26px;margin-top:18px;opacity:0.6\">Replace this clip with phone footage (or a disclosed AI avatar), 5.0 s, 1080×1920.</div>\n  </div></div>",
+      "params": {},
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    },
+    "p6": {
+      "kind": "html",
+      "id": "p6",
+      "trackId": "presenter",
+      "startUs": 26000000,
+      "durationUs": 4000000,
+      "template": "<div style=\"position:absolute;inset:0;background:\n radial-gradient(ellipse 60% 45% at 0% 30%,rgba(255,244,226,0.95),rgba(255,244,226,0) 70%),\n linear-gradient(90deg,rgba(255,255,255,0.0) 0 62%,rgba(160,150,140,0.10) 62% 63%,rgba(255,255,255,0) 63%),\n repeating-linear-gradient(0deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),repeating-linear-gradient(90deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),\n linear-gradient(180deg,#efe8df,#e4dbd0 70%,#d9cec1);font-family:'SF Pro Display','Avenir Next','Helvetica Neue',Arial,sans-serif;color:#3a332e;overflow:hidden\">\n  <div style=\"position:absolute;left:150px;top:1220px;width:780px;height:240px;border-radius:30px;background:#f6f2ec;box-shadow:0 30px 60px rgba(60,40,30,0.18)\"></div>\n  <div style=\"position:absolute;left:210px;top:380px;width:660px;height:1100px;border:6px dashed rgba(58,51,46,0.35);border-radius:330px 330px 120px 120px\"></div>\n  <div style=\"position:absolute;left:380px;top:470px;width:320px;height:400px;border-radius:50%;border:6px dashed rgba(58,51,46,0.35)\"></div>\n  <div style=\"position:absolute;left:70px;right:70px;top:560px;padding:34px 40px;border-radius:28px;background:rgba(43,42,46,0.88);color:#f6f2ec\">\n    <div style=\"font-weight:700;font-size:30px;letter-spacing:0.18em;color:#e8c4b8\">PRESENTER PLACEHOLDER · SHOT 6 · 26.0–30.0 s</div>\n    <div style=\"font-weight:600;font-size:40px;margin-top:14px\">Selfie MCU · final look to lens</div>\n    <div style=\"font-weight:400;font-size:34px;margin-top:8px;opacity:0.85\">Natural smile · reaches to stop recording</div>\n    <div style=\"font-weight:500;font-size:34px;margin-top:18px;font-style:italic;opacity:0.9\">“Link's in my bio if you wanna try it.”</div>\n    <div style=\"font-size:26px;margin-top:18px;opacity:0.6\">Replace this clip with phone footage (or a disclosed AI avatar), 4.0 s, 1080×1920.</div>\n  </div></div>",
+      "params": {},
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    },
+    "overlay": {
+      "kind": "html",
+      "id": "overlay",
+      "trackId": "overlay",
+      "startUs": 0,
+      "durationUs": 30000000,
+      "template": "<div class=\"stage\" data-libs=\"stage\" data-duration=\"30\" data-fps=\"30\" data-stage-version=\"2\" style=\"width:1080px;height:1920px;overflow:hidden\"><style>\n*{box-sizing:border-box;margin:0}\n.stage{background:transparent;font-family:'SF Pro Display','Avenir Next','Helvetica Neue',Arial,sans-serif;color:#fff;-webkit-font-smoothing:antialiased}\n.ins{position:absolute;inset:0;overflow:hidden;display:none}\n.room{position:absolute;inset:-80px;background:\n radial-gradient(ellipse 60% 45% at 0% 30%,rgba(255,244,226,0.95),rgba(255,244,226,0) 70%),\n linear-gradient(90deg,rgba(255,255,255,0.0) 0 62%,rgba(160,150,140,0.10) 62% 63%,rgba(255,255,255,0) 63%),\n repeating-linear-gradient(0deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),repeating-linear-gradient(90deg,rgba(150,140,130,0.10) 0 2px,transparent 2px 120px),\n linear-gradient(180deg,#efe8df,#e4dbd0 70%,#d9cec1)}\n.bottle{position:absolute;left:390px;top:520px;width:300px;height:900px}\n.bottle .body{position:absolute;left:0;top:300px;width:300px;height:600px;border-radius:44px 44px 54px 54px;overflow:hidden;\n  background:linear-gradient(90deg,#d8d2ca 0%,#f7f4ef 18%,#ffffff 30%,#f2eee8 52%,#ddd6cd 82%,#c9c1b7 100%);box-shadow:0 40px 70px rgba(70,50,35,0.25),inset 0 0 0 2px rgba(255,255,255,0.6)}\n.bottle .body::after{content:\"\";position:absolute;left:46px;top:20px;width:22px;height:540px;border-radius:11px;background:linear-gradient(180deg,rgba(255,255,255,0.9),rgba(255,255,255,0.2));filter:blur(2px)}\n.bottle .lab{position:absolute;left:0;top:150px;width:300px;text-align:center;color:#2b2a2e}\n.lab i{display:block;margin:0 auto 18px;width:64px;height:36px;border-radius:20px;background:#e8c4b8;box-shadow:22px -12px 0 -2px #e8c4b8,-20px -6px 0 -6px #e8c4b8}\n.lab b{display:block;font-weight:700;font-size:46px;letter-spacing:0.24em;padding-left:0.24em}\n.lab span{display:block;margin-top:14px;font-size:27px;font-weight:500}\n.lab em{display:block;margin-top:120px;font-style:normal;font-size:20px;letter-spacing:0.2em;color:#6b6460}\n.bottle .collar{position:absolute;left:88px;top:220px;width:124px;height:90px;border-radius:12px;background:linear-gradient(90deg,#9c7a46,#e9cf98 30%,#c7a462 60%,#8f6d3c)}\n.bottle .bulb{position:absolute;left:100px;top:40px;width:100px;height:190px;border-radius:50px 50px 18px 18px;background:linear-gradient(90deg,#c99e91,#f0d3c9 35%,#e8c4b8 60%,#b98d80)}\n.shadow{position:absolute;left:330px;top:1400px;width:420px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(60,40,30,0.35),rgba(60,40,30,0))}\n.glass{position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 30% 20%,#ffffff,#e9eef0 50%,#cfd8dc)}\n.glass::after{content:\"\";position:absolute;left:-200px;top:300px;width:1600px;height:240px;transform:rotate(-24deg);background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,0.55),rgba(255,255,255,0))}\n.dropper{position:absolute;left:470px;top:-40px;width:140px;height:520px}\n.dropper .tube{position:absolute;left:50px;top:180px;width:40px;height:340px;border-radius:0 0 20px 20px;background:linear-gradient(90deg,rgba(200,210,214,0.7),rgba(255,255,255,0.95) 40%,rgba(190,200,205,0.7))}\n.dropper .tube::after{content:\"\";position:absolute;left:8px;right:8px;bottom:6px;height:180px;border-radius:0 0 14px 14px;background:#fbf8f3}\n.dropper .bulbx{position:absolute;left:20px;top:0;width:100px;height:190px;border-radius:50px 50px 18px 18px;background:linear-gradient(90deg,#c99e91,#f0d3c9 35%,#e8c4b8 60%,#b98d80)}\n.vanity{position:absolute;left:-80px;right:-80px;top:1300px;bottom:-80px;background:linear-gradient(180deg,#f4f1ec,#e6e0d8),repeating-linear-gradient(115deg,rgba(150,150,160,0.12) 0 2px,transparent 2px 60px)}\n.towel{position:absolute;left:640px;top:1180px;width:420px;height:200px;border-radius:24px;background:repeating-linear-gradient(90deg,#9fb5a3 0 14px,#93aa97 14px 18px);box-shadow:0 20px 40px rgba(40,50,40,0.2)}\n.leaf{position:absolute;left:40px;top:860px;width:320px;height:520px;background:radial-gradient(ellipse 18% 9% at 50% 20%,#7d9b80 98%,transparent),radial-gradient(ellipse 18% 9% at 30% 40%,#86a389 98%,transparent),radial-gradient(ellipse 18% 9% at 65% 55%,#7d9b80 98%,transparent),radial-gradient(ellipse 18% 9% at 40% 72%,#86a389 98%,transparent);opacity:0.9}\n#cap{position:absolute;left:90px;right:90px;top:1360px;text-align:center;font-weight:800;font-size:58px;line-height:1.18;letter-spacing:-0.01em;color:#fff;-webkit-text-stroke:3px rgba(20,16,14,0.75);paint-order:stroke fill;text-shadow:0 4px 14px rgba(0,0,0,0.45)}\n#cap .w{opacity:0.0}#cap .w.on{opacity:1}#cap .w.now{color:#ffd6c8}\n#emph{position:absolute;left:0;right:0;top:300px;text-align:center}\n#emph span{display:inline-block;padding:14px 28px;border-radius:16px;background:#f6f2ec;color:#2b2a2e;font-weight:700;font-size:44px;box-shadow:0 10px 30px rgba(0,0,0,0.18);transform-origin:50% 100%}\n#end{position:absolute;left:70px;right:70px;top:1390px;padding:36px 40px;border-radius:34px;background:rgba(246,242,236,0.97);color:#2b2a2e;display:none;box-shadow:0 30px 70px rgba(0,0,0,0.25)}\n#end b{display:block;font-weight:700;font-size:56px;letter-spacing:0.22em}\n#end span{display:block;font-size:36px;margin-top:6px;font-weight:500}\n#end .pill{display:inline-block;margin-top:22px;padding:14px 30px;border-radius:40px;background:#2b2a2e;color:#f6f2ec;font-weight:700;font-size:30px}\n#end small{display:block;margin-top:22px;font-size:22px;color:#7a726c}\n</style>\n<div class=\"ins\" id=\"iBottle\"><div class=\"room\"></div><div class=\"vanity\"></div><div class=\"leaf\"></div><div class=\"shadow\"></div>\n  <div class=\"bottle\"><div class=\"bulb\"></div><div class=\"collar\"></div><div class=\"body\"><div class=\"lab\"><i></i><b>DEWLIT</b><span>Cloud Milk Serum</span><em>30 ML · 1.0 FL OZ</em></div></div></div></div>\n<div class=\"ins\" id=\"iTexture\"><div class=\"glass\"></div>\n  <svg width=\"1080\" height=\"1920\" style=\"position:absolute;left:0;top:0\"><defs><filter id=\"goo\"><feGaussianBlur in=\"SourceGraphic\" stdDeviation=\"14\" result=\"b\"/><feColorMatrix in=\"b\" mode=\"matrix\" values=\"1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 26 -11\" result=\"g\"/><feGaussianBlur in=\"g\" stdDeviation=\"2\" result=\"s\"/><feSpecularLighting in=\"s\" surfaceScale=\"6\" specularConstant=\"0.9\" specularExponent=\"28\" lighting-color=\"#ffffff\" result=\"sp\"><feDistantLight azimuth=\"225\" elevation=\"45\"/></feSpecularLighting><feComposite in=\"sp\" in2=\"g\" operator=\"in\" result=\"spi\"/><feComposite in=\"g\" in2=\"spi\" operator=\"arithmetic\" k1=\"0\" k2=\"1\" k3=\"0.8\" k4=\"0\"/></filter></defs><g id=\"milk\" filter=\"url(#goo)\" fill=\"#faf6ef\"></g></svg>\n  <div class=\"dropper\"><div class=\"bulbx\"></div><div class=\"tube\"></div></div></div>\n<div class=\"ins\" id=\"iVanity\"><div class=\"room\"></div><div class=\"vanity\"></div><div class=\"towel\"></div><div class=\"shadow\" style=\"left:300px;top:1440px\"></div>\n  <div class=\"bottle\" style=\"left:360px;top:560px\"><div class=\"bulb\"></div><div class=\"collar\"></div><div class=\"body\"><div class=\"lab\"><i></i><b>DEWLIT</b><span>Cloud Milk Serum</span><em>30 ML · 1.0 FL OZ</em></div></div></div></div>\n<div id=\"emph\"><span id=\"emphS\"></span></div>\n<div id=\"cap\"><div class=\"ln\" id=\"ln0\" style=\"display:none\"><span class=\"w\">Okay,</span> <span class=\"w\">I</span> <span class=\"w\">wasn't</span> <span class=\"w\">gonna</span> <span class=\"w\">post</span> <span class=\"w\">about</span> <span class=\"w\">this</span> <span class=\"w\">yet,</span> <span class=\"w\">but…</span></div><div class=\"ln\" id=\"ln1\" style=\"display:none\"><span class=\"w\">this</span> <span class=\"w\">is</span> <span class=\"w\">the</span> <span class=\"w\">Cloud</span> <span class=\"w\">Milk</span> <span class=\"w\">Serum</span> <span class=\"w\">from</span> <span class=\"w\">Dewlit.</span> <span class=\"w\">I've</span> <span class=\"w\">had</span> <span class=\"w\">it</span> <span class=\"w\">about</span> <span class=\"w\">a</span> <span class=\"w\">week.</span></div><div class=\"ln\" id=\"ln2\" style=\"display:none\"><span class=\"w\">Look</span> <span class=\"w\">at</span> <span class=\"w\">the</span> <span class=\"w\">texture.</span></div><div class=\"ln\" id=\"ln3\" style=\"display:none\"><span class=\"w\">It's</span> <span class=\"w\">literally</span> <span class=\"w\">milky…</span> <span class=\"w\">and</span> <span class=\"w\">really</span> <span class=\"w\">light.</span></div><div class=\"ln\" id=\"ln4\" style=\"display:none\"><span class=\"w\">Two</span> <span class=\"w\">drops,</span> <span class=\"w\">pat</span> <span class=\"w\">it</span> <span class=\"w\">in,</span> <span class=\"w\">done.</span> <span class=\"w\">That's</span> <span class=\"w\">honestly</span> <span class=\"w\">it.</span></div><div class=\"ln\" id=\"ln5\" style=\"display:none\"><span class=\"w\">It's</span> <span class=\"w\">just</span> <span class=\"w\">easy.</span> <span class=\"w\">I</span> <span class=\"w\">keep</span> <span class=\"w\">reaching</span> <span class=\"w\">for</span> <span class=\"w\">it.</span></div><div class=\"ln\" id=\"ln6\" style=\"display:none\"><span class=\"w\">Link's</span> <span class=\"w\">in</span> <span class=\"w\">my</span> <span class=\"w\">bio</span> <span class=\"w\">if</span> <span class=\"w\">you</span> <span class=\"w\">wanna</span> <span class=\"w\">try</span> <span class=\"w\">it.</span></div></div>\n<div id=\"end\"><b>DEWLIT</b><span>Cloud Milk Serum</span><div class=\"pill\">Link in bio ↗</div><small>Creative concept · fictional brand · presenter clips are placeholders</small></div></div>\n<script>stage.build((tl, S) => {\nvar T = {\"DUR\":30,\"FPS\":30,\"W\":1080,\"H\":1920}, LINES = [[0.35,3.6,\"Okay, I wasn't gonna post about this yet, but…\"],[4.15,7.7,\"this is the Cloud Milk Serum from Dewlit. I've had it about a week.\"],[8.9,11.4,\"Look at the texture.\"],[11.6,14.6,\"It's literally milky… and really light.\"],[15.4,19.6,\"Two drops, pat it in, done. That's honestly it.\"],[21.3,25.2,\"It's just easy. I keep reaching for it.\"],[26.3,29.2,\"Link's in my bio if you wanna try it.\"]], INSERTS = {\"bottle\":[5,6.6],\"texture\":[8.4,11.8],\"vanity\":[23,24.9],\"end\":[26.6,30]}, EMPHASIS = [[0.5,3.7,\"the step I didn't plan to post\"],[5.1,7.8,\"Meet Cloud Milk Serum\"],[8.6,11.6,\"look at this texture\"],[15.5,20.6,\"2 drops · pat · done\"]];\nvar $ = function (id) { return document.getElementById(id); };\nvar c01 = function (x) { return Math.max(0, Math.min(1, x)); }, sm = function (x) { x = c01(x); return x * x * (3 - 2 * x); };\n// handheld: a slow, small two-axis drift, like a phone held at arm's length (deterministic)\nfunction hand(t, k) { return [7 * Math.sin(t * 1.3 + k) + 3 * Math.sin(t * 3.1 + 2 * k), 6 * Math.cos(t * 1.1 + k) + 2 * Math.sin(t * 2.7 + k)]; }\nfunction ins(id, span, t) { var on = t >= span[0] && t < span[1]; $(id).style.display = on ? \"block\" : \"none\"; return on ? (t - span[0]) / (span[1] - span[0]) : -1; }\nvar milk = document.getElementById(\"milk\"), BL = [];\nfor (var i = 0; i < 26; i++) { var c = document.createElementNS(\"http://www.w3.org/2000/svg\", \"circle\"); milk.appendChild(c); BL.push({ c: c, a: i / 26 * 6.283 + Math.sin(i * 7.1), d: 0.35 + 0.65 * ((Math.sin(i * 12.9898) * 43758.5453) % 1 + 1) % 1 }); }\nfunction paint(t) {\n  // 1 · the bottle close-up: a push-in while the label turns to camera (a quick hand rotation)\n  var u = ins(\"iBottle\", INSERTS.bottle, t);\n  if (u >= 0) {\n    var h = hand(t, 1), b = $(\"iBottle\").querySelector(\".bottle\"), turn = 1 - sm(u / 0.6);\n    b.style.transform = \"translate(\" + (h[0] - 40 * turn) + \"px,\" + h[1] + \"px) scale(\" + (1.0 + 0.08 * u) + \")\";\n    var lab = b.querySelector(\".lab\"); lab.style.transform = \"translateX(\" + (-120 * turn) + \"px) scaleX(\" + (1 - 0.45 * turn) + \")\"; lab.style.opacity = 1 - 0.5 * turn;\n  }\n  // 2 · the texture macro: one milky drop falls from the dropper, lands, and spreads into a soft pool\n  u = ins(\"iTexture\", INSERTS.texture, t);\n  if (u >= 0) {\n    var tt = t - INSERTS.texture[0], fall = c01(tt / 0.7), land = c01((tt - 0.7) / 2.4), h2 = hand(t, 2);\n    $(\"iTexture\").style.transform = \"translate(\" + h2[0] + \"px,\" + h2[1] + \"px) scale(\" + (1.06 + 0.04 * tt) + \")\";\n    BL.forEach(function (b, i) {\n      var r, x, y;\n      if (tt < 0.7) { x = 540; y = 520 + 560 * fall * fall; r = i < 4 ? 52 - i * 6 : 0; }\n      else { var spread = 1 - Math.pow(1 - land, 2.4), a = b.a + 0.4 * land; x = 540 + Math.cos(a) * 210 * b.d * spread; y = 1080 + Math.sin(a) * 140 * b.d * spread; r = 95 * (1 - 0.3 * spread) * (0.8 + 0.4 * b.d); } // one pool, not droplets\n      b.c.setAttribute(\"cx\", x.toFixed(1)); b.c.setAttribute(\"cy\", y.toFixed(1)); b.c.setAttribute(\"r\", r.toFixed(1));\n    });\n  }\n  // 3 · the bottle on the vanity, a slow push-in\n  u = ins(\"iVanity\", INSERTS.vanity, t);\n  if (u >= 0) { var h3 = hand(t, 3); $(\"iVanity\").querySelector(\".bottle\").style.transform = \"translate(\" + h3[0] + \"px,\" + h3[1] + \"px) scale(\" + (1 + 0.06 * u) + \")\"; }\n}\nfunction poseType(t) {\n  // karaoke captions: the current line, words appearing as they are spoken, the spoken word tinted\n  LINES.forEach(function (l, i) {\n    var el = $(\"ln\" + i), on = t >= l[0] - 0.05 && t < l[1] + 0.35;\n    el.style.display = on ? \"block\" : \"none\";\n    if (!on) return;\n    var ws = el.children, n = ws.length, k = Math.floor((t - l[0]) / ((l[1] - l[0]) / n));\n    for (var j = 0; j < n; j++) { ws[j].className = \"w\" + (j <= k ? \" on\" : \"\") + (j === k ? \" now\" : \"\"); }\n  });\n  $(\"cap\").style.display = t >= INSERTS.end[0] ? \"none\" : \"block\";\n  var e = EMPHASIS.filter(function (x) { return t >= x[0] && t < x[1]; })[0], s = $(\"emphS\");\n  s.style.display = e ? \"inline-block\" : \"none\";\n  if (e) { s.textContent = e[2]; var p = sm((t - e[0]) / 0.25), q = sm((e[1] - t) / 0.2); s.style.transform = \"scale(\" + (0.85 + 0.15 * p) + \") rotate(-2deg)\"; s.style.opacity = Math.min(p, q); }\n  var en = $(\"end\"), v = sm((t - INSERTS.end[0]) / 0.4);\n  en.style.display = t >= INSERTS.end[0] ? \"block\" : \"none\"; en.style.opacity = v; en.style.transform = \"translateY(\" + (40 * (1 - v)) + \"px)\";\n}\ntl.frame(paint);\ntl.frame(poseType, { hold: true });\ntl.label(\"p1\", 0); tl.label(\"p2\", 4); tl.label(\"p3\", 8); tl.label(\"p4\", 15); tl.label(\"p5\", 21); tl.label(\"p6\", 26);\n});</script>",
+      "params": {},
+      "scripted": true,
+      "animated": true,
+      "transform": {
+        "x": 0.5,
+        "y": 0.5,
+        "scale": 1,
+        "rotation": 0,
+        "opacity": 1
+      }
+    }
+  },
+  "transitions": {}
+}

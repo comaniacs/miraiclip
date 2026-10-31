@@ -25,14 +25,6 @@ var CAM_KEYS = [
   [28.8, -11, 7, 2640, 0, 40, 0, -150],
   [30.0, -11, 7, 2640, 0, 40, 0, -150],
 ];
-var CH = [1, 2, 4, 5, 6, 7].map(function (j) { return curve(CAM_KEYS.map(function (k) { return [k[0], k[j]]; })); });
-var LOGD = curve(CAM_KEYS.map(function (k) { return [k[0], Math.log(k[3])]; })); // distance moves in log space
-function camAt(t) {
-  return { yaw: CH[0](t), elev: CH[1](t), dist: Math.exp(LOGD(t)), tgt: [CH[2](t), CH[3](t), 0], ox: CH[4](t), oy: CH[5](t) };
-}
-var PROBES = [[0, 0, 0], [-720, -450, 0], [720, -450, 0], [-720, 450, 0], [720, 450, 0]];
-function motionOf(from, to) {
-  var a = camAt(from), b = camAt(to), far = 0;
-  PROBES.forEach(function (p) { var pa = project(p, a), pb = project(p, b); far = Math.max(far, Math.hypot(pb.x - pa.x, pb.y - pa.y)); });
-  return far;
-}
+// the kit joins the keys (monotone cubics, distance in log space); the probes size motion blur and check the rest
+var CAM = filmCamera(CAM_KEYS, [[0, 0, 0], [-720, -450, 0], [720, -450, 0], [-720, 450, 0], [720, 450, 0]]);
+var camAt = CAM.camAt, motionOf = CAM.motionOf;

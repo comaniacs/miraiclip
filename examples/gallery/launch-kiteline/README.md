@@ -50,13 +50,16 @@ node render.mjs --blur                                          # the final, wit
 
 ## How the film is built
 
+The film runs on the shared [app-film kit](../_lib/app-film/README.md): the replay engine, camera maths, cursor, accent line, base CSS, synthesizer, render-and-validate and the browser-test helper. This folder holds only what is particular to Kiteline.
+
 | File | Role |
 |---|---|
 | `timeline.mjs` | The beats and the `ACTIONS` list (every click and keystroke). Both the picture and the sound read it. |
-| `film/10-replay.js` | Mounts a fresh app each frame and performs every action up to `t`. It records element positions and takes snapshots of real panels. |
+| `film/10-replay.js` | Hands the real Kiteline app to the kit's replay: a fresh mount each frame, every action up to `t`, snapshots of real panels. |
 | `film/20-world.js` | The 3D layer: idea cards (five are the real seed posts and land on their real chips), day tiles on the real cell rects, carry cards between screens, the lifted plan, and the hero panels. |
-| `film/60-camera.js` | One camera move. `dist 1600` at yaw 0 / elev 0 shows the app frontally at 1:1 (the "2D" view); the rest orbits it. |
-| `film/70-overlay.js` | Cursor and clicks, the coral kite line, the prompt reveal, the preview highlight, the landing glow, and the headlines. |
+| `film/60-camera.js` | The camera keys. `dist 1600` at yaw 0 / elev 0 shows the app frontally at 1:1 (the "2D" view); the rest orbits it. |
+| `film/70-overlay.js` | This film's moments: where the cursor shows, the prompt reveal, the preview highlight, the landing glow, the three uses of the coral line, and the headlines. |
+| `film/90-main.js` | The frame, the subject check, the declared rest, labels and hits. |
 | `audio.mjs` | The original synthesized score. UI sounds are placed from `ACTIONS`. |
 
 ## Validated output

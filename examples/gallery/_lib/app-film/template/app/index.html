@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>__TITLE__</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>html, body { height: 100%; margin: 0; } #app { height: 100vh; }</style>
+</head>
+<body>
+  <div id="app"></div>
+  <script src="js/core.js"></script>
+  <script src="js/ui.js"></script>
+  <script>
+    // standalone boot: state saved in localStorage; ?reset starts fresh
+    (function () {
+      var KEY = "__ID__.v1";
+      var storage = {
+        load: function () { if (new URLSearchParams(location.search).has("reset")) localStorage.removeItem(KEY); var raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : null; },
+        save: function (data) { localStorage.setItem(KEY, JSON.stringify(data)); },
+      };
+      window.app = AppUI.mount(document.getElementById("app"), { storage: storage });
+    })();
+  </script>
+</body>
+</html>

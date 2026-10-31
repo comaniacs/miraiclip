@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>HighLevel — One Login</title>
+<style>
+@font-face { font-family: Geist; src: url(assets/Geist-Variable.woff2) format("woff2"); font-weight: 100 900; }
+@font-face { font-family: GeistMono; src: url(assets/GeistMono-Variable.woff2) format("woff2"); font-weight: 100 900; }
+:root { --blue: #188BF6; --green: #37CA37; --yellow: #FFBC00; --ink: #05080F; --text: #F4F7FB; --dim: #8D9AB0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--ink); }
+body { font-family: Geist, system-ui, sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+#stage { position: absolute; inset: 0; overflow: hidden; background: var(--ink); }
+.layer, .scene { position: absolute; inset: 0; }
+.scene { overflow: hidden; }
+.cam { position: absolute; inset: 0; perspective: 1800px; perspective-origin: 50% 50%; }
+.rig { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; }
+.rig > * { position: absolute; }
+
+/* background */
+#bg .blob { position: absolute; width: 1100px; height: 1100px; border-radius: 50%; filter: blur(140px); opacity: .55; left: 0; top: 0; }
+#floor { position: absolute; left: -1500px; right: -1500px; top: 560px; height: 1600px; transform-origin: 50% 0;
+  background-image: linear-gradient(rgba(120,170,255,.16) 2px, transparent 2px), linear-gradient(90deg, rgba(120,170,255,.16) 2px, transparent 2px);
+  background-size: 120px 120px; -webkit-mask-image: linear-gradient(to bottom, transparent, #000 25%, #000 45%, transparent 85%); }
+#grain { position: absolute; inset: -50px; opacity: .07; mix-blend-mode: overlay; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"); }
+#vignette { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 50%, transparent 55%, rgba(0,0,0,.55) 100%); pointer-events: none; }
+#flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+
+/* product shot in a browser frame */
+.shot { width: 1600px; height: 942px; margin: -471px 0 0 -800px; border-radius: 18px; overflow: hidden; background: #fff;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.14), 0 60px 140px rgba(0,0,0,.6), 0 0 120px rgba(24,139,246,.18); }
+.shot .bar { height: 42px; background: #10151F; display: flex; align-items: center; gap: 9px; padding: 0 18px; }
+.shot .bar i { width: 13px; height: 13px; border-radius: 50%; background: #2A3242; }
+.shot .bar i:nth-child(1) { background: #FF5F57; } .shot .bar i:nth-child(2) { background: #FEBC2E; } .shot .bar i:nth-child(3) { background: #28C840; }
+.shot .bar span { margin-left: 22px; flex: 0 0 520px; height: 26px; border-radius: 13px; background: #1C2433; color: #9AA6BA; font: 500 14px/26px GeistMono, monospace; padding-left: 16px; }
+.shot img { display: block; width: 1600px; height: 900px; }
+.shot .gloss { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.22) 48%, transparent 60%); background-size: 300% 100%; pointer-events: none; }
+
+/* type */
+.kicker { font: 600 22px/1 GeistMono, monospace; letter-spacing: .22em; text-transform: uppercase; color: var(--blue); }
+.kicker b { color: var(--dim); font-weight: 500; margin-right: 18px; }
+.title { font-weight: 700; font-size: 104px; line-height: .98; letter-spacing: -.045em; }
+.title em { font-style: normal; }
+.title em, .title .g, .title .y { color: transparent; }
+.title em .w > span, .title em:not(:has(.w)) { background: linear-gradient(90deg, var(--blue), #6FC3FF); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.title .g .w > span { background: linear-gradient(90deg, var(--green), #A6F06A); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.title .y .w > span { background: linear-gradient(90deg, var(--yellow), #FFE27A); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.copy { filter: drop-shadow(0 6px 22px rgba(0,0,0,.55)); }
+.corner { position: absolute; width: 1500px; height: 900px; pointer-events: none; }
+.w { display: inline-block; overflow: hidden; vertical-align: top; padding: 0 .02em .12em; margin-bottom: -.12em; }
+.w > span { display: inline-block; will-change: transform; }
+.copy { position: absolute; }
+.scrim-l { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(5,8,15,.95) 0%, rgba(5,8,15,.75) 34%, transparent 62%); }
+.scrim-b { position: absolute; inset: 0; background: linear-gradient(0deg, rgba(5,8,15,.96) 0%, rgba(5,8,15,.6) 32%, transparent 58%); }
+
+/* hook tool cards */
+.tool { width: 300px; height: 150px; margin: -75px 0 0 -150px; border-radius: 20px; background: linear-gradient(160deg, #161D2B, #0C111B);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.09), 0 30px 60px rgba(0,0,0,.5); padding: 24px 26px; }
+.tool .ic { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; font: 700 22px/1 Geist; color: #fff; }
+.tool .nm { margin-top: 16px; font: 650 30px/1 Geist; letter-spacing: -.02em; }
+.tool .sub { position: absolute; right: 24px; top: 28px; font: 500 15px/1 GeistMono; color: #E5584F; letter-spacing: .06em; }
+.chip { display: inline-flex; align-items: center; gap: 12px; height: 62px; padding: 0 26px 0 14px; border-radius: 31px; background: #121928;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.12), 0 16px 40px rgba(0,0,0,.45); font: 600 26px/1 Geist; letter-spacing: -.01em; white-space: nowrap; }
+.chip i { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font: 700 16px/1 Geist; font-style: normal; color: #fff; }
+.node { width: 330px; height: 92px; margin: -46px 0 0 -165px; border-radius: 18px; background: rgba(13,19,31,.94); display: flex; align-items: center; gap: 18px; padding: 0 22px;
+  box-shadow: 0 0 0 2px rgba(24,139,246,.7), 0 0 50px rgba(24,139,246,.45); font: 650 28px/1 Geist; }
+.node i { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; font-style: normal; font: 700 22px/1 Geist; }
+.outline { font: 800 330px/1 Geist; letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 2px rgba(140,180,255,.22); white-space: nowrap; position: absolute; top: 50%; margin-top: -170px; }
+.pill { display: inline-flex; align-items: center; gap: 16px; height: 92px; padding: 0 44px; border-radius: 46px; background: var(--blue); font: 650 44px/1 Geist; letter-spacing: -.02em; color: #fff;
+  box-shadow: 0 20px 60px rgba(24,139,246,.55); position: relative; overflow: hidden; }
+.pill .sheen { position: absolute; inset: 0; background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.45) 50%, transparent 70%); }
+.ring { position: absolute; left: 50%; top: 50%; border-radius: 50%; border: 3px solid var(--blue); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg" class="layer">
+    <div class="blob" id="b1" style="background:#188BF6"></div>
+    <div class="blob" id="b2" style="background:#37CA37"></div>
+    <div class="blob" id="b3" style="background:#FFBC00"></div>
+    <div class="cam"><div id="floor"></div></div>
+  </div>
+  <div id="scenes" class="layer"></div>
+  <div id="vignette"></div>
+  <div id="grain"></div>
+  <div id="flash"></div>
+</div>
+<script src="film.js"></script>
+</body>
+</html>
