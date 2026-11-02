@@ -32,6 +32,7 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 ### Changed
 
 - Clips whose `clip/move` or `clip/trim` changes nothing keep their transitions.
+- `@miraiclip/editor` **`beginGesture` is one history entry for real**: it now rides on core's `project.beginGesture` instead of committing and undoing an entry per update, so a drag no longer fires a `history` commit (and an undo) for every mouse move, and listeners see one `commit` when the gesture ends. Updates are still applied to the document at once, each as its own transaction (a throwing update leaves the previous one in place). New `Gesture.cancel()` reverts everything a gesture changed and leaves no entry (Esc during a drag). If an undo or redo closes the gesture mid-way, the next update opens a fresh one rather than writing outside any gesture. `beginTransformDrag`, `beginClipDrag` and `useGesture` get this with no change.
 
 ## [editor-0.2.0] + [react-0.2.0] — 2026-10-12
 

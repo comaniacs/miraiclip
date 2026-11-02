@@ -256,13 +256,87 @@ describe("commands, ids, gestures, framing", () => {
   it("records a live gesture as one history entry", () => {
     const project = setup();
     const commands = createCommands(project);
+    const startX = project.getState().doc.clips["b"]!.transform.x;
     const gesture = beginGesture(project, "drag");
     for (const x of [0.1, 0.2, 0.3]) gesture.update(() => commands.setClipProperty("b", { transform: { x } }));
     gesture.end();
     expect(project.getState().doc.clips["b"]!.transform.x).toBe(0.3);
     project.undo();
-    expect(project.getState().doc.clips["b"]!.transform.x).not.toBe(0.1);
+    expect(project.getState().doc.clips["b"]!.transform.x).toBe(startX);
     expect(project.canUndo()).toBe(false);
+  });
+
+  it("commits nothing until the gesture ends, then exactly once", () => {
+    const project = setup();
+    const commands = createCommands(project);
+    const commits: (string | undefined)[] = [];
+    project.events.on("history", (e) => {
+      if (e.kind === "commit") commits.push(e.label);
+    });
+    const before = commits.length;
+    const gesture = beginGesture(project, "drag");
+    for (const x of [0.1, 0.2, 0.3, 0.4]) gesture.update(() => commands.setClipProperty("b", { transform: { x } }));
+    expect(commits.length).toBe(before); // the canvas shows each frame; history waits
+    expect(project.getState().doc.clips["b"]!.transform.x).toBe(0.4);
+    gesture.end();
+    expect(commits.slice(before)).toEqual(["drag"]);
+  });
+
+  it("leaves no entry when the gesture ends where it started or changed nothing", () => {
+    const project = setup();
+    const commands = createCommands(project);
+    const startX = project.getState().doc.clips["b"]!.transform.x;
+    const gesture = beginGesture(project, "drag");
+    gesture.update(() => commands.setClipProperty("b", { transform: { x: startX } }));
+    gesture.end();
+    expect(project.canUndo()).toBe(false);
+  });
+
+  it("cancel reverts every update and leaves no entry", () => {
+    const project = setup();
+    const commands = createCommands(project);
+    const startX = project.getState().doc.clips["b"]!.transform.x;
+    const gesture = beginGesture(project, "drag");
+    for (const x of [0.1, 0.2]) gesture.update(() => commands.setClipProperty("b", { transform: { x } }));
+    gesture.cancel();
+    expect(project.getState().doc.clips["b"]!.transform.x).toBe(startX);
+    expect(project.canUndo()).toBe(false);
+  });
+
+  it("an update that throws keeps the previous update and the gesture goes on", () => {
+    const project = setup();
+    const commands = createCommands(project);
+    const gesture = beginGesture(project, "drag");
+    gesture.update(() => commands.setClipProperty("b", { transform: { x: 0.2 } }));
+    expect(() =>
+      gesture.update(() => {
+        commands.setClipProperty("b", { transform: { x: 0.9 } });
+        throw new Error("boom");
+      }),
+    ).toThrow("boom");
+    expect(project.getState().doc.clips["b"]!.transform.x).toBe(0.2);
+    gesture.update(() => commands.setClipProperty("b", { transform: { x: 0.3 } }));
+    gesture.end();
+    project.undo();
+    expect(project.canUndo()).toBe(false);
+  });
+
+  it("never reaches back into earlier history, even when an undo ends it mid-way", () => {
+    const project = setup();
+    const commands = createCommands(project);
+    commands.setClipProperty("b", { volume: 0.5 }); // an earlier, unrelated edit
+    const gesture = beginGesture(project, "drag");
+    gesture.update(() => commands.setClipProperty("b", { transform: { x: 0.1 } }));
+    project.undo(); // a keyboard undo: closes the open gesture, then undoes it
+    expect((project.getState().doc.clips["b"] as { volume: number }).volume).toBe(0.5);
+    gesture.update(() => commands.setClipProperty("b", { transform: { x: 0.2 } }));
+    gesture.update(() => commands.setClipProperty("b", { transform: { x: 0.3 } }));
+    gesture.end();
+    expect(project.getState().doc.clips["b"]!.transform.x).toBe(0.3);
+    project.undo(); // the continued drag is one step…
+    expect((project.getState().doc.clips["b"] as { volume: number }).volume).toBe(0.5);
+    project.undo(); // …and the earlier edit is still its own
+    expect((project.getState().doc.clips["b"] as { volume: number }).volume).not.toBe(0.5);
   });
 
   it("keeps filled clips filled across an aspect change", () => {
