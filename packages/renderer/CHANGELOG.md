@@ -1,5 +1,22 @@
 # @miraiclip/renderer
 
+## 0.12.0
+
+### Minor Changes
+
+- dedf3d8: Faster, checkable 3D films.
+  
+  - **ThreeKit**: a new scripted library, `three-kit` (`data-libs="stage three three-kit"`), defines a global `ThreeKit`. It includes constant-pixel-width lines that can be drawn to a moving head, glow sprites, GLSL simplex noise, `ThreeKit.shots` (one camera blended from several shots, on position and look-at point), `ThreeKit.place`, overlay helpers, and `ThreeKit.motionOf` / `ThreeKit.subjectOf` for the checks below. `THREE_KIT_SOURCE` is exported from `@miraiclip/renderer/stage`.
+  - **`tl.subject(name, fn, { from, to, minPx })`**: declares a painted subject the shot check keeps in frame. It reports when the subject leaves the frame or shrinks below `minPx`.
+  - **`tl.frame(fn, { hold: true })`**: the painter is called with the time at the start of the output frame (`data-fps`, default 30), so motion-blur samples of one frame agree, and type and counters no longer ghost.
+  - **`tl.rest`**: also fails when a `tl.frame` motion function reports movement inside the rest (`allow: ["frame"]` exempts it). The shot check warns (`rest-unverified`) when a painter has no motion function.
+  - **`miraiclip-export stills <project> --at 1,9.5,15 [--sheet]`**: frames from one warm browser.
+  - **`miraiclip-export check <project>`**: the continuous-shot check without the MCP server.
+  - **`miraiclip-export doctor`**: browser, ffmpeg and, inside the monorepo, stale generated bundles.
+  - **Export flags**: `--workers N` renders parallel chunks; `--motion-blur` turns on the default shutter.
+  - **`renderDistributed` takes `motionBlur`**: it applies to every video chunk.
+- 9207399: 3D in scripted sequences. `three` is now a registered scripted library: `data-libs="stage three"` gives a sequence a global `THREE` (three.js 0.170 with `RoundedBoxGeometry`, `RoomEnvironment` and `mergeGeometries`), bundled so it renders with no network. Draw the scene inside `tl.frame((t) => …)`; `tl.frame(fn, { motion })` reports how far the picture moves between two times so motion blur can size its samples. A template can ask for slower frames with `data-frame-timeout="<seconds>"` on its root (raises the 10 s per-frame limit, up to 10 minutes; `frameTimeoutMs` is exported). `lintSequence` adds `three-clock` (no `setAnimationLoop`, `THREE.Clock` or `getDelta`). The renderer exports `THREE_SOURCE` and `THREE_VERSION` from `@miraiclip/renderer/stage`.
+
 ## 0.11.0
 
 ### Minor Changes
