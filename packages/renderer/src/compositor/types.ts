@@ -5,6 +5,9 @@ export interface Placement {
   xPx: number;
   yPx: number;
   scale: number;
+  /** Per-axis stretch on top of `scale` (default 1; negative mirrors). */
+  scaleX?: number;
+  scaleY?: number;
   rotationRad: number;
   opacity: number;
 }
@@ -47,6 +50,9 @@ export interface ClipBounds {
   heightPx: number;
   /** The clip's (evaluated) scale and rotation. */
   scale: number;
+  /** The clip's per-axis stretch on top of `scale` (default 1; negative mirrors). */
+  scaleX?: number;
+  scaleY?: number;
   rotationDeg: number;
   /** Content corners, clockwise from top-left (rotation applied). */
   corners: [Point, Point, Point, Point];

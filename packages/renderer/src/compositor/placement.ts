@@ -8,6 +8,8 @@ export function computePlacement(clip: Clip, settings: ProjectSettings): Placeme
     xPx: transform.x * settings.width,
     yPx: transform.y * settings.height,
     scale: transform.scale,
+    scaleX: transform.scaleX ?? 1,
+    scaleY: transform.scaleY ?? 1,
     rotationRad: (transform.rotation * Math.PI) / 180,
     opacity: transform.opacity,
   };
@@ -22,6 +24,8 @@ export function placementFromEvaluated(
   out.xPx = evaluated.x * settings.width;
   out.yPx = evaluated.y * settings.height;
   out.scale = evaluated.scale;
+  out.scaleX = evaluated.scaleX ?? 1;
+  out.scaleY = evaluated.scaleY ?? 1;
   out.rotationRad = (evaluated.rotation * Math.PI) / 180;
   out.opacity = evaluated.opacity;
   return out;

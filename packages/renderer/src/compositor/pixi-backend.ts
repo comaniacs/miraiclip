@@ -22,6 +22,8 @@ abstract class PixiNode<T extends Container> implements SceneNode {
    * this out so they report size at clip scale 1.
    */
   protected layoutScale = 1;
+  /** The placement's per-axis stretch, so local bounds stay unstretched (the compositor applies it). */
+  protected axisX = 1;
 
   constructor(
     protected readonly display: T,
@@ -80,14 +82,15 @@ abstract class PixiNode<T extends Container> implements SceneNode {
     if (this.display instanceof Sprite && this.display.texture === Texture.EMPTY) return null;
     const b = this.display.getLocalBounds();
     if (!(b.width > 0 && b.height > 0)) return null;
-    const k = this.layoutScale !== 0 ? this.display.scale.x / this.layoutScale : 1;
+    const k = this.layoutScale !== 0 && this.axisX !== 0 ? this.display.scale.x / (this.layoutScale * this.axisX) : 1;
     return { xPx: b.x * k, yPx: b.y * k, widthPx: b.width * k, heightPx: b.height * k };
   }
 
   setPlacement(placement: Placement): void {
     this.layoutScale = placement.scale;
     this.display.position.set(placement.xPx, placement.yPx);
-    this.display.scale.set(placement.scale);
+    this.axisX = placement.scaleX ?? 1;
+    this.display.scale.set(placement.scale * this.axisX, placement.scale * (placement.scaleY ?? 1));
     this.display.rotation = placement.rotationRad;
     this.display.alpha = placement.opacity;
     this.invalidate();

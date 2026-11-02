@@ -425,7 +425,9 @@ export class Compositor {
       const world = (p: Placement, lx: number, ly: number): [number, number] => {
         const cos = Math.cos(p.rotationRad);
         const sin = Math.sin(p.rotationRad);
-        return [p.xPx + (lx * cos - ly * sin) * p.scale, p.yPx + (lx * sin + ly * cos) * p.scale];
+        const sx = p.scale * (p.scaleX ?? 1);
+        const sy = p.scale * (p.scaleY ?? 1);
+        return [p.xPx + lx * sx * cos - ly * sy * sin, p.yPx + lx * sx * sin + ly * sy * cos];
       };
       for (const [lx, ly] of corners) {
         const [x0, y0] = world(a, lx, ly);
@@ -460,11 +462,13 @@ export class Compositor {
         )
       : computePlacement(clip, doc.settings);
     const { xPx: ox, yPx: oy, scale, rotationRad } = placement;
+    const scaleX = placement.scaleX ?? 1;
+    const scaleY = placement.scaleY ?? 1;
     const cos = Math.cos(rotationRad);
     const sin = Math.sin(rotationRad);
     const toWorld = (lx: number, ly: number): Point => ({
-      xPx: ox + (lx * cos - ly * sin) * scale,
-      yPx: oy + (lx * sin + ly * cos) * scale,
+      xPx: ox + lx * scale * scaleX * cos - ly * scale * scaleY * sin,
+      yPx: oy + lx * scale * scaleX * sin + ly * scale * scaleY * cos,
     });
     const { xPx: lx, yPx: ly, widthPx: lw, heightPx: lh } = croppedToShape(clip, local);
     const center = toWorld(lx + lw / 2, ly + lh / 2);
@@ -474,9 +478,11 @@ export class Compositor {
       originYPx: oy,
       centerXPx: center.xPx,
       centerYPx: center.yPx,
-      widthPx: lw * Math.abs(scale),
-      heightPx: lh * Math.abs(scale),
+      widthPx: lw * Math.abs(scale * scaleX),
+      heightPx: lh * Math.abs(scale * scaleY),
       scale,
+      ...(scaleX !== 1 ? { scaleX } : {}),
+      ...(scaleY !== 1 ? { scaleY } : {}),
       rotationDeg: (rotationRad * 180) / Math.PI,
       corners: [toWorld(lx, ly), toWorld(lx + lw, ly), toWorld(lx + lw, ly + lh), toWorld(lx, ly + lh)],
       local: { ...local },
@@ -715,8 +721,8 @@ function pointInBounds(xPx: number, yPx: number, bounds: ClipBounds): boolean {
   const dy = yPx - bounds.originYPx;
   const cos = Math.cos(-rad);
   const sin = Math.sin(-rad);
-  const lx = (dx * cos - dy * sin) / bounds.scale;
-  const ly = (dx * sin + dy * cos) / bounds.scale;
+  const lx = (dx * cos - dy * sin) / (bounds.scale * (bounds.scaleX ?? 1));
+  const ly = (dx * sin + dy * cos) / (bounds.scale * (bounds.scaleY ?? 1));
   const { local } = bounds;
   return lx >= local.xPx && lx <= local.xPx + local.widthPx && ly >= local.yPx && ly <= local.yPx + local.heightPx;
 }

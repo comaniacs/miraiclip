@@ -4,6 +4,7 @@ import {
   CommandValidationError,
   UnknownCommandError,
   createProject,
+  evaluateClipAt,
   frameToUs,
   snapToFrame,
   usToFrame,
@@ -244,5 +245,52 @@ describe("timeline utils", () => {
     expect(frameToUs(30, 30)).toBe(1_000_000);
     expect(snapToFrame(1_016_000, 30)).toBe(1_000_000);
     expect(usToTimecode(3_661_500_000, 30)).toBe("01:01:01:15");
+  });
+});
+
+describe("per-axis scale and flip (scaleX / scaleY)", () => {
+  function withClip(transform?: Record<string, number>) {
+    const project = createProject({ width: 1920, height: 1080, fps: 30 });
+    project.dispatch({ type: "track/add", payload: { id: "t1", kind: "video" } });
+    project.dispatch({
+      type: "clip/add",
+      payload: { kind: "text", id: "c", trackId: "t1", startUs: 0, durationUs: 1_000_000, text: "x", ...(transform ? { transform } : {}) },
+    });
+    return project;
+  }
+  const tf = (p: ReturnType<typeof withClip>) => p.getState().doc.clips["c"]!.transform;
+
+  it("documents stay minimal: no scaleX/scaleY until used, none stored at 1", () => {
+    const p = withClip();
+    expect(tf(p)).not.toHaveProperty("scaleX");
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "c", transform: { scaleX: 2 } } });
+    expect(tf(p).scaleX).toBe(2);
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "c", transform: { scaleX: 1 } } });
+    expect(tf(p)).not.toHaveProperty("scaleX");
+    expect(withClip({ scaleY: 1 })["getState"]().doc.clips["c"]!.transform).not.toHaveProperty("scaleY");
+  });
+
+  it("accepts negative values (a flip) and undoes in one step", () => {
+    const p = withClip({ scaleX: -1 });
+    expect(tf(p).scaleX).toBe(-1);
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "c", transform: { scaleY: -1 } } });
+    p.undo();
+    expect(tf(p)).not.toHaveProperty("scaleY");
+    expect(tf(p).scaleX).toBe(-1);
+  });
+
+  it("rejects 0, which would collapse the clip", () => {
+    const p = withClip();
+    expect(() =>
+      p.dispatch({ type: "clip/set-property", payload: { clipId: "c", transform: { scaleX: 0 } } }),
+    ).toThrow(CommandValidationError);
+  });
+
+  it("evaluation carries the stretch (default 1) and it survives a save and load", () => {
+    const p = withClip({ scaleX: 2 });
+    const ev = evaluateClipAt(p.getState().doc.clips["c"]!, 0);
+    expect([ev.scaleX, ev.scaleY]).toEqual([2, 1]);
+    const reloaded = createProject(JSON.parse(JSON.stringify(p.toJSON())));
+    expect(reloaded.getState().doc.clips["c"]!.transform.scaleX).toBe(2);
   });
 });

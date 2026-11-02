@@ -1,4 +1,4 @@
-import type { Project, Transform } from "@miraiclip/core";
+import type { AnimatableProperty, Project, Transform } from "@miraiclip/core";
 import { createCommands } from "./commands.js";
 import { beginGesture, type Gesture } from "./gesture.js";
 
@@ -27,12 +27,19 @@ export interface TransformBounds {
   centerXPx: number;
   centerYPx: number;
   scale: number;
+  /** Per-axis stretch on top of `scale` (absent means 1; negative is mirrored). */
+  scaleX?: number;
+  scaleY?: number;
   rotationDeg: number;
   /** Corners clockwise from top-left, rotation applied. */
   corners: readonly [CompositionPoint, CompositionPoint, CompositionPoint, CompositionPoint];
 }
 
-export type TransformDragMode = "move" | "scale" | "rotate";
+/**
+ * `scale` is uniform around the origin; `stretch-x` / `stretch-y` stretch only the clip's own
+ * horizontal / vertical axis (the side handles), pivoting at the origin too.
+ */
+export type TransformDragMode = "move" | "scale" | "stretch-x" | "stretch-y" | "rotate";
 
 export interface TransformDragOptions {
   /** Snap distance for moves, in composition px (0, the default, turns snapping off). */
@@ -89,7 +96,7 @@ export function writeClipTransform(project: Project, clipId: string, patch: Part
   const statics: Partial<Transform> = {};
   const timeUs = Math.round(Math.max(0, project.getState().playheadUs - clip.startUs));
   for (const [property, value] of Object.entries(patch) as [keyof Transform, number][]) {
-    if ((clip.animations?.[property]?.length ?? 0) > 0) {
+    if ((clip.animations?.[property as AnimatableProperty]?.length ?? 0) > 0) {
       project.dispatch({ type: "keyframe/set", payload: { clipId, property, timeUs, value } });
     } else statics[property] = value;
   }
@@ -141,9 +148,11 @@ export function beginTransformDrag(
     x: bounds.originXPx / W,
     y: bounds.originYPx / H,
     scale: bounds.scale,
+    scaleX: bounds.scaleX ?? 1,
+    scaleY: bounds.scaleY ?? 1,
     rotation: bounds.rotationDeg,
   };
-  const gesture: Gesture = beginGesture(project, mode === "move" ? "move clip" : mode === "scale" ? "scale clip" : "rotate clip");
+  const gesture: Gesture = beginGesture(project, mode === "move" ? "move clip" : mode === "rotate" ? "rotate clip" : mode === "scale" ? "scale clip" : "stretch clip");
   const clipId = bounds.clipId;
   let moved = false;
 
@@ -189,6 +198,23 @@ export function beginTransformDrag(
         if (r0 < 1) return NO_GUIDES;
         const scale = clamp(startTransform.scale * (r1 / r0), minScale, maxScale);
         gesture.update(() => writeClipTransform(project, clipId, { scale: round4(scale) }));
+        return NO_GUIDES;
+      }
+
+      if (mode === "stretch-x" || mode === "stretch-y") {
+        // Distance along the clip's own axis from the origin, signed: the handle's side
+        // starts positive, so dragging back through the origin shrinks to the minimum
+        // (a stretch never flips; Flip is its own control).
+        const rad = (bounds.rotationDeg * Math.PI) / 180;
+        const ax = mode === "stretch-x" ? Math.cos(rad) : -Math.sin(rad);
+        const ay = mode === "stretch-x" ? Math.sin(rad) : Math.cos(rad);
+        const along = (x: number, y: number) => (x - bounds.originXPx) * ax + (y - bounds.originYPx) * ay;
+        const p0 = along(start.x, start.y);
+        if (Math.abs(p0) < 1) return NO_GUIDES;
+        const ratio = Math.max(along(point.x, point.y) / p0, 0);
+        const from = mode === "stretch-x" ? startTransform.scaleX : startTransform.scaleY;
+        const next = Math.sign(from) * clamp(Math.abs(from) * ratio, minScale, maxScale);
+        gesture.update(() => writeClipTransform(project, clipId, { [mode === "stretch-x" ? "scaleX" : "scaleY"]: round4(next) }));
         return NO_GUIDES;
       }
 

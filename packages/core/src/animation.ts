@@ -157,6 +157,9 @@ export interface EvaluatedClip {
   x: number;
   y: number;
   scale: number;
+  /** The clip's static per-axis stretch (not animatable); absent means 1. */
+  scaleX?: number;
+  scaleY?: number;
   rotation: number;
   opacity: number;
   volume: number;
@@ -181,6 +184,8 @@ export function evaluateClipInto(clip: Clip, clipTimeUs: Us, out: EvaluatedClip)
   out.x = t.x;
   out.y = t.y;
   out.scale = t.scale;
+  out.scaleX = t.scaleX ?? 1;
+  out.scaleY = t.scaleY ?? 1;
   out.rotation = t.rotation;
   out.opacity = t.opacity;
   out.volume = "volume" in clip && typeof clip.volume === "number" ? clip.volume : 1;
