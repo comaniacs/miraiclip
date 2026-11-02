@@ -40,6 +40,13 @@ export async function renderProjectStill(
   const height = options.height ?? doc.settings.height;
   const canvas = new OffscreenCanvas(width, height);
 
+  // Fonts must be real BEFORE the compositor exists: text nodes measure and lay
+  // out when they are created, so a face that finishes loading afterwards is
+  // never picked up and the whole still keeps the fallback glyphs — silently
+  // wrong for an unattended still exactly as for a server export (only the
+  // second render in a page, with the font already cached, came out right).
+  await loadFontAssets(doc);
+
   // Same decode cap as export: 2× the output's longest side.
   const decodeCapPx = 2 * Math.max(width, height);
   const manager = new MediaManager({
@@ -59,9 +66,6 @@ export async function renderProjectStill(
   });
 
   try {
-    // Fonts must be real before the frame renders — fallback glyphs are
-    // silently wrong for an unattended still exactly as for a server export.
-    await loadFontAssets(doc);
     await compositor.whenReady(); // image textures + html rasters
     await videos.renderFrameAt(compositor, options.timeUs);
     return await canvas.convertToBlob({
