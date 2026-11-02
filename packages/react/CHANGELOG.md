@@ -1,5 +1,16 @@
 # @miraiclip/react
 
+## 0.3.0
+
+### Minor Changes
+
+- 84c5402: Side handles for the transform box. `<TransformBox.SideHandle side="top|right|bottom|left" />` sits in the middle of a side and stretches only that axis of the clip (left and right its width, top and bottom its height, pivoting at the origin like the corner handles; one undo step; a mirrored clip stays mirrored). `@miraiclip/editor` exports the pieces for custom handles: `sideHandlePosition`, `sideDragMode`, `sideCursor` and the `TransformSide` type.
+
+### Patch Changes
+
+- Updated dependencies [84c5402]
+  - @miraiclip/editor@0.6.0
+
 ## 0.2.6
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/react",
-  "version": "0.2.6",
+  "version": "0.3.0",
   "description": "React bindings for Miraiclip: providers, state hooks, playback, timeline behaviour hooks, and unstyled editor components.",
   "license": "MIT",
   "repository": {
