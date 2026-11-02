@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/transcript",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Word-level transcripts for Miraiclip: speech-to-text adapters (OpenAI, Deepgram, or your own), filler-word and silence removal, text-based editing (delete words \u2192 ripple cuts) and captions that follow your cuts.",
   "license": "MIT",
   "repository": {
