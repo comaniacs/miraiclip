@@ -29,6 +29,10 @@ All notable changes to Miraiclip are documented here. The format follows [Keep a
 - `@miraiclip/server-export` **`bench:cost`**: CPU-seconds per output minute for a typical product video at any size.
 - Claude Code plugin: a `screen-tutorial` workflow skill that uses the planners when a capture log exists, and command references for speed, freeze frames, regions, markers and plugins.
 
+### Fixed
+
+- `@miraiclip/renderer` + `@miraiclip/server-export` **fonts are real from the first frame of a server export or still**: `exportProject` and `renderProjectStill` now await `loadFontAssets` BEFORE building the compositor. Text and caption nodes lay out when they are created, so loading afterwards left every text on the fallback face for the whole export (a second still in the same page, with the font cached, came out right, which is how it hid). Covered by a test that renders a still in a cold page and compares it to the warm one.
+
 ### Changed
 
 - Clips whose `clip/move` or `clip/trim` changes nothing keep their transitions.

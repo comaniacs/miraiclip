@@ -160,6 +160,12 @@ export async function exportProject(
   const fps = options.fps ?? projectFrameRate(doc.settings);
   const canvas = new OffscreenCanvas(width, height);
 
+  // Font assets must be REAL before the compositor exists — a server export that
+  // rasterizes fallback glyphs is silently wrong (no one is watching). Text nodes
+  // measure and lay out when they are created, so loading after the compositor
+  // left every text and caption on the fallback face for the whole export.
+  await loadFontAssets(doc);
+
   // Decode capped at 2× the output's longest side: compositing a 4K source
   // onto a 720p output at full decode resolution costs ~9× the pixels for no
   // visible gain (the one downscale happens on the GPU either way), and it is
@@ -222,10 +228,6 @@ export async function exportProject(
     throw error;
   }
   const openAudio = options.openAudio ?? openMediabunnyAudio;
-
-  // Font assets must be REAL before the first frame renders — a server export
-  // that rasterizes fallback glyphs is silently wrong (no one is watching).
-  await loadFontAssets(doc);
 
   // Async node content (image textures, html rasters) must land before the
   // deterministic frame walk — otherwise early frames bake in missing
