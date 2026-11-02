@@ -1,5 +1,12 @@
 # @miraiclip/audio-sources
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [5fa8674]
+  - @miraiclip/core@0.9.0
+
 ## 0.4.0
 
 ### Minor Changes
