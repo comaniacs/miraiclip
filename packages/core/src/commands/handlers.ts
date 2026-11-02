@@ -368,6 +368,10 @@ export const builtinHandlers: {
       if (html.scripted) html.animated = true; // scripted motion is per-frame by definition
       else delete html.scripted;
     }
+    if ("crop" in rest) {
+      const c = (rest as { crop?: { x: number; y: number; width: number; height: number } }).crop;
+      if (c && c.x === 0 && c.y === 0 && c.width === 1 && c.height === 1) delete (rest as { crop?: unknown }).crop;
+    }
     if ("speed" in rest) {
       const r = rest as { kind: string; speed?: number };
       if (r.speed === 0 && r.kind !== "video") {
@@ -583,6 +587,15 @@ export const builtinHandlers: {
       if (p[key] === undefined) continue;
       if (!("volume" in clip)) reject("clip/set-property", "no-audio", `${clip.kind} clips have no audio to fade`);
       setOrClear(clip as unknown as Record<string, unknown>, key, p[key]);
+    }
+    if (p.crop !== undefined) {
+      if (clip.kind !== "video" && clip.kind !== "image") {
+        reject("clip/set-property", "not-media", `${clip.kind} clips have no picture to crop`);
+      }
+      const media = clip as { crop?: unknown };
+      const whole = p.crop === null || (p.crop.x === 0 && p.crop.y === 0 && p.crop.width === 1 && p.crop.height === 1);
+      if (whole) delete media.crop; // documents stay minimal: all of it is the default
+      else media.crop = { ...p.crop };
     }
     for (const key of ["text", "fontFamily", "fontSizePx", "color"] as const) {
       if (p[key] !== undefined) {

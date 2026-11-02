@@ -239,9 +239,24 @@ export interface AudioFades {
   fadeOutUs?: Us;
 }
 
+/**
+ * The part of a picture that shows, as fractions of the source (0..1, from its top-left):
+ * `{ x: 0.25, y: 0, width: 0.5, height: 1 }` is the middle half across, full height.
+ * Absent means the whole picture. The clip is then the cropped picture: its size, bounds and
+ * fit are those of the cropped part.
+ */
+export interface Crop {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface VideoClip extends ClipBase, AudioFades {
   kind: "video";
   assetId: string;
+  /** The part of the picture that shows (absent: all of it). */
+  crop?: Crop;
   /** Source trim: offset into the asset where playback starts. */
   trimStartUs: Us;
   volume: number;
@@ -265,6 +280,8 @@ export interface AudioClip extends ClipBase, AudioFades {
 export interface ImageClip extends ClipBase {
   kind: "image";
   assetId: string;
+  /** The part of the picture that shows (absent: all of it). */
+  crop?: Crop;
 }
 
 export interface TextClip extends ClipBase, Typography {

@@ -145,6 +145,15 @@ export const assetLicenseSchema = z.object({
   attributionRequired: z.boolean(),
 });
 const fadeUs = z.number().int().min(0);
+/** The part of a picture that shows, as fractions of the source: inside the picture, not empty. */
+export const cropSchema = z
+  .object({
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    width: z.number().gt(0).max(1),
+    height: z.number().gt(0).max(1),
+  })
+  .refine((c) => c.x + c.width <= 1 + 1e-9 && c.y + c.height <= 1 + 1e-9, "crop must stay inside the picture");
 /** Clip playback speed: 0 (freeze frame, video only) or 1/16..16. */
 const speedSchema = z
   .number()
@@ -249,6 +258,8 @@ export const builtinPayloadSchemas = {
       fadeOutUs: fadeUs.optional(),
       /** Playback speed (default 1); 0 = freeze frame (video only). */
       speed: speedSchema.optional(),
+      /** The part of the picture that shows (default: all of it). */
+      crop: cropSchema.optional(),
       transform: transformSchema.partial().optional(),
     }),
     z.object({
@@ -275,6 +286,8 @@ export const builtinPayloadSchemas = {
       assetId: id,
       startUs: us,
       durationUs: positiveUs,
+      /** The part of the picture that shows (default: all of it). */
+      crop: cropSchema.optional(),
       transform: transformSchema.partial().optional(),
     }),
     z.object({
@@ -419,6 +432,8 @@ export const builtinPayloadSchemas = {
     /** Video/audio clips: edge fades; `null` removes. */
     fadeInUs: fadeUs.nullable().optional(),
     fadeOutUs: fadeUs.nullable().optional(),
+    /** Video and image clips: the part of the picture that shows; `null` shows all of it. */
+    crop: cropSchema.nullable().optional(),
     text: z.string().optional(),
     fontFamily: z.string().optional(),
     fontSizePx: z.number().positive().optional(),
