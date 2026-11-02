@@ -7,6 +7,9 @@ import {
   cornerCursor,
   nudgeClip,
   rotateHandlePosition,
+  sideCursor,
+  sideDragMode,
+  sideHandlePosition,
   snapOffset,
   trackCuts,
   transitionsByTrack,
@@ -178,6 +181,37 @@ describe("transform geometry", () => {
     expect(cornerCursor(0, 90)).toBe("nesw-resize");
     expect(snapOffset([97, 140], [100], 5)).toEqual({ delta: 3, target: 100 });
     expect(snapOffset([90], [100], 5)).toBeNull();
+  });
+});
+
+describe("side handles", () => {
+  it("sit in the middle of each side and start the matching stretch", () => {
+    const b = boundsOf("t"); // 200×100 box centered at (500, 250)
+    expect(sideHandlePosition(b, "top")).toEqual({ xPx: 500, yPx: 200 });
+    expect(sideHandlePosition(b, "right")).toEqual({ xPx: 600, yPx: 250 });
+    expect(sideHandlePosition(b, "bottom")).toEqual({ xPx: 500, yPx: 300 });
+    expect(sideHandlePosition(b, "left")).toEqual({ xPx: 400, yPx: 250 });
+    expect(sideDragMode("left")).toBe("stretch-x");
+    expect(sideDragMode("right")).toBe("stretch-x");
+    expect(sideDragMode("top")).toBe("stretch-y");
+    expect(sideDragMode("bottom")).toBe("stretch-y");
+  });
+
+  it("show the resize cursor of the side's direction on screen", () => {
+    expect(sideCursor("right", 0)).toBe("ew-resize");
+    expect(sideCursor("top", 0)).toBe("ns-resize");
+    expect(sideCursor("right", 90)).toBe("ns-resize");
+    expect(sideCursor("top", 90)).toBe("ew-resize");
+    expect(sideCursor("right", 180)).toBe("ew-resize");
+    expect(sideCursor("right", -90)).toBe("ns-resize");
+  });
+
+  it("a left handle stretches the same axis as the right one", () => {
+    const project = setup();
+    const drag = beginTransformDrag(project, boundsOf("t"), sideDragMode("left"), { x: 400, y: 250 });
+    drag!.update({ x: 300, y: 250 }); // 100 → 200 from the origin on the left: ×2
+    drag!.end();
+    expect(transformOf(project, "t").scaleX).toBe(2);
   });
 });
 

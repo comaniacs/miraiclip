@@ -43,6 +43,10 @@ export {
   cornerCursor,
   nudgeClip,
   rotateHandlePosition,
+  sideCursor,
+  sideDragMode,
+  sideHandlePosition,
+  type TransformSide,
   snapOffset,
   writeClipTransform,
 } from "./transform.js";
