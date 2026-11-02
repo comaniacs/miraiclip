@@ -1,10 +1,18 @@
 name: CI
 
+# Runs on pull requests only. A merge to main is not tested again: the PR
+# already ran on the same code, and re-running it on every merge used up the
+# Actions minutes. Run it by hand from the Actions tab (Run workflow) after a
+# direct push to main if you want a check.
 on:
-  push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
+    paths-ignore:
+      - "docs/**"
+      - "plan/**"
+      - ".changeset/**"
+      - "examples/gallery/**"
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -12,6 +20,8 @@ concurrency:
 
 jobs:
   test:
+    # The "Version Packages" PR only bumps versions and changelogs.
+    if: github.head_ref != 'changeset-release/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -40,6 +50,7 @@ jobs:
 
   e2e:
     name: Golden-frame e2e (WebCodecs + Pixi in headless Chromium)
+    if: github.head_ref != 'changeset-release/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
