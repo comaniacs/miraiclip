@@ -1,14 +1,13 @@
-name: Nightly stress
+name: Stress
 
 # Production-readiness stress suite: long timelines, long exports, asset
 # churn, throughput, parallel server exports. Slow by design (~30-45 min on a
-# hosted runner), so it runs nightly instead of per-push. Gates are
+# hosted runner), so it is manual only (Actions tab -> Run workflow). It ran
+# nightly before, which alone used most of the monthly Actions minutes. Gates are
 # conservative floors; the real value is the recorded metrics, tracked run
 # over run via the uploaded stress-results artifact.
 
 on:
-  schedule:
-    - cron: "17 3 * * *" # nightly, off the :00 rush
   workflow_dispatch:
     inputs:
       stress_minutes:
