@@ -13,7 +13,13 @@ async function flushHold(): Promise<void> {
   }
 }
 
-function setup(overrides: { noRaf?: boolean } = {}) {
+function setup(
+  overrides: {
+    noRaf?: boolean;
+    openDemuxer?: (assetId: string, src: unknown) => Promise<FakeDemuxer>;
+    openAudio?: (assetId: string, src: unknown) => ReturnType<ReturnType<typeof openFakeAudio>>;
+  } = {},
+) {
   const project = createProject({ width: 1280, height: 720, fps: 30 });
   project.dispatch({
     type: "asset/add",
@@ -40,10 +46,10 @@ function setup(overrides: { noRaf?: boolean } = {}) {
   let pump: (() => void) | undefined;
   const player = createPlayer(project, {
     backend,
-    openDemuxer: async () => new FakeDemuxer(300, 30),
+    openDemuxer: overrides.openDemuxer ?? (async () => new FakeDemuxer(300, 30)),
     createDecoder: createFakeDecoder,
     audioOutput: output,
-    openAudio: openFakeAudio(60_000_000),
+    openAudio: overrides.openAudio ?? openFakeAudio(60_000_000),
     raf: (callback) => (overrides.noRaf ? 0 : pending.push(callback) - 1),
     cancelRaf: () => undefined,
     schedule: (callback) => {
@@ -160,6 +166,66 @@ describe("createPlayer", () => {
     await flushHold();
     expect(player.timeUs).toBe(3_000_000);
     player.destroy();
+  });
+});
+
+describe("refreshMedia (links that change in a long session)", () => {
+  it("reopens video sources through the factories, without touching the document or history", async () => {
+    let link = "https://cdn/m.mp4?sig=1";
+    const opened: unknown[] = [];
+    const { project, player, tick } = setup({
+      // The host answers with the current link, whatever the document says.
+      openDemuxer: async () => {
+        opened.push(link);
+        return new FakeDemuxer(300, 30);
+      },
+    });
+    tick();
+    player.seek(1_000_000);
+    await flushHold();
+    tick();
+    expect(opened).toEqual(["https://cdn/m.mp4?sig=1"]);
+    const docBefore = project.getState().doc;
+    const canUndoBefore = project.canUndo();
+    link = "https://cdn/m.mp4?sig=2";
+    player.refreshMedia();
+    player.seek(2_000_000);
+    await flushHold();
+    tick();
+    expect(opened).toEqual(["https://cdn/m.mp4?sig=1", "https://cdn/m.mp4?sig=2"]);
+    expect(project.getState().doc).toBe(docBefore); // no command, no undo entry
+    expect(project.canUndo()).toBe(canUndoBefore);
+    player.destroy();
+  });
+
+  it("keeps playing from where the clock is, with audio reopened through the factory", async () => {
+    const audioLinks: unknown[] = [];
+    const { output, player, tick } = setup({
+      openAudio: (assetId, src) => {
+        audioLinks.push(src);
+        return openFakeAudio(60_000_000)(assetId, src);
+      },
+    });
+    tick();
+    player.play();
+    await flushHold();
+    const opensBefore = audioLinks.length;
+    expect(opensBefore).toBeGreaterThan(0);
+    output.nowUs += 1_000_000;
+    tick();
+    player.refreshMedia();
+    await flushHold();
+    expect(audioLinks.length).toBeGreaterThan(opensBefore); // sources opened again
+    expect(player.playing).toBe(true);
+    expect(player.timeUs).toBeGreaterThanOrEqual(1_000_000); // not restarted from 0
+    player.destroy();
+  });
+
+  it("does nothing after destroy, and is harmless when nothing is open", () => {
+    const { player } = setup();
+    expect(() => player.refreshMedia()).not.toThrow();
+    player.destroy();
+    expect(() => player.refreshMedia()).not.toThrow();
   });
 });
 

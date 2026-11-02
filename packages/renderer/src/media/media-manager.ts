@@ -285,6 +285,15 @@ export class MediaManager {
     this.drop(assetId);
   }
 
+  /**
+   * Drop every pipeline (decoders, caches, open demuxers). Clips that still need
+   * their footage re-acquire it, opening the source anew, so a host whose media
+   * links changed (they expire) gets fresh connections without rebuilding the player.
+   */
+  releaseAll(): void {
+    for (const key of [...this.entries.keys()]) this.drop(key);
+  }
+
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
