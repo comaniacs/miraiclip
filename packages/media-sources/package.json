@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/media-sources",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Stock photos and video for Miraiclip: one MediaProvider contract (search, getItem, resolve) with Pexels and Pixabay adapters, mixed search, and a one-transaction importMedia.",
   "license": "MIT",
   "repository": {
@@ -47,7 +47,7 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.10.0"
+    "@miraiclip/core": "^0.11.0"
   },
   "devDependencies": {
     "@miraiclip/core": "workspace:*",

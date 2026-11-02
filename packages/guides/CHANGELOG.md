@@ -1,5 +1,14 @@
 # @miraiclip/guides
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [8399f44]
+  - @miraiclip/core@0.11.0
+  - @miraiclip/screencast@0.1.5
+  - @miraiclip/transcript@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
