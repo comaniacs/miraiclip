@@ -3,8 +3,8 @@
  * its tests never touch this file. Rendering is manual (no Pixi ticker) — the
  * playback controller decides when frames are drawn.
  */
-import { Application, Assets, CanvasSource, Container, Graphics, ImageSource, Sprite, Text, Texture, type TextureSource } from "pixi.js";
-import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
+import { Application, Assets, CanvasSource, Container, Graphics, ImageSource, Rectangle, Sprite, Text, Texture, type TextureSource } from "pixi.js";
+import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type Crop, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { captionProgress, displayText, layoutCaption, POP_SCALE, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
 import type { LocalBounds, Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
@@ -217,9 +217,30 @@ class ImageTextureCache {
   }
 }
 
+/** Same crop, compared by value (the document may hand out a new object each time). */
+const sameCrop = (a: Crop | undefined, b: Crop | undefined): boolean =>
+  a === b || (!!a && !!b && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height);
+
+/**
+ * The part of `base` a crop shows: a texture over the same pixels with a smaller frame
+ * (no copy; destroy it without destroying the source). `base` itself when nothing is cropped.
+ */
+function croppedTexture(base: Texture, crop: Crop | undefined): Texture {
+  if (!crop) return base;
+  const f = base.frame;
+  return new Texture({
+    source: base.source,
+    frame: new Rectangle(f.x + crop.x * f.width, f.y + crop.y * f.height, crop.width * f.width, crop.height * f.height),
+  });
+}
+
 class PixiImageNode extends PixiNode<Sprite> {
   private loadedSrc: string | undefined;
   private loading = false;
+  /** The loaded picture, and the part of it shown when the clip is cropped. */
+  private loaded: Texture | undefined;
+  private shown: Texture | undefined;
+  private crop: Crop | undefined;
 
   constructor(
     stage: Container,
@@ -227,15 +248,27 @@ class PixiImageNode extends PixiNode<Sprite> {
     invalidate: () => void,
     effectContext: EffectContext,
     private readonly textures: ImageTextureCache,
+    crop?: Crop,
   ) {
     const sprite = new Sprite(Texture.EMPTY);
     sprite.anchor.set(0.5);
     stage.addChild(sprite);
     super(sprite, invalidate, effectContext);
+    this.crop = crop;
     this.loadTexture();
   }
 
   private ready: Promise<unknown> = Promise.resolve();
+
+  /** Show the loaded picture through the current crop. */
+  private showLoaded(): void {
+    if (!this.loaded || this.display.destroyed) return;
+    const next = croppedTexture(this.loaded, this.crop);
+    this.display.texture = next;
+    if (this.shown && this.shown !== this.loaded) this.shown.destroy(false);
+    this.shown = next;
+    this.invalidate();
+  }
 
   private loadTexture(): void {
     const src = this.asset?.src;
@@ -247,8 +280,8 @@ class PixiImageNode extends PixiNode<Sprite> {
       .acquire(src)
       .then((texture) => {
         if (this.loadedSrc === src && !this.display.destroyed) {
-          this.display.texture = texture;
-          this.invalidate();
+          this.loaded = texture;
+          this.showLoaded();
         }
       })
       .catch(() => undefined) // a missing image renders empty, as before — exports just no longer race it
@@ -266,7 +299,12 @@ class PixiImageNode extends PixiNode<Sprite> {
     return this.loading;
   }
 
-  update(_clip: Clip): void {
+  update(clip: Clip): void {
+    const crop = clip.kind === "image" ? (clip as ImageClip).crop : undefined;
+    if (!sameCrop(crop, this.crop)) {
+      this.crop = crop;
+      this.showLoaded();
+    }
     this.loadTexture();
   }
 
@@ -278,6 +316,9 @@ class PixiImageNode extends PixiNode<Sprite> {
   override destroy(): void {
     // Detach first: the shared texture must outlive this sprite.
     this.display.texture = Texture.EMPTY;
+    if (this.shown && this.shown !== this.loaded) this.shown.destroy(false);
+    this.shown = undefined;
+    this.loaded = undefined;
     super.destroy();
     if (this.loadedSrc !== undefined) this.textures.release(this.loadedSrc);
     this.loadedSrc = undefined;
@@ -838,16 +879,29 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
   private placement: Placement | undefined;
   private frameWidthPx = 0;
   private frameHeightPx = 0;
+  /** The part of the frame shown, and the texture over it (the frame's own when uncropped). */
+  private crop: Crop | undefined;
+  private cropped: Texture | undefined;
 
   constructor(
     stage: Container,
     invalidate: () => void,
     private readonly compositionSize: () => { width: number; height: number },
+    crop?: Crop,
   ) {
     const sprite = new Sprite(Texture.EMPTY);
     sprite.anchor.set(0.5);
     stage.addChild(sprite);
     super(sprite, invalidate, { compositionSize });
+    this.crop = crop;
+  }
+
+  /** Point the sprite at the decoded frame, through the crop. */
+  private showFrame(): void {
+    if (!this.texture) return;
+    if (this.cropped) this.cropped.destroy(false);
+    this.cropped = this.crop ? croppedTexture(this.texture, this.crop) : undefined;
+    this.display.texture = this.cropped ?? this.texture;
   }
 
   /**
@@ -860,7 +914,10 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
   private effectivePlacement(placement: Placement): Placement {
     if (this.frameWidthPx <= 0 || this.frameHeightPx <= 0) return placement;
     const comp = this.compositionSize();
-    const fit = Math.min(comp.width / this.frameWidthPx, comp.height / this.frameHeightPx);
+    // The cropped part is what gets fitted: a crop changes the picture's shape, not its place.
+    const shownWidth = this.frameWidthPx * (this.crop?.width ?? 1);
+    const shownHeight = this.frameHeightPx * (this.crop?.height ?? 1);
+    const fit = Math.min(comp.width / shownWidth, comp.height / shownHeight);
     return { ...placement, scale: placement.scale * fit };
   }
 
@@ -902,22 +959,32 @@ class PixiVideoNode extends PixiNode<Sprite> implements VideoSceneNode {
       if (this.placement) this.setPlacement(this.placement);
     }
     if (!this.source || this.source.width !== width || this.source.height !== height) {
+      this.cropped?.destroy(false);
+      this.cropped = undefined;
       this.texture?.destroy(true);
       this.source = new ImageSource({ resource: native as ImageBitmap, width, height });
       this.texture = new Texture({ source: this.source });
+      this.showFrame();
     } else {
       this.source.resource = native as ImageBitmap;
       this.source.update();
     }
-    if (this.display.texture !== this.texture) this.display.texture = this.texture!;
+    if (!this.cropped && this.display.texture !== this.texture) this.display.texture = this.texture!;
     this.invalidate();
   }
 
-  update(_clip: Clip): void {
-    // Volume and trim have no visual representation; frames arrive via setFrame.
+  update(clip: Clip): void {
+    // Volume and trim have no visual representation; frames arrive via setFrame. A crop does.
+    const crop = clip.kind === "video" ? (clip as VideoClip).crop : undefined;
+    if (sameCrop(crop, this.crop)) return;
+    this.crop = crop;
+    this.showFrame();
+    if (this.placement) this.setPlacement(this.placement); // the fit follows the shown part
+    this.invalidate();
   }
 
   override destroy(): void {
+    this.cropped?.destroy(false);
     this.texture?.destroy(true);
     super.destroy();
   }
@@ -1020,9 +1087,9 @@ class PixiSceneBackend implements SceneBackend {
     this.invalidate();
   }
 
-  createImage(_clip: ImageClip, asset: Asset | undefined): SceneNode {
+  createImage(clip: ImageClip, asset: Asset | undefined): SceneNode {
     this.invalidate();
-    return new PixiImageNode(this.app.stage, asset, this.invalidate, this.effectContext, this.imageTextures);
+    return new PixiImageNode(this.app.stage, asset, this.invalidate, this.effectContext, this.imageTextures, clip.crop);
   }
 
   createText(clip: TextClip): SceneNode {
@@ -1030,9 +1097,9 @@ class PixiSceneBackend implements SceneBackend {
     return new PixiTextNode(this.app.stage, clip, this.invalidate, this.effectContext);
   }
 
-  createVideo(_clip: VideoClip): VideoSceneNode {
+  createVideo(clip: VideoClip): VideoSceneNode {
     this.invalidate();
-    return new PixiVideoNode(this.app.stage, this.invalidate, () => this.compSize);
+    return new PixiVideoNode(this.app.stage, this.invalidate, () => this.compSize, clip.crop);
   }
 
   createCaption(clip: CaptionClip): SceneNode {

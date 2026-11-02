@@ -56,6 +56,7 @@ export * from "./timeline.js";
 export { DEFAULT_TRANSFORM, TRACK_ACCEPTS, TYPOGRAPHY_DEFAULTS, isAudioClip, isCaptionClip, isHtmlClip, isImageClip, isTextClip, isVideoClip } from "./types.js";
 export type {
   AnimatableProperty,
+  Crop,
   Asset,
   AssetKind,
   AssetLicense,

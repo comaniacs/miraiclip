@@ -294,3 +294,64 @@ describe("per-axis scale and flip (scaleX / scaleY)", () => {
     expect(reloaded.getState().doc.clips["c"]!.transform.scaleX).toBe(2);
   });
 });
+
+describe("crop (video and image clips)", () => {
+  function withImage() {
+    const project = createProject({ width: 1920, height: 1080, fps: 30 });
+    project.dispatch({ type: "asset/add", payload: { id: "img", kind: "image", src: "/a.png" } });
+    project.dispatch({ type: "track/add", payload: { id: "t1", kind: "video" } });
+    project.dispatch({
+      type: "clip/add",
+      payload: { kind: "image", id: "c", trackId: "t1", assetId: "img", startUs: 0, durationUs: 1_000_000 },
+    });
+    return project;
+  }
+  const clip = (p: ReturnType<typeof withImage>) => p.getState().doc.clips["c"]! as { crop?: unknown };
+  const half = { x: 0.25, y: 0, width: 0.5, height: 1 };
+
+  it("sets and clears a crop, one undo step each; documents stay minimal", () => {
+    const p = withImage();
+    expect(clip(p)).not.toHaveProperty("crop");
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "c", crop: half } });
+    expect(clip(p).crop).toEqual(half);
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "c", crop: null } });
+    expect(clip(p)).not.toHaveProperty("crop");
+    p.undo();
+    expect(clip(p).crop).toEqual(half);
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "c", crop: { x: 0, y: 0, width: 1, height: 1 } } });
+    expect(clip(p)).not.toHaveProperty("crop"); // the whole picture is the default
+  });
+
+  it("can be given when the clip is added", () => {
+    const p = withImage();
+    p.dispatch({
+      type: "clip/add",
+      payload: { kind: "image", id: "d", trackId: "t1", assetId: "img", startUs: 1_000_000, durationUs: 1_000_000, crop: half },
+    });
+    expect((p.getState().doc.clips["d"] as { crop?: unknown }).crop).toEqual(half);
+  });
+
+  it("rejects an empty or out-of-picture crop, and non-picture clips", () => {
+    const p = withImage();
+    for (const crop of [
+      { x: 0.6, y: 0, width: 0.5, height: 1 },
+      { x: 0, y: 0, width: 0, height: 1 },
+      { x: -0.1, y: 0, width: 0.5, height: 1 },
+      { x: 0, y: 0, width: 1.2, height: 1 },
+    ]) {
+      expect(() => p.dispatch({ type: "clip/set-property", payload: { clipId: "c", crop } })).toThrow(CommandValidationError);
+    }
+    p.dispatch({ type: "track/add", payload: { id: "t2", kind: "video" } });
+    p.dispatch({ type: "clip/add", payload: { kind: "text", id: "tx", trackId: "t2", startUs: 0, durationUs: 1_000_000, text: "x" } });
+    expect(() => p.dispatch({ type: "clip/set-property", payload: { clipId: "tx", crop: half } })).toThrow(CommandRejectedError);
+  });
+
+  it("a split keeps the crop on both halves, and the document round-trips", () => {
+    const p = withImage();
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "c", crop: half } });
+    p.dispatch({ type: "clip/split", payload: { clipId: "c", atUs: 500_000, newClipId: "c2" } });
+    expect((p.getState().doc.clips["c2"] as { crop?: unknown }).crop).toEqual(half);
+    const again = createProject(JSON.parse(JSON.stringify(p.toJSON())));
+    expect((again.getState().doc.clips["c"] as { crop?: unknown }).crop).toEqual(half);
+  });
+});
