@@ -34,6 +34,19 @@ describe("text clip style", () => {
     expect(textClipStyle(textClip())).toEqual({ fontFamily: "sans-serif", fontSize: 40, fill: "#ffffff" });
   });
 
+  it("outline and shadow / glow follow the font size, with room for both; glow has no offset", () => {
+    const style = textClipStyle(textClip({ strokeColor: "#ff0000", strokeWidthFrac: 0.1, shadowColor: "#000000", shadowBlurFrac: 0.5, shadowOffsetFrac: 0 }));
+    expect(style.stroke).toEqual({ color: "#ff0000", width: 4, join: "round" });
+    expect(style.dropShadow).toEqual({ color: "#000000", blur: 20, distance: 0, angle: Math.PI / 2, alpha: 1 });
+    expect(style.padding).toBe(24);
+  });
+
+  it("a text clip's decoration defaults match a caption's", () => {
+    const text = textClipStyle(textClip({ strokeColor: "#fff", shadowColor: "#000" }));
+    expect(text.stroke?.width).toBeCloseTo(0.08 * 40);
+    expect(text.dropShadow).toMatchObject({ blur: 0.15 * 40, distance: 0.06 * 40 });
+  });
+
   it("maps weight/style/align and converts lineHeight (× size) and letterSpacing (em) to px", () => {
     const style = textClipStyle(
       textClip({ fontWeight: 700, fontStyle: "italic", lineHeight: 1.5, letterSpacing: 0.1, textAlign: "center" }),

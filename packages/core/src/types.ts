@@ -284,7 +284,21 @@ export interface ImageClip extends ClipBase {
   crop?: Crop;
 }
 
-export interface TextClip extends ClipBase, Typography {
+/**
+ * Optional outline and drop shadow / glow, shared by text clips and caption styles.
+ * Absent fields draw nothing, and documents only carry what was set.
+ */
+export interface TextDecoration {
+  /** Outline color; width is `strokeWidthFrac` × font size (default 0.08 when a color is set). */
+  strokeColor?: string;
+  strokeWidthFrac?: number;
+  /** Drop shadow / glow color. Blur and downward offset are fractions of font size (defaults 0.15 / 0.06). An offset of 0 is a glow. */
+  shadowColor?: string;
+  shadowBlurFrac?: number;
+  shadowOffsetFrac?: number;
+}
+
+export interface TextClip extends ClipBase, Typography, TextDecoration {
   kind: "text";
   text: string;
   fontFamily: string;
@@ -344,7 +358,7 @@ export interface CaptionWord {
 }
 
 /** Caption lines are always centered, so captions take no `textAlign`. */
-export interface CaptionStyle extends Typography {
+export interface CaptionStyle extends Typography, TextDecoration {
   /**
    * How words react to timing: `plain` (static), `highlight` (active word in
    * highlightColor), `karaoke` (every started word lit), `pop` (active word
@@ -362,13 +376,6 @@ export interface CaptionStyle extends Typography {
   display?: "block" | "word";
   /** Case transform applied when drawing (the words keep their original text). */
   textTransform?: "uppercase" | "lowercase";
-  /** Outline color; width is `strokeWidthFrac` × font size (default 0.08 when a color is set). */
-  strokeColor?: string;
-  strokeWidthFrac?: number;
-  /** Drop shadow / glow color. Blur and downward offset are fractions of font size (defaults 0.15 / 0.06). An offset of 0 is a glow. */
-  shadowColor?: string;
-  shadowBlurFrac?: number;
-  shadowOffsetFrac?: number;
   /** Rounded box behind each emphasized word (highlight / karaoke / pop). */
   activeBackgroundColor?: string;
 }

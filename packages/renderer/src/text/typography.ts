@@ -5,7 +5,7 @@
  * Absent fields add NO keys: Pixi then applies its own defaults, which is
  * exactly how clips rendered before typography existed (golden frames hold).
  */
-import { TYPOGRAPHY_DEFAULTS, type CaptionStyle, type TextClip, type Typography } from "@miraiclip/core";
+import { TYPOGRAPHY_DEFAULTS, type CaptionStyle, type TextClip, type TextDecoration, type Typography } from "@miraiclip/core";
 
 /** The subset of Pixi's TextStyleOptions this module writes. */
 export interface PixiTypographyStyle {
@@ -19,9 +19,9 @@ export interface PixiTypographyStyle {
   /** Pixels (core stores em). */
   letterSpacing?: number;
   align?: "left" | "center" | "right";
-  /** Outline (captions). */
+  /** Outline. */
   stroke?: { color: string; width: number; join: "round" };
-  /** Drop shadow / glow (captions). */
+  /** Drop shadow / glow. */
   dropShadow?: { color: string; blur: number; distance: number; angle: number; alpha: number };
   /** Room for stroke + shadow so glyph edges aren't clipped (px). */
   padding?: number;
@@ -34,6 +34,25 @@ function applyTypography(style: PixiTypographyStyle, t: Typography, fontSizePx: 
   if (t.letterSpacing !== undefined) style.letterSpacing = t.letterSpacing * fontSizePx;
 }
 
+/** Outline and drop shadow / glow (text clips and captions): sizes are fractions of the font size; padding keeps glyph edges from clipping. */
+function applyDecoration(out: PixiTypographyStyle, d: TextDecoration, fontSizePx: number): void {
+  let padding = 0;
+  if (d.strokeColor) {
+    const width = (d.strokeWidthFrac ?? 0.08) * fontSizePx;
+    if (width > 0) {
+      out.stroke = { color: d.strokeColor, width, join: "round" };
+      padding += width;
+    }
+  }
+  if (d.shadowColor) {
+    const blur = (d.shadowBlurFrac ?? 0.15) * fontSizePx;
+    const distance = (d.shadowOffsetFrac ?? 0.06) * fontSizePx;
+    out.dropShadow = { color: d.shadowColor, blur, distance, angle: Math.PI / 2, alpha: 1 };
+    padding += blur + distance;
+  }
+  if (padding > 0) out.padding = Math.ceil(padding);
+}
+
 export function textClipStyle(clip: TextClip): PixiTypographyStyle {
   const style: PixiTypographyStyle = {
     fontFamily: clip.fontFamily,
@@ -42,6 +61,7 @@ export function textClipStyle(clip: TextClip): PixiTypographyStyle {
   };
   applyTypography(style, clip, clip.fontSizePx);
   if (clip.textAlign !== undefined) style.align = clip.textAlign;
+  applyDecoration(style, clip, clip.fontSizePx);
   return style;
 }
 
@@ -54,21 +74,7 @@ export function captionWordStyle(style: CaptionStyle, fontSizePx: number): PixiT
   const out: PixiTypographyStyle = { fontFamily: style.fontFamily, fontSize: fontSizePx, fill: style.color };
   const { lineHeight: _layoutOnly, ...wordTypography } = style;
   applyTypography(out, wordTypography, fontSizePx);
-  let padding = 0;
-  if (style.strokeColor) {
-    const width = (style.strokeWidthFrac ?? 0.08) * fontSizePx;
-    if (width > 0) {
-      out.stroke = { color: style.strokeColor, width, join: "round" };
-      padding += width;
-    }
-  }
-  if (style.shadowColor) {
-    const blur = (style.shadowBlurFrac ?? 0.15) * fontSizePx;
-    const distance = (style.shadowOffsetFrac ?? 0.06) * fontSizePx;
-    out.dropShadow = { color: style.shadowColor, blur, distance, angle: Math.PI / 2, alpha: 1 };
-    padding += blur + distance;
-  }
-  if (padding > 0) out.padding = Math.ceil(padding);
+  applyDecoration(out, style, fontSizePx);
   return out;
 }
 

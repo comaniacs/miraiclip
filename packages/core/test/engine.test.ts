@@ -355,3 +355,65 @@ describe("crop (video and image clips)", () => {
     expect((again.getState().doc.clips["c"] as { crop?: unknown }).crop).toEqual(half);
   });
 });
+
+describe("text decoration (outline, shadow / glow on text clips)", () => {
+  function withText() {
+    const project = createProject({ width: 1920, height: 1080, fps: 30 });
+    project.dispatch({ type: "track/add", payload: { id: "t1", kind: "video" } });
+    project.dispatch({
+      type: "clip/add",
+      payload: { kind: "text", id: "c", trackId: "t1", startUs: 0, durationUs: 1_000_000, text: "Hi" },
+    });
+    return project;
+  }
+  const clip = (p: ReturnType<typeof withText>) => p.getState().doc.clips["c"]! as Record<string, unknown>;
+
+  it("sets and clears each field, one undo step; documents stay minimal", () => {
+    const p = withText();
+    for (const k of ["strokeColor", "strokeWidthFrac", "shadowColor", "shadowBlurFrac", "shadowOffsetFrac"])
+      expect(clip(p)).not.toHaveProperty(k);
+    p.clearHistory();
+    p.dispatch({
+      type: "clip/set-property",
+      payload: { clipId: "c", shadowColor: "#000000", shadowBlurFrac: 0.3, shadowOffsetFrac: 0, strokeColor: "#ff0000", strokeWidthFrac: 0.1 },
+    });
+    expect(clip(p)).toMatchObject({ shadowColor: "#000000", shadowBlurFrac: 0.3, shadowOffsetFrac: 0, strokeColor: "#ff0000", strokeWidthFrac: 0.1 });
+    p.undo();
+    expect(clip(p)).not.toHaveProperty("shadowColor");
+    expect(p.canUndo()).toBe(false);
+    p.redo();
+    p.dispatch({
+      type: "clip/set-property",
+      payload: { clipId: "c", shadowColor: null, shadowBlurFrac: null, shadowOffsetFrac: null, strokeColor: null, strokeWidthFrac: null },
+    });
+    for (const k of ["strokeColor", "strokeWidthFrac", "shadowColor", "shadowBlurFrac", "shadowOffsetFrac"])
+      expect(clip(p)).not.toHaveProperty(k);
+  });
+
+  it("can be given when the clip is added", () => {
+    const p = withText();
+    p.dispatch({
+      type: "clip/add",
+      payload: { kind: "text", id: "d", trackId: "t1", startUs: 0, durationUs: 1_000_000, text: "x", strokeColor: "#fff", strokeWidthFrac: 0.05 },
+    });
+    expect(p.getState().doc.clips["d"]).toMatchObject({ strokeColor: "#fff", strokeWidthFrac: 0.05 });
+  });
+
+  it("rejects out-of-range sizes and non-text clips", () => {
+    const p = withText();
+    expect(() =>
+      p.dispatch({ type: "clip/set-property", payload: { clipId: "c", strokeWidthFrac: 0.9 } }),
+    ).toThrow();
+    expect(() =>
+      p.dispatch({ type: "clip/set-property", payload: { clipId: "c", shadowOffsetFrac: -1 } }),
+    ).toThrow();
+    p.dispatch({ type: "asset/add", payload: { id: "img", kind: "image", src: "/a.png" } });
+    p.dispatch({
+      type: "clip/add",
+      payload: { kind: "image", id: "i", trackId: "t1", assetId: "img", startUs: 0, durationUs: 1_000_000 },
+    });
+    expect(() =>
+      p.dispatch({ type: "clip/set-property", payload: { clipId: "i", shadowColor: "#000" } }),
+    ).toThrow(/not-text|only applies to text/);
+  });
+});

@@ -77,6 +77,23 @@ const typographyPatchFields = {
   letterSpacing: letterSpacingSchema.nullable().optional(),
 };
 
+/** Outline and drop shadow / glow, on text clips and caption styles alike (fractions of font size). */
+const textDecorationFields = {
+  /** Outline color; width = strokeWidthFrac × font size. */
+  strokeColor: z.string(),
+  strokeWidthFrac: z.number().min(0).max(0.3),
+  /** Drop shadow / glow (offset 0 = glow). */
+  shadowColor: z.string(),
+  shadowBlurFrac: z.number().min(0).max(1),
+  shadowOffsetFrac: z.number().min(0).max(0.5),
+};
+const optionalTextDecoration = Object.fromEntries(
+  Object.entries(textDecorationFields).map(([k, v]) => [k, v.optional()]),
+) as { [K in keyof typeof textDecorationFields]: z.ZodOptional<(typeof textDecorationFields)[K]> };
+const clearableTextDecoration = Object.fromEntries(
+  Object.entries(textDecorationFields).map(([k, v]) => [k, v.nullable().optional()]),
+) as { [K in keyof typeof textDecorationFields]: z.ZodOptional<z.ZodNullable<(typeof textDecorationFields)[K]>> };
+
 // Optional caption decorations — absent keys keep documents byte-identical.
 const captionDecorationFields = {
   /** Box behind the whole caption block. */
@@ -85,13 +102,7 @@ const captionDecorationFields = {
   display: z.enum(["block", "word"]),
   /** Case transform when drawing; the words keep their text. */
   textTransform: z.enum(["uppercase", "lowercase"]),
-  /** Outline color; width = strokeWidthFrac × font size. */
-  strokeColor: z.string(),
-  strokeWidthFrac: z.number().min(0).max(0.3),
-  /** Drop shadow / glow (offset 0 = glow). Fractions of font size. */
-  shadowColor: z.string(),
-  shadowBlurFrac: z.number().min(0).max(1),
-  shadowOffsetFrac: z.number().min(0).max(0.5),
+  ...textDecorationFields,
   /** Rounded box behind each emphasized word. */
   activeBackgroundColor: z.string(),
 };
@@ -301,6 +312,7 @@ export const builtinPayloadSchemas = {
       fontSizePx: z.number().positive().default(48),
       color: z.string().default("#ffffff"),
       ...typographyFields,
+      ...optionalTextDecoration,
       /** Alignment of lines within the block (default "left"); independent of the anchor. */
       textAlign: textAlignSchema.optional(),
       transform: transformSchema.partial().optional(),
@@ -440,6 +452,8 @@ export const builtinPayloadSchemas = {
     color: z.string().optional(),
     /** Text clips. `null` clears back to the default. */
     ...typographyPatchFields,
+    /** Text clips: outline and shadow / glow. `null` removes it. */
+    ...clearableTextDecoration,
     /** Text clips. `null` clears back to the default. */
     textAlign: textAlignSchema.nullable().optional(),
     /** Caption clips: partial style update, merged onto the clip's style; typography fields accept `null` to clear. */

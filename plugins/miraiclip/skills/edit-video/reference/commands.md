@@ -22,7 +22,7 @@ The source of truth is `get_command_schema` on the live server. Times are intege
 | `video` | `assetId`, `trimStartUs?` (in-point in the file), `volume?`, `fadeInUs?`, `fadeOutUs?` |
 | `audio` | same as video (goes on an audio track) |
 | `image` | `assetId` |
-| `text` | `text` (`\n` for lines), `fontFamily?`, `fontSizePx?` (48), `color?`, `fontWeight?`, `fontStyle?`, `lineHeight?`, `letterSpacing?` (em), `textAlign?` |
+| `text` | `text` (`\n` for lines), `fontFamily?`, `fontSizePx?` (48), `color?`, `fontWeight?`, `fontStyle?`, `lineHeight?`, `letterSpacing?` (em), `textAlign?`, outline `strokeColor?` / `strokeWidthFrac?`, shadow or glow `shadowColor?` / `shadowBlurFrac?` / `shadowOffsetFrac?` (fractions of font size; offset 0 = glow; `null` on `clip/set-property` removes) |
 | `caption` | `words: [{ text, startUs, durationUs }]` (times relative to the clip), `style?` (see below) |
 | `html` | `template`, `params?`, `widthPx?`, `heightPx?`, `animated?`, `animationOffsetUs?` |
 
