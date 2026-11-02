@@ -20,7 +20,7 @@ export interface PixiTypographyStyle {
   letterSpacing?: number;
   align?: "left" | "center" | "right";
   /** Outline. */
-  stroke?: { color: string; width: number; join: "round" };
+  stroke?: { color: string; width: number; join: "round"; alpha?: number };
   /** Drop shadow / glow. */
   dropShadow?: { color: string; blur: number; distance: number; angle: number; alpha: number };
   /** Room for stroke + shadow so glyph edges aren't clipped (px). */
@@ -34,20 +34,33 @@ function applyTypography(style: PixiTypographyStyle, t: Typography, fontSizePx: 
   if (t.letterSpacing !== undefined) style.letterSpacing = t.letterSpacing * fontSizePx;
 }
 
+/**
+ * Splits a `#rrggbbaa` / `#rgba` color into an opaque color and its alpha (Pixi takes alpha
+ * separately and ignores it inside the color). Any other color is returned as it is, alpha 1.
+ */
+export function splitColorAlpha(color: string): { color: string; alpha: number } {
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})([0-9a-f]{1,2})$/i.exec(color.trim());
+  if (!m || ![1, 2].includes(m[2]!.length) || (m[1]!.length === 3) !== (m[2]!.length === 1)) return { color, alpha: 1 };
+  const a = m[2]!.length === 1 ? parseInt(m[2]! + m[2]!, 16) : parseInt(m[2]!, 16);
+  return { color: `#${m[1]}`, alpha: Math.round((a / 255) * 1000) / 1000 };
+}
+
 /** Outline and drop shadow / glow (text clips and captions): sizes are fractions of the font size; padding keeps glyph edges from clipping. */
 function applyDecoration(out: PixiTypographyStyle, d: TextDecoration, fontSizePx: number): void {
   let padding = 0;
   if (d.strokeColor) {
     const width = (d.strokeWidthFrac ?? 0.08) * fontSizePx;
     if (width > 0) {
-      out.stroke = { color: d.strokeColor, width, join: "round" };
+      const { color, alpha } = splitColorAlpha(d.strokeColor);
+      out.stroke = { color, width, join: "round", ...(alpha < 1 ? { alpha } : {}) };
       padding += width;
     }
   }
   if (d.shadowColor) {
     const blur = (d.shadowBlurFrac ?? 0.15) * fontSizePx;
     const distance = (d.shadowOffsetFrac ?? 0.06) * fontSizePx;
-    out.dropShadow = { color: d.shadowColor, blur, distance, angle: Math.PI / 2, alpha: 1 };
+    const { color, alpha } = splitColorAlpha(d.shadowColor);
+    out.dropShadow = { color, blur, distance, angle: Math.PI / 2, alpha };
     padding += blur + distance;
   }
   if (padding > 0) out.padding = Math.ceil(padding);

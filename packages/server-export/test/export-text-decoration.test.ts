@@ -72,4 +72,13 @@ describe.skipIf(browserPath === undefined)("text decoration in server renders", 
     const glow = await still(doc({ shadowColor: "#ff0000", shadowBlurFrac: 0.4, shadowOffsetFrac: 0 }));
     expect(countPixels(glow, (p) => p[0] > 60 && p[1] < 40 && p[2] < 40)).toBeGreaterThan(500);
   }, 90_000);
+
+  it("the alpha of a #rrggbbaa shadow color is honoured", async () => {
+    const hard = (color: string) => doc({ shadowColor: color, shadowBlurFrac: 0, shadowOffsetFrac: 0.12 });
+    const solid = countPixels(await still(hard("#ff0000")), (p) => p[0] > 200 && p[1] < 40 && p[2] < 40);
+    const half = await still(hard("#ff000080"));
+    expect(solid).toBeGreaterThan(200);
+    expect(countPixels(half, (p) => p[0] > 200 && p[1] < 40 && p[2] < 40)).toBe(0); // no full-strength red left
+    expect(countPixels(half, (p) => p[0] > 90 && p[0] < 170 && p[1] < 40 && p[2] < 40)).toBeGreaterThan(200); // about half
+  }, 90_000);
 });

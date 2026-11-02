@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createProject, type CaptionClip, type ProjectDocument, type TextClip } from "@miraiclip/core";
 import { loadFontAssets, type FontEnv } from "../src/captions/fonts.js";
-import { captionMetrics, captionWordStyle, textClipStyle } from "../src/text/typography.js";
+import { captionMetrics, captionWordStyle, splitColorAlpha, textClipStyle } from "../src/text/typography.js";
 
 function docWith(build: (p: ReturnType<typeof createProject>) => void): ProjectDocument {
   const project = createProject({ width: 1000, height: 1000, fps: 30 });
@@ -28,6 +28,24 @@ const captionClip = (style: Record<string, unknown> = {}) =>
       },
     } as never),
   ).clips["c"] as CaptionClip;
+
+describe("color alpha", () => {
+  it("splits #rrggbbaa and #rgba into an opaque color and an alpha; anything else is left alone", () => {
+    expect(splitColorAlpha("#000000cc")).toEqual({ color: "#000000", alpha: 0.8 });
+    expect(splitColorAlpha("#ff000080")).toEqual({ color: "#ff0000", alpha: 0.502 });
+    expect(splitColorAlpha("#0008")).toEqual({ color: "#000", alpha: 0.533 });
+    expect(splitColorAlpha("#ff0000")).toEqual({ color: "#ff0000", alpha: 1 });
+    expect(splitColorAlpha("#f00")).toEqual({ color: "#f00", alpha: 1 });
+    expect(splitColorAlpha("red")).toEqual({ color: "red", alpha: 1 });
+  });
+
+  it("a translucent shadow or outline color becomes the style's alpha; opaque ones add no key", () => {
+    const s = textClipStyle(textClip({ shadowColor: "#00000080", strokeColor: "#ffffff" }));
+    expect(s.dropShadow).toMatchObject({ color: "#000000", alpha: 0.502 });
+    expect(s.stroke).toEqual({ color: "#ffffff", width: 0.08 * 40, join: "round" });
+    expect(textClipStyle(textClip({ strokeColor: "#ffffff80" })).stroke).toMatchObject({ color: "#ffffff", alpha: 0.502 });
+  });
+});
 
 describe("text clip style", () => {
   it("untouched clips produce exactly the pre-typography style (no extra keys)", () => {
