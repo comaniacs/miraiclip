@@ -1,5 +1,12 @@
 # @miraiclip/transcript
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [9ac0cee]
+  - @miraiclip/core@0.10.0
+
 ## 0.1.3
 
 ### Patch Changes

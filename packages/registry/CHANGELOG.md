@@ -1,5 +1,12 @@
 # @miraiclip/registry
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [9ac0cee]
+  - @miraiclip/core@0.10.0
+
 ## 0.2.1
 
 ### Patch Changes

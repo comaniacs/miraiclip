@@ -1,5 +1,14 @@
 # @miraiclip/narration
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [9ac0cee]
+  - @miraiclip/core@0.10.0
+  - @miraiclip/audio-sources@0.4.2
+  - @miraiclip/transcript@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes
