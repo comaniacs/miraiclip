@@ -267,6 +267,28 @@ export function rotateHandlePosition(
   };
 }
 
+/** The four sides of a clip's box, in the clip's own frame (before rotation). */
+export type TransformSide = "top" | "right" | "bottom" | "left";
+
+/** The drag a side handle starts: left and right stretch the clip's width, top and bottom its height. */
+export function sideDragMode(side: TransformSide): "stretch-x" | "stretch-y" {
+  return side === "left" || side === "right" ? "stretch-x" : "stretch-y";
+}
+
+/** The middle of a side of the box, in composition px (rotation applied). */
+export function sideHandlePosition(bounds: TransformBounds, side: TransformSide): CompositionPoint {
+  const [tl, tr, br, bl] = bounds.corners;
+  const [a, b] = side === "top" ? [tl, tr] : side === "right" ? [tr, br] : side === "bottom" ? [br, bl] : [bl, tl];
+  return { xPx: (a.xPx + b.xPx) / 2, yPx: (a.yPx + b.yPx) / 2 };
+}
+
+/** CSS resize cursor for a side handle, turned with the clip (a side near vertical shows the other cursor). */
+export function sideCursor(side: TransformSide, rotationDeg: number): string {
+  const horizontal = side === "left" || side === "right";
+  const quarterTurns = Math.round((((rotationDeg % 180) + 180) % 180) / 90);
+  return horizontal !== (quarterTurns === 1) ? "ew-resize" : "ns-resize";
+}
+
 const CURSORS = ["nwse-resize", "nesw-resize", "nwse-resize", "nesw-resize"] as const;
 
 /** CSS resize cursor for corner `index` (0 top-left, clockwise), adjusted for rotation. */

@@ -19,6 +19,10 @@ import {
   cornerCursor,
   nudgeClip,
   rotateHandlePosition,
+  sideCursor,
+  sideDragMode,
+  sideHandlePosition,
+  type TransformSide,
   type TransformDrag,
   type TransformDragMode,
   type TransformGuides,
@@ -397,6 +401,42 @@ const Handle = forwardRef<HTMLDivElement, HandleProps & { corner: 0 | 1 | 2 | 3 
   );
 });
 
+/**
+ * A side handle (top, right, bottom, left) that stretches only that axis: left and right
+ * the clip's width, top and bottom its height, around the clip's origin. Centered on the
+ * side's middle; size it with CSS. Mirrored clips keep their mirroring while stretched.
+ */
+const SideHandle = forwardRef<HTMLDivElement, HandleProps & { side: TransformSide }>(function TransformBoxSideHandle(
+  { side, style, children, ...rest },
+  ref,
+) {
+  const { box, editable, scale, startDrag, dragging } = useTransformBox();
+  if (!box || !editable) return null;
+  const mode = sideDragMode(side);
+  const p = sideHandlePosition(box, side);
+  return (
+    <div
+      ref={ref}
+      role="presentation"
+      data-transform-handle=""
+      data-side={side}
+      data-active={flag(dragging === mode)}
+      style={{
+        position: "absolute",
+        left: p.xPx * scale,
+        top: p.yPx * scale,
+        transform: "translate(-50%, -50%)",
+        cursor: sideCursor(side, box.rotationDeg),
+        ...style,
+      }}
+      onPointerDown={(e) => startDrag(e, mode)}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+});
+
 /** The rotate handle, `distance` screen px beyond the top edge (default 26). Shift: 15° steps. */
 const RotateHandle = forwardRef<HTMLDivElement, HandleProps & { distance?: number }>(function TransformBoxRotateHandle(
   { distance = 26, style, children, ...rest },
@@ -440,4 +480,4 @@ function RotateLine({ distance = 26, ...line }: SVGProps<SVGLineElement> & { dis
 }
 
 /** Unstyled transform-box parts for the preview. See the module comment for the structure. */
-export const TransformBox = { Root, Outline, Guides, Body, Handle, RotateHandle, RotateLine };
+export const TransformBox = { Root, Outline, Guides, Body, Handle, SideHandle, RotateHandle, RotateLine };
