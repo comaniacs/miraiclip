@@ -120,6 +120,13 @@ export interface Transform {
   x: number;
   y: number;
   scale: number;
+  /**
+   * Extra stretch along the clip's own horizontal / vertical axis, multiplied with `scale`
+   * (default 1, absent in documents that never used it). Negative mirrors the content
+   * (a flip); never 0. Not animatable.
+   */
+  scaleX?: number;
+  scaleY?: number;
   /** Degrees. */
   rotation: number;
   /** 0..1 */

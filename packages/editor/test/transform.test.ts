@@ -118,6 +118,56 @@ describe("transform drags", () => {
   });
 });
 
+describe("stretch drags (side handles)", () => {
+  it("stretches only the dragged axis, pivoting at the origin, as one undo step", () => {
+    const project = setup();
+    // Right-edge handle at x=600 (100px right of the origin at 500).
+    const drag = beginTransformDrag(project, boundsOf("t"), "stretch-x", { x: 600, y: 250 });
+    drag!.update({ x: 700, y: 250 }); // 100 → 200 from the origin: ×2
+    expect(transformOf(project, "t").scaleX).toBe(2);
+    expect(transformOf(project, "t").scaleY).toBeUndefined();
+    expect(transformOf(project, "t").scale).toBe(1);
+    drag!.update({ x: 800, y: 250 });
+    drag!.end();
+    expect(transformOf(project, "t").scaleX).toBe(3);
+    project.undo();
+    expect(transformOf(project, "t").scaleX).toBeUndefined();
+    expect(project.canUndo()).toBe(false);
+  });
+
+  it("stretch-y follows the vertical axis", () => {
+    const project = setup();
+    const drag = beginTransformDrag(project, boundsOf("t"), "stretch-y", { x: 500, y: 300 });
+    drag!.update({ x: 500, y: 400 }); // 50 → 150: ×3
+    drag!.end();
+    expect(transformOf(project, "t").scaleY).toBe(3);
+    expect(transformOf(project, "t").scaleX).toBeUndefined();
+  });
+
+  it("follows the clip's rotation: a 90° clip's own x axis points down the screen", () => {
+    const project = setup();
+    const rotated = { ...boundsOf("t"), rotationDeg: 90 };
+    const drag = beginTransformDrag(project, rotated, "stretch-x", { x: 500, y: 350 });
+    drag!.update({ x: 500, y: 450 }); // 100 → 200 along screen-down: ×2
+    drag!.end();
+    expect(transformOf(project, "t").scaleX).toBe(2);
+  });
+
+  it("never flips through the origin, and keeps a mirrored clip mirrored", () => {
+    const project = setup();
+    const drag = beginTransformDrag(project, boundsOf("t"), "stretch-x", { x: 600, y: 250 });
+    drag!.update({ x: 300, y: 250 }); // dragged past the origin: clamped to the minimum
+    expect(transformOf(project, "t").scaleX).toBe(0.05);
+    drag!.end();
+
+    const mirrored = { ...boundsOf("t"), scaleX: -1 };
+    const again = beginTransformDrag(project, mirrored, "stretch-x", { x: 600, y: 250 });
+    again!.update({ x: 700, y: 250 });
+    again!.end();
+    expect(transformOf(project, "t").scaleX).toBe(-2);
+  });
+});
+
 describe("transform geometry", () => {
   it("places the rotate handle above the top edge and picks corner cursors", () => {
     const { handle, anchor } = rotateHandlePosition(boundsOf("t"), 26);

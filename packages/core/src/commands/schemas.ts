@@ -8,6 +8,8 @@ export const transformSchema = z.object({
   x: z.number(),
   y: z.number(),
   scale: z.number().positive(),
+  scaleX: z.number().refine((v) => v !== 0, "scaleX can't be 0").optional(),
+  scaleY: z.number().refine((v) => v !== 0, "scaleY can't be 0").optional(),
   rotation: z.number(),
   opacity: z.number().min(0).max(1),
 });

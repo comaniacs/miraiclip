@@ -315,6 +315,10 @@ export const builtinHandlers: {
       const value = p.transform?.[key];
       if (value !== undefined) transform[key] = value;
     }
+    for (const key of ["scaleX", "scaleY"] as const) {
+      const value = p.transform?.[key];
+      if (value !== undefined && value !== 1) transform[key] = value; // documents stay minimal
+    }
 
     // Custom registered kind: payload under `props`, validated by its schema.
     if (!isBuiltinClipKind(p.kind)) {
@@ -563,7 +567,12 @@ export const builtinHandlers: {
       }
       (clip as { props: Record<string, unknown> }).props = parsed.data as Record<string, unknown>;
     }
-    if (p.transform) Object.assign(clip.transform, p.transform);
+    if (p.transform) {
+      Object.assign(clip.transform, p.transform);
+      // Documents stay minimal: 1 is the default, so it isn't stored.
+      if (clip.transform.scaleX === 1) delete clip.transform.scaleX;
+      if (clip.transform.scaleY === 1) delete clip.transform.scaleY;
+    }
     if (p.volume !== undefined) {
       if (!("volume" in clip)) {
         reject("clip/set-property", "no-audio", `${clip.kind} clips have no volume`);

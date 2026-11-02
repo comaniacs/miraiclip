@@ -135,3 +135,54 @@ describe("hidden tracks", () => {
     expect(project.getState().doc.tracks.t2).not.toHaveProperty("hidden");
   });
 });
+
+describe("per-axis stretch and flip (scaleX / scaleY)", () => {
+  it("stretches bounds along one axis only", () => {
+    const { project, compositor } = setup();
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "a", transform: { scaleX: 2 } } });
+    const b = compositor.getClipBounds("a", 1_000_000)!;
+    close(b.widthPx, 200); // fake local 100×20
+    close(b.heightPx, 20);
+    expect(b.scaleX).toBe(2);
+    expect(b.scaleY).toBeUndefined();
+    close(b.corners[0].xPx, 400);
+    close(b.corners[0].yPx, 240);
+  });
+
+  it("composes with the uniform scale and with rotation", () => {
+    const { project, compositor } = setup();
+    project.dispatch({
+      type: "clip/set-property",
+      payload: { clipId: "a", transform: { scale: 2, scaleY: 3, rotation: 90 } },
+    });
+    const b = compositor.getClipBounds("a", 0)!;
+    close(b.widthPx, 200);
+    close(b.heightPx, 120); // 20 × 2 × 3
+    // Top-left local (-50,-10) → ×(2, 6) = (-100,-60) → rotated 90° = (60, -100)
+    close(b.corners[0].xPx, 560);
+    close(b.corners[0].yPx, 150);
+  });
+
+  it("a mirrored clip (negative scaleX) keeps positive sizes and mirrors the corners", () => {
+    const { project, compositor } = setup();
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "a", transform: { scaleX: -1 } } });
+    const b = compositor.getClipBounds("a", 0)!;
+    close(b.widthPx, 100);
+    close(b.corners[0].xPx, 550); // the content's left edge is now on the right
+  });
+
+  it("hit-tests the stretched box", () => {
+    const { project, compositor } = setup();
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "a", transform: { scaleX: 3 } } });
+    // Content is 100 wide around x=500: stretched ×3 it spans 350…650.
+    expect(compositor.hitTest(640, 250, 0, (c) => c.id === "a")).toBe("a");
+    expect(compositor.hitTest(660, 250, 0, (c) => c.id === "a")).toBeNull();
+  });
+
+  it("hands the placement to the node with the stretch", () => {
+    const { project, compositor, node } = setup();
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "a", transform: { scaleX: -2, scaleY: 0.5 } } });
+    compositor.renderAt(1_000_000);
+    expect(node(0).placement).toMatchObject({ scale: 1, scaleX: -2, scaleY: 0.5 });
+  });
+});
