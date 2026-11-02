@@ -1,5 +1,13 @@
 # @miraiclip/screencast
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [9ac0cee]
+  - @miraiclip/core@0.10.0
+  - @miraiclip/registry@0.2.2
+
 ## 0.1.3
 
 ### Patch Changes

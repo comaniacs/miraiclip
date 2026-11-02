@@ -1,5 +1,12 @@
 # @miraiclip/editor
 
+## 0.6.1
+
+### Patch Changes
+
+- Updated dependencies [9ac0cee]
+  - @miraiclip/core@0.10.0
+
 ## 0.6.0
 
 ### Minor Changes

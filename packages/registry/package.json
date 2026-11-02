@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/registry",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Ready-made blocks for Miraiclip videos — lower thirds, callouts, intros, end cards, cursors and caption styles — plus a static JSON registry format and the `miraiclip` CLI (`add`, `catalog`, `build`).",
   "license": "MIT",
   "repository": {
