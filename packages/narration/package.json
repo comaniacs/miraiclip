@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/narration",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "AI voiceover for Miraiclip videos: a script from your steps or transcript, an optional rewrite by any chat model, speech from any voice generator, and alignNarration \u2014 a deterministic planner that fits each line to its step with freeze frames or speed changes you can see and edit.",
   "license": "MIT",
   "repository": {

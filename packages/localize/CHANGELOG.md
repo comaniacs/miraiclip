@@ -1,5 +1,12 @@
 # @miraiclip/localize
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [5fa8674]
+  - @miraiclip/core@0.9.0
+
 ## 0.1.2
 
 ### Patch Changes

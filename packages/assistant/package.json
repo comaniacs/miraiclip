@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/assistant",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "An AI editing assistant for Miraiclip: a vendor-neutral ChatModel contract (OpenAI, Anthropic, Google Gemini and any OpenAI-compatible provider; bring-your-own-key), an agent loop that edits a forked project and lands each request as one undo step, high-level editing tools, and a server handler that keeps API keys off the browser.",
   "license": "MIT",
   "repository": {
@@ -49,7 +49,7 @@
     "eval": "vitest run -c vitest.eval.config.ts"
   },
   "peerDependencies": {
-    "@miraiclip/core": "^0.8.0"
+    "@miraiclip/core": "^0.9.0"
   },
   "devDependencies": {
     "@miraiclip/audio-sources": "workspace:*",

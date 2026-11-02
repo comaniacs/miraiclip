@@ -1,5 +1,12 @@
 # @miraiclip/assistant
 
+## 0.5.1
+
+### Patch Changes
+
+- Updated dependencies [5fa8674]
+  - @miraiclip/core@0.9.0
+
 ## 0.5.0
 
 ### Minor Changes

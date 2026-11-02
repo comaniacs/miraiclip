@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/player",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "<miraiclip-player>: a framework-free web component that plays a Miraiclip project live or a rendered MP4/WebM, with chapters from timeline markers.",
   "license": "MIT",
   "repository": {
