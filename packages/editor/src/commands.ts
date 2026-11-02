@@ -123,6 +123,12 @@ export function createCommands(project: Project) {
       color?: string;
       fontWeight?: FontWeight;
       textAlign?: TextAlign;
+      /** Outline and shadow / glow (fractions of font size). */
+      strokeColor?: string;
+      strokeWidthFrac?: number;
+      shadowColor?: string;
+      shadowBlurFrac?: number;
+      shadowOffsetFrac?: number;
       transform?: Partial<Transform>;
     }) {
       d({ type: "clip/add", payload: { kind: "text", ...payload } });
@@ -212,6 +218,12 @@ export function createCommands(project: Project) {
         lineHeight?: number | null;
         letterSpacing?: number | null;
         textAlign?: TextAlign | null;
+        /** Text clips: outline and shadow / glow (fractions of font size). `null` removes it. */
+        strokeColor?: string | null;
+        strokeWidthFrac?: number | null;
+        shadowColor?: string | null;
+        shadowBlurFrac?: number | null;
+        shadowOffsetFrac?: number | null;
         style?: Record<string, unknown>;
         /** html clips: merged into the template params (re-rasters). */
         params?: Record<string, HtmlParamValue>;

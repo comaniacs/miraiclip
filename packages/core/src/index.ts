@@ -91,6 +91,7 @@ export type {
   TrackKind,
   Transform,
   Transition,
+  TextDecoration,
   Typography,
   Us,
   VideoClip,

@@ -43,6 +43,12 @@ const TEXT_TYPOGRAPHY_KEYS = [
   "lineHeight",
   "letterSpacing",
   "textAlign",
+  // Outline and shadow / glow (a value sets, `null` removes).
+  "strokeColor",
+  "strokeWidthFrac",
+  "shadowColor",
+  "shadowBlurFrac",
+  "shadowOffsetFrac",
 ] as const;
 
 /** `null` removes the key (so the document carries only what was set). */
