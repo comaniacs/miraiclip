@@ -1,5 +1,13 @@
 # @miraiclip/player
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [dedf3d8]
+- Updated dependencies [9207399]
+  - @miraiclip/renderer@0.12.0
+
 ## 0.1.3
 
 ### Patch Changes
