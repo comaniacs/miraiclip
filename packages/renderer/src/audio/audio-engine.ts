@@ -148,6 +148,21 @@ export class AudioEngine {
     );
   }
 
+  /**
+   * Close every opened audio source so the next use opens it anew (a host's media links
+   * changed). While playing, playback carries on from where the clock is now, with a
+   * short gap while the sources reopen; paused, nothing sounds and nothing starts.
+   */
+  refreshSources(): void {
+    if (this.disposed) return;
+    const wasPlaying = this.playing;
+    const rate = this.rate;
+    const nowUs = this.anchorTimelineUs + (this.output.currentTimeUs - this.anchorOutputUs) * rate;
+    this.stop();
+    for (const [clipId, lane] of [...this.lanes]) this.closeLane(clipId, lane);
+    if (wasPlaying) this.start(nowUs, rate);
+  }
+
   /** Stop all scheduled audio (pause or pre-seek). */
   stop(): void {
     this.epoch++;

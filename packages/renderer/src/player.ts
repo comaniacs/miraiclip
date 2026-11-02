@@ -118,6 +118,13 @@ export interface Player {
    * frame budget so playback degrades instead of the tab being killed.
    */
   reportMemoryPressure(): void;
+  /**
+   * Reopen every media source on next use, without rebuilding the player or touching the
+   * document or undo history. Call it after the host's links to the media changed (signed
+   * URLs expire): the `openDemuxer` / `openAudio` factories are asked for the sources again,
+   * so they can hand out the new links. Playback continues from the current position.
+   */
+  refreshMedia(): void;
   destroy(): void;
 }
 
@@ -364,6 +371,11 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     },
     reportMemoryPressure() {
       manager.reportMemoryPressure();
+    },
+    refreshMedia() {
+      if (destroyed) return;
+      manager.releaseAll();
+      audio.refreshSources();
     },
     destroy() {
       if (destroyed) return;

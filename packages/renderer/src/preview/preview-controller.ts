@@ -45,6 +45,15 @@ export interface PreviewControllerOptions {
     CreatePlayerOptions,
     "backend" | "openDemuxer" | "createDecoder" | "audioOutput" | "openAudio" | "onError"
   >;
+  /**
+   * Replace how media is opened (default: the built-in WebCodecs/mediabunny readers).
+   * A host that signs its media links wraps these to hand out the current link for an
+   * asset, then calls `player.refreshMedia()` (from `onPlayerReady`) when links change.
+   */
+  media?: {
+    openDemuxer?: CreatePlayerOptions["openDemuxer"];
+    openAudio?: CreatePlayerOptions["openAudio"];
+  };
   /** Longest decoded frame side, in px (default 1920). Decoding never exceeds the preview's own size. */
   maxDecodeDimensionPx?: number;
   /** devicePixelRatio cap for the render target (default 2). */
@@ -243,13 +252,13 @@ export function createPreviewController(
       const live = buildPlayer(project, {
         ...options.player,
         backend: built,
-        openDemuxer: openMediabunnyDemuxer,
+        openDemuxer: options.media?.openDemuxer ?? openMediabunnyDemuxer,
         // Decode no larger than the preview shows: frame memory grows with the square of this.
         createDecoder: createWebCodecsDecoderFactory({
           maxOutputDimensionPx: () => Math.min(maxDecodePx, Math.max(320, previewLongestPx)),
         }),
         audioOutput: audio.output,
-        openAudio: openMediabunnyAudio,
+        openAudio: options.media?.openAudio ?? openMediabunnyAudio,
         onError: (error, clipId) => {
           setState({ lastError: `${error.message} (clip ${clipId})` });
           options.onError?.(error, clipId);
