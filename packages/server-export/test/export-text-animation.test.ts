@@ -113,6 +113,15 @@ describe.skipIf(browserPath === undefined)("text animations in server renders", 
     expect(lit(half, { x0: W / 2 + 14 })).toBe(0); // nothing of the rest, even its outline or shadow
   }, 120_000);
 
+  it("Typewriter keeps its cut when the text is moved and scaled (the mask follows the text)", async () => {
+    const at = { transform: { x: 0.4, y: 0.5, scale: 1.4 } }; // centered on x = 160 of 400
+    const full = lit(await still(doc("ABCD", at)));
+    const half = await still(doc("ABCD", at, typed), 400_000); // "AB"
+    expect(lit(half, { x1: 160 })).toBeGreaterThan(full / 4);
+    expect(lit(half, { x0: 160 + 8 })).toBe(0);
+    expect(lit(await still(doc("ABCD", at, typed), 900_000))).toBe(full);
+  }, 120_000);
+
   it("Blur softens the clip: fewer fully lit pixels, more lit around them", async () => {
     const sharp = await still(doc("HI"));
     const blurred = await still(doc("HI", {}, [["blur", 0, 0.03]]));
