@@ -722,6 +722,23 @@ class PixiTextNode extends PixiNode<Text> {
   override setPlacement(placement: Placement): void {
     super.setPlacement(placement);
     this.applyTyping(placement.reveal ?? 1);
+    this.followText();
+  }
+
+  /**
+   * The text's own box, always the whole text: while it types, the mask would otherwise shrink the
+   * bounds to the typed part (and the "nothing yet" shape would stretch them), so the selection box
+   * would grow with the typing instead of staying on the final layout.
+   */
+  override getLocalBounds(): LocalBounds | null {
+    const mask = this.typingMask;
+    if (!mask || this.display.destroyed) return super.getLocalBounds();
+    this.display.mask = null;
+    try {
+      return super.getLocalBounds();
+    } finally {
+      this.display.mask = mask;
+    }
   }
 
   /**
@@ -737,10 +754,7 @@ class PixiTextNode extends PixiNode<Text> {
     const shown = fraction >= 1 ? total : Math.max(0, Math.floor(fraction * total + 1e-9));
     if (shown >= total) {
       if (this.typingMask) {
-        this.display.mask = null;
-        this.typingMask.destroy();
-        this.typingMask = undefined;
-        this.typingKey = "";
+        this.dropTypingMask();
         this.invalidate();
       }
       return;
@@ -769,13 +783,14 @@ class PixiTextNode extends PixiNode<Text> {
     const align = style.align;
     const indent = align === "center" ? (metrics.maxLineWidth - lineWidth) / 2 : align === "right" ? metrics.maxLineWidth - lineWidth : 0;
     const prefixWidth = remaining > 0 ? CanvasTextMetrics.measureText(lines[cut]!.slice(0, remaining).join(""), style).maxLineWidth : 0;
-    const BIG = 100_000;
+    // Past every edge of the text (and its outline and shadow), in the text's own space.
+    const BIG = 2 * Math.max(metrics.width, metrics.height) + 4 * style.fontSize;
     const lineTop = top + cut * pitch;
 
     if (!this.typingMask) {
+      // Beside the text in the stage, like the wipe's mask (a Text is not a container for children).
       this.typingMask = new Graphics();
-      this.typingMask.measurable = false; // the selection box is the text's, not the mask's
-      this.display.addChild(this.typingMask);
+      this.display.parent?.addChild(this.typingMask);
       this.display.mask = this.typingMask;
     }
     const mask = this.typingMask;
@@ -792,6 +807,30 @@ class PixiTextNode extends PixiNode<Text> {
     if (!any) mask.rect(BIG, BIG, 1, 1); // nothing shows yet
     mask.fill(0xffffff);
     this.invalidate();
+  }
+
+  /** The mask lives in the stage, so it follows the text's placement by copy. */
+  private followText(): void {
+    const mask = this.typingMask;
+    if (!mask) return;
+    mask.position.copyFrom(this.display.position);
+    mask.scale.copyFrom(this.display.scale);
+    mask.rotation = this.display.rotation;
+  }
+
+  private dropTypingMask(): void {
+    const mask = this.typingMask;
+    if (!mask) return;
+    this.display.mask = null;
+    mask.parent?.removeChild(mask);
+    mask.destroy();
+    this.typingMask = undefined;
+    this.typingKey = "";
+  }
+
+  override destroy(): void {
+    this.dropTypingMask();
+    super.destroy();
   }
 }
 
