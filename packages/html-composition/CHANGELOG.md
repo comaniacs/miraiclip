@@ -1,5 +1,12 @@
 # @miraiclip/html-composition
 
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [7e7673b]
+  - @miraiclip/core@0.12.0
+
 ## 0.1.5
 
 ### Patch Changes
