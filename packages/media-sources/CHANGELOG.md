@@ -1,5 +1,12 @@
 # @miraiclip/media-sources
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [7e7673b]
+  - @miraiclip/core@0.12.0
+
 ## 0.1.3
 
 ### Patch Changes
