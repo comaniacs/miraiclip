@@ -682,6 +682,13 @@ export const builtinHandlers: {
     if (p.property === "opacity" && (p.value < 0 || p.value > 1)) {
       reject("keyframe/set", "out-of-range", "opacity keyframes must be within 0..1");
     }
+    if (p.property === "blur" && (p.value < 0 || p.value > 0.25)) {
+      reject("keyframe/set", "out-of-range", "blur keyframes must be within 0..0.25 (fraction of the frame height)");
+    }
+    if (p.property === "reveal") {
+      if (clip.kind !== "text") reject("keyframe/set", "not-text", `${clip.kind} clips have no characters to reveal`);
+      if (p.value < 0 || p.value > 1) reject("keyframe/set", "out-of-range", "reveal keyframes must be within 0..1");
+    }
     if ((p.property === "volume" || p.property === "scale") && p.value < 0) {
       reject("keyframe/set", "out-of-range", `${p.property} keyframes must be >= 0`);
     }

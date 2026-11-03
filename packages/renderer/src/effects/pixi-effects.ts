@@ -195,6 +195,9 @@ export class NodeEffects {
   private regions = new Map<string, { filter: RegionFilter; region: EffectRegion }>();
   private localUs = 0;
   private durationUs: number | undefined;
+  /** The animated blur (Blur animation): after every effect, so it blurs the finished look. */
+  private animatedBlur: BlurFilter | undefined;
+  private stack: Filter[] = [];
 
   constructor(
     private readonly display: Container,
@@ -228,8 +231,40 @@ export class NodeEffects {
         this.active.delete(id);
       }
     }
-    // Assign in stack order; null clears (Pixi treats [] as filters present).
-    this.display.filters = filters.length > 0 ? filters : (null as unknown as Filter[]);
+    this.stack = filters;
+    this.assignFilters();
+    this.invalidate();
+  }
+
+  /** Assign in stack order, animated blur last; null clears (Pixi treats [] as filters present). */
+  private assignFilters(): void {
+    const all = this.animatedBlur ? [...this.stack, this.animatedBlur] : this.stack;
+    this.display.filters = all.length > 0 ? all : (null as unknown as Filter[]);
+  }
+
+  /**
+   * The Blur animation's strength this frame (composition pixels; 0 = off). Called every render
+   * for animated clips, so the unchanged cases return before touching the filter list.
+   */
+  setAnimatedBlur(strengthPx: number): void {
+    if (strengthPx <= 0) {
+      if (!this.animatedBlur) return;
+      const gone = this.animatedBlur;
+      this.animatedBlur = undefined;
+      this.assignFilters();
+      gone.destroy();
+      this.invalidate();
+      return;
+    }
+    if (!this.animatedBlur) {
+      this.animatedBlur = new BlurFilter();
+      this.animatedBlur.strength = strengthPx;
+      this.assignFilters();
+      this.invalidate();
+      return;
+    }
+    if (this.animatedBlur.strength === strengthPx) return;
+    this.animatedBlur.strength = strengthPx;
     this.invalidate();
   }
 
@@ -274,6 +309,8 @@ export class NodeEffects {
   }
 
   destroy(): void {
+    this.animatedBlur?.destroy();
+    this.animatedBlur = undefined;
     for (const id of [...this.regions.keys()]) this.dropRegion(id);
     for (const entry of this.active.values()) entry.filter.destroy();
     this.active.clear();

@@ -45,7 +45,7 @@ There is no ripple delete. To remove a section and close the gap, `clip/split` a
 
 | Command | Payload |
 | --- | --- |
-| `keyframe/set` | `{ clipId, property: x\|y\|scale\|rotation\|opacity\|volume, timeUs, value, easing?, anchor?: "start"\|"end" }` |
+| `keyframe/set` | `{ clipId, property: x\|y\|scale\|rotation\|opacity\|volume\|blur\|reveal, timeUs, value, easing?, anchor?: "start"\|"end" }` |
 | `keyframe/remove` | `{ clipId, property, timeUs, anchor? }` |
 | `keyframe/clear` | `{ clipId, property? }` |
 | `effect/add` | `{ clipId, kind, params?, enabled?, index?, effectId? }` |
@@ -53,6 +53,8 @@ There is no ripple delete. To remove a section and close the gap, `clip/split` a
 | `effect/set-region-keyframe` | `{ clipId, effectId, property: x\|y\|width\|height, timeUs, value, easing?, anchor? }` |
 | `effect/clear-region-keyframes` | `{ clipId, effectId, property? }` |
 | `effect/remove` / `effect/reorder` | `{ clipId, effectId }` / `{ clipId, effectId, index }` |
+
+Keyframe values: `x`/`y` and `scale` as the clip's transform; `blur` is a blur over the whole clip as a fraction of the frame height (0–0.25, rests at 0); `reveal` is the share of a text clip's characters that show (0–1, text only, rests at 1). The animation presets Blur (in/out) and Typewriter (in, text) are keyframes on these.
 
 `effect/add` takes `region?: { x, y, width, height, shape?: "rect"|"ellipse", feather?, invert? }` (fractions of the CLIP's frame, top-left origin) to apply the effect to part of the clip only: `blur` or `pixelate` a password field, or `colorAdjust` with `brightness: -0.5` and `invert: true` for a spotlight. The region follows the clip through zooms and moves.
 

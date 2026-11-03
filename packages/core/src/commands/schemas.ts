@@ -36,6 +36,8 @@ export const animatableProperty = z.enum([
   "rotation",
   "opacity",
   "volume",
+  "blur",
+  "reveal",
 ]);
 
 export const captionWordSchema = z.object({

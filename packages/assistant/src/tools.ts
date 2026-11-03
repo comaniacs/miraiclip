@@ -1,6 +1,8 @@
 import {
   ANIMATION_EASINGS,
   ANIMATION_PRESETS,
+  animationPreset,
+  presetAppliesTo,
   animationCommands,
   applyBeatGrid,
   applyCommands,
@@ -451,8 +453,11 @@ export function editorTools(options: EditorToolsOptions = {}): AssistantTool[] {
             delete next[slot];
             continue;
           }
+          const preset = animationPreset(`${slot}:${name}`);
+          if (preset && !presetAppliesTo(preset, clip))
+            return { ok: false, error: `${preset.label} works on ${preset.kinds!.join(" / ")} clips only, and ${clip.id} is a ${clip.kind} clip. Nothing was changed.` };
           const durationUs = slot === "loop" ? 0 : toUs(input[slot === "in" ? "inSeconds" : "outSeconds"]) ?? current[slot]?.durationUs ?? 600_000;
-          next[slot] = { preset: `${slot}:${name}`, durationUs, easing: slot === "loop" ? "linear" : easing };
+          next[slot] = { preset: `${slot}:${name}`, durationUs, easing: slot === "loop" || preset?.linearOnly ? "linear" : easing };
         }
         const recipe = fitAnimation(next, clip.durationUs);
         const result = applyCommands(project, animationCommands(clip, recipe));

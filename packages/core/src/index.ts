@@ -114,11 +114,13 @@ export {
   ANIMATION_MAX_SLOT_US,
   ANIMATION_MIN_SLOT_US,
   ANIMATION_PRESETS,
+  BLUR_ANIMATION_PEAK,
   animationCommands,
   animationPreset,
   describeAnimation,
   fitAnimation,
   planAnimation,
+  presetAppliesTo,
   readAnimation,
 } from "./animation-presets.js";
 export type {

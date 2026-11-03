@@ -36,7 +36,7 @@ import type {
 function hasVisualAnimation(clip: Clip): boolean {
   const animations = clip.animations;
   if (!animations) return false;
-  for (const property of ["x", "y", "scale", "rotation", "opacity"] as const) {
+  for (const property of ["x", "y", "scale", "rotation", "opacity", "blur", "reveal"] as const) {
     if ((animations[property]?.length ?? 0) > 0) return true;
   }
   return false;

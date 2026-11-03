@@ -28,6 +28,8 @@ export function placementFromEvaluated(
   out.scaleY = evaluated.scaleY ?? 1;
   out.rotationRad = (evaluated.rotation * Math.PI) / 180;
   out.opacity = evaluated.opacity;
+  out.blurPx = Math.min(Math.max(evaluated.blur ?? 0, 0), 0.25) * settings.height;
+  out.reveal = Math.min(Math.max(evaluated.reveal ?? 1, 0), 1);
   return out;
 }
 

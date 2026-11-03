@@ -19,7 +19,9 @@ import type { AnimatableProperty, Clip, Easing, Keyframe, Transform, Us } from "
 
 export type AnimationSlot = "in" | "out" | "loop";
 type Prop = Exclude<AnimatableProperty, "volume">;
-type Base = Pick<Transform, "x" | "y" | "scale" | "rotation" | "opacity">;
+/** The properties that rest at the clip's own transform (the others rest at 0 blur / everything revealed). */
+type TransformProp = "x" | "y" | "scale" | "rotation" | "opacity";
+type Base = Pick<Transform, TransformProp> & { blur?: number; reveal?: number };
 
 /** A keyframe in slot-local time (0 = the slot's start). */
 interface Point {
@@ -56,12 +58,16 @@ export interface AnimationPreset {
   build(base: Base, lengthUs: Us, easing: AnimationEasing): Track;
   /** Loops only: fixed timing, no duration / easing choice. */
   fixed?: boolean;
+  /** Always plays at a steady pace: the easing choice does not apply (Typewriter). */
+  linearOnly?: boolean;
+  /** Clip kinds the preset makes sense on (absent = every visual clip). */
+  kinds?: readonly string[];
 }
 
 const OFFSET = 0.12; // slide distance, in composition fractions
 
 /** An entrance from `from` values to the base, plus an Out version that mirrors it. */
-function entrance(id: string, label: string, from: (b: Base) => Partial<Base>, extra?: (b: Base, d: Us, e: Easing) => Track): AnimationPreset[] {
+function entrance(id: string, label: string, from: (b: Base) => Partial<Pick<Base, TransformProp>>, extra?: (b: Base, d: Us, e: Easing) => Track): AnimationPreset[] {
   const make = (slot: "in" | "out"): AnimationPreset => ({
     id: `${slot}:${id}`,
     label,
@@ -70,7 +76,7 @@ function entrance(id: string, label: string, from: (b: Base) => Partial<Base>, e
       const e = curve(choice, slot);
       const start = from(base);
       const track: Track = {};
-      for (const prop of Object.keys(start) as Prop[]) {
+      for (const prop of Object.keys(start) as TransformProp[]) {
         const away = start[prop]!;
         track[prop] =
           slot === "in"
@@ -91,7 +97,37 @@ function entrance(id: string, label: string, from: (b: Base) => Partial<Base>, e
 
 const fade = (b: Base) => ({ opacity: 0 * b.opacity });
 
+/** The deepest blur a Blur animation starts or ends at, as a fraction of the frame height. */
+export const BLUR_ANIMATION_PEAK = 0.04;
+
 export const ANIMATION_PRESETS: readonly AnimationPreset[] = [
+  // Blur: sharpens as it comes in (and the mirror on the way out), fading with it so it never pops on a cut.
+  ...(["in", "out"] as const).map<AnimationPreset>((slot) => ({
+    id: `${slot}:blur`,
+    label: "Blur",
+    slot,
+    build(b, d, choice) {
+      const e = curve(choice, slot);
+      return slot === "in"
+        ? {
+            blur: [{ t: 0, value: BLUR_ANIMATION_PEAK, easing: e }, { t: d, value: 0, easing: LINEAR }],
+            opacity: [{ t: 0, value: 0, easing: e }, { t: d, value: b.opacity, easing: LINEAR }],
+          }
+        : {
+            blur: [{ t: 0, value: 0, easing: e }, { t: d, value: BLUR_ANIMATION_PEAK, easing: LINEAR }],
+            opacity: [{ t: 0, value: b.opacity, easing: e }, { t: d, value: 0, easing: LINEAR }],
+          };
+    },
+  })),
+  // Typewriter: the characters appear one after another at a steady pace over the In length.
+  {
+    id: "in:typewriter",
+    label: "Typewriter",
+    slot: "in",
+    linearOnly: true,
+    kinds: ["text"],
+    build: (_b, d) => ({ reveal: [{ t: 0, value: 0, easing: LINEAR }, { t: d, value: 1, easing: LINEAR }] }),
+  },
   ...entrance("fade", "Fade", fade),
   ...entrance("up", "Slide up", (b) => ({ y: b.y + OFFSET, ...fade(b) })),
   ...entrance("down", "Slide down", (b) => ({ y: b.y - OFFSET, ...fade(b) })),
@@ -175,6 +211,10 @@ function loop(id: string, label: string, prop: Prop, periodUs: Us, valueAt: (b: 
     },
   };
 }
+
+/** Does `preset` make sense on this clip? (Typewriter needs text; the rest suit every visual clip.) */
+export const presetAppliesTo = (preset: AnimationPreset, clip: Pick<Clip, "kind">): boolean =>
+  !preset.kinds || preset.kinds.includes(clip.kind);
 
 /** A preset by id ("in:pop", "loop:pulse", …). */
 export const animationPreset = (id: string): AnimationPreset | undefined => ANIMATION_PRESETS.find((p) => p.id === id);
@@ -350,7 +390,7 @@ function slotCandidates(slot: "in" | "out", actual: Actual[], transform: Base, c
       const v = slot === "in" ? list.at(-1)?.value : list[0]?.value;
       if (v !== undefined) base[p] = v;
     }
-    for (const { id: easing } of ANIMATION_EASINGS) {
+    for (const { id: easing } of preset.linearOnly ? [{ id: "linear" as const }] : ANIMATION_EASINGS) {
       const choice: AnimationSlotChoice = { preset: preset.id, durationUs: length, easing };
       const plan = planAnimation({ [slot]: choice }, { ...transform, ...base }, clipUs).keyframes;
       if (matches(plan, actual, false)) out.push({ choice, base });
@@ -393,7 +433,7 @@ export function describeAnimation(r: AnimationRecipe): string {
   return parts.join(" · ");
 }
 
-const VISUAL_PROPS: readonly Prop[] = ["x", "y", "scale", "rotation", "opacity"];
+const VISUAL_PROPS: readonly Prop[] = ["x", "y", "scale", "rotation", "opacity", "blur", "reveal"];
 
 /**
  * The commands that give `clip` exactly `recipe`: clear its visual keyframes
