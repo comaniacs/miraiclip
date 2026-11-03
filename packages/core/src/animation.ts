@@ -163,6 +163,10 @@ export interface EvaluatedClip {
   rotation: number;
   opacity: number;
   volume: number;
+  /** Animated blur, as a fraction of the composition height; absent means 0. */
+  blur?: number;
+  /** Animated share of a text clip's characters that show (0..1); absent means 1. */
+  reveal?: number;
 }
 
 const PROPS: readonly AnimatableProperty[] = [
@@ -172,6 +176,8 @@ const PROPS: readonly AnimatableProperty[] = [
   "rotation",
   "opacity",
   "volume",
+  "blur",
+  "reveal",
 ];
 
 /**
@@ -189,12 +195,14 @@ export function evaluateClipInto(clip: Clip, clipTimeUs: Us, out: EvaluatedClip)
   out.rotation = t.rotation;
   out.opacity = t.opacity;
   out.volume = "volume" in clip && typeof clip.volume === "number" ? clip.volume : 1;
+  out.blur = 0;
+  out.reveal = 1;
   const animations = clip.animations;
   if (!animations) return out;
   for (const prop of PROPS) {
     const keyframes = animations[prop];
     if (keyframes && keyframes.length > 0) {
-      out[prop] = evaluateKeyframes(keyframes, clipTimeUs, out[prop], clip.durationUs);
+      out[prop] = evaluateKeyframes(keyframes, clipTimeUs, out[prop] ?? 0, clip.durationUs);
     }
   }
   return out;

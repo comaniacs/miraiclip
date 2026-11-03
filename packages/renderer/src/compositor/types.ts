@@ -10,6 +10,10 @@ export interface Placement {
   scaleY?: number;
   rotationRad: number;
   opacity: number;
+  /** Animated blur over the whole clip, in composition pixels (absent = none). */
+  blurPx?: number;
+  /** Animated share of a text clip's characters that show, 0..1 (absent = all). */
+  reveal?: number;
 }
 
 /** Which way a wipe's edge sweeps / a slide's clip moves. */

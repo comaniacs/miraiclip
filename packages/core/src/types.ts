@@ -173,7 +173,11 @@ export interface Keyframe {
   easing: Easing;
 }
 
-export type AnimatableProperty = "x" | "y" | "scale" | "rotation" | "opacity" | "volume";
+/**
+ * What keyframes can animate. `blur` is a blur over the whole clip as a fraction of the composition
+ * height (0..0.25, resting 0); `reveal` is how much of a text clip's characters show (0..1, resting 1).
+ */
+export type AnimatableProperty = "x" | "y" | "scale" | "rotation" | "opacity" | "volume" | "blur" | "reveal";
 
 /**
  * One effect in a clip's stack. `kind` resolves through the effect registry

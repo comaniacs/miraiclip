@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   ANIMATION_PRESETS,
+  BLUR_ANIMATION_PEAK,
   animationCommands,
+  animationPreset,
+  evaluateClipAt,
+  presetAppliesTo,
   applyCommands,
   createProject,
   describeAnimation,
@@ -40,7 +44,7 @@ describe("animation presets", () => {
         for (const o of outs) {
           if (!i && !l && !o) continue;
           const r: AnimationRecipe = {
-            ...(i ? { in: { preset: i.id, durationUs: 700_000, easing: "snappy" as const } } : {}),
+            ...(i ? { in: { preset: i.id, durationUs: 700_000, easing: i.linearOnly ? ("linear" as const) : ("snappy" as const) } } : {}),
             ...(l ? { loop: { preset: l.id, durationUs: 0, easing: "linear" as const } } : {}),
             ...(o ? { out: { preset: o.id, durationUs: 400_000, easing: "smooth" as const } } : {}),
           };
@@ -63,6 +67,62 @@ describe("animation presets", () => {
     expect(readAnimation(clip(p, "t")).custom).toBe(true);
     apply(p, "t", {});
     expect(clip(p, "t").animations ?? {}).toEqual({});
+  });
+});
+
+describe("Blur and Typewriter presets", () => {
+  const blurIn = { preset: "in:blur", durationUs: 600_000, easing: "linear" as const };
+
+  it("Blur in sharpens and fades in; Blur out mirrors it from the end", () => {
+    const p = project();
+    apply(p, "c1", { in: blurIn, out: { preset: "out:blur", durationUs: 500_000, easing: "linear" } });
+    const anim = clip(p, "c1").animations!;
+    expect(anim.blur!.map((k) => [k.timeUs, k.anchor ?? "start", k.value])).toEqual([
+      [0, "start", BLUR_ANIMATION_PEAK],
+      [600_000, "start", 0],
+      [500_000, "end", 0],
+      [0, "end", BLUR_ANIMATION_PEAK],
+    ]);
+    expect(anim.opacity!.length).toBe(4);
+    expect(evaluateClipAt(clip(p, "c1"), 0)).toMatchObject({ blur: BLUR_ANIMATION_PEAK, opacity: 0 });
+    expect(evaluateClipAt(clip(p, "c1"), 2_000_000)).toMatchObject({ blur: 0, opacity: 1 });
+    expect(readAnimation(clip(p, "c1")).recipe.in?.preset).toBe("in:blur");
+  });
+
+  it("Typewriter reveals the characters steadily over the In length, text only", () => {
+    const p = project();
+    apply(p, "t", { in: { preset: "in:typewriter", durationUs: 1_000_000, easing: "linear" } });
+    expect(clip(p, "t").animations!.reveal!.map((k) => [k.timeUs, k.value])).toEqual([[0, 0], [1_000_000, 1]]);
+    expect(evaluateClipAt(clip(p, "t"), 0).reveal).toBe(0);
+    expect(evaluateClipAt(clip(p, "t"), 500_000).reveal).toBeCloseTo(0.5, 6);
+    expect(evaluateClipAt(clip(p, "t"), 4_000_000).reveal).toBe(1);
+    const typewriter = animationPreset("in:typewriter")!;
+    expect(presetAppliesTo(typewriter, clip(p, "t"))).toBe(true);
+    expect(presetAppliesTo(typewriter, clip(p, "c1"))).toBe(false);
+    expect(presetAppliesTo(animationPreset("in:blur")!, clip(p, "c1"))).toBe(true);
+  });
+
+  it("clips without keyframes rest at no blur and everything revealed; replacing the animation clears them", () => {
+    const p = project();
+    expect(evaluateClipAt(clip(p, "t"), 0)).toMatchObject({ blur: 0, reveal: 1 });
+    apply(p, "t", { in: { preset: "in:typewriter", durationUs: 800_000, easing: "linear" } });
+    apply(p, "t", { in: blurIn });
+    expect(clip(p, "t").animations).not.toHaveProperty("reveal");
+    apply(p, "t", {});
+    expect(clip(p, "t").animations ?? {}).toEqual({});
+  });
+
+  it("validates blur and reveal keyframes", () => {
+    const p = project();
+    const set = (clipId: string, property: "blur" | "reveal", value: number) =>
+      p.dispatch({ type: "keyframe/set", payload: { clipId, property, timeUs: 0, value } });
+    expect(() => set("c1", "blur", 0.5)).toThrow(/blur keyframes/);
+    expect(() => set("c1", "blur", -0.1)).toThrow(/blur keyframes/);
+    expect(() => set("t", "reveal", 1.5)).toThrow(/reveal keyframes/);
+    expect(() => set("c1", "reveal", 0.5)).toThrow(/characters to reveal/);
+    set("t", "reveal", 0.5);
+    set("c1", "blur", 0.1);
+    expect(clip(p, "t").animations!.reveal).toHaveLength(1);
   });
 });
 

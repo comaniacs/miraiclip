@@ -100,6 +100,13 @@ describe("every catalog entry works through the tools", () => {
     expect(out.ok).toBe(true);
     expect(readAnimation(project.getState().doc.clips.title!).recipe[slot]?.preset).toBe(id);
   });
+  it("Typewriter is for text: a video clip is refused plainly and left alone; Blur works on both", () => {
+    const refused = run("animate_clip", { clipId: "v1", in: "typewriter" });
+    expect(refused.out.ok).toBe(false);
+    expect(String((!refused.out.ok && refused.out.error) || "")).toMatch(/Typewriter works on text clips only.*v1 is a video clip.*Nothing was changed/);
+    expect(refused.project.getState().doc.clips.v1!.animations ?? {}).toEqual({});
+    for (const clipId of ["v1", "title"]) expect(run("animate_clip", { clipId, in: "blur", out: "blur" }).out.ok).toBe(true);
+  });
   it.each(Object.keys(builtinTransitionParamSchemas).map((k) => [k] as const))("transition %s applies on every cut", (kind) => {
     const { project, out } = run("add_transition", { kind, allCuts: true });
     expect(out.ok).toBe(true);

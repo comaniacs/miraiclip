@@ -3,7 +3,7 @@
  * its tests never touch this file. Rendering is manual (no Pixi ticker) — the
  * playback controller decides when frames are drawn.
  */
-import { Application, Assets, CanvasSource, Container, Graphics, ImageSource, Rectangle, Sprite, Text, Texture, type TextureSource } from "pixi.js";
+import { Application, Assets, CanvasSource, CanvasTextMetrics, Container, Graphics, ImageSource, Rectangle, Sprite, Text, Texture, type TextureSource } from "pixi.js";
 import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type Crop, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { captionProgress, displayText, layoutCaption, POP_SCALE, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
@@ -35,6 +35,15 @@ abstract class PixiNode<T extends Container> implements SceneNode {
     if (!this.effectContext) return;
     this.effects ??= new NodeEffects(this.display, this.effectContext, this.invalidate);
     this.effects.set(effects);
+  }
+
+  /** The Blur animation (see Placement.blurPx); a node without effect support ignores it. */
+  private applyAnimatedBlur(blurPx: number): void {
+    if (!this.effects) {
+      if (blurPx <= 0 || !this.effectContext) return;
+      this.effects = new NodeEffects(this.display, this.effectContext, this.invalidate);
+    }
+    this.effects.setAnimatedBlur(blurPx);
   }
 
   setEffectTime(localUs: number, clipDurationUs: number): void {
@@ -93,6 +102,7 @@ abstract class PixiNode<T extends Container> implements SceneNode {
     this.display.scale.set(placement.scale * this.axisX, placement.scale * (placement.scaleY ?? 1));
     this.display.rotation = placement.rotationRad;
     this.display.alpha = placement.opacity;
+    this.applyAnimatedBlur(placement.blurPx ?? 0);
     this.invalidate();
   }
 
@@ -677,6 +687,10 @@ function opaqueBounds(canvas: HTMLCanvasElement): { x: number; y: number; w: num
 
 class PixiTextNode extends PixiNode<Text> {
   private readonly textContext: EffectContext;
+  /** Typewriter: how much of the text shows (1 = all), and the mask that hides the rest. */
+  private shownFraction = 1;
+  private typingMask: Graphics | undefined;
+  private typingKey = "";
 
   constructor(
     stage: Container,
@@ -700,6 +714,83 @@ class PixiTextNode extends PixiNode<Text> {
     // stretch a composition-resolution glyph atlas).
     this.display.resolution = Math.max(1, this.textContext?.renderScale?.() ?? 1);
     this.display.style = textClipStyle(clip);
+    this.typingKey = ""; // the text or its style changed: lay the mask out again
+    this.applyTyping(this.shownFraction);
+    this.invalidate();
+  }
+
+  override setPlacement(placement: Placement): void {
+    super.setPlacement(placement);
+    this.applyTyping(placement.reveal ?? 1);
+  }
+
+  /**
+   * Typewriter: show the first `fraction` of the characters. The text keeps its final layout
+   * (nothing reflows or re-centers while it types): a mask in the text's own space leaves
+   * everything above the line being typed, and that line up to the last shown character.
+   */
+  private applyTyping(fraction: number): void {
+    this.shownFraction = fraction;
+    const text = this.display.text;
+    const lines = text.split(/\r?\n/).map((line) => Array.from(line));
+    const total = lines.reduce((n, line) => n + line.length, 0);
+    const shown = fraction >= 1 ? total : Math.max(0, Math.floor(fraction * total + 1e-9));
+    if (shown >= total) {
+      if (this.typingMask) {
+        this.display.mask = null;
+        this.typingMask.destroy();
+        this.typingMask = undefined;
+        this.typingKey = "";
+        this.invalidate();
+      }
+      return;
+    }
+    const key = `${shown}|${text}`;
+    if (key === this.typingKey && this.typingMask) return;
+    this.typingKey = key;
+
+    let remaining = shown;
+    let cut = lines.length - 1;
+    for (let i = 0; i < lines.length; i++) {
+      if (remaining <= lines[i]!.length) {
+        cut = i;
+        break;
+      }
+      remaining -= lines[i]!.length;
+    }
+    const style = this.display.style;
+    const metrics = CanvasTextMetrics.measureText(text, style);
+    const pitch = metrics.lineHeight;
+    const strokeWidth = style._stroke?.width ?? 0;
+    // The glyph block inside the centered sprite: stroke and shadow make the sprite larger than the text.
+    const left = -metrics.width / 2 + strokeWidth / 2;
+    const top = -metrics.height / 2 + strokeWidth / 2;
+    const lineWidth = metrics.lineWidths[cut] ?? 0;
+    const align = style.align;
+    const indent = align === "center" ? (metrics.maxLineWidth - lineWidth) / 2 : align === "right" ? metrics.maxLineWidth - lineWidth : 0;
+    const prefixWidth = remaining > 0 ? CanvasTextMetrics.measureText(lines[cut]!.slice(0, remaining).join(""), style).maxLineWidth : 0;
+    const BIG = 100_000;
+    const lineTop = top + cut * pitch;
+
+    if (!this.typingMask) {
+      this.typingMask = new Graphics();
+      this.typingMask.measurable = false; // the selection box is the text's, not the mask's
+      this.display.addChild(this.typingMask);
+      this.display.mask = this.typingMask;
+    }
+    const mask = this.typingMask;
+    mask.clear();
+    let any = false;
+    if (cut > 0) {
+      mask.rect(-BIG, -BIG, 2 * BIG, lineTop + BIG);
+      any = true;
+    }
+    if (remaining > 0) {
+      mask.rect(-BIG, lineTop, BIG + left + indent + prefixWidth, pitch);
+      any = true;
+    }
+    if (!any) mask.rect(BIG, BIG, 1, 1); // nothing shows yet
+    mask.fill(0xffffff);
     this.invalidate();
   }
 }

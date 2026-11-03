@@ -192,6 +192,24 @@ describe("keyframe animation application", () => {
     expect(node.placement!.opacity).toBeCloseTo(0, 6);
   });
 
+  it("blur and reveal keyframes re-place the node: blur in composition pixels, reveal 0..1", () => {
+    const { project, backend, compositor } = animatedSetup();
+    // Only blur and reveal are animated: they alone must make the clip re-evaluate every render.
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "blur", timeUs: 0, value: 0.1 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "blur", timeUs: 2_000_000, value: 0 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "reveal", timeUs: 0, value: 0 } });
+    project.dispatch({ type: "keyframe/set", payload: { clipId: "t", property: "reveal", timeUs: 2_000_000, value: 1 } });
+    const node = backend.nodes[0]!;
+
+    compositor.renderAt(2_000_000); // clip time 1s = halfway
+    expect(node.placement!.blurPx).toBeCloseTo(0.05 * 500, 3); // a fraction of the 500px frame height
+    expect(node.placement!.reveal).toBeCloseTo(0.5, 6);
+
+    compositor.renderAt(3_000_000);
+    expect(node.placement!.blurPx).toBeCloseTo(0, 6);
+    expect(node.placement!.reveal).toBeCloseTo(1, 6);
+  });
+
   it("unanimated properties keep the clip's static transform", () => {
     const { project, backend, compositor } = animatedSetup();
     project.dispatch({ type: "clip/set-property", payload: { clipId: "t", transform: { y: 0.8, scale: 2 } } });
