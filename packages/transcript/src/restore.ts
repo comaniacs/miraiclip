@@ -19,6 +19,7 @@ import {
   type ProjectDocument,
   type VideoClip,
 } from "@miraiclip/core";
+import { syncedTracks, type CutOptions } from "./cuts.js";
 import type { Command, Transcript } from "./types.js";
 
 type MediaClip = VideoClip | AudioClip;
@@ -35,6 +36,8 @@ export interface RestoreOptions extends FindCutsOptions {
   linkedClipIds?: string[];
   /** Move later clips right to make room (default true, like `cutCommands`). */
   ripple?: boolean;
+  /** Move later clips on every other unlocked track right too (see `CutOptions.syncTracks`); a clip straddling the cut stays. */
+  syncTracks?: CutOptions["syncTracks"];
 }
 
 /** One cut, on every track the media plays on. */
@@ -187,6 +190,7 @@ export function restoreWords(
       Object.values(state().clips).filter((c) => c.id === id || baseId(c.id) === id),
     );
     const tracks = new Set([...cut.pieces.map((p) => p.trackId), ...linked.map((c) => c.trackId)]);
+    const moved = new Set([...tracks, ...syncedTracks(state(), tracks, options.syncTracks)]);
     const fills: { clipId: string; srcUs: number | null }[] = cut.pieces.map((p) => ({ clipId: p.beforeClipId, srcUs: x0 }));
     // A linked piece ending at the cut gets the same stretch of its own source back.
     for (const c of linked) {
@@ -197,7 +201,7 @@ export function restoreWords(
 
     if (options.ripple !== false) {
       const later = Object.values(state().clips)
-        .filter((c) => tracks.has(c.trackId) && c.startUs >= cut.atUs)
+        .filter((c) => moved.has(c.trackId) && c.startUs >= cut.atUs)
         .sort((a, b) => b.startUs - a.startUs);
       for (const c of later) run({ type: "clip/move", payload: { clipId: c.id, startUs: c.startUs + lenUs } });
       for (const m of Object.values(state().markers ?? {})) {

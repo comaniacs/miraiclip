@@ -35,6 +35,23 @@ export interface CutOptions {
   ripple?: boolean;
   /** Skip removed pieces shorter than this, µs (default 1 frame at the project rate). */
   minCutUs?: number;
+  /**
+   * Keep every other unlocked track in sync too (titles, music, a voice-over laid over the
+   * speech): after each cut, clips that start after it move left as far as fits; a clip
+   * straddling the cut stays, and so does everything before it on that track. Tracks in
+   * `exclude` don't move. Default false: only the tracks the media plays on (and linked
+   * clips') ripple.
+   */
+  syncTracks?: boolean | { exclude?: string[] };
+}
+
+/** The other tracks `syncTracks` moves: unlocked, not excluded, not the cut's own. */
+export function syncedTracks(doc: ProjectDocument, own: Set<string>, sync: CutOptions["syncTracks"]): string[] {
+  if (!sync) return [];
+  const exclude = new Set(typeof sync === "object" ? (sync.exclude ?? []) : []);
+  return Object.values(doc.tracks)
+    .filter((t) => !own.has(t.id) && !t.locked && !exclude.has(t.id))
+    .map((t) => t.id);
 }
 
 export interface CutPlan {
@@ -124,6 +141,19 @@ export function cutCommands(doc: ProjectDocument, ranges: readonly SourceRange[]
         .filter((c) => tracks.has(c.trackId) && c.startUs >= range.endUs)
         .sort((a, b) => a.startUs - b.startUs);
       for (const c of later) run({ type: "clip/move", payload: { clipId: c.id, startUs: c.startUs - shift } });
+      // Other tracks follow as far as they can: a clip straddling the cut holds its track's later clips back.
+      for (const trackId of syncedTracks(state(), tracks, options.syncTracks)) {
+        const on = Object.values(state().clips)
+          .filter((c) => c.trackId === trackId)
+          .sort((a, b) => a.startUs - b.startUs);
+        const moving = on.filter((c) => c.startUs >= range.endUs);
+        const first = moving[0];
+        if (!first) continue;
+        const floor = Math.max(range.startUs, ...on.filter((c) => c.startUs < range.endUs).map((c) => c.startUs + c.durationUs));
+        const by = Math.max(0, Math.min(shift, first.startUs - floor));
+        if (by === 0) continue;
+        for (const c of moving) run({ type: "clip/move", payload: { clipId: c.id, startUs: c.startUs - by } });
+      }
       // Markers after the cut move with the content; ones inside it land on the cut.
       for (const m of Object.values(state().markers ?? {})) {
         if (m.timeUs >= range.endUs) run({ type: "marker/update", payload: { markerId: m.id, timeUs: m.timeUs - shift } });
