@@ -270,3 +270,52 @@ describe("cutWords + restoreWords", () => {
     expect(doc.clips).toEqual(before);
   });
 });
+
+describe("syncTracks: cuts and restores keep the other tracks in sync", () => {
+  // The talk plus an over-dub track: a voice clip after the cut, one straddling it, a locked title track.
+  function withTracks() {
+    const p = project();
+    apply(p, [
+      { type: "asset/add", payload: { id: "vo", kind: "audio", src: "vo.wav", durationUs: 2 * S } },
+      { type: "track/add", payload: { id: "dub", kind: "audio" } },
+      { type: "clip/add", payload: { kind: "audio", id: "late", trackId: "dub", assetId: "vo", startUs: 5.3 * S, durationUs: 0.5 * S } },
+      { type: "track/add", payload: { id: "over", kind: "audio" } },
+      { type: "clip/add", payload: { kind: "audio", id: "across", trackId: "over", assetId: "vo", startUs: 0.9 * S, durationUs: 0.6 * S } },
+      { type: "clip/add", payload: { kind: "audio", id: "after", trackId: "over", assetId: "vo", startUs: 3 * S, durationUs: 0.5 * S } },
+      { type: "track/add", payload: { id: "locked", kind: "audio" } },
+      { type: "clip/add", payload: { kind: "audio", id: "pinned", trackId: "locked", assetId: "vo", startUs: 5 * S, durationUs: 0.5 * S } },
+      { type: "track/set-property", payload: { trackId: "locked", locked: true } },
+    ]);
+    return p;
+  }
+
+  it("without it, only the media's tracks move (unchanged behaviour)", () => {
+    const p = withTracks();
+    const doc = apply(p, removeWords(p.getState().doc, transcript, [1]).commands);
+    expect(doc.clips["late"]!.startUs).toBe(5.3 * S);
+  });
+
+  it("moves later clips on every unlocked track; a straddling clip holds its track back", () => {
+    const p = withTracks();
+    // "um," at 1.0–1.3 s, cut mid-pause to mid-pause: 0.95–1.35 s.
+    const plan = removeWords(p.getState().doc, transcript, [1], { syncTracks: { exclude: ["c"] } });
+    const doc = apply(p, plan.commands);
+    const shift = plan.removedUs;
+    expect(shift).toBe(0.4 * S);
+    // The dub after the cut moves with the speech: still over "Let's".
+    expect(doc.clips["late"]!.startUs).toBe(5.3 * S - shift);
+    const lets = transcriptOnTimeline(doc, transcript).find((w) => w.text === "Let's")!;
+    expect(doc.clips["late"]!.startUs).toBe(lets.timelineStartUs);
+    // "across" straddles the cut (0.9–1.5 s) and stays; "after" moves only as far as fits behind it.
+    expect(doc.clips["across"]!.startUs).toBe(0.9 * S);
+    expect(doc.clips["after"]!.startUs).toBe(3 * S - shift);
+    // Locked and excluded tracks don't move.
+    expect(doc.clips["pinned"]!.startUs).toBe(5 * S);
+    expect(doc.clips["cam"]!.startUs).toBe(0);
+    // Restoring with the same option puts the dub back where it was.
+    const back = apply(p, restoreWords(doc, transcript, [1], { syncTracks: { exclude: ["c"] } }).commands);
+    expect(back.clips["late"]!.startUs).toBe(5.3 * S);
+    expect(back.clips["after"]!.startUs).toBe(3 * S);
+    expect(back.clips["across"]!.startUs).toBe(0.9 * S);
+  });
+});
