@@ -4,6 +4,8 @@ export { DEFAULT_FILLERS, bareWord, detectFillers, detectRepeats, detectSilences
 export type { DetectFillersOptions, DetectSilencesOptions, Span } from "./detect.js";
 export { cutCommands, sourceRangesOnTimeline } from "./cuts.js";
 export type { CutOptions, CutPlan } from "./cuts.js";
+export { cutWords, restoreWords } from "./restore.js";
+export type { Cut, FindCutsOptions, RestoreOptions, RestorePlan } from "./restore.js";
 export { captionCommands, deletedWords, editByText, planCleanup, rangesForWords, removeWords, transcriptOnTimeline, transcriptText } from "./edit.js";
 export type { CleanupOptions, TimelineWord, TranscriptCaptionOptions } from "./edit.js";
 export type { Command, FetchLike, SourceRange, Transcript, TranscriptWord } from "./types.js";

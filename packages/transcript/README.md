@@ -4,7 +4,7 @@ Word-level transcripts for Miraiclip projects, and the edits they make possible.
 
 ```ts
 import { applyCommands } from "@miraiclip/core";
-import { openAiAsr, planCleanup, editByText, captionCommands } from "@miraiclip/transcript";
+import { openAiAsr, planCleanup, editByText, captionCommands, cutWords, restoreWords } from "@miraiclip/transcript";
 
 const transcript = { ...(await openAiAsr({ apiKey }).transcribe(file)), assetId: "screen" };
 
@@ -14,6 +14,10 @@ applyCommands(project, planCleanup(project.getState().doc, transcript, { linkedC
 // Text-based editing: delete words from the text, get the cuts.
 applyCommands(project, editByText(project.getState().doc, transcript, editedText).commands);
 
+// Put cut words back where they were (the cuts are read back from the timeline).
+const cuts = cutWords(project.getState().doc, transcript); // [{ atUs, words: [3, 4], removedUs, … }]
+applyCommands(project, restoreWords(project.getState().doc, transcript, [3]).commands);
+
 // Karaoke captions for what the timeline says now.
 applyCommands(project, captionCommands(project.getState().doc, transcript, { trackId: "captions" }));
 ```
@@ -22,5 +26,6 @@ applyCommands(project, captionCommands(project.getState().doc, transcript, { tra
 - **Transcripts live in source time**, so they stay valid through trims, cuts, moves and speed changes. `transcriptOnTimeline` maps them through the clips.
 - **Detection**: `detectFillers` (per-language lists, optional phrases), `detectRepeats`, `detectSilences`.
 - **Cuts**: `cutCommands` splits, removes and ripples the media clips, any linked clips (a camera recorded alongside) and later markers, computed against a scratch copy so the commands replay exactly.
+- **Restore**: `cutWords` lists the cuts on the timeline (pieces side by side whose source skips ahead) with the words each took out; `restoreWords` puts chosen words back in place: the piece before grows or a piece is inserted, later clips and markers move right, linked clips get their time back, and pieces that meet again in the source are joined. Restoring every word of a cut gives back what it took out.
 
 Docs: https://docs.miraiclip.com/

@@ -14,6 +14,9 @@ import {
   planCleanup,
   rangesForWords,
   remoteAsr,
+  removeWords,
+  restoreWords,
+  cutWords,
   transcriptOnTimeline,
   type Transcript,
 } from "../src/index.js";
@@ -199,5 +202,71 @@ describe("ASR adapters", () => {
     const missing = await handle(new Request("https://app.test/api/asr/nope/transcribe", { method: "POST", body: audio }));
     expect(missing!.status).toBe(404);
     expect(await handle(new Request("https://app.test/other"))).toBeNull();
+  });
+});
+
+describe("cutWords + restoreWords", () => {
+  // Cut "um," and the second "the", the way the transcript UI does.
+  function cutTwo() {
+    const p = project();
+    const original = structuredClone(p.getState().doc);
+    const plan = removeWords(p.getState().doc, transcript, [1, 5], { linkedClipIds: ["cam"] });
+    apply(p, plan.commands);
+    return { p, original, removedUs: plan.removedUs };
+  }
+
+  it("reads the cuts back, with their words, on every track", () => {
+    const { p, removedUs } = cutTwo();
+    const cuts = cutWords(p.getState().doc, transcript);
+    expect(cuts.map((c) => c.words)).toEqual([[1], [5]]);
+    expect(cuts.reduce((n, c) => n + c.removedUs, 0)).toBe(removedUs);
+    expect(cuts[0]!.pieces).toHaveLength(1);
+    // Uncut, trimmed at the head: not a cut.
+    const q = project();
+    q.dispatch({ type: "clip/trim", payload: { clipId: "talk", trimStartUs: 1 * S, durationUs: 7 * S } });
+    expect(cutWords(q.getState().doc, transcript)).toEqual([]);
+  });
+
+  it("restoring every cut word gives back the original project", () => {
+    const { p, original, removedUs } = cutTwo();
+    const plan = restoreWords(p.getState().doc, transcript, [1, 5], { linkedClipIds: ["cam"] });
+    expect(plan.restoredUs).toBe(removedUs);
+    const doc = apply(p, plan.commands);
+    expect(doc.clips).toEqual(original.clips);
+    expect(doc.markers).toEqual(original.markers);
+    expect(cutWords(doc, transcript)).toEqual([]);
+    // One undo step takes the restore back.
+    p.undo();
+    expect(cutWords(p.getState().doc, transcript)).toHaveLength(2);
+  });
+
+  it("puts back one word of a longer cut, in place, with the pause before it", () => {
+    const p = project();
+    // Cut "welcome to the" (2, 3, 4) as one cut.
+    apply(p, removeWords(p.getState().doc, transcript, [2, 3, 4]).commands);
+    expect(cutWords(p.getState().doc, transcript).map((c) => c.words)).toEqual([[2, 3, 4]]);
+    const plan = restoreWords(p.getState().doc, transcript, [3]);
+    const doc = apply(p, plan.commands);
+    expect(transcriptOnTimeline(doc, transcript).map((x) => x.text).join(" ")).toBe("Hello, um, to the demo. Let's start.");
+    // Still cut either side of it.
+    expect(cutWords(doc, transcript).map((c) => c.words)).toEqual([[2], [4]]);
+    // "to" plays where it would: right after the first piece, in source order.
+    const to = transcriptOnTimeline(doc, transcript).find((x) => x.text === "to")!;
+    const hello = transcriptOnTimeline(doc, transcript).find((x) => x.text === "um,")!;
+    expect(to.timelineStartUs).toBeGreaterThan(hello.timelineEndUs);
+    // Then the rest comes back and the clip is whole again.
+    const rest = apply(p, restoreWords(doc, transcript, [2, 4]).commands);
+    expect(Object.values(rest.clips).filter((c) => c.trackId === "v")).toHaveLength(1);
+    expect(rest.clips["talk"]).toMatchObject({ startUs: 0, durationUs: 8 * S, trimStartUs: 0 });
+  });
+
+  it("ignores words that aren't cut, and keeps working at 2×", () => {
+    const p = project();
+    p.dispatch({ type: "clip/set-speed", payload: { clipId: "talk", speed: 2 } });
+    const before = structuredClone(p.getState().doc.clips);
+    apply(p, removeWords(p.getState().doc, transcript, [6], { clipIds: ["talk"] }).commands);
+    expect(restoreWords(p.getState().doc, transcript, [0], { clipIds: ["talk"] }).commands).toEqual([]);
+    const doc = apply(p, restoreWords(p.getState().doc, transcript, [6], { clipIds: ["talk"] }).commands);
+    expect(doc.clips).toEqual(before);
   });
 });
