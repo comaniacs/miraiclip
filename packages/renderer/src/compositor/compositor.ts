@@ -572,6 +572,9 @@ export class Compositor {
 
   private fullSync(): void {
     const doc = this.doc();
+    // The composition size is a render input too: a resync after the document
+    // was swapped out-of-band must not keep laying out at the old size.
+    this.backend.resize(doc.settings.width, doc.settings.height);
     for (const [clipId, node] of this.nodes) {
       if (!doc.clips[clipId]) {
         node.destroy();

@@ -77,3 +77,50 @@ export function applyJsonPatches<T>(doc: T, ops: readonly JsonPatchOp[]): T {
   }
   return result;
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const sameJson = (a: unknown, b: unknown): boolean => a === b || JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * What changed between two documents, as patches coarse enough to be cheap and
+ * fine enough for listeners that work per entity: one operation per changed
+ * entry of each top-level map (`/clips/{id}`, `/assets/{id}`, `/tracks/{id}`,
+ * `/transitions/{id}`, …) and one per changed top-level value (`/settings`,
+ * `/trackOrder`). Returns the forward patches and their inverse.
+ */
+export function diffDocuments(
+  from: object,
+  to: object,
+): { patches: JsonPatchOp[]; inverse: JsonPatchOp[] } {
+  const patches: JsonPatchOp[] = [];
+  const inverse: JsonPatchOp[] = [];
+  const change = (path: (string | number)[], before: unknown, after: unknown): void => {
+    const pointer = toJsonPointer(path);
+    if (after === undefined) {
+      patches.push({ op: "remove", path: pointer });
+      inverse.unshift({ op: "add", path: pointer, value: before });
+    } else if (before === undefined) {
+      patches.push({ op: "add", path: pointer, value: after });
+      inverse.unshift({ op: "remove", path: pointer });
+    } else {
+      patches.push({ op: "replace", path: pointer, value: after });
+      inverse.unshift({ op: "replace", path: pointer, value: before });
+    }
+  };
+  const a = from as Record<string, unknown>;
+  const b = to as Record<string, unknown>;
+  for (const key of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const before = a[key];
+    const after = b[key];
+    if (before === after) continue;
+    // Settings is one value to listeners (a size change re-lays everything out).
+    if (key !== "settings" && isRecord(before) && isRecord(after)) {
+      for (const id of new Set([...Object.keys(before), ...Object.keys(after)])) {
+        if (!sameJson(before[id], after[id])) change([key, id], before[id], after[id]);
+      }
+    } else if (!sameJson(before, after)) change([key], before, after);
+  }
+  return { patches, inverse };
+}

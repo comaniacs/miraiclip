@@ -3,12 +3,14 @@ import {
   CommandRejectedError,
   CommandValidationError,
   UnknownCommandError,
+  applyJsonPatches,
   createProject,
   evaluateClipAt,
   frameToUs,
   snapToFrame,
   usToFrame,
   usToTimecode,
+  type JsonPatchOp,
 } from "../src/index.js";
 import { z } from "zod";
 
@@ -415,5 +417,74 @@ describe("text decoration (outline, shadow / glow on text clips)", () => {
     expect(() =>
       p.dispatch({ type: "clip/set-property", payload: { clipId: "i", shadowColor: "#000" } }),
     ).toThrow(/not-text|only applies to text/);
+  });
+});
+
+describe("replaceDocument", () => {
+  function base() {
+    const p = createProject({ width: 1280, height: 720, fps: 30 });
+    p.dispatch({ type: "track/add", payload: { id: "t1", kind: "video" } });
+    p.dispatch({ type: "clip/add", payload: { kind: "text", id: "a", trackId: "t1", startUs: 0, durationUs: 1_000_000, text: "a" } });
+    p.dispatch({ type: "clip/add", payload: { kind: "text", id: "b", trackId: "t1", startUs: 1_000_000, durationUs: 1_000_000, text: "b" } });
+    return p;
+  }
+  /** Another version of the same document: resized, `a` edited, `b` removed, `c` added. */
+  function other(p: ReturnType<typeof base>) {
+    const peer = createProject(JSON.parse(JSON.stringify(p.toJSON())));
+    peer.dispatch({ type: "project/set-settings", payload: { width: 720, height: 1280 } });
+    peer.dispatch({ type: "clip/set-property", payload: { clipId: "a", text: "A!" } });
+    peer.dispatch({ type: "clip/remove", payload: { clipId: "b" } });
+    peer.dispatch({ type: "clip/add", payload: { kind: "text", id: "c", trackId: "t1", startUs: 3_000_000, durationUs: 1_000_000, text: "c" } });
+    return peer.toJSON();
+  }
+
+  it("swaps the document and emits one patch per changed entity, with a working inverse", () => {
+    const p = base();
+    const before = p.toJSON();
+    const events: { paths: string[]; source: string; inverse: JsonPatchOp[] }[] = [];
+    p.events.on("patches", (e) => events.push({ paths: e.patches.map((o) => `${o.op} ${o.path}`), source: e.source, inverse: e.inverse }));
+    const next = other(p);
+    expect(p.replaceDocument(next)).toBe(true);
+    expect(p.toJSON()).toEqual(next);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.source).toBe("replace");
+    expect(events[0]!.paths.sort()).toEqual(["add /clips/c", "remove /clips/b", "replace /clips/a", "replace /settings"]);
+    expect(applyJsonPatches(next, events[0]!.inverse)).toEqual(before);
+  });
+
+  it("is not an edit: no history entry, stacks kept by default and dropped with history: clear", () => {
+    const p = base();
+    /** Undo steps available (counted by undoing them all, then redoing). */
+    const depth = () => {
+      let n = 0;
+      while (p.undo()) n++;
+      for (let i = 0; i < n; i++) p.redo();
+      return n;
+    };
+    const had = depth();
+    const same = JSON.parse(JSON.stringify(p.toJSON())) as ReturnType<typeof p.toJSON>;
+    expect(p.replaceDocument(same)).toBe(false);
+    const edited = JSON.parse(JSON.stringify(p.toJSON())) as ReturnType<typeof p.toJSON>;
+    (edited.clips["a"] as { text: string }).text = "remote";
+    expect(p.replaceDocument(edited)).toBe(true);
+    expect(depth()).toBe(had);
+    const again = JSON.parse(JSON.stringify(edited)) as typeof edited; // the project owns `edited` now
+    (again.clips["a"] as { text: string }).text = "remote 2";
+    p.replaceDocument(again, { history: "clear" });
+    expect(p.canUndo()).toBe(false);
+    expect(p.canRedo()).toBe(false);
+  });
+
+  it("ends an open gesture first and refuses to run inside a transaction", () => {
+    const p = base();
+    const gesture = p.beginGesture("drag");
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "a", text: "mid" } });
+    const next = JSON.parse(JSON.stringify(p.toJSON())) as ReturnType<typeof p.toJSON>;
+    (next.clips["b"] as { text: string }).text = "peer";
+    p.replaceDocument(next);
+    expect(p.inGesture()).toBe(false);
+    gesture.end();
+    expect((p.getState().doc.clips["b"] as { text: string }).text).toBe("peer");
+    expect(() => p.transaction(() => p.replaceDocument(next))).toThrow(/transaction/);
   });
 });
