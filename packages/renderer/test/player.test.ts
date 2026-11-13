@@ -274,6 +274,79 @@ describe("player transport events", () => {
     player.destroy();
   });
 
+  it("setLoop turns looping on and off after the player is built", async () => {
+    const { output, player, tick } = setup();
+    const log: string[] = [];
+    player.on("loopchange", (e) => log.push(`loop:${e.loop}`));
+    player.on("ended", () => log.push("ended"));
+    player.on("seek", (e) => log.push(`seek@${e.timeUs}`));
+    expect(player.loop).toBe(false);
+    player.setLoop(true);
+    player.setLoop(true); // unchanged: no second event
+    player.play();
+    await flushHold();
+    output.nowUs += 5_000_000;
+    tick();
+    expect(log).toEqual(["loop:true", "seek@0"]); // wrapped, did not end
+    expect(player.playing).toBe(true);
+    await flushHold();
+    player.setLoop(false);
+    output.nowUs += 5_000_000;
+    tick();
+    expect(log).toEqual(["loop:true", "seek@0", "loop:false", "ended"]);
+    expect(player.playing).toBe(false);
+    player.destroy();
+  });
+
+  it("a negative rate plays backwards without sound and ends at 0", async () => {
+    const { project, output, player, tick } = setup();
+    const log: string[] = [];
+    player.on("pause", (e) => log.push(`pause:${e.reason}@${e.timeUs}`));
+    player.on("ended", (e) => log.push(`ended@${e.timeUs}`));
+    player.seek(3_000_000);
+    player.setRate(-1);
+    player.play();
+    await flushHold();
+    expect(output.scheduled.length).toBe(0); // reverse is picture only
+    output.nowUs += 1_000_000;
+    tick();
+    expect(project.getState().playheadUs).toBe(2_000_000);
+    output.nowUs += 500_000;
+    player.setRate(-2);
+    output.nowUs += 500_000;
+    tick();
+    expect(project.getState().playheadUs).toBe(500_000);
+    output.nowUs += 1_000_000;
+    tick();
+    expect(log).toEqual(["pause:ended@0", "ended@0"]);
+    expect(project.getState().playheadUs).toBe(0);
+    player.destroy();
+  });
+
+  it("backwards from the start begins at the end, wraps when looping, and sound returns going forwards", async () => {
+    const { project, output, player, tick } = setup();
+    const seeks: number[] = [];
+    player.on("seek", (e) => seeks.push(e.timeUs));
+    player.setRate(-1);
+    player.setLoop(true);
+    player.play();
+    await flushHold();
+    tick();
+    expect(project.getState().playheadUs).toBe(4_000_000);
+    output.nowUs += 4_500_000;
+    tick();
+    expect(seeks).toEqual([4_000_000]); // wrapped to the end instead of stopping
+    expect(player.playing).toBe(true);
+    await flushHold();
+    output.nowUs += 1_000_000;
+    tick();
+    player.setRate(1);
+    await settle();
+    expect(output.scheduled.length).toBeGreaterThan(0);
+    expect(() => player.setRate(0)).toThrow();
+    player.destroy();
+  });
+
   it("forwards media failures to the error event and onError", async () => {
     const project = createProject({ width: 640, height: 360, fps: 30 });
     project.transaction(() => {

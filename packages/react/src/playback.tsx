@@ -39,6 +39,12 @@ export interface PlaybackValue {
   muted: boolean;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
+  /** Restart at the end instead of stopping. Survives the player being rebuilt. */
+  loop: boolean;
+  setLoop: (loop: boolean) => void;
+  /** Playback speed: 1 = normal, negative = backwards (picture only). Survives the player being rebuilt. */
+  rate: number;
+  setRate: (rate: number) => void;
   /** The framework-free controller underneath, for anything not covered here. */
   controller: PreviewController;
 }
@@ -107,6 +113,10 @@ export function PlaybackProvider({ options, volumeStorageKey, children }: Playba
       lastError: state.lastError,
       volume: state.volume,
       muted: state.muted,
+      loop: state.loop,
+      rate: state.rate,
+      setLoop: controller.setLoop,
+      setRate: controller.setRate,
       play: controller.play,
       pause: controller.pause,
       toggle: controller.toggle,

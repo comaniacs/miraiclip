@@ -28,8 +28,10 @@ export interface CreatePlayerOptions {
    * glyphs regenerate at that density automatically.
    */
   outputSize?: { width: number; height: number };
-  /** Loop back to 0 at the end of the composition (default false: pause). */
+  /** Loop back to 0 at the end of the composition (default false: pause). Change it later with `setLoop`. */
   loop?: boolean;
+  /** Starting playback speed (default 1). Negative plays backwards — see `Player.setRate`. */
+  rate?: number;
   /** Media failures per clip (unsupported codec, decode error, …). Default: console.error. */
   onError?: (error: Error, clipId: string) => void;
   /** Frame scheduler — injectable for tests (default requestAnimationFrame). */
@@ -89,6 +91,8 @@ export interface PlayerEvents extends Record<string, unknown> {
   seek: { timeUs: Us };
   /** Playback speed changed. */
   ratechange: { rate: number };
+  /** `loop` was turned on or off. */
+  loopchange: { loop: boolean };
   /** A media failure on one clip (also passed to `onError`). */
   error: { error: Error; clipId: string };
 }
@@ -99,10 +103,18 @@ export interface Player {
   play(): void;
   pause(): void;
   seek(timeUs: Us): void;
+  /**
+   * Playback speed (1 = normal). A negative rate plays backwards: picture only
+   * (sound is off in reverse), stopping at 0 — or wrapping to the end when
+   * `loop` is on. 0 is not a speed: pause instead.
+   */
   setRate(rate: number): void;
+  /** Loop at the end of the composition (at 0 when playing backwards) instead of stopping. */
+  setLoop(loop: boolean): void;
   readonly playing: boolean;
-  /** Current playback speed (1 = normal). */
+  /** Current playback speed (1 = normal, negative = backwards). */
   readonly rate: number;
+  readonly loop: boolean;
   readonly timeUs: Us;
   /** End of the last clip — the composition's duration. */
   readonly durationUs: Us;
@@ -173,6 +185,8 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   };
   const audio = new AudioEngine(project, options.audioOutput, options.openAudio);
   const clock = new RealtimeClock(() => options.audioOutput.currentTimeUs / 1000);
+  if (options.rate !== undefined && options.rate !== 1) clock.setRate(options.rate);
+  let loop = options.loop ?? false;
 
   // Font assets → document FontFaces. When one finishes loading, text metrics
   // changed under every text/caption node — re-sync so glyphs re-lay out.
@@ -210,21 +224,25 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
   function advance(): Us {
     let t = clock.timeUs;
     const end = durationUs();
-    if (clock.playing && end > 0 && t >= end) {
-      if (options.loop) {
-        seekInternal(0, true);
-        t = 0;
+    const reverse = clock.rate < 0;
+    if (clock.playing && end > 0 && (reverse ? t <= 0 : t >= end)) {
+      const stopAt = reverse ? 0 : end;
+      if (loop) {
+        const restartAt = reverse ? end : 0;
+        seekInternal(restartAt, true);
+        t = restartAt;
       } else {
-        pause("ended", end);
-        t = end;
-        events.emit("ended", { timeUs: end });
+        pause("ended", stopAt);
+        t = stopAt;
+        events.emit("ended", { timeUs: stopAt });
       }
     }
     // Keep decode/schedule windows rolling without doing it every frame.
-    if (Math.abs(t - lastPumpUs) > 300_000) {
+    // Backwards there is no decode-ahead to lean on, so prepare more often.
+    if (Math.abs(t - lastPumpUs) > (reverse ? 100_000 : 300_000)) {
       lastPumpUs = t;
       prepareAt(t).catch(() => undefined); // per-clip errors surface via onError
-      audio.pump(t);
+      if (!reverse) audio.pump(t);
     }
     return t;
   }
@@ -264,6 +282,12 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
     else videos.sweep();
   }, 500);
 
+  /** Sound follows the clock forwards; backwards is picture only. */
+  function startAudio(): void {
+    if (clock.rate > 0) audio.start(clock.timeUs, clock.rate);
+    else audio.stop();
+  }
+
   /** Resume the transport once the target frame is ready (capped at 400ms). */
   function resumeWhenReady(timeUs: Us): void {
     const epoch = ++holdEpoch;
@@ -275,7 +299,7 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       pendingPlay = false;
       clock.play();
       lastPlayheadUs = Number.NEGATIVE_INFINITY; // one event so UI reflects the play
-      audio.start(clock.timeUs, clock.rate);
+      startAudio();
     });
   }
 
@@ -318,7 +342,9 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       if (destroyed || clock.playing || pendingPlay) return;
       void options.audioOutput.resume();
       const end = durationUs();
-      if (end > 0 && clock.timeUs >= end) clock.seek(0);
+      if (clock.rate < 0) {
+        if (end > 0 && clock.timeUs <= 0) clock.seek(end); // backwards from the start: begin at the end
+      } else if (end > 0 && clock.timeUs >= end) clock.seek(0);
       resumeWhenReady(clock.timeUs);
       events.emit("play", { timeUs: clock.timeUs });
     },
@@ -334,8 +360,19 @@ export function createPlayer(project: Project, options: CreatePlayerOptions): Pl
       if (destroyed) return;
       const changed = rate !== clock.rate;
       clock.setRate(rate);
-      if (clock.playing) audio.start(clock.timeUs, rate);
+      if (clock.playing) {
+        lastPumpUs = Number.NEGATIVE_INFINITY; // direction or speed changed: prepare from here
+        startAudio();
+      }
       if (changed) events.emit("ratechange", { rate: clock.rate });
+    },
+    setLoop(next) {
+      if (destroyed || next === loop) return;
+      loop = next;
+      events.emit("loopchange", { loop });
+    },
+    get loop() {
+      return loop;
     },
     get playing() {
       // A transport hold is still "playing" to the outside world — the user
