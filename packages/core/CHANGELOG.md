@@ -1,5 +1,17 @@
 # @miraiclip/core
 
+## 0.13.0
+
+### Minor Changes
+
+- 916ac08: `clip/replace-asset {clipId, assetId, trimStartUs?, crop?}`: point a video, audio or image clip at another asset of the same kind and keep everything else: place on the timeline, transform, crop, keyframes, effects, fades, speed and transitions. New footage starts at its beginning (or `trimStartUs`); a source too short for the clip shortens it. `crop: "reset"` drops the crop. One undo step. The renderer rebuilds the clip's scene node around the new asset and the audio engine reopens its source, so preview follows without a remount.
+- ee9480d: `project.replaceDocument(document, { history })`: swap in another version of the document (a peer's edits, a server's copy, a rebase) and emit a `patches` event with source `"replace"`, one operation per changed clip, asset, track or transition and one for settings, so the renderer, audio and UI follow it. Setting `project.store` state directly emitted nothing, which left full-frame html clips (and every other node) laid out for the old composition size after a resized document was swapped in. `diffDocuments(from, to)` is exported for hosts that need the same patches. The compositor's `resync()` now also re-reads the composition size.
+- 4da16f5: Track volume: `Track.volume` (a gain, 0..4, absent = 1) set with `track/set-property {volume}`. Preview and export multiply it into every clip on the track through the shared gain math, so clip volumes, volume keyframes and fades stay their own. `1` clears it (documents stay minimal). `setTrackProperty` in `@miraiclip/editor` takes `volume`.
+
+### Patch Changes
+
+- 5529ae0: Two fixes for hosts with custom clip kinds. `clip/move` and `clip/duplicate` onto another track now check a registered custom kind against its own `trackKinds` (as `clip/add` already did) instead of the built-in table, which rejected every custom kind with `kind-mismatch`. `loadDocumentPlugins` takes `importModule(source, ref)`: a page whose Content Security Policy forbids importing from a `data:` URL (`script-src 'self'`) returns a module it bundled itself, after the SDK has fetched the source and checked its integrity hash.
+
 ## 0.12.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@miraiclip/localize",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Translate a Miraiclip project into other languages: text, captions, html block text, markers and the narration script, through any translator (a chat model, DeepL, or your own), as one variant document per language.",
   "license": "MIT",
   "repository": {

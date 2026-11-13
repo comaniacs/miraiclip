@@ -1,5 +1,22 @@
 # @miraiclip/react
 
+## 0.4.0
+
+### Minor Changes
+
+- 45d2d33: Transport: loop, speed and reverse live in the SDK. `Player` gains `setLoop` / `loop` (and a `loopchange` event) and `setRate` accepts a negative rate, which plays backwards without sound, stopping at 0 or wrapping to the end when looping; `createPlayer` takes a starting `rate`. `PreviewController` keeps `loop` and `rate` in its state with `setLoop` / `setRate`, so they survive `detach` / `attach` (a rebuilt player) and drive the clock-only fallback too. `usePlayback()` exposes `loop`, `rate`, `setLoop` and `setRate`.
+
+### Patch Changes
+
+- Updated dependencies [916ac08]
+- Updated dependencies [5529ae0]
+- Updated dependencies [ee9480d]
+- Updated dependencies [4da16f5]
+- Updated dependencies [45d2d33]
+  - @miraiclip/core@0.13.0
+  - @miraiclip/renderer@0.18.0
+  - @miraiclip/editor@0.6.4
+
 ## 0.3.4
 
 ### Patch Changes
