@@ -86,3 +86,42 @@ describe("plugin manifest and contract", () => {
     expect(() => pluginFromModule({ nope: 1 }, ref)).toThrow(/register/);
   });
 });
+
+describe("custom clip kinds across tracks", () => {
+  function withCustom() {
+    registerClipKind("t/overlay", { propsSchema: z.object({}), trackKinds: ["video"] });
+    registerClipKind("t/sound", { propsSchema: z.object({}), trackKinds: ["audio"] });
+    const p = createProject({ width: 640, height: 360, fps: 30 });
+    for (const [id, kind] of [["v1", "video"], ["v2", "video"], ["a1", "audio"]] as const) {
+      p.dispatch({ type: "track/add", payload: { id, kind } });
+    }
+    p.dispatch({ type: "clip/add", payload: { kind: "t/overlay", id: "o", trackId: "v1", startUs: 0, durationUs: 1_000_000, props: {} } });
+    p.dispatch({ type: "clip/add", payload: { kind: "t/sound", id: "s", trackId: "a1", startUs: 0, durationUs: 1_000_000, props: {} } });
+    return p;
+  }
+  const cleanup = () => {
+    unregisterClipKind("t/overlay");
+    unregisterClipKind("t/sound");
+  };
+
+  it("clip/move and clip/duplicate go by the kind's own trackKinds, not the built-in table", () => {
+    const p = withCustom();
+    try {
+      p.dispatch({ type: "clip/move", payload: { clipId: "o", startUs: 0, trackId: "v2" } });
+      expect(p.getState().doc.clips["o"]!.trackId).toBe("v2");
+      p.dispatch({ type: "clip/duplicate", payload: { clipId: "o", newClipId: "o2", trackId: "v1" } });
+      expect(p.getState().doc.clips["o2"]).toMatchObject({ kind: "t/overlay", trackId: "v1" });
+      // An audio-only custom kind stays off video tracks, and a visual one off audio tracks.
+      expect(() => p.dispatch({ type: "clip/move", payload: { clipId: "s", startUs: 0, trackId: "v1" } })).toThrow(/kind-mismatch/);
+      expect(() => p.dispatch({ type: "clip/duplicate", payload: { clipId: "o", newClipId: "o3", trackId: "a1" } })).toThrow(/kind-mismatch/);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it("a kind that is no longer registered can't be moved to another track", () => {
+    const p = withCustom();
+    cleanup();
+    expect(() => p.dispatch({ type: "clip/move", payload: { clipId: "o", startUs: 0, trackId: "v2" } })).toThrow(/kind-mismatch/);
+  });
+});

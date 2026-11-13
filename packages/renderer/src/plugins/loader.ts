@@ -84,6 +84,15 @@ export interface LoadPluginsOptions {
   baseUrl?: string;
   /** Fetch a plugin's source (default: `fetch(url).text()`). */
   fetchSource?: (url: string) => Promise<string>;
+  /**
+   * Turn a plugin's verified source into its module (default: import it from a
+   * `data:` URL). A page whose Content Security Policy forbids that
+   * (`script-src 'self'`) passes this to hand back a module it bundled itself,
+   * picked by `ref.name` or `ref.integrity`. The source is still fetched and its
+   * integrity hash still checked before this runs, so with an `integrity` on the
+   * ref the bundled module answers for exactly the bytes the document names.
+   */
+  importModule?: (source: string, ref: PluginRef) => Promise<Record<string, unknown>> | Record<string, unknown>;
 }
 
 export interface LoadedPlugin {
@@ -213,7 +222,8 @@ async function loadOne(ref: PluginRef, options: LoadPluginsOptions, environment:
       if (ref.integrity && !(await verifyPluginIntegrity(source, ref.integrity))) {
         throw new Error(`plugin "${ref.name}" failed its integrity check (${ref.integrity})`);
       }
-      const plugin = pluginFromModule(await importModuleSource(source), ref);
+      const module = options.importModule ? await options.importModule(source, ref) : await importModuleSource(source);
+      const plugin = pluginFromModule(module, ref);
       const api: PluginApi<RendererPluginApi> = { environment, z: pluginZod, core: core.api, renderer: renderer.api };
       await (plugin as RendererPlugin).register(api);
       return { ref, plugin };
