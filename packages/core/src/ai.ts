@@ -60,6 +60,7 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "clip/move": "Move a clip to a new timeline start (and optionally another track).",
   "clip/remove": "Remove a clip. Transitions attached to it are dropped.",
   "clip/set-property": "Set a clip property (transform fields, volume, audio fades, text content, custom-kind props, …) as a static value.",
+  "clip/replace-asset": "Point a video, audio or image clip at another asset of the same kind, keeping its place, transform, keyframes, effects and transitions. New footage starts at its beginning (or trimStartUs); a source too short for the clip shortens it. crop: \"reset\" drops the crop.",
   "clip/set-speed": "Change a video/audio clip's playback speed (0.0625–16; 0 freezes a video clip). By default the clip keeps the same footage, so its length changes; keepDuration keeps the length; ripple shifts later clips on the track.",
   "clip/freeze": "Hold one frame of a video clip for durationUs at a timeline position (freeze frame). Splits the clip there and, by default, pushes the rest of the track back.",
   "clip/split": "Split a clip in two at a timeline position; the right half gets newClipId.",

@@ -148,6 +148,8 @@ export class Compositor {
   private destroyed = false;
   private readonly residency: { aheadUs: Us; behindUs: Us } | null;
   private spanIndex: SpanIndex | undefined;
+  /** The asset each node was built around (see `syncClip`). */
+  private readonly nodeAssets = new WeakMap<SceneNode, string | undefined>();
   /** Render time residency was last computed for (NaN: recompute). */
   private residencyAtUs = Number.NaN;
 
@@ -616,7 +618,16 @@ export class Compositor {
       return;
     }
     let node = existing;
-    if (!node) {
+    // A node is built around its asset (a texture, a decoder pipeline): a clip
+    // pointed at another asset (`clip/replace-asset`) gets a fresh node.
+    if (node && this.nodeAssets.get(node) !== assetIdOf(clip)) {
+      node.destroy();
+      this.nodes.delete(clipId);
+      node = this.createNode(clip) ?? undefined;
+      if (!node) return;
+      this.nodes.set(clipId, node);
+      node.setZ(this.zByClip.get(clipId) ?? 0);
+    } else if (!node) {
       // With residency, clips far from the render time stay unmounted; the
       // next residency pass mounts this one if it is (now) near.
       if (this.residency) return;
@@ -635,6 +646,7 @@ export class Compositor {
     if (!factory) return null;
     const node = factory(clip, { backend: this.backend, assets: this.doc().assets });
     node?.update(clip);
+    if (node) this.nodeAssets.set(node, assetIdOf(clip));
     return node;
   }
 
@@ -712,6 +724,10 @@ export class Compositor {
     if (structural || clipIds.size > 0 || transitionsChanged) this.invalidateResidency();
     this.renderAt(this.lastTimeUs);
   }
+}
+
+function assetIdOf(clip: Clip): string | undefined {
+  return "assetId" in clip ? (clip as { assetId: string }).assetId : undefined;
 }
 
 /** Point-in-rotated-rectangle, via the inverse of the bounds' transform. */

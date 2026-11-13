@@ -417,3 +417,65 @@ describe("text decoration (outline, shadow / glow on text clips)", () => {
     ).toThrow(/not-text|only applies to text/);
   });
 });
+
+describe("clip/replace-asset", () => {
+  function setup() {
+    const p = createProject({ width: 1280, height: 720, fps: 30 });
+    const asset = (id: string, kind: "video" | "image" | "audio", durationUs?: number) =>
+      p.dispatch({ type: "asset/add", payload: { id, kind, src: `/${id}`, ...(durationUs ? { durationUs } : {}) } });
+    asset("v1", "video", 10_000_000);
+    asset("v2", "video", 20_000_000);
+    asset("short", "video", 2_000_000);
+    asset("i1", "image");
+    asset("i2", "image");
+    p.dispatch({ type: "track/add", payload: { id: "t", kind: "video" } });
+    p.dispatch({
+      type: "clip/add",
+      payload: { kind: "video", id: "v", trackId: "t", assetId: "v1", startUs: 0, durationUs: 4_000_000, trimStartUs: 3_000_000, volume: 0.5, crop: { x: 0, y: 0, width: 0.5, height: 1 }, transform: { scale: 2 } },
+    });
+    p.dispatch({ type: "clip/add", payload: { kind: "image", id: "i", trackId: "t", assetId: "i1", startUs: 4_000_000, durationUs: 2_000_000 } });
+    p.dispatch({ type: "clip/add", payload: { kind: "text", id: "x", trackId: "t", startUs: 6_000_000, durationUs: 1_000_000, text: "x" } });
+    p.dispatch({ type: "keyframe/set", payload: { clipId: "v", property: "opacity", timeUs: 0, value: 0 } });
+    p.dispatch({ type: "effect/add", payload: { clipId: "v", kind: "blur" } });
+    return p;
+  }
+  const clip = (p: ReturnType<typeof setup>, id: string) => p.getState().doc.clips[id]! as Record<string, unknown>;
+
+  it("swaps the source and keeps place, transform, crop, keyframes and effects; one undo step", () => {
+    const p = setup();
+    const before = clip(p, "v");
+    p.dispatch({ type: "clip/replace-asset", payload: { clipId: "v", assetId: "v2" } });
+    const after = clip(p, "v");
+    expect(after).toEqual({ ...before, assetId: "v2", trimStartUs: 0 }); // new footage from its start
+    expect(after.animations).toBeDefined();
+    expect(after.effects).toHaveLength(1);
+    p.undo();
+    expect(clip(p, "v")).toEqual(before);
+    p.dispatch({ type: "clip/replace-asset", payload: { clipId: "v", assetId: "v2", trimStartUs: 5_000_000, crop: "reset" } });
+    expect(clip(p, "v")).toMatchObject({ assetId: "v2", trimStartUs: 5_000_000 });
+    expect(clip(p, "v")).not.toHaveProperty("crop");
+    p.dispatch({ type: "clip/replace-asset", payload: { clipId: "i", assetId: "i2" } });
+    expect(clip(p, "i")).toMatchObject({ assetId: "i2", startUs: 4_000_000, durationUs: 2_000_000 });
+  });
+
+  it("a source too short for the clip shortens it (and respects speed)", () => {
+    const p = setup();
+    p.dispatch({ type: "clip/replace-asset", payload: { clipId: "v", assetId: "short" } });
+    expect(clip(p, "v")).toMatchObject({ assetId: "short", trimStartUs: 0, durationUs: 2_000_000, startUs: 0 });
+    const q = setup();
+    q.dispatch({ type: "clip/set-speed", payload: { clipId: "v", speed: 0.5, keepDuration: true } }); // 4 s of timeline = 2 s of source
+    q.dispatch({ type: "clip/replace-asset", payload: { clipId: "v", assetId: "short" } });
+    expect(clip(q, "v")).toMatchObject({ durationUs: 4_000_000 }); // 2 s of source still fills it
+  });
+
+  it("rejects a clip without a source, a missing or wrong-kind asset, and a trim past the end", () => {
+    const p = setup();
+    const run = (payload: Record<string, unknown>) => () => p.dispatch({ type: "clip/replace-asset", payload });
+    expect(run({ clipId: "x", assetId: "i1" })).toThrow(/no-source/);
+    expect(run({ clipId: "v", assetId: "nope" })).toThrow(/asset-not-found/);
+    expect(run({ clipId: "v", assetId: "i1" })).toThrow(/asset-kind-mismatch/);
+    expect(run({ clipId: "i", assetId: "i2", trimStartUs: 1 })).toThrow(/no-trim/);
+    expect(run({ clipId: "v", assetId: "short", trimStartUs: 2_000_000 })).toThrow(/out-of-range/);
+    expect(clip(p, "v")).toMatchObject({ assetId: "v1", trimStartUs: 3_000_000 });
+  });
+});

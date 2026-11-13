@@ -388,6 +388,15 @@ export const builtinPayloadSchemas = {
     /** Id for the right-hand clip. Supply one for deterministic replay. */
     newClipId: id.optional(),
   }),
+  "clip/replace-asset": z.object({
+    clipId: id,
+    /** The new source: an asset of the clip's own kind (video, audio or image). */
+    assetId: id,
+    /** Video/audio: where in the new source playback starts (default 0, its beginning). */
+    trimStartUs: us.optional(),
+    /** Video/image: `"reset"` drops the clip's crop (a crop is a fraction of the old picture). Default `"keep"`. */
+    crop: z.enum(["keep", "reset"]).optional(),
+  }),
   "clip/set-speed": z.object({
     clipId: id,
     /** New speed: 0 (freeze, video only) or 1/16..16. */
