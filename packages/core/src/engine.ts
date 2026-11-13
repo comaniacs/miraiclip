@@ -16,13 +16,13 @@ import {
 } from "./commands/schemas.js";
 import { CommandValidationError, UnknownCommandError } from "./errors.js";
 import { Emitter } from "./events.js";
-import { toJsonPatches, type JsonPatchOp } from "./patches.js";
+import { diffDocuments, toJsonPatches, type JsonPatchOp } from "./patches.js";
 import { toFrameRate } from "./timeline.js";
 import type { ProjectDocument, ProjectSettings, ProjectState, Us } from "./types.js";
 
 enablePatches();
 
-export type PatchSource = "dispatch" | "undo" | "redo" | "transaction-rollback";
+export type PatchSource = "dispatch" | "undo" | "redo" | "transaction-rollback" | "replace";
 
 export interface ProjectEvents extends Record<string, unknown> {
   /** Emitted on every document change, as RFC-6902 patches relative to the document root. */
@@ -91,6 +91,23 @@ export interface Project {
   /** Ephemeral (not undoable, not serialized). */
   setPlayhead: (positionUs: Us) => void;
   setSelection: (ids: string[]) => void;
+
+  /**
+   * Swap in another version of this document — a peer's edits, a server's copy,
+   * a rebase — and tell every listener what changed: a `patches` event with
+   * source `"replace"` (one operation per changed clip, asset, track or
+   * transition, and one for settings), so renderers, audio and UI follow as if
+   * the edits had been dispatched. Setting `store` state directly skips that
+   * event and leaves them showing the old document.
+   *
+   * Not an edit: nothing is added to the undo history. `history: "keep"` (the
+   * default) leaves the undo/redo stacks as they are, for a host that rebases
+   * its own pending edits; `"clear"` drops them, for an unrelated document.
+   * An open gesture is ended first. The document is taken as given (the same
+   * trust as `createProject(document)`) and belongs to the project afterwards:
+   * don't mutate it. Returns false when nothing changed.
+   */
+  replaceDocument: (document: ProjectDocument, options?: { history?: "keep" | "clear" }) => boolean;
 
   /** Serialize the document. Feed the result back to createProject to restore. */
   toJSON: () => ProjectDocument;
@@ -368,6 +385,20 @@ export function createProject(
       const historyEvent: ProjectEvents["history"] = { kind: "redo" };
       if (entry.label !== undefined) historyEvent.label = entry.label;
       events.emit("history", historyEvent);
+      return true;
+    },
+
+    replaceDocument(next, options) {
+      if (txn) throw new Error("replaceDocument can't run inside a transaction");
+      if (gesture) finishGesture();
+      const { patches, inverse } = diffDocuments(store.getState().doc, next);
+      if (options?.history === "clear") {
+        undoStack.length = 0;
+        redoStack.length = 0;
+      }
+      if (patches.length === 0) return false;
+      store.setState({ doc: next });
+      events.emit("patches", { patches, inverse, source: "replace" });
       return true;
     },
 
