@@ -311,6 +311,10 @@ export const builtinHandlers: {
     if (p.locked !== undefined) track.locked = p.locked;
     if (p.hidden === true) track.hidden = true;
     else if (p.hidden === false) delete track.hidden; // documents stay minimal
+    if (p.volume !== undefined) {
+      if (p.volume === 1) delete track.volume; // documents stay minimal
+      else track.volume = p.volume;
+    }
   },
 
   "clip/add": (doc, p) => {

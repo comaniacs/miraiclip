@@ -65,7 +65,7 @@ export function createCommands(project: Project) {
     setTrackProperty(
       trackId: string,
       /** `hidden`: the track's clips aren't drawn (sound follows `muted`). */
-      patch: { muted?: boolean; solo?: boolean; locked?: boolean; hidden?: boolean },
+      patch: { muted?: boolean; solo?: boolean; locked?: boolean; hidden?: boolean; volume?: number },
     ) {
       d({ type: "track/set-property", payload: { trackId, ...patch } });
     },

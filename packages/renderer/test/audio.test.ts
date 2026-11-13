@@ -127,6 +127,20 @@ describe("AudioEngine", () => {
     engine.dispose();
   });
 
+  it("track volume scales the clip's gain live and leaves the clip's own volume alone", async () => {
+    const { project, output, engine } = setup();
+    engine.start(0);
+    await settle();
+    project.dispatch({ type: "track/set-property", payload: { trackId: "v1", volume: 0.5 } });
+    expect(output.channels.get("c1")?.gainValue).toBeCloseTo(0.4); // 0.8 clip × 0.5 track
+    expect(project.getState().doc.clips["c1"]).toMatchObject({ volume: 0.8 });
+    project.dispatch({ type: "track/set-property", payload: { trackId: "v1", muted: true } });
+    expect(output.channels.get("c1")?.gainValue).toBe(0);
+    project.dispatch({ type: "track/set-property", payload: { trackId: "v1", muted: false, volume: 1 } });
+    expect(output.channels.get("c1")?.gainValue).toBeCloseTo(0.8);
+    engine.dispose();
+  });
+
   it("assets without an audio track schedule nothing and don't crash", async () => {
     const project = createProject({ width: 100, height: 100, fps: 30 });
     project.dispatch({

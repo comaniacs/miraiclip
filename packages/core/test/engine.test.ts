@@ -417,3 +417,39 @@ describe("text decoration (outline, shadow / glow on text clips)", () => {
     ).toThrow(/not-text|only applies to text/);
   });
 });
+
+describe("track volume", () => {
+  function withTrack() {
+    const project = createProject({ width: 1280, height: 720, fps: 30 });
+    project.dispatch({ type: "track/add", payload: { id: "a1", kind: "audio" } });
+    return project;
+  }
+  const track = (p: ReturnType<typeof withTrack>) => p.getState().doc.tracks["a1"]!;
+
+  it("is absent until set, stored when not 1, and cleared by 1; one undo step", () => {
+    const p = withTrack();
+    expect(track(p)).not.toHaveProperty("volume");
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 0.25 } });
+    expect(track(p).volume).toBe(0.25);
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 1 } });
+    expect(track(p)).not.toHaveProperty("volume");
+    p.undo();
+    expect(track(p).volume).toBe(0.25);
+  });
+
+  it("leaves the other track flags alone and rejects values outside 0..4", () => {
+    const p = withTrack();
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", muted: true } });
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 2 } });
+    expect(track(p)).toMatchObject({ muted: true, volume: 2 });
+    expect(() => p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: -0.1 } })).toThrow(CommandValidationError);
+    expect(() => p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 4.5 } })).toThrow(CommandValidationError);
+  });
+
+  it("survives a save and load", () => {
+    const p = withTrack();
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 0.6 } });
+    const reloaded = createProject(JSON.parse(JSON.stringify(p.toJSON())));
+    expect(reloaded.getState().doc.tracks["a1"]!.volume).toBe(0.6);
+  });
+});
