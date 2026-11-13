@@ -108,8 +108,12 @@ function getClip(doc: Draft<ProjectDocument>, type: string, clipId: string): Dra
   return clip;
 }
 
+/** Built-in kinds go by `TRACK_ACCEPTS`; a registered custom kind by its own `trackKinds`. */
 function assertTrackAccepts(type: string, track: Track, clipKind: Clip["kind"]): void {
-  if (!(TRACK_ACCEPTS[track.kind] as readonly string[]).includes(clipKind)) {
+  const accepted = isBuiltinClipKind(clipKind)
+    ? (TRACK_ACCEPTS[track.kind] as readonly string[]).includes(clipKind)
+    : (clipKindRegistration(clipKind)?.trackKinds.includes(track.kind) ?? false);
+  if (!accepted) {
     reject(
       type,
       "kind-mismatch",
