@@ -39,7 +39,8 @@ export class StepClock implements Clock {
 }
 
 /**
- * Wall-clock playback clock with rate control. The time source is injectable
+ * Wall-clock playback clock with rate control (a negative rate runs time
+ * backwards, never below 0). The time source is injectable
  * (defaults to performance.now / Date.now) so it is fully testable; the audio
  * graph will later supply an AudioContext-derived source for drift-free sync.
  */
@@ -84,7 +85,7 @@ export class RealtimeClock implements Clock {
   }
 
   setRate(rate: number): void {
-    if (rate <= 0) throw new Error("rate must be > 0");
+    if (rate === 0 || !Number.isFinite(rate)) throw new Error("rate must be a non-zero number");
     this.baseUs = this.timeUs;
     if (this.startedAtMs !== null) this.startedAtMs = this.nowMs();
     this.currentRate = rate;

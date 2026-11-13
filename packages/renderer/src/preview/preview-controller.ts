@@ -28,6 +28,10 @@ export interface PreviewState {
   /** Preview monitoring volume, 0..1. Never written to the project or exports. */
   volume: number;
   muted: boolean;
+  /** Restart at the end (at 0 when playing backwards) instead of stopping. */
+  loop: boolean;
+  /** Playback speed: 1 = normal, negative = backwards (picture only). */
+  rate: number;
 }
 
 /** A preview audio output whose level can be changed after creation. */
@@ -40,7 +44,10 @@ export interface MonitoredAudioOutput {
 export interface PreviewControllerOptions {
   /** Extra `createPixiBackend` options (e.g. `htmlRaster`, `background`). */
   backend?: Omit<PixiBackendOptions, "canvas" | "width" | "height">;
-  /** Extra `createPlayer` options (e.g. `memory`, `factories`, `loop`). */
+  /**
+   * Extra `createPlayer` options (e.g. `memory`, `factories`). `loop` and `rate` here are the
+   * starting values; change them with `setLoop` / `setRate`, which outlive player rebuilds.
+   */
   player?: Omit<
     CreatePlayerOptions,
     "backend" | "openDemuxer" | "createDecoder" | "audioOutput" | "openAudio" | "onError"
@@ -98,6 +105,17 @@ export interface PreviewController {
   setVolume(volume: number): void;
   toggleMute(): void;
 
+  /**
+   * Loop playback. Kept by the controller, so it holds across `detach` / `attach`
+   * (a rebuilt player) and in the clock-only fallback.
+   */
+  setLoop(loop: boolean): void;
+  /**
+   * Playback speed (1 = normal). Negative plays backwards, without sound. Kept by
+   * the controller like `setLoop`. 0 and non-finite values are ignored.
+   */
+  setRate(rate: number): void;
+
   /** Where a clip is drawn now, in composition px (null when not live or not drawn). */
   getClipBounds(clipId: string): ClipBounds | null;
   /** Topmost clip at a composition-px point (null when not live or nothing there). */
@@ -147,6 +165,8 @@ export function createPreviewController(
     lastError: null,
     volume: clamp01(options.initialVolume ?? 1),
     muted: false,
+    loop: options.player?.loop ?? false,
+    rate: validRate(options.player?.rate) ? options.player.rate : 1,
   };
   const listeners = new Set<() => void>();
   const setState = (patch: Partial<PreviewState>): void => {
@@ -188,14 +208,18 @@ export function createPreviewController(
       lastTs = ts;
       if (last !== null) {
         const end = compositionEndUs(project);
-        const next = project.getState().playheadUs + (ts - last) * 1000;
-        if (next >= end) {
-          project.setPlayhead(end);
-          stopFallback();
-          setState({ playing: false });
-          return;
-        }
-        project.setPlayhead(Math.round(next));
+        const next = project.getState().playheadUs + (ts - last) * 1000 * state.rate;
+        const reverse = state.rate < 0;
+        if (reverse ? next <= 0 : next >= end) {
+          if (state.loop && end > 0) {
+            project.setPlayhead(reverse ? end : 0);
+          } else {
+            project.setPlayhead(reverse ? 0 : end);
+            stopFallback();
+            setState({ playing: false });
+            return;
+          }
+        } else project.setPlayhead(Math.round(next));
       }
       rafHandle = raf(tick);
     };
@@ -251,6 +275,8 @@ export function createPreviewController(
       audio = buildAudio(gain());
       const live = buildPlayer(project, {
         ...options.player,
+        loop: state.loop,
+        rate: state.rate,
         backend: built,
         openDemuxer: options.media?.openDemuxer ?? openMediabunnyDemuxer,
         // Decode no larger than the preview shows: frame memory grows with the square of this.
@@ -268,6 +294,9 @@ export function createPreviewController(
       playerOffs = [
         live.on("play", () => setState({ playing: true })),
         live.on("pause", () => setState({ playing: false })),
+        // Someone drove the player directly: keep the controller's copy true.
+        live.on("ratechange", ({ rate }) => setState({ rate })),
+        live.on("loopchange", ({ loop }) => setState({ loop })),
       ];
       // Losing the GPU context is the browser's strongest memory signal (iOS
       // does it before killing the tab): shrink the frame budget.
@@ -301,7 +330,10 @@ export function createPreviewController(
       if (destroyed) return;
       const end = compositionEndUs(project);
       if (end <= 0) return;
-      if (project.getState().playheadUs >= end) controller.seek(0);
+      const at = project.getState().playheadUs;
+      if (state.rate < 0) {
+        if (at <= 0) controller.seek(end); // backwards from the start: begin at the end
+      } else if (at >= end) controller.seek(0);
       if (state.mode === "live" && player) {
         player.play();
       } else {
@@ -364,6 +396,17 @@ export function createPreviewController(
       audio?.setGain(gain());
     },
 
+    setLoop(loop) {
+      if (destroyed) return;
+      setState({ loop });
+      player?.setLoop(loop);
+    },
+    setRate(rate) {
+      if (destroyed || !validRate(rate)) return;
+      setState({ rate });
+      player?.setRate(rate);
+    },
+
     getClipBounds: (clipId) => player?.getClipBounds(clipId) ?? null,
     hitTest: (xPx, yPx, filter) => player?.hitTest(xPx, yPx, filter ? { filter } : undefined) ?? null,
     get player() {
@@ -379,6 +422,10 @@ export function createPreviewController(
     },
   };
   return controller;
+}
+
+function validRate(rate: number | undefined): rate is number {
+  return typeof rate === "number" && Number.isFinite(rate) && rate !== 0;
 }
 
 function clamp01(value: number): number {
