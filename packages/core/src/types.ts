@@ -113,6 +113,12 @@ export interface Track {
   locked: boolean;
   /** Visual tracks: when true, the track's clips aren't drawn (preview, export, stills). Audio is unaffected — use `muted`. */
   hidden?: boolean;
+  /**
+   * Track gain, multiplied into every clip on the track in preview and export
+   * (0 = silent, 1 = unchanged, up to 4). Absent means 1. Clip volumes, volume
+   * keyframes and fades stay their own and ride on top of it.
+   */
+  volume?: number;
 }
 
 export interface Transform {

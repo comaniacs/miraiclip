@@ -23,12 +23,17 @@ export function isAudible(clip: Clip): clip is VideoClip | AudioClip {
   return (isVideoClip(clip) || isAudioClip(clip)) && clipSpeed(clip) > 0;
 }
 
-/** The track's mute/solo gate: 1 when audible, 0 when muted or soloed out. */
+/**
+ * The track's share of a clip's gain: 0 when muted or soloed out, else the
+ * track's own `volume` (1 when absent). Clip volume, keyframes and fades
+ * multiply on top, so preview and export scale a whole track the same way.
+ */
 export function trackGate(clip: VideoClip | AudioClip, doc: ProjectDocument): number {
   const track = doc.tracks[clip.trackId];
   if (!track) return 0;
   const anySolo = Object.values(doc.tracks).some((t) => t.solo);
-  return !track.muted && (!anySolo || track.solo) ? 1 : 0;
+  if (track.muted || (anySolo && !track.solo)) return 0;
+  return Math.max(0, track.volume ?? 1);
 }
 
 /** The clip's volume at a timeline position — animated when volume keyframes exist. */
@@ -79,7 +84,7 @@ export function hasGainEnvelope(clip: VideoClip | AudioClip): boolean {
 }
 
 /**
- * Effective gain: clip volume × fades × track mute/solo state. Pass `atTimelineUs`
+ * Effective gain: clip volume × fades × track gain (mute/solo and `track.volume`). Pass `atTimelineUs`
  * to honor volume keyframes; omitted, the clip's static volume applies.
  */
 export function gainFor(
@@ -89,8 +94,9 @@ export function gainFor(
 ): number {
   const gate = trackGate(clip, doc);
   if (gate === 0) return 0;
-  if (atTimelineUs === undefined) return clip.volume;
+  if (atTimelineUs === undefined) return gate * clip.volume;
   return (
+    gate *
     clipVolumeAt(clip, atTimelineUs) *
     fadeGainAt(clip, atTimelineUs) *
     transitionGainAt(doc, clip.id, atTimelineUs)

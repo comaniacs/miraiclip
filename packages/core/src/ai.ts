@@ -84,7 +84,7 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "track/remove": "Remove a track and every clip on it.",
   "track/rename": "Rename a track.",
   "track/reorder": "Move a track to a new index in the render order (0 = bottom layer).",
-  "track/set-property": "Set a track property: muted, solo, locked, or hidden (hidden tracks aren't drawn; audio follows muted).",
+  "track/set-property": "Set a track property: muted, solo, locked, hidden (hidden tracks aren't drawn; audio follows muted), or volume (track gain 0..4, 1 = unchanged; scales every clip on the track, clip volumes stay their own).",
   "transition/add": "Add a transition (crossDissolve, dipToBlack, dipToWhite, wipe, slide, zoomThrough) across the cut between two adjacent clips. zoomThrough zooms into a rect of the outgoing frame until the incoming clip fills the screen and needs no spare footage.",
   "transition/remove": "Remove a transition.",
   "transition/update": "Update a transition's duration, kind, or params.",
@@ -360,7 +360,7 @@ export function describeProject(
     const clips = Object.values(doc.clips)
       .filter((clip) => clip.trackId === trackId)
       .sort((a, b) => a.startUs - b.startUs || a.id.localeCompare(b.id));
-    const flags = [track.muted && "muted", track.solo && "solo", track.locked && "locked", track.hidden && "hidden"].filter(Boolean);
+    const flags = [track.muted && "muted", track.solo && "solo", track.locked && "locked", track.hidden && "hidden", track.volume !== undefined && `volume ${track.volume}`].filter(Boolean);
     lines.push(`- ${trackId} (${track.kind}${flags.length ? `, ${flags.join(", ")}` : ""}), ${clips.length} clip${clips.length === 1 ? "" : "s"}:`);
     const shown =
       clips.length > maxClips

@@ -252,6 +252,8 @@ export const builtinPayloadSchemas = {
     locked: z.boolean().optional(),
     /** Hide the track's clips from rendering (false clears it). */
     hidden: z.boolean().optional(),
+    /** Track gain, 0..4 (1 clears it): scales every clip on the track without touching clip volumes. */
+    volume: z.number().min(0).max(4).optional(),
   }),
 
   "clip/add": z.union([
