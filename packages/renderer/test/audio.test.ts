@@ -127,6 +127,45 @@ describe("AudioEngine", () => {
     engine.dispose();
   });
 
+  it("a clip pointed at another asset reopens its audio on the new source", async () => {
+    const project = createProject({ width: 1280, height: 720, fps: 30 });
+    for (const id of ["one", "two"]) {
+      project.dispatch({ type: "asset/add", payload: { id, kind: "video", src: `/${id}.mp4`, durationUs: 60_000_000 } });
+    }
+    project.dispatch({ type: "track/add", payload: { id: "v1", kind: "video" } });
+    project.dispatch({ type: "clip/add", payload: { kind: "video", id: "c1", trackId: "v1", assetId: "one", startUs: 0, durationUs: 10_000_000 } });
+    const opened: string[] = [];
+    const open = openFakeAudio(60_000_000);
+    const output = new FakeOutput();
+    const engine = new AudioEngine(project, output, (assetId, src) => {
+      opened.push(assetId);
+      return open(assetId, src);
+    }, { aheadUs: 2_000_000 });
+    engine.start(0);
+    await settle();
+    expect(opened).toEqual(["one"]);
+    const before = output.scheduled.length;
+    project.dispatch({ type: "clip/replace-asset", payload: { clipId: "c1", assetId: "two" } });
+    await settle();
+    expect(opened).toEqual(["one", "two"]);
+    expect(output.scheduled.length).toBeGreaterThan(before); // the new source is playing
+    engine.dispose();
+  });
+
+  it("track volume scales the clip's gain live and leaves the clip's own volume alone", async () => {
+    const { project, output, engine } = setup();
+    engine.start(0);
+    await settle();
+    project.dispatch({ type: "track/set-property", payload: { trackId: "v1", volume: 0.5 } });
+    expect(output.channels.get("c1")?.gainValue).toBeCloseTo(0.4); // 0.8 clip × 0.5 track
+    expect(project.getState().doc.clips["c1"]).toMatchObject({ volume: 0.8 });
+    project.dispatch({ type: "track/set-property", payload: { trackId: "v1", muted: true } });
+    expect(output.channels.get("c1")?.gainValue).toBe(0);
+    project.dispatch({ type: "track/set-property", payload: { trackId: "v1", muted: false, volume: 1 } });
+    expect(output.channels.get("c1")?.gainValue).toBeCloseTo(0.8);
+    engine.dispose();
+  });
+
   it("assets without an audio track schedule nothing and don't crash", async () => {
     const project = createProject({ width: 100, height: 100, fps: 30 });
     project.dispatch({

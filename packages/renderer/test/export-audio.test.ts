@@ -126,6 +126,20 @@ describe("planAudioJobs", () => {
     expect(planAudioJobs(doc, range)).toEqual([]); // c1 muted, far out of range
   });
 
+  it("track volume scales the export gain, static and automated alike", () => {
+    const half = docWith((p) => p.dispatch({ type: "track/set-property", payload: { trackId: "t1", volume: 0.5 } }));
+    expect(planAudioJobs(half, range)[0]).toMatchObject({ clipId: "c1", gain: 0.5 });
+    const faded = docWith((p) => {
+      p.dispatch({ type: "track/set-property", payload: { trackId: "t1", volume: 0.5 } });
+      p.dispatch({ type: "clip/set-property", payload: { clipId: "c1", fadeInUs: 1_000_000 } });
+    });
+    const points = volumeAutomation(faded.clips["c1"] as never, faded, 1_000_000, 5_000_000)!;
+    expect(points.at(-1)!.value).toBeCloseTo(0.5);
+    expect(points[0]!.value).toBe(0);
+    const silent = docWith((p) => p.dispatch({ type: "track/set-property", payload: { trackId: "t1", volume: 0 } }));
+    expect(planAudioJobs(silent, range)).toEqual([]);
+  });
+
   it("solo on another track silences the rest", () => {
     const doc = docWith((p) => {
       p.dispatch({ type: "track/add", payload: { id: "t2", kind: "video" } });

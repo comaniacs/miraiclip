@@ -108,8 +108,12 @@ function getClip(doc: Draft<ProjectDocument>, type: string, clipId: string): Dra
   return clip;
 }
 
+/** Built-in kinds go by `TRACK_ACCEPTS`; a registered custom kind by its own `trackKinds`. */
 function assertTrackAccepts(type: string, track: Track, clipKind: Clip["kind"]): void {
-  if (!(TRACK_ACCEPTS[track.kind] as readonly string[]).includes(clipKind)) {
+  const accepted = isBuiltinClipKind(clipKind)
+    ? (TRACK_ACCEPTS[track.kind] as readonly string[]).includes(clipKind)
+    : (clipKindRegistration(clipKind)?.trackKinds.includes(track.kind) ?? false);
+  if (!accepted) {
     reject(
       type,
       "kind-mismatch",
@@ -311,6 +315,10 @@ export const builtinHandlers: {
     if (p.locked !== undefined) track.locked = p.locked;
     if (p.hidden === true) track.hidden = true;
     else if (p.hidden === false) delete track.hidden; // documents stay minimal
+    if (p.volume !== undefined) {
+      if (p.volume === 1) delete track.volume; // documents stay minimal
+      else track.volume = p.volume;
+    }
   },
 
   "clip/add": (doc, p) => {
@@ -459,6 +467,37 @@ export const builtinHandlers: {
     clip.durationUs = offset;
     doc.clips[newId] = right;
     dropTransitionsTouching(doc, p.clipId);
+  },
+  "clip/replace-asset": (doc, p) => {
+    const clip = getClip(doc, "clip/replace-asset", p.clipId);
+    if (!("assetId" in clip)) {
+      reject("clip/replace-asset", "no-source", `${clip.kind} clips have no source to replace`);
+    }
+    const asset = doc.assets[p.assetId];
+    if (!asset) reject("clip/replace-asset", "asset-not-found", `no asset "${p.assetId}"`);
+    if (asset.kind !== clip.kind) {
+      reject("clip/replace-asset", "asset-kind-mismatch", `asset "${p.assetId}" is ${asset.kind}, not ${clip.kind}`);
+    }
+    if (p.trimStartUs !== undefined && !("trimStartUs" in clip)) {
+      reject("clip/replace-asset", "no-trim", `${clip.kind} clips have no trim`);
+    }
+    clip.assetId = p.assetId;
+    if (p.crop === "reset" && "crop" in clip) delete (clip as { crop?: unknown }).crop;
+    if ("trimStartUs" in clip) {
+      // New footage starts at its beginning (or where asked); the clip keeps its
+      // place and length unless the new source is too short to fill it.
+      const trim = p.trimStartUs ?? 0;
+      const available = asset.durationUs === undefined ? undefined : asset.durationUs - trim;
+      if (available !== undefined && available <= 0) {
+        reject("clip/replace-asset", "out-of-range", `trimStartUs ${trim} is past the end of asset "${p.assetId}"`);
+      }
+      clip.trimStartUs = trim;
+      const speed = clipSpeed(clip as Clip);
+      if (available !== undefined && speed > 0 && sourceSpanUs(clip as Clip) > available) {
+        clip.durationUs = Math.max(1, durationForSource(available, speed));
+        dropTransitionsTouching(doc, p.clipId); // its end moved
+      }
+    }
   },
   "clip/set-speed": (doc, p) => {
     const clip = getClip(doc, "clip/set-speed", p.clipId);

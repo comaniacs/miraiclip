@@ -58,6 +58,26 @@ describe("loadDocumentPlugins", () => {
     expect(clipKindRegistration("test/box")).toBeUndefined();
   });
 
+  it("importModule supplies a host-bundled module, after the source's integrity check", async () => {
+    let registered = 0;
+    const bundled = { default: { name: "test-box", version: "1.0.0", register: () => void registered++ } };
+    const seen: string[] = [];
+    const importModule = (source: string, r: { name: string }) => {
+      seen.push(`${r.name}:${source === SOURCE}`);
+      return bundled;
+    };
+    const ok = await loadDocumentPlugins({ plugins: [ref({ integrity: sri(SOURCE), url: "https://plugins.test/bundled.mjs" })] }, { fetchSource: async () => SOURCE, importModule });
+    expect(seen).toEqual(["test-box:true"]);
+    expect(registered).toBe(1);
+    expect(ok.plugins[0]!.plugin).toBe(bundled.default);
+    ok.unload();
+    // A source that doesn't match the document's hash never reaches importModule.
+    await expect(
+      loadDocumentPlugins({ plugins: [ref({ integrity: sri(SOURCE), url: "https://plugins.test/tampered.mjs" })] }, { fetchSource: async () => SOURCE + "//", importModule }),
+    ).rejects.toThrow(/integrity/);
+    expect(seen).toHaveLength(1);
+  });
+
   it("fails cleanly: integrity mismatch, refusal, missing register", async () => {
     await expect(
       loadDocumentPlugins({ plugins: [ref({ integrity: sri("other") })] }, { fetchSource: async () => SOURCE }),

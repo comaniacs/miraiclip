@@ -60,6 +60,7 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "clip/move": "Move a clip to a new timeline start (and optionally another track).",
   "clip/remove": "Remove a clip. Transitions attached to it are dropped.",
   "clip/set-property": "Set a clip property (transform fields, volume, audio fades, text content, custom-kind props, …) as a static value.",
+  "clip/replace-asset": "Point a video, audio or image clip at another asset of the same kind, keeping its place, transform, keyframes, effects and transitions. New footage starts at its beginning (or trimStartUs); a source too short for the clip shortens it. crop: \"reset\" drops the crop.",
   "clip/set-speed": "Change a video/audio clip's playback speed (0.0625–16; 0 freezes a video clip). By default the clip keeps the same footage, so its length changes; keepDuration keeps the length; ripple shifts later clips on the track.",
   "clip/freeze": "Hold one frame of a video clip for durationUs at a timeline position (freeze frame). Splits the clip there and, by default, pushes the rest of the track back.",
   "clip/split": "Split a clip in two at a timeline position; the right half gets newClipId.",
@@ -83,7 +84,7 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   "track/remove": "Remove a track and every clip on it.",
   "track/rename": "Rename a track.",
   "track/reorder": "Move a track to a new index in the render order (0 = bottom layer).",
-  "track/set-property": "Set a track property: muted, solo, locked, or hidden (hidden tracks aren't drawn; audio follows muted).",
+  "track/set-property": "Set a track property: muted, solo, locked, hidden (hidden tracks aren't drawn; audio follows muted), or volume (track gain 0..4, 1 = unchanged; scales every clip on the track, clip volumes stay their own).",
   "transition/add": "Add a transition (crossDissolve, dipToBlack, dipToWhite, wipe, slide, zoomThrough) across the cut between two adjacent clips. zoomThrough zooms into a rect of the outgoing frame until the incoming clip fills the screen and needs no spare footage.",
   "transition/remove": "Remove a transition.",
   "transition/update": "Update a transition's duration, kind, or params.",
@@ -359,7 +360,7 @@ export function describeProject(
     const clips = Object.values(doc.clips)
       .filter((clip) => clip.trackId === trackId)
       .sort((a, b) => a.startUs - b.startUs || a.id.localeCompare(b.id));
-    const flags = [track.muted && "muted", track.solo && "solo", track.locked && "locked", track.hidden && "hidden"].filter(Boolean);
+    const flags = [track.muted && "muted", track.solo && "solo", track.locked && "locked", track.hidden && "hidden", track.volume !== undefined && `volume ${track.volume}`].filter(Boolean);
     lines.push(`- ${trackId} (${track.kind}${flags.length ? `, ${flags.join(", ")}` : ""}), ${clips.length} clip${clips.length === 1 ? "" : "s"}:`);
     const shown =
       clips.length > maxClips

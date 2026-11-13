@@ -47,7 +47,13 @@ class FakePlayer {
     this.timeUs = us;
     this.seeks.push(us);
   }
-  setRate() {}
+  loop = false;
+  setRate(rate: number) {
+    this.rate = rate;
+  }
+  setLoop(loop: boolean) {
+    this.loop = loop;
+  }
   getClipBounds(clipId: string) {
     return clipId === "t1" ? ({ x: 1, y: 2, width: 3, height: 4 } as never) : null;
   }
@@ -103,8 +109,10 @@ function setup(overrides: { supported?: boolean; failBackend?: boolean } = {}) {
           resolve(backend);
         };
       }),
-    createPlayer: () => {
+    createPlayer: (_project, playerOptions) => {
       const player = new FakePlayer();
+      player.loop = playerOptions.loop ?? false;
+      player.rate = playerOptions.rate ?? 1;
       players.push(player);
       return player as unknown as Player;
     },
@@ -266,5 +274,64 @@ describe("createPreviewController", () => {
     a.destroy();
     a.setVolume(0.2);
     expect(listener).not.toHaveBeenCalled();
+  });
+});
+
+describe("preview controller loop and rate", () => {
+  it("keeps loop and rate across a player rebuild and forwards changes to the live player", async () => {
+    const { controller, players, buildBackend } = setup();
+    const a = fakeCanvas();
+    controller.setLoop(true);
+    controller.setRate(1.5);
+    expect(controller.getState()).toMatchObject({ loop: true, rate: 1.5 });
+    controller.attach(a.canvas, { width: 640, height: 360 });
+    await buildBackend();
+    expect(players[0]).toMatchObject({ loop: true, rate: 1.5 }); // built with them
+    controller.setRate(2);
+    controller.setLoop(false);
+    expect(players[0]).toMatchObject({ loop: false, rate: 2 });
+    controller.detach();
+    const b = fakeCanvas();
+    controller.attach(b.canvas, { width: 640, height: 360 });
+    await buildBackend();
+    expect(players[1]).toMatchObject({ loop: false, rate: 2 });
+    controller.setRate(0); // not a speed
+    controller.setRate(Number.NaN);
+    expect(controller.getState().rate).toBe(2);
+  });
+
+  it("follows a rate or loop change made on the player itself", async () => {
+    const { controller, players, buildBackend } = setup();
+    controller.attach(fakeCanvas().canvas, { width: 640, height: 360 });
+    await buildBackend();
+    players[0]!.events.emit("ratechange", { rate: 0.5 });
+    players[0]!.events.emit("loopchange", { loop: true });
+    expect(controller.getState()).toMatchObject({ rate: 0.5, loop: true });
+  });
+
+  it("the fallback clock honours rate, reverse and loop", () => {
+    const { project, controller, step } = setup();
+    controller.setRate(2);
+    controller.play();
+    step(0);
+    step(500);
+    expect(project.getState().playheadUs).toBe(1_000_000);
+    controller.setRate(-1);
+    step(1000);
+    expect(project.getState().playheadUs).toBe(500_000);
+    step(2000); // past 0, no loop: stops at 0
+    expect(project.getState().playheadUs).toBe(0);
+    expect(controller.getState().playing).toBe(false);
+    controller.play(); // backwards from the start: begins at the end
+    expect(project.getState().playheadUs).toBe(4_000_000);
+    controller.setLoop(true);
+    step(3000);
+    step(8000); // would pass 0: wraps to the end and keeps playing
+    expect(project.getState().playheadUs).toBe(4_000_000);
+    expect(controller.getState().playing).toBe(true);
+    controller.setRate(1);
+    step(8100); // forwards past the end with loop on: back to 0
+    expect(project.getState().playheadUs).toBe(0);
+    expect(controller.getState().playing).toBe(true);
   });
 });

@@ -42,6 +42,27 @@ function setup() {
 }
 
 describe("Compositor", () => {
+  it("clip/replace-asset rebuilds the clip's node around the new asset, in place", () => {
+    const { project, backend, compositor } = setup();
+    project.dispatch({ type: "asset/add", payload: { id: "img2", kind: "image", src: "/photo.png" } });
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "c-img", transform: { scale: 2 } } });
+    const first = backend.nodes.find((n) => n.kind === "image")!;
+    project.dispatch({ type: "clip/replace-asset", payload: { clipId: "c-img", assetId: "img2" } });
+    const images = backend.nodes.filter((n) => n.kind === "image");
+    expect(images).toHaveLength(2);
+    expect(first.destroyed).toBe(true);
+    expect(images[1]!.asset?.src).toBe("/photo.png");
+    expect(images[1]!.destroyed).toBe(false);
+    expect(images[1]!.placement?.scale).toBe(first.placement?.scale);
+    expect(compositor.nodeCount).toBe(2);
+    // An ordinary edit afterwards updates the new node instead of rebuilding again.
+    project.dispatch({ type: "clip/set-property", payload: { clipId: "c-img", transform: { scale: 3 } } });
+    expect(backend.nodes.filter((n) => n.kind === "image")).toHaveLength(2);
+    project.undo();
+    project.undo(); // back to the first picture: one more node, around the old asset
+    expect(backend.nodes.filter((n) => n.kind === "image").at(-1)!.asset?.src).toBe("/logo.png");
+  });
+
   it("builds the scene from the document and sizes the backend", () => {
     const { backend, compositor } = setup();
     expect(backend.size).toEqual({ width: 1920, height: 1080 });

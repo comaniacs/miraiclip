@@ -18,6 +18,8 @@ export interface AudioEngineOptions {
 
 interface ClipLane {
   clipId: string;
+  /** The asset the lane's source was opened from. */
+  assetId: string;
   channel: AudioChannel;
   source: AudioTrackSource | null | undefined; // undefined = still opening
   generator: AsyncGenerator<import("./types.js").AudioChunk, void, undefined> | null;
@@ -195,6 +197,7 @@ export class AudioEngine {
     if (!lane) {
       lane = {
         clipId: clip.id,
+        assetId: clip.assetId,
         channel: this.output.channel(clip.id),
         source: undefined,
         generator: null,
@@ -291,9 +294,11 @@ export class AudioEngine {
   private onDocChanged(): void {
     if (this.disposed) return;
     const doc = this.doc();
-    // Drop lanes whose clips are gone.
+    // Drop lanes whose clips are gone, or now play another asset
+    // (`clip/replace-asset`): the loop below reopens those on the new source.
     for (const [clipId, lane] of this.lanes) {
-      if (!doc.clips[clipId]) {
+      const clip = doc.clips[clipId];
+      if (!clip || !("assetId" in clip) || clip.assetId !== lane.assetId) {
         lane.channel.stopAll();
         lane.channel.close();
         lane.source?.dispose();

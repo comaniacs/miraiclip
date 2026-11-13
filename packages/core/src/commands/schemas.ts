@@ -252,6 +252,8 @@ export const builtinPayloadSchemas = {
     locked: z.boolean().optional(),
     /** Hide the track's clips from rendering (false clears it). */
     hidden: z.boolean().optional(),
+    /** Track gain, 0..4 (1 clears it): scales every clip on the track without touching clip volumes. */
+    volume: z.number().min(0).max(4).optional(),
   }),
 
   "clip/add": z.union([
@@ -387,6 +389,15 @@ export const builtinPayloadSchemas = {
     atUs: positiveUs,
     /** Id for the right-hand clip. Supply one for deterministic replay. */
     newClipId: id.optional(),
+  }),
+  "clip/replace-asset": z.object({
+    clipId: id,
+    /** The new source: an asset of the clip's own kind (video, audio or image). */
+    assetId: id,
+    /** Video/audio: where in the new source playback starts (default 0, its beginning). */
+    trimStartUs: us.optional(),
+    /** Video/image: `"reset"` drops the clip's crop (a crop is a fraction of the old picture). Default `"keep"`. */
+    crop: z.enum(["keep", "reset"]).optional(),
   }),
   "clip/set-speed": z.object({
     clipId: id,

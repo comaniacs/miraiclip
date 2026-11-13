@@ -3,12 +3,14 @@ import {
   CommandRejectedError,
   CommandValidationError,
   UnknownCommandError,
+  applyJsonPatches,
   createProject,
   evaluateClipAt,
   frameToUs,
   snapToFrame,
   usToFrame,
   usToTimecode,
+  type JsonPatchOp,
 } from "../src/index.js";
 import { z } from "zod";
 
@@ -415,5 +417,172 @@ describe("text decoration (outline, shadow / glow on text clips)", () => {
     expect(() =>
       p.dispatch({ type: "clip/set-property", payload: { clipId: "i", shadowColor: "#000" } }),
     ).toThrow(/not-text|only applies to text/);
+  });
+});
+
+describe("clip/replace-asset", () => {
+  function setup() {
+    const p = createProject({ width: 1280, height: 720, fps: 30 });
+    const asset = (id: string, kind: "video" | "image" | "audio", durationUs?: number) =>
+      p.dispatch({ type: "asset/add", payload: { id, kind, src: `/${id}`, ...(durationUs ? { durationUs } : {}) } });
+    asset("v1", "video", 10_000_000);
+    asset("v2", "video", 20_000_000);
+    asset("short", "video", 2_000_000);
+    asset("i1", "image");
+    asset("i2", "image");
+    p.dispatch({ type: "track/add", payload: { id: "t", kind: "video" } });
+    p.dispatch({
+      type: "clip/add",
+      payload: { kind: "video", id: "v", trackId: "t", assetId: "v1", startUs: 0, durationUs: 4_000_000, trimStartUs: 3_000_000, volume: 0.5, crop: { x: 0, y: 0, width: 0.5, height: 1 }, transform: { scale: 2 } },
+    });
+    p.dispatch({ type: "clip/add", payload: { kind: "image", id: "i", trackId: "t", assetId: "i1", startUs: 4_000_000, durationUs: 2_000_000 } });
+    p.dispatch({ type: "clip/add", payload: { kind: "text", id: "x", trackId: "t", startUs: 6_000_000, durationUs: 1_000_000, text: "x" } });
+    p.dispatch({ type: "keyframe/set", payload: { clipId: "v", property: "opacity", timeUs: 0, value: 0 } });
+    p.dispatch({ type: "effect/add", payload: { clipId: "v", kind: "blur" } });
+    return p;
+  }
+  const clip = (p: ReturnType<typeof setup>, id: string) => p.getState().doc.clips[id]! as Record<string, unknown>;
+
+  it("swaps the source and keeps place, transform, crop, keyframes and effects; one undo step", () => {
+    const p = setup();
+    const before = clip(p, "v");
+    p.dispatch({ type: "clip/replace-asset", payload: { clipId: "v", assetId: "v2" } });
+    const after = clip(p, "v");
+    expect(after).toEqual({ ...before, assetId: "v2", trimStartUs: 0 }); // new footage from its start
+    expect(after.animations).toBeDefined();
+    expect(after.effects).toHaveLength(1);
+    p.undo();
+    expect(clip(p, "v")).toEqual(before);
+    p.dispatch({ type: "clip/replace-asset", payload: { clipId: "v", assetId: "v2", trimStartUs: 5_000_000, crop: "reset" } });
+    expect(clip(p, "v")).toMatchObject({ assetId: "v2", trimStartUs: 5_000_000 });
+    expect(clip(p, "v")).not.toHaveProperty("crop");
+    p.dispatch({ type: "clip/replace-asset", payload: { clipId: "i", assetId: "i2" } });
+    expect(clip(p, "i")).toMatchObject({ assetId: "i2", startUs: 4_000_000, durationUs: 2_000_000 });
+  });
+
+  it("a source too short for the clip shortens it (and respects speed)", () => {
+    const p = setup();
+    p.dispatch({ type: "clip/replace-asset", payload: { clipId: "v", assetId: "short" } });
+    expect(clip(p, "v")).toMatchObject({ assetId: "short", trimStartUs: 0, durationUs: 2_000_000, startUs: 0 });
+    const q = setup();
+    q.dispatch({ type: "clip/set-speed", payload: { clipId: "v", speed: 0.5, keepDuration: true } }); // 4 s of timeline = 2 s of source
+    q.dispatch({ type: "clip/replace-asset", payload: { clipId: "v", assetId: "short" } });
+    expect(clip(q, "v")).toMatchObject({ durationUs: 4_000_000 }); // 2 s of source still fills it
+  });
+
+  it("rejects a clip without a source, a missing or wrong-kind asset, and a trim past the end", () => {
+    const p = setup();
+    const run = (payload: Record<string, unknown>) => () => p.dispatch({ type: "clip/replace-asset", payload });
+    expect(run({ clipId: "x", assetId: "i1" })).toThrow(/no-source/);
+    expect(run({ clipId: "v", assetId: "nope" })).toThrow(/asset-not-found/);
+    expect(run({ clipId: "v", assetId: "i1" })).toThrow(/asset-kind-mismatch/);
+    expect(run({ clipId: "i", assetId: "i2", trimStartUs: 1 })).toThrow(/no-trim/);
+    expect(run({ clipId: "v", assetId: "short", trimStartUs: 2_000_000 })).toThrow(/out-of-range/);
+    expect(clip(p, "v")).toMatchObject({ assetId: "v1", trimStartUs: 3_000_000 });
+  });
+});
+
+describe("track volume", () => {
+  function withTrack() {
+    const project = createProject({ width: 1280, height: 720, fps: 30 });
+    project.dispatch({ type: "track/add", payload: { id: "a1", kind: "audio" } });
+    return project;
+  }
+  const track = (p: ReturnType<typeof withTrack>) => p.getState().doc.tracks["a1"]!;
+
+  it("is absent until set, stored when not 1, and cleared by 1; one undo step", () => {
+    const p = withTrack();
+    expect(track(p)).not.toHaveProperty("volume");
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 0.25 } });
+    expect(track(p).volume).toBe(0.25);
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 1 } });
+    expect(track(p)).not.toHaveProperty("volume");
+    p.undo();
+    expect(track(p).volume).toBe(0.25);
+  });
+
+  it("leaves the other track flags alone and rejects values outside 0..4", () => {
+    const p = withTrack();
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", muted: true } });
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 2 } });
+    expect(track(p)).toMatchObject({ muted: true, volume: 2 });
+    expect(() => p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: -0.1 } })).toThrow(CommandValidationError);
+    expect(() => p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 4.5 } })).toThrow(CommandValidationError);
+  });
+
+  it("survives a save and load", () => {
+    const p = withTrack();
+    p.dispatch({ type: "track/set-property", payload: { trackId: "a1", volume: 0.6 } });
+    const reloaded = createProject(JSON.parse(JSON.stringify(p.toJSON())));
+    expect(reloaded.getState().doc.tracks["a1"]!.volume).toBe(0.6);
+  });
+});
+
+describe("replaceDocument", () => {
+  function base() {
+    const p = createProject({ width: 1280, height: 720, fps: 30 });
+    p.dispatch({ type: "track/add", payload: { id: "t1", kind: "video" } });
+    p.dispatch({ type: "clip/add", payload: { kind: "text", id: "a", trackId: "t1", startUs: 0, durationUs: 1_000_000, text: "a" } });
+    p.dispatch({ type: "clip/add", payload: { kind: "text", id: "b", trackId: "t1", startUs: 1_000_000, durationUs: 1_000_000, text: "b" } });
+    return p;
+  }
+  /** Another version of the same document: resized, `a` edited, `b` removed, `c` added. */
+  function other(p: ReturnType<typeof base>) {
+    const peer = createProject(JSON.parse(JSON.stringify(p.toJSON())));
+    peer.dispatch({ type: "project/set-settings", payload: { width: 720, height: 1280 } });
+    peer.dispatch({ type: "clip/set-property", payload: { clipId: "a", text: "A!" } });
+    peer.dispatch({ type: "clip/remove", payload: { clipId: "b" } });
+    peer.dispatch({ type: "clip/add", payload: { kind: "text", id: "c", trackId: "t1", startUs: 3_000_000, durationUs: 1_000_000, text: "c" } });
+    return peer.toJSON();
+  }
+
+  it("swaps the document and emits one patch per changed entity, with a working inverse", () => {
+    const p = base();
+    const before = p.toJSON();
+    const events: { paths: string[]; source: string; inverse: JsonPatchOp[] }[] = [];
+    p.events.on("patches", (e) => events.push({ paths: e.patches.map((o) => `${o.op} ${o.path}`), source: e.source, inverse: e.inverse }));
+    const next = other(p);
+    expect(p.replaceDocument(next)).toBe(true);
+    expect(p.toJSON()).toEqual(next);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.source).toBe("replace");
+    expect(events[0]!.paths.sort()).toEqual(["add /clips/c", "remove /clips/b", "replace /clips/a", "replace /settings"]);
+    expect(applyJsonPatches(next, events[0]!.inverse)).toEqual(before);
+  });
+
+  it("is not an edit: no history entry, stacks kept by default and dropped with history: clear", () => {
+    const p = base();
+    /** Undo steps available (counted by undoing them all, then redoing). */
+    const depth = () => {
+      let n = 0;
+      while (p.undo()) n++;
+      for (let i = 0; i < n; i++) p.redo();
+      return n;
+    };
+    const had = depth();
+    const same = JSON.parse(JSON.stringify(p.toJSON())) as ReturnType<typeof p.toJSON>;
+    expect(p.replaceDocument(same)).toBe(false);
+    const edited = JSON.parse(JSON.stringify(p.toJSON())) as ReturnType<typeof p.toJSON>;
+    (edited.clips["a"] as { text: string }).text = "remote";
+    expect(p.replaceDocument(edited)).toBe(true);
+    expect(depth()).toBe(had);
+    const again = JSON.parse(JSON.stringify(edited)) as typeof edited; // the project owns `edited` now
+    (again.clips["a"] as { text: string }).text = "remote 2";
+    p.replaceDocument(again, { history: "clear" });
+    expect(p.canUndo()).toBe(false);
+    expect(p.canRedo()).toBe(false);
+  });
+
+  it("ends an open gesture first and refuses to run inside a transaction", () => {
+    const p = base();
+    const gesture = p.beginGesture("drag");
+    p.dispatch({ type: "clip/set-property", payload: { clipId: "a", text: "mid" } });
+    const next = JSON.parse(JSON.stringify(p.toJSON())) as ReturnType<typeof p.toJSON>;
+    (next.clips["b"] as { text: string }).text = "peer";
+    p.replaceDocument(next);
+    expect(p.inGesture()).toBe(false);
+    gesture.end();
+    expect((p.getState().doc.clips["b"] as { text: string }).text).toBe("peer");
+    expect(() => p.transaction(() => p.replaceDocument(next))).toThrow(/transaction/);
   });
 });
