@@ -1,5 +1,16 @@
 # @miraiclip/editor
 
+## 0.6.4
+
+### Patch Changes
+
+- 4da16f5: Track volume: `Track.volume` (a gain, 0..4, absent = 1) set with `track/set-property {volume}`. Preview and export multiply it into every clip on the track through the shared gain math, so clip volumes, volume keyframes and fades stay their own. `1` clears it (documents stay minimal). `setTrackProperty` in `@miraiclip/editor` takes `volume`.
+- Updated dependencies [916ac08]
+- Updated dependencies [5529ae0]
+- Updated dependencies [ee9480d]
+- Updated dependencies [4da16f5]
+  - @miraiclip/core@0.13.0
+
 ## 0.6.3
 
 ### Patch Changes
