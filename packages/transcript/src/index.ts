@@ -9,3 +9,5 @@ export type { Cut, FindCutsOptions, RestoreOptions, RestorePlan } from "./restor
 export { captionCommands, deletedWords, editByText, planCleanup, rangesForWords, removeWords, transcriptOnTimeline, transcriptText } from "./edit.js";
 export type { CleanupOptions, TimelineWord, TranscriptCaptionOptions } from "./edit.js";
 export type { Command, FetchLike, SourceRange, Transcript, TranscriptWord } from "./types.js";
+export { OVERDUB_DEFAULTS, OverdubPlanError, overdubSlot, planOverdub } from "./overdub.js";
+export type { OverdubOptions, OverdubPlan, OverdubSlot, OverdubTake, OverdubWords } from "./overdub.js";
