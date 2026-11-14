@@ -30,6 +30,7 @@ import type {
   SceneBackend,
   SceneNode,
   SolidSceneNode,
+  TextLayout,
 } from "./types.js";
 
 /** True when any VISUAL property is keyframed (volume is the audio engine's). */
@@ -490,6 +491,16 @@ export class Compositor {
       local: { ...local },
       z: this.zByClip.get(clipId) ?? 0,
     };
+  }
+
+  /** A text clip's laid-out lines (see `SceneNode.describeText`), or null for other clips. */
+  getTextLayout(clipId: string): TextLayout | null {
+    return this.nodes.get(clipId)?.describeText?.() ?? null;
+  }
+
+  /** The clips that have a scene node now (after `renderAt`/`updateResidency`). */
+  residentClipIds(): string[] {
+    return [...this.nodes.keys()];
   }
 
   /**

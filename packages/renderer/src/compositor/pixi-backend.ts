@@ -8,11 +8,11 @@ import { Application, Assets, CanvasSource, CanvasTextMetrics, Container, Graphi
 import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type Crop, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { captionProgress, displayText, layoutCaption, POP_SCALE, wordAppearance, type CaptionProgress } from "../captions/layout.js";
 import { NodeEffects, type EffectContext } from "../effects/pixi-effects.js";
-import type { LocalBounds, Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, VideoSceneNode } from "./types.js";
+import type { LocalBounds, Placement, RevealDirection, SceneBackend, SceneNode, SolidSceneNode, TextLayout, VideoSceneNode } from "./types.js";
 import { htmlAnimationTiming, htmlRasterKey, rasterizeHtml, substituteParams } from "../html/rasterize.js";
 import { analyzeHtmlAnimations, type HtmlAnimationTimeline } from "../html/animation-timeline.js";
 import type { ClipRenderer, ClipRendererInstance } from "./clip-renderers.js";
-import { captionMetrics, captionWordStyle, textClipStyle } from "../text/typography.js";
+import { captionMetrics, captionWordStyle, splitColorAlpha, textClipStyle } from "../text/typography.js";
 
 abstract class PixiNode<T extends Container> implements SceneNode {
   private effects: NodeEffects | undefined;
@@ -692,6 +692,8 @@ class PixiTextNode extends PixiNode<Text> {
   private shownFraction = 1;
   private typingMask: Graphics | undefined;
   private typingKey = "";
+  /** The clip as last applied (for `describeText`'s colors). */
+  private clip: TextClip;
 
   constructor(
     stage: Container,
@@ -704,11 +706,13 @@ class PixiTextNode extends PixiNode<Text> {
     stage.addChild(text);
     super(text, invalidate, effectContext);
     this.textContext = effectContext;
+    this.clip = clip;
     this.update(clip);
   }
 
   update(clip: Clip): void {
     if (!isTextClip(clip)) return;
+    this.clip = clip;
     this.display.text = clip.text;
     // Glyphs rasterize at the render density, not composition density — sharp
     // in upscaled exports and hi-DPI previews (the stage scale would otherwise
@@ -811,6 +815,48 @@ class PixiTextNode extends PixiNode<Text> {
     if (!any) mask.rect(BIG, BIG, 1, 1); // nothing shows yet
     mask.fill(0xffffff);
     this.invalidate();
+  }
+
+  /**
+   * The lines as the canvas draws them (CanvasTextGenerator): each line at
+   * `halfStroke + alignment` across and `halfStroke + i·lineHeight + ascent + shift` down from
+   * the text's top-left, the sprite centered on its placement point (anchor 0.5).
+   */
+  describeText(): TextLayout | null {
+    const text = this.display;
+    if (text.destroyed) return null;
+    const style = text.style;
+    const m = CanvasTextMetrics.measureText(text.text, style);
+    const halfStroke = (style._stroke?.width ?? 0) / 2;
+    const shift = Math.max(0, (m.lineHeight - m.fontProperties.fontSize) / 2);
+    const left = -m.width / 2;
+    const top = -m.height / 2;
+    const lines = m.lines.map((line, i) => {
+      const w = m.lineWidths[i] ?? 0;
+      const indent = style.align === "center" ? (m.maxLineWidth - w) / 2 : style.align === "right" ? m.maxLineWidth - w : 0;
+      return {
+        text: line,
+        xPx: left + halfStroke + indent,
+        baselinePx: top + halfStroke + i * m.lineHeight + m.fontProperties.ascent + shift,
+        widthPx: w,
+      };
+    });
+    const source = textClipStyle(this.clip);
+    const { color, alpha } = splitColorAlpha(source.fill);
+    const stroke = source.stroke;
+    return {
+      lines,
+      fontFamily: Array.isArray(style.fontFamily) ? style.fontFamily.join(",") : String(style.fontFamily),
+      fontSizePx: style.fontSize,
+      fontWeight: String(style.fontWeight ?? "normal"),
+      fontStyle: style.fontStyle === "italic" ? "italic" : "normal",
+      letterSpacingPx: style.letterSpacing ?? 0,
+      color,
+      colorAlpha: alpha,
+      ...(stroke ? { stroke: { color: stroke.color, widthPx: stroke.width, alpha: stroke.alpha ?? 1 } } : {}),
+      shadow: Boolean(source.dropShadow),
+      reveal: this.shownFraction,
+    };
   }
 
   /** The mask lives in the stage, so it follows the text's placement by copy. */

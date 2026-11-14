@@ -7,6 +7,7 @@ import type { DemuxerFactory, FrameDecoderFactory, Us } from "../media/types.js"
 import { createWebCodecsDecoderFactory, openMediabunnyDemuxer } from "../media/webcodecs.js";
 import { createVideoSupport } from "../video/video-support.js";
 import { loadFontAssets } from "../captions/fonts.js";
+import { withoutClips } from "./describe-still.js";
 
 export interface RenderProjectStillOptions {
   /** Composition time to render, in microseconds. */
@@ -23,6 +24,8 @@ export interface RenderProjectStillOptions {
   createDecoder?: FrameDecoderFactory;
   /** Scene-node factories for custom clip kinds — pass the player's. */
   factories?: Record<string, NodeFactory>;
+  /** Leave these clips out (e.g. the text a vector PDF lays over the picture). */
+  omitClipIds?: readonly string[];
 }
 
 /**
@@ -35,6 +38,10 @@ export async function renderProjectStill(
   project: Project,
   options: RenderProjectStillOptions,
 ): Promise<Blob> {
+  if (options.omitClipIds?.length) {
+    const { omitClipIds: _omit, ...rest } = options;
+    return renderProjectStill(withoutClips(project, options.omitClipIds), rest);
+  }
   const doc = project.getState().doc;
   const width = options.width ?? doc.settings.width;
   const height = options.height ?? doc.settings.height;
