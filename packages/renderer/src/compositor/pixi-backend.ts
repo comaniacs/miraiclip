@@ -3,6 +3,7 @@
  * its tests never touch this file. Rendering is manual (no Pixi ticker) — the
  * playback controller decides when frames are drawn.
  */
+import { glyphOverhangPx } from "../text/overhang.js";
 import { Application, Assets, CanvasSource, CanvasTextMetrics, Container, Graphics, ImageSource, Rectangle, Sprite, Text, Texture, type TextureSource } from "pixi.js";
 import { isCaptionClip, isHtmlClip, isTextClip, type Asset, type CaptionClip, type Clip, type Crop, type EffectInstance, type HtmlClip, type ImageClip, type TextClip, type VideoClip } from "@miraiclip/core";
 import { captionProgress, displayText, layoutCaption, POP_SCALE, wordAppearance, type CaptionProgress } from "../captions/layout.js";
@@ -713,7 +714,10 @@ class PixiTextNode extends PixiNode<Text> {
     // in upscaled exports and hi-DPI previews (the stage scale would otherwise
     // stretch a composition-resolution glyph atlas).
     this.display.resolution = Math.max(1, this.textContext?.renderScale?.() ?? 1);
-    this.display.style = textClipStyle(clip);
+    const style = textClipStyle(clip);
+    const over = glyphOverhangPx(style, clip.text);
+    if (over > (style.padding ?? 0)) style.padding = over;
+    this.display.style = style;
     this.typingKey = ""; // the text or its style changed: lay the mask out again
     this.applyTyping(this.shownFraction);
     this.invalidate();
