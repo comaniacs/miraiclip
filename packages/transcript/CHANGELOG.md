@@ -1,5 +1,11 @@
 # @miraiclip/transcript
 
+## 0.4.0
+
+### Minor Changes
+
+- 5c86ba6: Add `overdubSlot` and `planOverdub`: replace spoken words with new speech in place. The old words are muted (the clip is split around them, nothing else moves) and the take goes on its own audio track in their room, sped up by at most `maxSpeedup` and refused with `OverdubPlanError("too_long")` beyond that. Limits, fades and the track are options (`OVERDUB_DEFAULTS`).
+
 ## 0.3.1
 
 ### Patch Changes

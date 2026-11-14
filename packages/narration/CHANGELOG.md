@@ -1,5 +1,12 @@
 # @miraiclip/narration
 
+## 0.1.10
+
+### Patch Changes
+
+- Updated dependencies [5c86ba6]
+  - @miraiclip/transcript@0.4.0
+
 ## 0.1.9
 
 ### Patch Changes
