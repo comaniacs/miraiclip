@@ -71,6 +71,36 @@ export interface Point {
   yPx: number;
 }
 
+/** One drawn line of a text node, in the node's local space (px). */
+export interface TextLine {
+  text: string;
+  /** Left edge of the line's glyphs (alignment applied). */
+  xPx: number;
+  /** The line's baseline. */
+  baselinePx: number;
+  widthPx: number;
+}
+
+/** How a text node laid its text out (see `SceneNode.describeText`). */
+export interface TextLayout {
+  lines: TextLine[];
+  fontFamily: string;
+  fontSizePx: number;
+  fontWeight: string;
+  fontStyle: "normal" | "italic";
+  /** Pixels between letters (0 when unset). */
+  letterSpacingPx: number;
+  /** Opaque fill color and its alpha. */
+  color: string;
+  colorAlpha: number;
+  /** Outline (absent: none). */
+  stroke?: { color: string; widthPx: number; alpha: number };
+  /** A drop shadow or glow is drawn: not expressible as plain text. */
+  shadow: boolean;
+  /** Share of the characters showing (typewriter), 1 = all. */
+  reveal: number;
+}
+
 export interface SceneNode {
   /** Apply placement. The object may be REUSED by the caller — copy it if kept. */
   setPlacement(placement: Placement): void;
@@ -102,6 +132,11 @@ export interface SceneNode {
    * Optional; absent means always ready.
    */
   whenReady?(): Promise<void>;
+  /**
+   * Text nodes: the laid-out lines in the node's LOCAL space (relative to the placement
+   * point, before scale and rotation), exactly where the canvas draws them. Optional.
+   */
+  describeText?(): TextLayout | null;
   /**
    * True while content for the LAST render is still loading — time-varying
    * async content (animated html rasters) that a `tick` just requested.
