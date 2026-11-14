@@ -1,4 +1,6 @@
 export { BUILTIN_BLOCKS } from "./blocks.js";
+export { CHART_MAX_POINTS, CHART_TYPES, chartColors, chartContent, chartSpecOf, chartSpecSchema, parseChartSpec } from "./charts.js";
+export type { ChartContent, ChartSpec, ChartType } from "./charts.js";
 export { BRAND_FIELD_KEYS, BRAND_FIELDS, LAUNCH_SCENES } from "./scenes.js";
 export { DISPLAY_FIELD, DOC_SCENES, FILM_OVERLAY, FILM_SCENES } from "./docScenes.js";
 export { COURSE_SCENES } from "./courseScenes.js";
