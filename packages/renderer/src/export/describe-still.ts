@@ -34,6 +34,37 @@ export interface StillText extends TextLayout {
   rasterReasons: StillTextReason[];
 }
 
+/** Why a clip must stay in the picture rather than be drawn on its own (vector PDF). */
+export type StillClipReason = "covered" | "effects" | "transition";
+
+/**
+ * Any visible clip as placed at one moment: enough for a caller to draw it itself (a shape as
+ * SVG) and to know what is drawn over it. `covered` is set when any clip above overlaps its
+ * box; a caller that draws some covering clips itself can decide with `bounds` and `z`.
+ */
+export interface StillClip {
+  clipId: string;
+  kind: string;
+  /** Stacking order (higher draws on top). */
+  z: number;
+  /** Local → output pixels, as for text: the clip's own content is centred on its origin. */
+  matrix: [number, number, number, number, number, number];
+  opacity: number;
+  /** Its drawn box in composition pixels (rotation applied). */
+  bounds: ClipBounds;
+  rasterReasons: StillClipReason[];
+}
+
+/** What `describeStillText` returns. */
+export interface StillDescription {
+  width: number;
+  height: number;
+  /** Text clips with their line layout, bottom to top. */
+  texts: StillText[];
+  /** Every visible clip (text included), bottom to top. */
+  clips: StillClip[];
+}
+
 export interface DescribeStillOptions {
   timeUs: Us;
   /** Output size (default: the composition size); positions are scaled to it. */
@@ -65,7 +96,7 @@ const overlaps = (a: ClipBounds, b: ClipBounds) => {
 export async function describeStillText(
   project: Project,
   options: DescribeStillOptions,
-): Promise<{ width: number; height: number; texts: StillText[] }> {
+): Promise<StillDescription> {
   const doc = project.getState().doc;
   const width = options.width ?? doc.settings.width;
   const height = options.height ?? doc.settings.height;
@@ -105,23 +136,11 @@ export async function describeStillText(
         transitioning.add(tr.toClipId);
       }
     }
-    const texts: StillText[] = [];
-    for (const { id, bounds } of visible) {
-      const layout = compositor.getTextLayout(id);
-      const clip = doc.clips[id];
-      if (!layout || !clip) continue;
-      const opacity = clip.transform.opacity ?? 1;
-      if (opacity <= 0 || bounds.scale === 0) continue;
-      const reasons: StillTextReason[] = [];
-      if (visible.some((o) => o.id !== id && o.bounds.z > bounds.z && overlaps(o.bounds, bounds))) reasons.push("covered");
-      if ((clip.effects ?? []).some((e) => e.enabled !== false)) reasons.push("effects");
-      if (layout.shadow) reasons.push("shadow");
-      if (layout.reveal < 1) reasons.push("typing");
-      if (transitioning.has(id)) reasons.push("transition");
+    const matrixOf = (bounds: ClipBounds): StillClip["matrix"] => {
       const rad = (bounds.rotationDeg * Math.PI) / 180;
       const kx = bounds.scale * (bounds.scaleX ?? 1);
       const ky = bounds.scale * (bounds.scaleY ?? 1);
-      const matrix: StillText["matrix"] = [
+      return [
         Math.cos(rad) * kx * sx,
         Math.sin(rad) * kx * sy,
         -Math.sin(rad) * ky * sx,
@@ -129,10 +148,35 @@ export async function describeStillText(
         bounds.originXPx * sx,
         bounds.originYPx * sy,
       ];
+    };
+    const texts: StillText[] = [];
+    const clips: StillClip[] = [];
+    for (const { id, bounds } of visible) {
+      const clip = doc.clips[id];
+      if (!clip) continue;
+      const opacity = clip.transform.opacity ?? 1;
+      if (opacity <= 0 || bounds.scale === 0) continue;
+      const covered = visible.some((o) => o.id !== id && o.bounds.z > bounds.z && overlaps(o.bounds, bounds));
+      const effects = (clip.effects ?? []).some((e) => e.enabled !== false);
+      const clipReasons: StillClipReason[] = [];
+      if (covered) clipReasons.push("covered");
+      if (effects) clipReasons.push("effects");
+      if (transitioning.has(id)) clipReasons.push("transition");
+      const matrix = matrixOf(bounds);
+      clips.push({ clipId: id, kind: clip.kind, z: bounds.z, matrix, opacity, bounds, rasterReasons: clipReasons });
+      const layout = compositor.getTextLayout(id);
+      if (!layout) continue;
+      const reasons: StillTextReason[] = [];
+      if (covered) reasons.push("covered");
+      if (effects) reasons.push("effects");
+      if (layout.shadow) reasons.push("shadow");
+      if (layout.reveal < 1) reasons.push("typing");
+      if (transitioning.has(id)) reasons.push("transition");
       texts.push({ ...layout, clipId: id, matrix, opacity, bounds, rasterReasons: reasons });
     }
+    clips.sort((a, b) => a.z - b.z);
     texts.sort((a, b) => a.bounds.z - b.bounds.z);
-    return { width, height, texts };
+    return { width, height, texts, clips };
   } finally {
     compositor.destroy();
     videos.dispose();

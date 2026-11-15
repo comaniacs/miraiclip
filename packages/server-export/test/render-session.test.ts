@@ -217,6 +217,12 @@ describe.skipIf(browserPath === undefined)("createRenderSession (integration)", 
     expect(described.texts).toHaveLength(1);
     const [title] = described.texts;
     expect(title).toMatchObject({ clipId: "title", rasterReasons: [] });
+    // Every visible clip is placed too, bottom to top: the fill, then the title.
+    expect(described.clips.map((c) => [c.clipId, c.kind])).toEqual([
+      ["fill", "html"],
+      ["title", "text"],
+    ]);
+    expect(described.clips[0]?.rasterReasons).toEqual(["covered"]);
     expect(title!.lines.map((l) => l.text)).toEqual(["BIG", "TEXT"]);
     // Positions are scaled to the asked size: the text sits around the middle of 320×180.
     const [, , , , e, f] = title!.matrix;
