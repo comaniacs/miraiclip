@@ -1,5 +1,12 @@
 # @miraiclip/react
 
+## 0.4.2
+
+### Patch Changes
+
+- Updated dependencies [baf7f26]
+  - @miraiclip/renderer@0.20.0
+
 ## 0.4.1
 
 ### Patch Changes
