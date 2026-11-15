@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import type { Page } from "playwright-core";
 import { resolveAssetSources } from "./assets.js";
 import { preparePlugins, type ServerPluginOptions } from "./plugins.js";
-import "./harness/protocol.js";
+import type { HarnessStillText } from "./harness/protocol.js";
 import { launchBrowser } from "./browser.js";
 import { startHarnessServer, type HarnessServer } from "./server.js";
 import type { BrowserOptions, ProjectDocument } from "./types.js";
@@ -25,7 +25,23 @@ export interface RenderStillOptions {
   /** Output size (default: the document's composition size). */
   width?: number;
   height?: number;
+  /**
+   * Leave these clips out of the picture: a vector PDF draws the page without its text,
+   * then lays the text over it as real text (see `describeStillText`).
+   */
+  omitClipIds?: readonly string[];
 }
+
+export interface DescribeStillTextOptions {
+  /** Composition time, in microseconds. */
+  timeUs: number;
+  /** Output size the positions are scaled to (default: the composition size). */
+  width?: number;
+  height?: number;
+}
+
+/** Every visible text clip at a moment, laid out by the canvas's own text metrics. */
+export type StillTextDescription = HarnessStillText;
 
 export interface RenderSession {
   /**
@@ -33,6 +49,12 @@ export interface RenderSession {
    * session outlives edits — hand it the latest state every time.
    */
   renderStill(doc: ProjectDocument, options: RenderStillOptions): Promise<Uint8Array>;
+  /**
+   * The text of one frame as lines with positions, fonts and a transform, laid out exactly
+   * as `renderStill` draws it, plus which texts must stay in the picture (covered, effects,
+   * mid-transition). With `renderStill(…, { omitClipIds })` it makes selectable-text PDFs.
+   */
+  describeStillText(doc: ProjectDocument, options: DescribeStillTextOptions): Promise<StillTextDescription>;
   close(): Promise<void>;
 }
 
@@ -89,43 +111,66 @@ export async function createRenderSession(
   let queue: Promise<unknown> = Promise.resolve();
   let closed = false;
 
+  /** Serialize one page call: plugins prepared, the document's assets made servable. */
+  const inPage = <T>(
+    doc: ProjectDocument,
+    what: string,
+    call: (resolvedDoc: unknown, plugins: Awaited<ReturnType<typeof preparePlugins>>) => Promise<T>,
+  ): Promise<T> => {
+    const run = queue.then(async (): Promise<T> => {
+      if (closed) throw new Error("render session is closed");
+      const plugins = await preparePlugins(doc, options.plugins, options.assetsDir);
+      const resolved = resolveAssetSources(doc, {
+        assets: options.assets,
+        assetsDir: options.assetsDir,
+        exists: existsSync,
+      });
+      files.clear();
+      for (const [urlPath, filePath] of resolved.files) files.set(urlPath, filePath);
+      errors.length = 0;
+      return call(resolved.doc, plugins).catch((error: unknown) => {
+        const message = error instanceof Error ? error.message : String(error);
+        const context =
+          errors.length > 0 ? `\npage errors:\n  ${errors.slice(-5).join("\n  ")}` : "";
+        throw new Error(`${what} failed: ${message}${context}`);
+      });
+    });
+    queue = run.catch(() => undefined); // a failed render never wedges the queue
+    return run;
+  };
+  const size = (o: { width?: number; height?: number }) => ({
+    ...(o.width !== undefined ? { width: o.width } : {}),
+    ...(o.height !== undefined ? { height: o.height } : {}),
+  });
+
   return {
     renderStill(doc, stillOptions) {
-      const run = queue.then(async (): Promise<Uint8Array> => {
-        if (closed) throw new Error("render session is closed");
-        const plugins = await preparePlugins(doc, options.plugins, options.assetsDir);
-        const resolved = resolveAssetSources(doc, {
-          assets: options.assets,
-          assetsDir: options.assetsDir,
-          exists: existsSync,
-        });
-        files.clear();
-        for (const [urlPath, filePath] of resolved.files) files.set(urlPath, filePath);
-
-        errors.length = 0;
-        const base64 = await readyPage
-          .evaluate(
-            ([stillDoc, opts]) => window.__miraiRenderStill(stillDoc, opts),
-            [
-              resolved.doc,
-              {
-                timeUs: stillOptions.timeUs,
-                ...(stillOptions.width !== undefined ? { width: stillOptions.width } : {}),
-                ...(stillOptions.height !== undefined ? { height: stillOptions.height } : {}),
-                ...(plugins ? { plugins } : {}),
-              },
-            ] as const,
-          )
-          .catch((error: unknown) => {
-            const message = error instanceof Error ? error.message : String(error);
-            const context =
-              errors.length > 0 ? `\npage errors:\n  ${errors.slice(-5).join("\n  ")}` : "";
-            throw new Error(`render still failed: ${message}${context}`);
-          });
+      return inPage(doc, "render still", async (resolvedDoc, plugins) => {
+        const base64 = await readyPage.evaluate(
+          ([stillDoc, opts]) => window.__miraiRenderStill(stillDoc, opts),
+          [
+            resolvedDoc,
+            {
+              timeUs: stillOptions.timeUs,
+              ...size(stillOptions),
+              ...(stillOptions.omitClipIds?.length ? { omitClipIds: [...stillOptions.omitClipIds] } : {}),
+              ...(plugins ? { plugins } : {}),
+            },
+          ] as const,
+        );
         return Uint8Array.from(Buffer.from(base64, "base64"));
       });
-      queue = run.catch(() => undefined); // a failed render never wedges the queue
-      return run;
+    },
+    describeStillText(doc, describeOptions) {
+      return inPage(doc, "describe still text", (resolvedDoc, plugins) =>
+        readyPage.evaluate(
+          ([stillDoc, opts]) => window.__miraiDescribeStillText(stillDoc, opts),
+          [
+            resolvedDoc,
+            { timeUs: describeOptions.timeUs, ...size(describeOptions), ...(plugins ? { plugins } : {}) },
+          ] as const,
+        ),
+      );
     },
     async close() {
       closed = true;
