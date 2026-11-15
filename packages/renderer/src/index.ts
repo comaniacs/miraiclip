@@ -84,7 +84,14 @@ export type { MediabunnyDemuxerOptions } from "./media/webcodecs.js";
 export type { MediaSrc, WebCodecsDecoderOptions } from "./media/webcodecs.js";
 
 export { describeStillText, withoutClips } from "./export/describe-still.js";
-export type { DescribeStillOptions, StillText, StillTextReason } from "./export/describe-still.js";
+export type {
+  DescribeStillOptions,
+  StillClip,
+  StillClipReason,
+  StillDescription,
+  StillText,
+  StillTextReason,
+} from "./export/describe-still.js";
 export { exportComposition, exportFrameWindow } from "./export/exporter.js";
 export type { ExportCompositionOptions } from "./export/exporter.js";
 export { compositionEnd, exportProject, probeCompositionAudio } from "./export/export-project.js";

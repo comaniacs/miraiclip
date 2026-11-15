@@ -3,7 +3,7 @@
  * Playwright) and the harness bundle (runs in the page). Type-only — both
  * sides import it so the two halves cannot drift.
  */
-import type { StillText } from "@miraiclip/renderer";
+import type { StillDescription } from "@miraiclip/renderer";
 /** Plugins prepared on the Node side: refs keyed by content hash, plus their sources. */
 export interface HarnessPlugins {
   refs: { name: string; version: string; url: string; integrity?: string }[];
@@ -49,12 +49,8 @@ export interface HarnessDescribeOptions {
   height?: number;
 }
 
-/** What `describeStillText` returns: every visible text clip, laid out for real text. */
-export interface HarnessStillText {
-  width: number;
-  height: number;
-  texts: StillText[];
-}
+/** What `describeStillText` returns: every visible text clip laid out, and every visible clip placed. */
+export type HarnessStillText = StillDescription;
 
 export interface HarnessProgress {
   phase: "audio" | "video" | "finalizing";

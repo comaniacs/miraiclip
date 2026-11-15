@@ -80,6 +80,9 @@ window.run = async () => {
   return {
     lines: title.lines.map((l) => l.text),
     reasons: Object.fromEntries(desc.texts.map((t) => [t.clipId, t.rasterReasons])),
+    clips: desc.clips.map((c) => [c.clipId, c.kind, c.rasterReasons.join(",")]),
+    zSorted: desc.clips.every((c, i, a) => i === 0 || a[i - 1].z <= c.z),
+    patchMatrix: desc.clips.find((c) => c.clipId === "patch").matrix,
     compositor: inkBox(only),
     described: inkBox(drawn),
     none: inkBox(none),
@@ -102,6 +105,15 @@ describe("still text for vector PDFs", () => {
     await page.close();
     expect(out.lines).toEqual(["Summer menu", "is here"]);
     expect(out.reasons).toEqual({ title: [], under: ["covered"], glow: ["shadow"] });
+    // Every visible clip, bottom to top: the html patch too, uncovered, centred at its position.
+    expect(out.zSorted).toBe(true);
+    expect(Object.fromEntries(out.clips.map(([id, kind, r]: string[]) => [id, `${kind}:${r}`]))).toEqual({
+      title: "text:",
+      under: "text:covered",
+      patch: "html:",
+      glow: "text:",
+    });
+    expect(out.patchMatrix.map((v: number) => Math.round(v) + 0)).toEqual([1, 0, 0, 1, 1024, 576]);
     expect(out.none.n).toBe(0);
     expect(out.compositor.n).toBeGreaterThan(1000);
     for (const k of ["x0", "y0", "x1", "y1"] as const) {
