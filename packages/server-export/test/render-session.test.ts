@@ -32,6 +32,11 @@ function pngSize(bytes: Uint8Array): { width: number; height: number } {
 
 /** Minimal PNG decode (8-bit RGB/RGBA, all five row filters) → one pixel. */
 function pngPixel(bytes: Uint8Array, x: number, y: number): [number, number, number] {
+  return pngPixels(bytes, y)(x, y);
+}
+
+/** Decode once, read many pixels (rows 0..maxY). */
+function pngPixels(bytes: Uint8Array, maxY: number): (x: number, y: number) => [number, number, number] {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const width = view.getUint32(16);
   const channels = bytes[25] === 6 ? 4 : 3;
@@ -46,7 +51,8 @@ function pngPixel(bytes: Uint8Array, x: number, y: number): [number, number, num
   const stride = width * channels;
   let prev = new Uint8Array(stride);
   let row = new Uint8Array(stride);
-  for (let r = 0; r <= y; r++) {
+  const rows: Uint8Array[] = [];
+  for (let r = 0; r <= maxY; r++) {
     const base = r * (stride + 1);
     const filter = raw[base]!;
     row = new Uint8Array(stride);
@@ -60,9 +66,13 @@ function pngPixel(bytes: Uint8Array, x: number, y: number): [number, number, num
       const paeth = pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
       row[i] = (v + [0, a, b, (a + b) >> 1, paeth][filter]!) & 0xff;
     }
+    rows.push(row);
     prev = row;
   }
-  return [row[x * channels]!, row[x * channels + 1]!, row[x * channels + 2]!];
+  return (x, y) => {
+    const r = rows[y]!;
+    return [r[x * channels]!, r[x * channels + 1]!, r[x * channels + 2]!];
+  };
 }
 
 function textDoc() {
@@ -179,6 +189,51 @@ describe.skipIf(browserPath === undefined)("createRenderSession (integration)", 
     const end = await session.renderStill(doc, { timeUs: 2_480_000 });
     const endCorner = pngPixel(end, 12, 12);
     expect(endCorner[1], `end corner ${endCorner}`).toBeGreaterThan(200); // incoming is (almost) full-frame
+  }, 60_000);
+
+  it("describes a frame's text and renders the frame without it (vector PDF building blocks)", async () => {
+    const project = createProject({ width: 640, height: 360, fps: 30 });
+    project.transaction(() => {
+      project.dispatch({ type: "track/add", payload: { id: "bg", kind: "video" } });
+      project.dispatch({
+        type: "clip/add",
+        payload: {
+          kind: "html", id: "fill", trackId: "bg", startUs: 0, durationUs: 2_000_000,
+          template: `<div style="width:100%;height:100%;background:#ffffff"></div>`, params: {},
+        },
+      });
+      project.dispatch({ type: "track/add", payload: { id: "t1", kind: "video" } });
+      project.dispatch({
+        type: "clip/add",
+        payload: {
+          kind: "text", id: "title", trackId: "t1", text: "BIG\nTEXT", startUs: 0, durationUs: 2_000_000,
+          fontSizePx: 120, color: "#000000", textAlign: "center",
+        },
+      });
+    });
+    const doc = project.toJSON();
+    const described = await session.describeStillText(doc, { timeUs: 500_000, width: 320, height: 180 });
+    expect(described).toMatchObject({ width: 320, height: 180 });
+    expect(described.texts).toHaveLength(1);
+    const [title] = described.texts;
+    expect(title).toMatchObject({ clipId: "title", rasterReasons: [] });
+    expect(title!.lines.map((l) => l.text)).toEqual(["BIG", "TEXT"]);
+    // Positions are scaled to the asked size: the text sits around the middle of 320×180.
+    const [, , , , e, f] = title!.matrix;
+    expect(e).toBeGreaterThan(0);
+    expect(e).toBeLessThan(320);
+    expect(f).toBeGreaterThan(0);
+    expect(f).toBeLessThan(180);
+
+    // The black text is in the full still and gone (all white) once the clip is left out.
+    const black = (png: Uint8Array) => {
+      const px = pngPixels(png, 359);
+      let n = 0;
+      for (let y = 40; y < 320; y += 8) for (let x = 120; x < 520; x += 8) if (px(x, y)[0] < 80) n++;
+      return n;
+    };
+    expect(black(await session.renderStill(doc, { timeUs: 500_000 }))).toBeGreaterThan(10);
+    expect(black(await session.renderStill(doc, { timeUs: 500_000, omitClipIds: ["title"] }))).toBe(0);
   }, 60_000);
 
   it("a failed render (missing asset file) rejects without wedging the session", async () => {

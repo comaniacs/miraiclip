@@ -8,8 +8,10 @@ export type {
 export { createRenderSession } from "./render-session.js";
 export type {
   CreateRenderSessionOptions,
+  DescribeStillTextOptions,
   RenderSession,
   RenderStillOptions,
+  StillTextDescription,
 } from "./render-session.js";
 export { parseCliArgs, type ParsedCliArgs } from "./cli-args.js";
 export { resolveAssetSources } from "./assets.js";

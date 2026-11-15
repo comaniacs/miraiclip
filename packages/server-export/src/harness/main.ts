@@ -8,7 +8,7 @@
  * that identity is the whole design: preview/export parity by construction.
  */
 import { createProject, type ProjectDocument } from "@miraiclip/core";
-import { exportProject, isWebCodecsSupported, loadDocumentPlugins, renderProjectStill, type LoadedPlugins } from "@miraiclip/renderer";
+import { describeStillText, exportProject, isWebCodecsSupported, loadDocumentPlugins, renderProjectStill, type LoadedPlugins } from "@miraiclip/renderer";
 import { registerStageKit } from "@miraiclip/renderer/stage";
 import type { HarnessPlugins } from "./protocol.js";
 import "./protocol.js";
@@ -86,9 +86,19 @@ window.__miraiRenderStill = async (doc, options): Promise<string> =>
       timeUs: options.timeUs,
       ...(options.width !== undefined ? { width: options.width } : {}),
       ...(options.height !== undefined ? { height: options.height } : {}),
+      ...(options.omitClipIds?.length ? { omitClipIds: options.omitClipIds } : {}),
     });
     return toBase64(new Uint8Array(await blob.arrayBuffer()));
   });
+
+window.__miraiDescribeStillText = async (doc, options) =>
+  withPlugins(options.plugins, async () =>
+    describeStillText(createProject(doc as ProjectDocument), {
+      timeUs: options.timeUs,
+      ...(options.width !== undefined ? { width: options.width } : {}),
+      ...(options.height !== undefined ? { height: options.height } : {}),
+    }),
+  );
 
 /** Chunked btoa — String.fromCharCode(...bytes) overflows the arg limit on real files. */
 function toBase64(bytes: Uint8Array): string {
