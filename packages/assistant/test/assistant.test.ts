@@ -192,6 +192,62 @@ function sse(chunks: unknown[]): Response {
   return new Response(body, { headers: { "content-type": "text/event-stream" } });
 }
 
+describe("replies cut off by the output limit", () => {
+  it("asks the model to redo a cut-off reply in smaller pieces instead of ending silently", async () => {
+    const project = demo();
+    const events: string[] = [];
+    const model = scriptedChatModel([
+      // Cut off while writing its tool call: nothing usable came back.
+      { finish: "length" },
+      (request) => {
+        const last = request.messages.at(-1)!;
+        expect(last.role).toBe("user");
+        expect(String(last.content)).toMatch(/output limit \(4096 tokens\).*smaller pieces/);
+        return { toolCalls: [{ name: "animate_clip", arguments: { clipId: "title", in: "pop" } }] };
+      },
+      "Animated the title.",
+    ]);
+    const turn = await createAssistant({ model, maxOutputTokens: 4096 }).run(project, "animate the title", {
+      onEvent: (e) => events.push(e.type),
+    });
+    expect(turn.status).toBe("applied");
+    expect(turn.reply).toBe("Animated the title.");
+    expect(events).toContain("cut-off");
+  });
+
+  it("never runs a tool call whose arguments were cut off, but runs the finished ones", async () => {
+    const project = demo();
+    const model = scriptedChatModel([
+      {
+        finish: "length",
+        toolCalls: [
+          { name: "animate_clip", arguments: { clipId: "title", in: "pop" } },
+          { name: "animate_clip", arguments: { __invalidArguments: '{"clipId":"ti' } },
+        ],
+      },
+      (request) => {
+        // One tool result (the finished call), then the note.
+        const tools = request.messages.filter((m) => m.role === "tool");
+        expect(tools).toHaveLength(1);
+        expect(request.messages.at(-1)!.role).toBe("user");
+        return "Animated the title.";
+      },
+    ]);
+    const turn = await createAssistant({ model }).run(project, "animate the title");
+    expect(turn.status).toBe("applied");
+    expect(turn.changes).toEqual(["title: Pop in"]);
+  });
+
+  it("stops with a reply the user can act on when replies keep getting cut off", async () => {
+    const project = demo();
+    const model = scriptedChatModel([{ finish: "length" }]);
+    const turn = await createAssistant({ model, maxCutOffRetries: 2 }).run(project, "build a huge page");
+    expect(model.requests).toHaveLength(3);
+    expect(turn.status).toBe("no-changes");
+    expect(turn.reply).toMatch(/length limit.*smaller change/);
+  });
+});
+
 describe("openAIChatModel", () => {
   it("maps messages and tools, streams text, joins tool-call fragments", async () => {
     const sent: { url: string; headers: Record<string, string>; body: Record<string, unknown> }[] = [];

@@ -2,7 +2,12 @@ import { defineChatModel, type ChatModel, type ChatRequest, type ChatResponse, t
 
 export type ScriptStep =
   | string
-  | { text?: string; toolCalls?: (Omit<ToolCall, "id"> & { id?: string })[] }
+  | {
+      text?: string;
+      toolCalls?: (Omit<ToolCall, "id"> & { id?: string })[];
+      /** Override how the reply ended (e.g. "length" for one cut off by the output limit). */
+      finish?: ChatResponse["finish"];
+    }
   | ((request: ChatRequest, index: number) => ScriptStep);
 
 /**
@@ -21,10 +26,10 @@ export function scriptedChatModel(steps: ScriptStep[], options: { id?: string } 
       let step: ScriptStep = steps[Math.min(i, steps.length - 1)] ?? "Done.";
       while (typeof step === "function") step = step(request, i);
       i++;
-      const s = typeof step === "string" ? { text: step } : step;
+      const s: Exclude<ScriptStep, string | ((...a: never[]) => unknown)> = typeof step === "string" ? { text: step } : step;
       if (s.text) opts.onText?.(s.text);
       const toolCalls = (s.toolCalls ?? []).map((c, n) => ({ id: c.id ?? `call_${i}_${n}`, name: c.name, arguments: c.arguments }));
-      return { content: s.text ?? "", toolCalls, finish: toolCalls.length ? "tool_calls" : "stop", usage: { inputTokens: 10, outputTokens: 5 } };
+      return { content: s.text ?? "", toolCalls, finish: s.finish ?? (toolCalls.length ? "tool_calls" : "stop"), usage: { inputTokens: 10, outputTokens: 5 } };
     },
   });
   return Object.assign(model, { requests });
