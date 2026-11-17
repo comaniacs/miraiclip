@@ -1,5 +1,11 @@
 # @miraiclip/html-composition
 
+## 0.2.0
+
+### Minor Changes
+
+- a39aa8b: Edit html clips by element: `stampHtmlIds` (stable `data-mc` ids in document order), `describeHtml` and `formatHtmlOutline` (ids, own text, inline style, nesting), `editHtml` and `planHtmlEdit` (text, inner and outer markup, style merge, attributes, insert, move, duplicate, remove, all or nothing, planned as one `clip/set-property`), and `cleanHtml` (event handlers, `javascript:`, external URLs, frames, and scripts unless allowed). Edited markup is written back well-formed for the rasterizer.
+
 ## 0.1.7
 
 ### Patch Changes
