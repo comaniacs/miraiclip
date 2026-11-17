@@ -19,6 +19,13 @@ export interface AssistantOptions {
   skills?: readonly AssistantSkill[];
   /** Model round-trips per request (default 12). */
   maxSteps?: number;
+  /**
+   * Replies cut off by the output limit (`finish: "length"`) that the model is
+   * asked to redo in smaller pieces, per request (default 2). A cut-off reply
+   * loses whatever tool call it was writing, so without this a turn can end
+   * with nothing done and nothing said.
+   */
+  maxCutOffRetries?: number;
   /** Model id when the adapter serves several. */
   modelId?: string;
   maxOutputTokens?: number;
@@ -39,7 +46,9 @@ export type AssistantEvent =
       /** Images the tool returned (previews, storyboards) — the model sees them too; apps may show them. */
       images?: ChatImage[];
     }
-  | { type: "step"; index: number };
+  | { type: "step"; index: number }
+  /** A reply hit the output limit; the model was asked to redo it in smaller pieces. */
+  | { type: "cut-off"; index: number };
 
 export interface TurnOptions {
   /** Earlier messages of this conversation (`turn.messages` from the last turn). */
@@ -93,6 +102,13 @@ const MAX_TOOL_RESULT = 20_000;
 /** Pictures per tool result, and how many recent results keep theirs (see recentImagesOnly). */
 const MAX_IMAGES_PER_RESULT = 4;
 const KEEP_IMAGE_RESULTS = 2;
+
+/** Told to the model after a reply hit the output limit. */
+const CUT_OFF_NOTE = (limit: number | undefined) =>
+  `[Your last reply hit the output limit${limit ? ` (${limit} tokens)` : ""} and was cut off, so the tool call you were writing never ran. ` +
+  `Do the same work in smaller pieces: several smaller tool calls, and no single argument (markup, a long text) longer than it needs to be.]`;
+/** Said to the user when replies keep getting cut off. */
+const CUT_OFF_REPLY = "My reply kept running past the length limit, so I stopped before finishing. Ask for a smaller change, or one part at a time.";
 const MAX_OLD_TOOL_RESULT = 2_000;
 
 export const DEFAULT_INSTRUCTIONS = `You are the editing assistant inside a video editor. You change the user's project by calling tools; every change you make lands as ONE undo step when you finish, so act confidently.
@@ -128,6 +144,7 @@ export function createAssistant(options: AssistantOptions): Assistant {
   const byName = new Map(tools.map((t) => [t.name, t]));
   const specs = tools.map(({ name, description, inputSchema }) => ({ name, description, inputSchema }));
   const maxSteps = options.maxSteps ?? 12;
+  const maxCutOffRetries = options.maxCutOffRetries ?? 2;
 
   return {
     tools,
@@ -162,6 +179,7 @@ export function createAssistant(options: AssistantOptions): Assistant {
       let error: string | undefined;
 
       let seesImages = true;
+      let cutOffs = 0;
       try {
         for (let step = 0; ; step++) {
           if (step >= maxSteps) {
@@ -190,12 +208,21 @@ export function createAssistant(options: AssistantOptions): Assistant {
           }
           usage.inputTokens += response.usage?.inputTokens ?? 0;
           usage.outputTokens += response.usage?.outputTokens ?? 0;
-          added.push({ role: "assistant", content: response.content, ...(response.toolCalls.length ? { toolCalls: response.toolCalls } : {}) });
-          if (response.toolCalls.length === 0) {
+          const cutOff = response.finish === "length";
+          // A cut-off reply may end in a tool call whose arguments never finished: never run that one.
+          const calls = cutOff ? response.toolCalls.filter((c) => !("__invalidArguments" in c.arguments)) : response.toolCalls;
+          added.push({ role: "assistant", content: response.content, ...(calls.length ? { toolCalls: calls } : {}) });
+          if (cutOff) {
+            cutOffs++;
+            if (cutOffs > maxCutOffRetries) {
+              reply = (response.content.trim() ? `${response.content.trim()}\n\n` : "") + CUT_OFF_REPLY;
+              break;
+            }
+          } else if (calls.length === 0) {
             reply = response.content.trim();
             break;
           }
-          for (const call of response.toolCalls) {
+          for (const call of calls) {
             if (turn.signal?.aborted) throw abortError();
             emit({ type: "tool-start", call });
             const out = await runTool(byName.get(call.name), call, fork, turn.signal);
@@ -215,6 +242,10 @@ export function createAssistant(options: AssistantOptions): Assistant {
               content: cap(out.ok ? out.result ?? { ok: true } : { ok: false, error: out.error }, MAX_TOOL_RESULT),
               ...(out.ok && out.images?.length ? { images: out.images.slice(0, MAX_IMAGES_PER_RESULT) } : {}),
             });
+          }
+          if (cutOff) {
+            emit({ type: "cut-off", index: step });
+            added.push({ role: "user", content: CUT_OFF_NOTE(options.maxOutputTokens) });
           }
         }
         status = fork.recorded.length === 0 ? "no-changes" : turn.apply === "review" ? "review" : "applied";
