@@ -27,3 +27,5 @@ export type {
   HtmlElementInfo,
   HtmlPosition,
 } from "./edit.js";
+export { hexColor, htmlFonts, htmlPalette, htmlTexts, recolorHtml, refontHtml, setHtmlTexts } from "./content.js";
+export type { HtmlColor, HtmlFont, HtmlText } from "./content.js";

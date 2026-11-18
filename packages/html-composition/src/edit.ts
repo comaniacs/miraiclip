@@ -570,3 +570,6 @@ export function planHtmlEdit(
   if (template === clip.template) return [];
   return [{ type: "clip/set-property", payload: { clipId, template } }];
 }
+
+/** @internal Shared with the other html-clip planners in this package (not exported from the index). */
+export const tree = { parse, serializeFragment, stamp, elements, childrenOf, idOf, RAW_TEXT };

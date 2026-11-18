@@ -57,6 +57,30 @@ describe("localizeProject", () => {
   });
 });
 
+describe("html clips written as markup", () => {
+  it("translates the words in the markup piece by piece, leaving layout, numbers and code alone", async () => {
+    const p = createProject({ width: 1080, height: 1920, fps: 30 });
+    const template =
+      '<div style="position:absolute;left:40px;color:#094a9f"><h1>MORNING MENU</h1>' +
+      "<p>Flat white <span>3.80</span></p><p>TOTAL: <b>one perfect morning</b></p><span>07:00</span></div>";
+    applyCommands(p, [
+      { type: "track/add", payload: { id: "t", kind: "video" } },
+      { type: "clip/add", payload: { kind: "html", id: "receipt", trackId: "t", startUs: 0, durationUs: S, template, params: {} } },
+    ]);
+    const units = collectText(p.getState().doc).filter((u) => u.kind === "html-text");
+    expect(units.map((u) => u.text)).toEqual(["MORNING MENU", "Flat white", "TOTAL:", "one perfect morning"]);
+    const out = await localizeProject(p.getState().doc, fake, { to: "ja", nameSuffix: "" });
+    const html = (out.doc.clips["receipt"] as { template: string }).template;
+    expect(html).toMatch(/<h1 data-mc="e\d+">ja:MORNING MENU<\/h1>/);
+    expect(html).toMatch(/>ja:FLAT WHITE <span data-mc="e\d+">3\.80<\/span>/);
+    expect(html).toMatch(/>ja:TOTAL: <b data-mc="e\d+">ja:ONE PERFECT MORNING<\/b>/);
+    expect(html).toContain(">07:00<");
+    expect(html).toContain('style="position:absolute;left:40px;color:#094a9f"');
+    // One command for the clip.
+    expect(out.commands.filter((c) => (c.payload as { clipId?: string }).clipId === "receipt")).toHaveLength(1);
+  });
+});
+
 describe("adapters", () => {
   it("chatTranslator: JSON in, JSON out, kept terms and context in the prompt", async () => {
     let system = "";

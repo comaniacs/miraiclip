@@ -7,6 +7,7 @@
  * off, and everything undoes as one step.
  */
 import { applyCommands, createProject, isCaptionClip, isHtmlClip, isTextClip, type ProjectDocument } from "@miraiclip/core";
+import { htmlFonts, htmlPalette, recolorHtml, refontHtml } from "@miraiclip/html-composition";
 import { blockCommands, getBuiltinBlock, type Block } from "@miraiclip/registry";
 import type { BrandFont, BrandKit } from "./kit.js";
 
@@ -84,9 +85,8 @@ export function applyBrand(doc: ProjectDocument, kit: BrandKit, options: ApplyBr
       if (isTextClip(c) && heading) list.push({ type: "clip/set-property", payload: { clipId: c.id, fontFamily: heading.family } });
       else if (isCaptionClip(c) && body) list.push({ type: "clip/set-property", payload: { clipId: c.id, style: { fontFamily: body.family } } });
       else if (isHtmlClip(c)) {
-        // Blocks write font-family:Inter,…: swap the family in the markup.
-        const family = heading?.family ?? body!.family;
-        const template = c.template.replace(/font-family:\s*([^;"]+)/g, (_m, rest: string) => `font-family:'${family}',${rest.replace(/^'[^']*',/, "")}`);
+        // The markup's largest type takes the heading face, the rest the body face.
+        const template = brandHtmlFonts(c.template, heading?.family ?? body!.family, body?.family ?? heading!.family);
         if (template !== c.template) list.push({ type: "clip/set-property", payload: { clipId: c.id, template } });
       }
     }
@@ -105,6 +105,11 @@ export function applyBrand(doc: ProjectDocument, kit: BrandKit, options: ApplyBr
         if (next && next !== value) params[key] = next;
       }
       if (Object.keys(params).length) list.push({ type: "clip/set-property", payload: { clipId: c.id, params } });
+      // A design written straight in markup (no colour fields): its own colours, by role.
+      else if (!Object.values(c.params).some(isColor)) {
+        const template = brandHtmlColors(c.template, kit);
+        if (template !== c.template) list.push({ type: "clip/set-property", payload: { clipId: c.id, template } });
+      }
     }
     if (list.length) run(list);
   }
@@ -185,3 +190,87 @@ export function applyBrand(doc: ProjectDocument, kit: BrandKit, options: ApplyBr
   }
   return { commands, doc: state() };
 }
+
+// --- html written as markup (a receipt, a ticket, a whole page)
+
+/** Faces that are part of the look rather than the brand's type: kept as they are. */
+const KEEP_FACE = /mono|code|barcode|icon|symbol|emoji/i;
+
+/**
+ * A template's type in the kit's faces: the family set largest becomes the heading face, the
+ * others the body face; monospace, barcode and icon faces stay. Fallbacks are kept.
+ */
+export function brandHtmlFonts(template: string, heading: string, body: string): string {
+  const fonts = htmlFonts(template).filter((f) => !KEEP_FACE.test(f.family));
+  if (!fonts.length) return template;
+  const map: Record<string, string> = {};
+  fonts.forEach((f, i) => {
+    const to = i === 0 ? heading : body;
+    if (f.family.toLowerCase() !== to.toLowerCase()) map[f.family] = to;
+  });
+  return Object.keys(map).length ? refontHtml(template, map) : template;
+}
+
+const channels = (hex: string) => {
+  const n = Number.parseInt(hex.slice(1, 7), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255] as const;
+};
+const luminance = (hex: string) => {
+  const [r, g, b] = channels(hex).map((v) => {
+    const x = v / 255;
+    return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+};
+const contrast = (a: string, b: string) => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi! + 0.05) / (lo! + 0.05);
+};
+const chroma = (hex: string) => {
+  const c = channels(hex);
+  return (Math.max(...c) - Math.min(...c)) / 255;
+};
+const hex6 = (v: string | undefined) => (v && /^#[0-9a-f]{3,8}$/i.test(v) ? (v.length === 4 ? `#${[...v.slice(1)].map((x) => x + x).join("")}` : v.slice(0, 7)).toLowerCase() : undefined);
+
+/**
+ * A template's own colours in the kit's: its colours, most used first, take primary, accent
+ * and secondary in turn; its darkest text neutral takes the kit's text colour and its lightest
+ * fill neutral the kit's background (when the kit has them). A text colour that would no
+ * longer read on the main fill takes the kit's text colour (or black / white) instead.
+ */
+export function brandHtmlColors(template: string, kit: BrandKit): string {
+  const palette = htmlPalette(template);
+  if (!palette.length) return template;
+  const map: Record<string, string> = {};
+  const brand = [kit.colors.primary, kit.colors.accent, kit.colors.secondary].map(hex6).filter((c): c is string => !!c);
+  const targets = [...new Set(brand)];
+  const vivid = palette.filter((c) => chroma(c.color) >= 0.12);
+  vivid.forEach((c, i) => {
+    const to = targets[i];
+    if (to) map[c.color] = to;
+  });
+  const neutral = palette.filter((c) => chroma(c.color) < 0.12);
+  const kitText = hex6(kit.colors.text);
+  const kitBg = hex6(kit.colors.background);
+  const darkText = neutral.filter((c) => c.text > 0).sort((a, b) => luminance(a.color) - luminance(b.color))[0];
+  const lightFill = neutral.filter((c) => c.fill > 0).sort((a, b) => luminance(b.color) - luminance(a.color))[0];
+  if (kitText && darkText && luminance(darkText.color) < 0.2) map[darkText.color] = kitText;
+  if (kitBg && lightFill && luminance(lightFill.color) > 0.6) map[lightFill.color] = kitBg;
+  // Legibility: the most used fill is what most text sits on.
+  const mainFill = [...palette].sort((a, b) => b.fill - a.fill)[0];
+  if (mainFill && mainFill.fill > 0) {
+    const ground = map[mainFill.color] ?? mainFill.color;
+    for (const c of palette) {
+      if (c.text === 0 || c === mainFill) continue;
+      const before = contrast(c.color, mainFill.color);
+      const after = contrast(map[c.color] ?? c.color, ground);
+      if (before >= 3 && after < 3) {
+        const options = [kitText, "#111111", "#ffffff"].filter((x): x is string => !!x);
+        map[c.color] = options.sort((a, b) => contrast(b, ground) - contrast(a, ground))[0]!;
+      }
+    }
+  }
+  for (const [k, v] of Object.entries(map)) if (k === v) delete map[k];
+  return Object.keys(map).length ? recolorHtml(template, map) : template;
+}
+

@@ -1,6 +1,7 @@
 /**
  * localizeProject: one translated variant of a project per language. It
- * finds every string a viewer sees (text clips, captions, html block text,
+ * finds every string a viewer sees (text clips, captions, html block text and
+ * the words written in html markup,
  * marker labels, the project name) and the narration script, translates
  * them in one batch, and returns the variant document plus the commands
  * that produce it. Re-voice the translated script with
@@ -8,6 +9,7 @@
  * to finish a language.
  */
 import { applyCommands, createProject, isCaptionClip, isHtmlClip, isTextClip, retimeWords, type ProjectDocument } from "@miraiclip/core";
+import { htmlTexts, setHtmlTexts, type HtmlText } from "@miraiclip/html-composition";
 import type { TranslateOptions, Translator } from "./translators.js";
 
 export interface Command {
@@ -18,10 +20,12 @@ export interface Command {
 export interface TextUnit {
   /** Stable key: what and where. */
   key: string;
-  kind: "text" | "caption" | "html-param" | "marker" | "project-name" | "script";
+  kind: "text" | "caption" | "html-param" | "html-text" | "marker" | "project-name" | "script";
   text: string;
   clipId?: string;
   param?: string;
+  /** For "html-text": where the words sit in the clip's markup (see `htmlTexts`). */
+  element?: { id: string; index: number };
   markerId?: string;
   segmentId?: string;
 }
@@ -29,6 +33,8 @@ export interface TextUnit {
 export interface CollectOptions {
   /** Which html params are viewer-facing text (default: string params that read like words; see `isTextParam`). */
   htmlParam?: (key: string, value: string, clipId: string) => boolean;
+  /** Translate the words written in html clips' markup (default true); params are always read. */
+  htmlText?: boolean;
   /** Translate marker labels (default true: they become chapter names). */
   markers?: boolean;
   /** Clips to leave alone (logos, code, names). */
@@ -62,6 +68,12 @@ export function collectText(doc: ProjectDocument, options: CollectOptions = {}):
         if (!(options.htmlParam ?? isTextParam)(param, value, clip.id)) continue;
         units.push({ key: `html:${clip.id}:${param}`, kind: "html-param", text: value, clipId: clip.id, param });
       }
+      // Words written in the markup itself (a whole design built in html), piece by piece.
+      if (options.htmlText !== false) {
+        for (const t of htmlTexts(clip.template).texts) {
+          units.push({ key: `htmltext:${clip.id}:${t.id}:${t.index}`, kind: "html-text", text: t.text, clipId: clip.id, element: { id: t.id, index: t.index } });
+        }
+      }
     }
   }
   if (options.markers !== false) {
@@ -76,6 +88,7 @@ export function collectText(doc: ProjectDocument, options: CollectOptions = {}):
 export function applyTextCommands(doc: ProjectDocument, units: readonly TextUnit[], translated: readonly string[]): Command[] {
   const commands: Command[] = [];
   const params = new Map<string, Record<string, string>>();
+  const markup = new Map<string, HtmlText[]>();
   units.forEach((u, i) => {
     const text = translated[i] ?? u.text;
     if (text === u.text) return;
@@ -90,10 +103,18 @@ export function applyTextCommands(doc: ProjectDocument, units: readonly TextUnit
       const p = params.get(u.clipId!) ?? {};
       p[u.param!] = text;
       params.set(u.clipId!, p);
+    } else if (u.kind === "html-text") {
+      const list = markup.get(u.clipId!) ?? [];
+      list.push({ ...u.element!, text });
+      markup.set(u.clipId!, list);
     } else if (u.kind === "marker") commands.push({ type: "marker/update", payload: { markerId: u.markerId!, label: text } });
     else if (u.kind === "project-name") commands.push({ type: "project/set-settings", payload: { name: text } });
   });
   for (const [clipId, p] of params) commands.push({ type: "clip/set-property", payload: { clipId, params: p } });
+  for (const [clipId, list] of markup) {
+    const clip = doc.clips[clipId];
+    if (clip && isHtmlClip(clip)) commands.push({ type: "clip/set-property", payload: { clipId, template: setHtmlTexts(clip.template, list) } });
+  }
   return commands;
 }
 
