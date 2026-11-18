@@ -572,4 +572,4 @@ export function planHtmlEdit(
 }
 
 /** @internal Shared with the other html-clip planners in this package (not exported from the index). */
-export const tree = { parse, serializeFragment, stamp, elements, childrenOf, idOf, RAW_TEXT };
+export const tree = { parse, serializeFragment, stamp, elements, childrenOf, idOf, RAW_TEXT, detach, insertAt, setAttr, allIds, formatStyle, serialize };

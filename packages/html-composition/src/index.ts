@@ -29,3 +29,5 @@ export type {
 } from "./edit.js";
 export { hexColor, htmlFonts, htmlPalette, htmlTexts, recolorHtml, refontHtml, setHtmlTexts } from "./content.js";
 export type { HtmlColor, HtmlFont, HtmlText } from "./content.js";
+export { mergeHtml } from "./merge.js";
+export type { MergeResult } from "./merge.js";
