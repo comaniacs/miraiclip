@@ -1,5 +1,12 @@
 # @miraiclip/localize
 
+## 0.2.1
+
+### Patch Changes
+
+- Updated dependencies [569100d]
+  - @miraiclip/html-composition@0.4.0
+
 ## 0.2.0
 
 ### Minor Changes
