@@ -36,4 +36,23 @@ const { template, removed } = cleanHtml(untrusted);
 
 Operations: `text`, `html` (inner markup), `replace` (outer), `style` (merge; `null` removes), `attr`, `insert`, `move`, `duplicate`, `remove`. A batch is all or nothing (`HtmlEditError` with a `code` and the failing `index`). Ids are stamped in document order, so an outline read from an unstamped template matches the ids the stored, stamped template gets. Inline `<svg>` is one element; its insides are edited with `html`.
 
+## Words, colours and type
+
+For translating and rebranding a design written in markup, without touching its layout:
+
+```ts
+import { htmlTexts, setHtmlTexts, htmlPalette, recolorHtml, htmlFonts, refontHtml } from "@miraiclip/html-composition";
+
+const { texts } = htmlTexts(template);            // [{ id: "e4", index: 0, text: "TOTAL:" }, …] (no numbers, params, svg or code)
+setHtmlTexts(template, [{ id: "e4", index: 0, text: "合計:" }]);
+
+htmlPalette(template);                            // [{ color: "#094a9f", text: 3, fill: 1, line: 1 }, …], most used first
+recolorHtml(template, { "#094a9f": "#0b1630" });  // everywhere, alpha kept
+
+htmlFonts(template);                              // [{ family: "Alfa Slab One", largestPx: 190, uses: 1 }, …]
+refontHtml(template, { "Alfa Slab One": "Fraunces" }); // fallbacks kept
+```
+
+`@miraiclip/localize` translates the words in html clips' markup with these, and `@miraiclip/brand` rebrands their colours and type.
+
 Docs: https://docs.miraiclip.com/

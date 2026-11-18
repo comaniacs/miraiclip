@@ -144,6 +144,9 @@ importers:
 
   packages/brand:
     dependencies:
+      '@miraiclip/html-composition':
+        specifier: workspace:^
+        version: link:../html-composition
       '@miraiclip/registry':
         specifier: workspace:^
         version: link:../registry
@@ -299,6 +302,10 @@ importers:
         version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jiti@2.7.0)(jsdom@25.0.1)(tsx@4.23.15)(yaml@2.9.0)
 
   packages/localize:
+    dependencies:
+      '@miraiclip/html-composition':
+        specifier: workspace:^
+        version: link:../html-composition
     devDependencies:
       '@miraiclip/core':
         specifier: workspace:^

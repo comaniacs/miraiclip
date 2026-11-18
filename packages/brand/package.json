@@ -47,6 +47,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@miraiclip/html-composition": "workspace:^",
     "@miraiclip/registry": "workspace:^",
     "zod": "^4.1.12"
   },

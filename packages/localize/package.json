@@ -46,7 +46,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@miraiclip/html-composition": "workspace:^"
+  },
   "devDependencies": {
     "@miraiclip/core": "workspace:^",
     "@types/node": "^22.20.1",
