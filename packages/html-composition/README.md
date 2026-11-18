@@ -55,4 +55,16 @@ refontHtml(template, { "Alfa Slab One": "Fraunces" }); // fallbacks kept
 
 `@miraiclip/localize` translates the words in html clips' markup with these, and `@miraiclip/brand` rebrands their colours and type.
 
+## Merging two edits of one clip
+
+Two people (or a person and an assistant) edit the same html clip from the same starting point:
+
+```ts
+import { mergeHtml } from "@miraiclip/html-composition";
+
+const { template, conflicts } = mergeHtml(base, mine, current); // mine replayed onto current
+```
+
+Element by element (by `data-mc` id): attributes, each inline style property, its own text, its place, whether it exists. Where both changed the same thing, `mine` wins and `conflicts` counts it; an element the other side removed stays removed; both sides' new elements are kept with distinct ids.
+
 Docs: https://docs.miraiclip.com/
