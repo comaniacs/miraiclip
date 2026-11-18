@@ -1,5 +1,12 @@
 # @miraiclip/brand
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies [569100d]
+  - @miraiclip/html-composition@0.4.0
+
 ## 0.3.0
 
 ### Minor Changes
