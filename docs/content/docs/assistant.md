@@ -121,7 +121,19 @@ openAIChatModel({
 });
 ```
 
-Chat Completions is also what many other servers speak, so the same adapter reaches Azure OpenAI, OpenRouter, Groq, vLLM, Ollama or LM Studio through `baseUrl`:
+OpenAI's reasoning models take function tools together with reasoning only on its **Responses API**; on Chat Completions they answer "Function tools with reasoning_effort are not supported". For OpenAI itself use `openAIResponsesModel` (the built-in `openai` provider does):
+
+```ts
+openAIResponsesModel({
+  apiKey,
+  model: "gpt-6.2-luna",
+  reasoningEffort: "medium", // for reasoning models; leave it out for gpt-4.1 and older
+});
+```
+
+It is stateless (`store: false`): the model's encrypted reasoning comes back with its tool calls and is handed back on the next request, so it keeps its train of thought through a run of tools. Page pictures returned by tools follow the tool outputs as one user message.
+
+Chat Completions is also what many other servers speak, so `openAIChatModel` reaches Azure OpenAI, OpenRouter, Groq, vLLM, Ollama or LM Studio through `baseUrl`:
 
 ```ts
 openAIChatModel({ id: "ollama", label: "Ollama", baseUrl: "http://localhost:11434/v1", model: "llama3.1" });

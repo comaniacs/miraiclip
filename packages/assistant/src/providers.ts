@@ -1,10 +1,10 @@
 /**
  * Every model provider the assistant can talk to, behind one factory.
  *
- * Three wire formats cover them all: OpenAI Chat Completions (OpenAI and the
- * many servers that copy it: OpenRouter, Groq, Mistral, DeepSeek, xAI,
- * Together, Ollama, LM Studio, your own), Anthropic Messages and Google
- * Gemini. `createChatModel({ provider, apiKey, model })` picks the adapter;
+ * Four wire formats cover them all: OpenAI Chat Completions (the many servers
+ * that copy it: OpenRouter, Groq, Mistral, DeepSeek, xAI, Together, Ollama,
+ * LM Studio, your own), OpenAI's own Responses API (its reasoning models take
+ * tools only there), Anthropic Messages and Google Gemini. `createChatModel({ provider, apiKey, model })` picks the adapter;
  * `chatModelsFromEnv` builds one for each provider whose key is set;
  * `routedChatModel` serves several behind one model, addressed as
  * "provider/model".
@@ -12,9 +12,11 @@
 import { anthropicChatModel } from "./anthropic.js";
 import { geminiChatModel } from "./gemini.js";
 import { openAIChatModel } from "./openai.js";
+import { openAIResponsesModel } from "./openai-responses.js";
 import { ChatModelError, defineChatModel, type ChatModel, type FetchLike, type ModelEntry } from "./types.js";
 
-export type ProviderApi = "openai" | "anthropic" | "gemini";
+/** `openai-responses`: OpenAI's own Responses API (reasoning models take tools only there). */
+export type ProviderApi = "openai" | "openai-responses" | "anthropic" | "gemini";
 
 export interface AiProviderInfo {
   /** Id used in configs, env names and "provider/model" references. */
@@ -51,7 +53,7 @@ export const AI_PROVIDERS: readonly AiProviderInfo[] = [
   {
     id: "openai",
     label: "OpenAI",
-    api: "openai",
+    api: "openai-responses",
     baseUrl: "https://api.openai.com/v1",
     needsKey: true,
     keyUrl: "https://platform.openai.com/api-keys",
@@ -201,6 +203,8 @@ export function createChatModel(options: CreateChatModelOptions): ChatModel {
       return anthropicChatModel({ ...common, ...(options.browser ? { browser: true } : {}) });
     case "gemini":
       return geminiChatModel(common);
+    case "openai-responses":
+      return openAIResponsesModel(common);
     case "openai":
       return openAIChatModel({
         ...common,
