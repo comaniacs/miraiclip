@@ -16,6 +16,8 @@ export { ChatModelError, defineChatModel } from "./types.js";
 
 export { openAIChatModel, toOpenAIMessages, parseToolArguments, retryDelayMs } from "./openai.js";
 export type { OpenAIChatModelOptions } from "./openai.js";
+export { openAIResponsesModel, toResponsesInput, fromResponse } from "./openai-responses.js";
+export type { OpenAIResponsesModelOptions, OpenAIReasoningEffort } from "./openai-responses.js";
 export { anthropicChatModel, toAnthropicMessages } from "./anthropic.js";
 export type { AnthropicChatModelOptions } from "./anthropic.js";
 export { geminiChatModel, toGeminiContents } from "./gemini.js";
