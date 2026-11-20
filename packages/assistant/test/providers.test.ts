@@ -105,11 +105,14 @@ describe("anthropicChatModel", () => {
     );
     const model = anthropicChatModel({ apiKey: "sk-ant", model: "claude-test", fetch, params: { thinking: { type: "enabled", budget_tokens: 2000 } } });
     const deltas: string[] = [];
+    const thoughts: string[] = [];
     const res = await model.complete(
       { messages: conversation.slice(0, 2), tools: [{ name: "animate_clip", description: "d", inputSchema: { type: "object" } }] },
-      { onText: (d) => deltas.push(d) },
+      { onText: (d) => deltas.push(d), onReasoning: (d) => thoughts.push(d) },
     );
     expect(deltas).toEqual(["On ", "it"]);
+    // The thinking streams to onReasoning (and is still kept for the next request).
+    expect(thoughts).toEqual(["Hmm"]);
     expect(res).toEqual({
       content: "On it",
       toolCalls: [{ id: "toolu_1", name: "animate_clip", arguments: { clipId: "t1" }, meta: { anthropicThinking: [{ type: "thinking", thinking: "Hmm", signature: "sig" }] } }],

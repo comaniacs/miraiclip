@@ -183,7 +183,7 @@ export function anthropicChatModel(options: AnthropicChatModelOptions): ChatMode
         if (out.content) opts.onText?.(out.content);
         return out;
       }
-      return readStream(id, res.body!, opts.onText);
+      return readStream(id, res.body!, opts.onText, opts.onReasoning);
     },
   });
 }
@@ -199,7 +199,12 @@ interface StreamEvent {
 }
 
 /** Message stream events → one response; text deltas go to `onText`, tool input JSON is joined per block. */
-async function readStream(id: string, body: ReadableStream<Uint8Array>, onText?: (delta: string) => void): Promise<ChatResponse> {
+async function readStream(
+  id: string,
+  body: ReadableStream<Uint8Array>,
+  onText?: (delta: string) => void,
+  onReasoning?: (delta: string) => void,
+): Promise<ChatResponse> {
   const blocks = new Map<number, { type: string; id?: string; name?: string; text: string; json: string; signature: string; data?: string }>();
   let model: string | undefined;
   let stopReason: string | undefined;
@@ -240,7 +245,10 @@ async function readStream(id: string, body: ReadableStream<Uint8Array>, onText?:
           block.text += d.text;
           onText?.(d.text);
         } else if (d.type === "input_json_delta" && d.partial_json) block.json += d.partial_json;
-        else if (d.type === "thinking_delta" && d.thinking) block.text += d.thinking;
+        else if (d.type === "thinking_delta" && d.thinking) {
+          block.text += d.thinking;
+          onReasoning?.(d.thinking);
+        }
         else if (d.type === "signature_delta" && d.signature) block.signature += d.signature;
         break;
       }

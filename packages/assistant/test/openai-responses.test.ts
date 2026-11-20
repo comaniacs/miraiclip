@@ -161,3 +161,43 @@ describe("openAIResponsesModel", () => {
     expect(sent[0]!.url).toBe("https://api.openai.com/v1/responses");
   });
 });
+
+describe("reasoning summaries", () => {
+  it("asks for summaries with reasoning on and streams them to onReasoning, a paragraph per part", async () => {
+    const { sent, fetch } = capture(() =>
+      sse([
+        { type: "response.reasoning_summary_part.added" },
+        { type: "response.reasoning_summary_text.delta", delta: "Planning the " },
+        { type: "response.reasoning_summary_text.delta", delta: "layout." },
+        { type: "response.reasoning_summary_part.added" },
+        { type: "response.reasoning_summary_text.delta", delta: "Checking contrast." },
+        { type: "response.completed", response: { status: "completed", output: [messageItem] } },
+      ]),
+    );
+    const thoughts: string[] = [];
+    await openAIResponsesModel({ model: "m", reasoningEffort: "medium", fetch }).complete({ messages: [] }, { onReasoning: (d) => thoughts.push(d) });
+    expect(sent[0]!.body.reasoning).toEqual({ effort: "medium", summary: "auto" });
+    expect(thoughts.join("")).toBe("Planning the layout.\n\nChecking contrast.");
+  });
+
+  it("an account that can't have summaries is answered without them, and not asked again", async () => {
+    const bodies: Record<string, unknown>[] = [];
+    const fetch: FetchLike = async (_url, init) => {
+      const body = JSON.parse(String(init!.body));
+      bodies.push(body);
+      if (body.reasoning?.summary) return Response.json({ error: { message: "Your organization must be verified to generate reasoning summaries." } }, { status: 400 });
+      return Response.json({ status: "completed", output: [messageItem] });
+    };
+    const model = openAIResponsesModel({ model: "m", reasoningEffort: "high", fetch, stream: false });
+    expect((await model.complete({ messages: [] })).content).toBe("Hello");
+    await model.complete({ messages: [] });
+    expect(bodies.map((b) => b.reasoning)).toEqual([{ effort: "high", summary: "auto" }, { effort: "high" }, { effort: "high" }]);
+  });
+
+  it("no summaries when switched off or without reasoning", async () => {
+    const { sent, fetch } = capture(() => Response.json({ status: "completed", output: [messageItem] }));
+    await openAIResponsesModel({ model: "m", reasoningEffort: "low", reasoningSummary: false, fetch, stream: false }).complete({ messages: [] });
+    expect(sent[0]!.body.reasoning).toEqual({ effort: "low" });
+  });
+});
+
