@@ -47,6 +47,12 @@ export interface OpenAIResponsesModelOptions {
    * refuse both the setting and the reasoning they'd be handed back).
    */
   reasoningEffort?: OpenAIReasoningEffort;
+  /**
+   * With reasoning on, also ask for summaries of it, streamed to `onReasoning` ("auto",
+   * default). `false` asks for none. An account that may not have them (OpenAI asks some
+   * organizations to verify first) is answered without them, and isn't asked again.
+   */
+  reasoningSummary?: "auto" | "concise" | "detailed" | false;
   /** Default request fields merged into every call (e.g. `{ text: { verbosity: "low" } }`). */
   params?: Record<string, unknown>;
   /** Stream responses (default true). */
@@ -144,6 +150,7 @@ export function openAIResponsesModel(options: OpenAIResponsesModelOptions): Chat
   const doFetch = options.fetch ?? defaultFetch();
   const stream = options.stream ?? true;
   const models = modelList(options.model, options.models);
+  let summaries = options.reasoningSummary ?? "auto";
 
   const headers = (): Record<string, string> => {
     const h: Record<string, string> = { "Content-Type": "application/json", ...options.headers };
@@ -172,7 +179,14 @@ export function openAIResponsesModel(options: OpenAIResponsesModelOptions): Chat
           ? { tools: request.tools.map((t) => ({ type: "function", name: t.name, description: t.description, parameters: t.inputSchema, strict: false })) }
           : {}),
         ...(request.maxOutputTokens ? { max_output_tokens: request.maxOutputTokens } : {}),
-        ...(options.reasoningEffort ? { reasoning: { effort: options.reasoningEffort } } : {}),
+        ...(options.reasoningEffort
+          ? {
+              reasoning: {
+                effort: options.reasoningEffort,
+                ...(reasons && summaries ? { summary: summaries } : {}),
+              },
+            }
+          : {}),
         // Stateless: nothing kept at OpenAI; the reasoning comes back to us, encrypted.
         store: false,
         ...(reasons ? { include: ["reasoning.encrypted_content"] } : {}),
@@ -180,21 +194,47 @@ export function openAIResponsesModel(options: OpenAIResponsesModelOptions): Chat
         ...options.params,
         ...request.params,
       };
-      const res = await sendWithRetry(
-        id,
-        doFetch,
-        `${base}/responses`,
-        { method: "POST", headers: headers(), body: JSON.stringify(body) },
-        { ...(options.maxRetries !== undefined ? { maxRetries: options.maxRetries } : {}), ...(opts.signal ? { signal: opts.signal } : {}) },
-      );
+      const send = () =>
+        sendWithRetry(
+          id,
+          doFetch,
+          `${base}/responses`,
+          { method: "POST", headers: headers(), body: JSON.stringify(body) },
+          { ...(options.maxRetries !== undefined ? { maxRetries: options.maxRetries } : {}), ...(opts.signal ? { signal: opts.signal } : {}) },
+        );
+      let res: Response;
+      try {
+        res = await send();
+      } catch (err) {
+        // An organization that may not have reasoning summaries: answer without them, from now on.
+        const reasoning = body.reasoning as { summary?: unknown } | undefined;
+        if (!(err instanceof ChatModelError) || err.status !== 400 || !reasoning?.summary || !/summar|verif/i.test(err.message)) throw err;
+        summaries = false;
+        const { summary: _s, ...rest } = reasoning;
+        body.reasoning = rest;
+        res = await send();
+      }
       if (!stream || !isEventStream(res)) {
-        const out = fromResponse(id, (await res.json()) as ResponseJson);
+        const json = (await res.json()) as ResponseJson;
+        const thought = summaryText(json.output ?? []);
+        if (thought) opts.onReasoning?.(thought);
+        const out = fromResponse(id, json);
         if (out.content) opts.onText?.(out.content);
         return out;
       }
-      return readStream(id, res.body!, opts.onText);
+      return readStream(id, res.body!, opts.onText, opts.onReasoning);
     },
   });
+}
+
+/** The reasoning summaries in a response's output, one paragraph per part. */
+function summaryText(items: readonly OutputItem[]): string {
+  return items
+    .filter((i) => i.type === "reasoning")
+    .flatMap((i) => (i.summary ?? []) as { type?: string; text?: string }[])
+    .map((p) => p.text ?? "")
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 interface ResponseJson {
@@ -267,7 +307,13 @@ interface StreamEvent {
  * `response.completed` (or `.incomplete` / `.failed`) carries the whole output.
  * Items finished along the way are kept in case that final event leaves it out.
  */
-async function readStream(provider: string, body: ReadableStream<Uint8Array>, onText?: (delta: string) => void): Promise<ChatResponse> {
+async function readStream(
+  provider: string,
+  body: ReadableStream<Uint8Array>,
+  onText?: (delta: string) => void,
+  onReasoning?: (delta: string) => void,
+): Promise<ChatResponse> {
+  let parts = 0;
   let final: ResponseJson | undefined;
   let failure: string | undefined;
   const items: OutputItem[] = [];
@@ -282,6 +328,13 @@ async function readStream(provider: string, body: ReadableStream<Uint8Array>, on
     switch (ev.type) {
       case "response.output_text.delta":
         if (ev.delta) onText?.(ev.delta);
+        break;
+      case "response.reasoning_summary_part.added":
+        // A new paragraph of the summary.
+        if (parts++ > 0) onReasoning?.("\n\n");
+        break;
+      case "response.reasoning_summary_text.delta":
+        if (ev.delta) onReasoning?.(ev.delta);
         break;
       case "response.output_item.done":
         if (ev.item) items.push(ev.item);

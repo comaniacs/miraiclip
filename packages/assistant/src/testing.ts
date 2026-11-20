@@ -4,6 +4,8 @@ export type ScriptStep =
   | string
   | {
       text?: string;
+      /** Reasoning streamed before the reply (`onReasoning`). */
+      reasoning?: string;
       toolCalls?: (Omit<ToolCall, "id"> & { id?: string })[];
       /** Override how the reply ended (e.g. "length" for one cut off by the output limit). */
       finish?: ChatResponse["finish"];
@@ -21,12 +23,16 @@ export function scriptedChatModel(steps: ScriptStep[], options: { id?: string } 
   const model = defineChatModel({
     id: options.id ?? "scripted",
     label: "Scripted model",
-    async complete(request: ChatRequest, opts: { onText?: (delta: string) => void } = {}): Promise<ChatResponse> {
+    async complete(
+      request: ChatRequest,
+      opts: { onText?: (delta: string) => void; onReasoning?: (delta: string) => void } = {},
+    ): Promise<ChatResponse> {
       requests.push(structuredClone(request));
       let step: ScriptStep = steps[Math.min(i, steps.length - 1)] ?? "Done.";
       while (typeof step === "function") step = step(request, i);
       i++;
       const s: Exclude<ScriptStep, string | ((...a: never[]) => unknown)> = typeof step === "string" ? { text: step } : step;
+      if (s.reasoning) opts.onReasoning?.(s.reasoning);
       if (s.text) opts.onText?.(s.text);
       const toolCalls = (s.toolCalls ?? []).map((c, n) => ({ id: c.id ?? `call_${i}_${n}`, name: c.name, arguments: c.arguments }));
       return { content: s.text ?? "", toolCalls, finish: s.finish ?? (toolCalls.length ? "tool_calls" : "stop"), usage: { inputTokens: 10, outputTokens: 5 } };

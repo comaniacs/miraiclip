@@ -131,7 +131,7 @@ openAIResponsesModel({
 });
 ```
 
-It is stateless (`store: false`): the model's encrypted reasoning comes back with its tool calls and is handed back on the next request, so it keeps its train of thought through a run of tools. Page pictures returned by tools follow the tool outputs as one user message.
+With reasoning on it also asks for **reasoning summaries** (`reasoningSummary`, default `"auto"`) and streams them to `onReasoning`; an account that may not have them is answered without. It is stateless (`store: false`): the model's encrypted reasoning comes back with its tool calls and is handed back on the next request, so it keeps its train of thought through a run of tools. Page pictures returned by tools follow the tool outputs as one user message.
 
 Chat Completions is also what many other servers speak, so `openAIChatModel` reaches Azure OpenAI, OpenRouter, Groq, vLLM, Ollama or LM Studio through `baseUrl`:
 

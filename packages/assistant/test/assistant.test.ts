@@ -316,6 +316,23 @@ describe("openAIChatModel", () => {
 });
 
 describe("server handler + remote model", () => {
+  it("passes the model's reasoning through (NDJSON 'reasoning' events) to the loop's events, with each tool's result", async () => {
+    const server = scriptedChatModel([
+      { reasoning: "The user wants a track.", toolCalls: [{ name: "get_state", arguments: {} }] },
+      { reasoning: "Done thinking.", text: "Looked." },
+    ]);
+    const handle = createChatHandler(server, { basePath: "/api/assistant" });
+    const browserFetch: FetchLike = async (url, init) => (await handle(new Request(new URL(url, "http://app.local"), init))) ?? new Response("nope", { status: 404 });
+    const remote = await remoteChatModel("/api/assistant", { fetch: browserFetch });
+    const events: { type: string; delta?: string; index?: number; result?: unknown }[] = [];
+    await createAssistant({ model: remote }).run(demo(), "look", { onEvent: (e) => events.push(e as never) });
+    expect(events.filter((e) => e.type === "reasoning").map((e) => [e.index, e.delta])).toEqual([
+      [0, "The user wants a track."],
+      [1, "Done thinking."],
+    ]);
+    expect(events.find((e) => e.type === "tool-end")?.result).toBeDefined();
+  });
+
   it("streams through the backend; the browser never sees the key", async () => {
     let seenAuth = "";
     const upstream: FetchLike = async (_url, init) => {

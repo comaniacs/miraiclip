@@ -180,7 +180,11 @@ export function createChatHandler(model: ChatModel | null, options: ChatHandlerO
       async start(controller) {
         const send = (value: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`));
         try {
-          const response = await target.complete(chat, { signal: request.signal, onText: (delta) => send({ type: "text", delta }) });
+          const response = await target.complete(chat, {
+            signal: request.signal,
+            onText: (delta) => send({ type: "text", delta }),
+            onReasoning: (delta) => send({ type: "reasoning", delta }),
+          });
           send({ type: "done", response });
         } catch (err) {
           const status = (err as { status?: number })?.status;
@@ -273,6 +277,7 @@ export async function remoteChatModel(endpoint: string, options: RemoteChatModel
         if (!line.trim()) return;
         const event = JSON.parse(line) as { type: string; delta?: string; response?: ChatResponse; error?: string; status?: number };
         if (event.type === "text" && event.delta) opts.onText?.(event.delta);
+        else if (event.type === "reasoning" && event.delta) opts.onReasoning?.(event.delta);
         else if (event.type === "done") final = event.response;
         else if (event.type === "error") throw new ChatModelError(id, event.error ?? "failed", event.status);
       };

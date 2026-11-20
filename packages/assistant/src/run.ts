@@ -36,6 +36,8 @@ export interface AssistantOptions {
 
 export type AssistantEvent =
   | { type: "text"; delta: string }
+  /** The model's reasoning as it streams (adapters that expose it: Claude thinking, OpenAI summaries). */
+  | { type: "reasoning"; delta: string; index: number }
   | { type: "tool-start"; call: ToolCall }
   | {
       type: "tool-end";
@@ -43,6 +45,8 @@ export type AssistantEvent =
       ok: boolean;
       changes?: string[];
       error?: string;
+      /** What the tool returned (as the model sees it), for apps that show a step's result. */
+      result?: unknown;
       /** Images the tool returned (previews, storyboards) — the model sees them too; apps may show them. */
       images?: ChatImage[];
     }
@@ -194,7 +198,11 @@ export function createAssistant(options: AssistantOptions): Assistant {
             ...(options.maxOutputTokens ? { maxOutputTokens: options.maxOutputTokens } : {}),
             ...(options.params ? { params: options.params } : {}),
           };
-          const callOptions = { ...(turn.signal ? { signal: turn.signal } : {}), onText: (delta: string) => emit({ type: "text", delta }) };
+          const callOptions = {
+            ...(turn.signal ? { signal: turn.signal } : {}),
+            onText: (delta: string) => emit({ type: "text", delta }),
+            onReasoning: (delta: string) => emit({ type: "reasoning", delta, index: step }),
+          };
           let response: ChatResponse;
           try {
             response = await options.model.complete(request, callOptions);
@@ -232,6 +240,7 @@ export function createAssistant(options: AssistantOptions): Assistant {
               call,
               ok: out.ok,
               ...(out.ok && out.changes?.length ? { changes: out.changes } : {}),
+              ...(out.ok && out.result !== undefined ? { result: out.result } : {}),
               ...(!out.ok ? { error: short(out.error) } : {}),
               ...(out.ok && out.images?.length ? { images: out.images.slice(0, MAX_IMAGES_PER_RESULT) } : {}),
             });

@@ -66,6 +66,11 @@ export interface ChatOptions {
   signal?: AbortSignal;
   /** Streaming text, as it arrives (adapters that can't stream call it once). */
   onText?: (delta: string) => void;
+  /**
+   * The model's reasoning as it streams, for apps that show "what it's thinking" (Claude's
+   * thinking, OpenAI's reasoning summaries). Adapters that have none never call it.
+   */
+  onReasoning?: (delta: string) => void;
 }
 
 export interface ModelEntry {
